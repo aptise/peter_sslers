@@ -1,5 +1,6 @@
 # stdlib
 import datetime
+import hashlib
 import logging
 import os
 import typing
@@ -620,18 +621,20 @@ def _AcmeV2_AcmeOrder__process_authorizations(
     return _task_finalize_order
 
 
-def handle_AcmeAccount_Updates(
+def handle_AcmeAccount_directory_updates(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
     authenticatedUser: "acme_v2.AuthenticatedUser",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> bool:
     # update based off the ACME service
     # the server's TOS should take precedence
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
     acme_tos = authenticatedUser.acme_directory["meta"]["termsOfService"].strip()
     if acme_tos:
         if acme_tos != dbAcmeAccount.terms_of_service:
             updated = update_AcmeAccount__terms_of_service(ctx, dbAcmeAccount, acme_tos)
-
             if updated:
                 event_payload_dict = lib_utils.new_event_payload_dict()
                 event_payload_dict["acme_account.id"] = dbAcmeAccount.id
@@ -642,7 +645,7 @@ def handle_AcmeAccount_Updates(
                     ),
                     event_payload_dict,
                 )
-
+                ctx.pyramid_transaction_commit()
             return updated
     return False
 
@@ -651,7 +654,10 @@ def handle_AcmeAccount_AcmeServer_url_change(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
     authenticatedUser: "AuthenticatedUser",
-) -> None:
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Optional[Literal[True]]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
     assert authenticatedUser._api_account_headers
     acme_account_url = authenticatedUser._api_account_headers["Location"]
     if acme_account_url != dbAcmeAccount.account_url:
@@ -674,7 +680,11 @@ def handle_AcmeAccount_AcmeServer_url_change(
 
         # this is now safe to set
         dbAcmeAccount.account_url = acme_account_url
+        account_url_sha256 = hashlib.sha256(acme_account_url.encode()).hexdigest()
+        dbAcmeAccount.account_url_sha256 = account_url_sha256
         ctx.dbSession.add(dbAcmeAccount)
+        ctx.pyramid_transaction_commit()
+        return True
     return None
 
 
@@ -807,14 +817,20 @@ def do__AcmeV2_AcmeAccount__authenticate(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
-        func_account_updates=handle_AcmeAccount_Updates,
+        func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+        acknowledge_transaction_commits=transaction_commit,
     )
     authenticatedUser.authenticate(
         ctx,
         onlyReturnExisting=onlyReturnExisting,
         transaction_commit=transaction_commit,
     )
-    handle_AcmeAccount_AcmeServer_url_change(ctx, dbAcmeAccount, authenticatedUser)
+    handle_AcmeAccount_AcmeServer_url_change(
+        ctx,
+        dbAcmeAccount,
+        authenticatedUser,
+        acknowledge_transaction_commits=transaction_commit,
+    )
     return authenticatedUser
 
 
@@ -852,7 +868,8 @@ def do__AcmeV2_AcmeAccount__deactivate(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
-        func_account_updates=handle_AcmeAccount_Updates,
+        func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+        acknowledge_transaction_commits=transaction_commit,
     )
     authenticatedUser.authenticate(ctx, transaction_commit=transaction_commit)
     is_did_deactivate = authenticatedUser.deactivate(
@@ -974,14 +991,14 @@ def do__AcmeV2_AcmeAccount__key_change(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
-        func_account_updates=handle_AcmeAccount_Updates,
+        func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+        acknowledge_transaction_commits=transaction_commit,
     )
     authenticatedUser.authenticate(ctx, transaction_commit=transaction_commit)
     is_did_keychange = authenticatedUser.key_change(
         ctx, dbAcmeAccountKey_new, transaction_commit=transaction_commit
     )
     ctx.pyramid_transaction_commit()
-
     return authenticatedUser, is_did_keychange
 
 
@@ -1016,12 +1033,18 @@ def do__AcmeV2_AcmeAccount_register(
             acmeLogger=acmeLogger,
             acmeAccount=dbAcmeAccount,
             log__OperationsEvent=log__OperationsEvent,
-            func_account_updates=handle_AcmeAccount_Updates,
+            func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+            acknowledge_transaction_commits=transaction_commit,
         )
         authenticatedUser.authenticate(
             ctx, contact=dbAcmeAccount.contact, transaction_commit=transaction_commit
         )
-        handle_AcmeAccount_AcmeServer_url_change(ctx, dbAcmeAccount, authenticatedUser)
+        handle_AcmeAccount_AcmeServer_url_change(
+            ctx,
+            dbAcmeAccount,
+            authenticatedUser,
+            acknowledge_transaction_commits=transaction_commit,
+        )
         return authenticatedUser
     except Exception as exc:  # noqa: F841
         raise

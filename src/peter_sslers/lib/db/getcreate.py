@@ -1,5 +1,6 @@
 # stdlib
 import datetime
+import hashlib
 import json
 import logging
 from typing import Dict
@@ -363,11 +364,16 @@ def getcreate__AcmeAccount(
     total_accounts = get__AcmeAccount__count(ctx)
     is_render_in_selects = True if total_accounts < 12 else False
 
+    account_url_sha256 = None
+    if account_url:
+        account_url_sha256 = hashlib.sha256(account_url.encode()).hexdigest()
+
     # first, create the AcmeAccount
     dbAcmeAccount = model_objects.AcmeAccount()
     dbAcmeAccount.timestamp_created = ctx.timestamp
     dbAcmeAccount.contact = contact
     dbAcmeAccount.account_url = account_url
+    dbAcmeAccount.account_url_sha256 = account_url_sha256
     dbAcmeAccount.acme_server_id = acme_server_id
     dbAcmeAccount.private_key_technology_id = private_key_technology_id
     dbAcmeAccount.order_default_private_key_cycle_id = (

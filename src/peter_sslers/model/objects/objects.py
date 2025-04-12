@@ -73,6 +73,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     account_url: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=True
     )
+    account_url_sha256: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True, unique=True
+    )
     count_acme_orders: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )
@@ -292,18 +295,19 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
                 self.acme_account_key.as_json if self.acme_account_key else None
             ),
             # - -
-            "is_active": True if self.is_active else False,
-            "is_deactivated": self.timestamp_deactivated or False,
+            "account_url_sha256": self.account_url_sha256,
+            "account_url": self.account_url,
             "acme_server_id": self.acme_server_id,
             "acme_server_name": self.acme_server.name,
-            "acme_server_url": self.acme_server.url,
             "acme_server_protocol": self.acme_server.protocol,
-            "private_key_technology": self.private_key_technology,
+            "acme_server_url": self.acme_server.url,
+            "contact": self.contact,
+            "is_active": True if self.is_active else False,
+            "is_deactivated": self.timestamp_deactivated or False,
+            "name": self.name,
             "order_default_private_key_cycle": self.order_default_private_key_cycle,
             "order_default_private_key_technology": self.order_default_private_key_technology,
-            "contact": self.contact,
-            "account_url": self.account_url,
-            "name": self.name,
+            "private_key_technology": self.private_key_technology,
             "terms_of_service": self.terms_of_service,
         }
 
@@ -320,6 +324,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         rval = {
             "id": self.id,
             "account_url": self.account_url,
+            "account_url_sha256": self.account_url_sha256,
         }
         rval["AcmeAccountKey"] = (
             self.acme_account_key.as_json_minimal if self.acme_account_key else None

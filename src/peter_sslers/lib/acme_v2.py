@@ -28,6 +28,7 @@ from cert_utils.model import AccountKeyData
 import josepy
 import requests
 from requests.utils import parse_header_links
+from typing_extensions import Literal
 from typing_extensions import NotRequired
 from typing_extensions import TypedDict
 from urllib3.util.ssl_ import create_urllib3_context
@@ -535,7 +536,8 @@ class AuthenticatedUser(object):
         acmeAccount: "AcmeAccount",
         acme_directory: Optional[Dict] = None,
         log__OperationsEvent: Optional[Callable] = None,
-        func_account_updates: Optional[Callable] = None,
+        func_acmeAccount_directory_updates: Optional[Callable] = None,
+        acknowledge_transaction_commits: Optional[Literal[True]] = None,
     ):
         """
         :param acmeLogger: (required) A :class:`.logger.AcmeLogger` instance
@@ -544,15 +546,26 @@ class AuthenticatedUser(object):
             be generated.
         :param log__OperationsEvent: (required) callable function to log the operations event
         """
+        if not acknowledge_transaction_commits:
+            raise errors.AcknowledgeTransactionCommitRequired()
         self.ctx = ctx
         if not all((acmeLogger, acmeAccount)):
             raise ValueError("all elements are required: (acmeLogger, acmeAccount)")
 
         if acme_directory is None:
-            acme_directory = acme_directory_get(self.ctx, acmeAccount)
+            self.acme_directory = acme_directory_get(self.ctx, acmeAccount)
             db_update.update_AcmeServer_directory(
                 ctx, acmeAccount.acme_server, acme_directory
             )
+            if func_acmeAccount_directory_updates:
+                func_acmeAccount_directory_updates(
+                    ctx,
+                    acmeAccount,
+                    self,
+                    acknowledge_transaction_commits=acknowledge_transaction_commits,
+                )
+        else:
+            self.acme_directory = acme_directory
 
         # parse account key to get public key
         self.accountKeyData = AccountKeyData(
@@ -562,14 +575,10 @@ class AuthenticatedUser(object):
         # configure the object!
         self.acmeLogger = acmeLogger
         self.acmeAccount = acmeAccount
-        self.acme_directory = acme_directory
         self.log__OperationsEvent = log__OperationsEvent
         self._next_nonce = None
         if acmeAccount.acme_server and acmeAccount.acme_server.is_supports_ari:
             self.supports_ari = True
-
-        if func_account_updates:
-            func_account_updates(ctx, acmeAccount, self)
 
     def _send_signed_request(
         self,

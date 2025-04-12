@@ -1,6 +1,7 @@
 # stdlib
 import datetime
 from functools import wraps
+import hashlib
 from io import BufferedWriter
 from io import open  # overwrite `open` in Python2
 import logging
@@ -455,6 +456,10 @@ def archive_pebble_data(pebble_ports: Tuple[int, int]):
                 )
                 account_url = _dbAcmeAccount.account_url
                 _dbAcmeAccount.account_url = "%s@%s" % (account_url, uuid.uuid4())
+                _dbAcmeAccount.account_url_sha256 = hashlib.sha256(
+                    _dbAcmeAccount.account_url.encode()
+                ).hexdigest()
+
                 ctx.dbSession.flush(
                     objects=[
                         _dbAcmeAccount,

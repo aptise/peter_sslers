@@ -55,12 +55,15 @@ def update_AcmeAccount_from_new_duplicate(
 
         # stash & clear the account_url
         account_url = dbAcmeAccountDuplicate.account_url
+        account_url_sha256 = dbAcmeAccountDuplicate.account_url
         dbAcmeAccountDuplicate.account_url = None
+        dbAcmeAccountDuplicate.account_url_sha256 = None
         ctx.dbSession.flush([dbAcmeAccountDuplicate])
 
         # Transfer the Account fields:
         # PART-1 this will fail; see part 2
         dbAcmeAccountTarget.account_url = account_url
+        dbAcmeAccountTarget.account_url_sha256 = account_url_sha256
         dbAcmeAccountTarget.terms_of_service = dbAcmeAccountDuplicate.terms_of_service
         ctx.dbSession.flush([dbAcmeAccountTarget])
         # # PART-2 the above was descoped onto this:

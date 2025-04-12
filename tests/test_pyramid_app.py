@@ -1,4 +1,5 @@
 # stdlib
+import hashlib
 from io import BytesIO  # noqa: F401
 from io import StringIO  # noqa: F401
 import json
@@ -2795,6 +2796,7 @@ class FunctionalTests_AcmeOrder(AppTest):
                 "account_key_global_backup": "account_key_global_backup",
                 "account_key_existing": "account_key_existing_backup",
                 "acme_account_id": "acme_account_id_backup",
+                "acme_account_url": "acme_account_url_backup",
             }
             _backup_field = _backup_translate[account_key_option_backup]
 
@@ -2845,7 +2847,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
-        # note: via account_key_existing.pem_md5
+        # note: via account_key_existing [acme_account.acme_account_key.key_pem_md5]
         domain_names_2 = generate_random_domain(testCase=self)
         dbAcmeOrder2 = _make_one_base(
             domain_names_http01=domain_names_2,
@@ -2856,7 +2858,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
-        # note: via account_key_existing.pem_md5
+        # note: via acme_account_id [acme_account.id]
         domain_names_3 = generate_random_domain(testCase=self)
         dbAcmeOrder3 = _make_one_base(
             domain_names_http01=domain_names_3,
@@ -2864,6 +2866,29 @@ class FunctionalTests_AcmeOrder(AppTest):
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.id,
             account_key_option_backup="acme_account_id",
             account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.id,
+            processing_strategy="create_order",
+        )
+
+        # Refresh the dbSystemConfiguration_global
+        # The AcmeAccount was created during the boostraped setup process, without Pebble, from PEM files.
+        # consequently, it did not have an initial authentication, which would
+        # have ensured it is on the server and also populated the
+        # `AcmeAccount.account_url` field on the object.
+        # this field should have been populated by the tests above if needed,
+        # but that  would now be reflected on this object, because it is stale
+        # refreshing this should ensure we load a field
+        self.ctx.dbSession.refresh(dbSystemConfiguration_global)
+
+        # note: via acme_account_url [acme_account.account_url]
+        domain_names_4 = generate_random_domain(testCase=self)
+        dbAcmeOrder4 = _make_one_base(
+            domain_names_http01=domain_names_4,
+            account_key_option="acme_account_url",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url
+            or "",
+            account_key_option_backup="acme_account_url",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.account_url
+            or "",
             processing_strategy="create_order",
         )
 
@@ -2878,7 +2903,6 @@ class FunctionalTests_AcmeOrder(AppTest):
         This only tests creating the AcmeOrder, not processing it
         """
 
-        # note: _make_one_base
         def _make_one_base(
             domain_names_http01: str,
             account_key_option: str,
@@ -2896,6 +2920,7 @@ class FunctionalTests_AcmeOrder(AppTest):
                 "account_key_global_backup": "account_key_global_backup",
                 "account_key_existing": "account_key_existing_backup",
                 "acme_account_id": "acme_account_id_backup",
+                "acme_account_url": "acme_account_url_backup",
             }
             _backup_field = _backup_translate[account_key_option_backup]
 
@@ -2940,7 +2965,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
-        # note: via account_key_existing.pem_md5
+        # note: via account_key_existing [acme_account.acme_account_key.key_pem_md5]
         domain_names_2 = generate_random_domain(testCase=self)
         dbAcmeOrder2 = _make_one_base(
             domain_names_http01=domain_names_2,
@@ -2951,7 +2976,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
-        # note: via account_key_existing.pem_md5
+        # note: via acme_account_id [acme_account.id]
         domain_names_3 = generate_random_domain(testCase=self)
         dbAcmeOrder3 = _make_one_base(
             domain_names_http01=domain_names_3,
@@ -2959,6 +2984,29 @@ class FunctionalTests_AcmeOrder(AppTest):
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.id,
             account_key_option_backup="acme_account_id",
             account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.id,
+            processing_strategy="create_order",
+        )
+
+        # Refresh the dbSystemConfiguration_global
+        # The AcmeAccount was created during the boostraped setup process, without Pebble, from PEM files.
+        # consequently, it did not have an initial authentication, which would
+        # have ensured it is on the server and also populated the
+        # `AcmeAccount.account_url` field on the object.
+        # this field should have been populated by the tests above if needed,
+        # but that  would now be reflected on this object, because it is stale
+        # refreshing this should ensure we load a field
+        self.ctx.dbSession.refresh(dbSystemConfiguration_global)
+
+        # note: via acme_account_url [acme_account.account_url]
+        domain_names_4 = generate_random_domain(testCase=self)
+        dbAcmeOrder4 = _make_one_base(
+            domain_names_http01=domain_names_4,
+            account_key_option="acme_account_url",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url
+            or "",
+            account_key_option_backup="acme_account_url",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.account_url
+            or "",
             processing_strategy="create_order",
         )
 
@@ -12446,6 +12494,9 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
 
         # alter the database
         dbAcmeAccount.account_url = _account_url_altered
+        dbAcmeAccount.account_url_sha256 = hashlib.sha256(
+            _account_url_altered.encode()
+        ).hexdigest()
         self.ctx.dbSession.flush(
             objects=[
                 dbAcmeAccount,
