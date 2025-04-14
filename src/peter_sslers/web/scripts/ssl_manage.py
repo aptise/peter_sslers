@@ -3,6 +3,9 @@ import os
 import pprint
 import sys
 from typing import Callable
+from typing import Dict
+from typing import List
+from typing import NoReturn
 from typing import Optional
 from typing import TYPE_CHECKING
 
@@ -18,7 +21,10 @@ from ..lib import formhandling
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeDnsServer_new
 from ..lib.forms import Form_RenewalConfig_new
+from ..lib.forms import Form_RenewalConfig_new_configuration
 from ..lib.forms import Form_RenewalConfig_new_enrollment
+from ..lib.forms import Form_RenewalConfig_new_order
+from ..lib.forms import Form_RenewalConfiguration_mark
 from ..views_admin import acme_account as v_acme_account
 from ..views_admin import acme_dns_server as v_acme_dns_server
 from ..views_admin import enrollment_factory as v_enrollment_factory
@@ -36,34 +42,38 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
-COMMANDS = {
-    "acme-account": {
-        "list",
-        "new",
+# Dict of valid commands
+COMMANDS: Dict[str, List[str]] = {
+    "acme-account": [
         "authenticate",
         "check",
-    },
-    "acme-dns-server": {
         "list",
         "new",
+    ],
+    "acme-dns-server": [
         "check",
-    },
-    "acme-server": {
-        "list",
-    },
-    "enrollment-factory": {
         "list",
         "new",
-    },
-    "renewal-configuration": {
+    ],
+    "acme-server": [
         "list",
+    ],
+    "enrollment-factory": [
+        "list",
+        "new",
+    ],
+    "renewal-configuration": [
+        "list",
+        "mark",
+        "new",
+        "new-configuration",
         "new-enrollment",
-        "new",
-    },
+        "new-order",
+    ],
 }
 
 
-def usage(argv):
+def usage(argv) -> NoReturn:
     cmd = os.path.basename(argv[0])
     print(
         "usage: %s <config_uri> <command> <subcommand> [var=value]\n"
@@ -71,7 +81,7 @@ def usage(argv):
     )
     print("valid commands:")
     pprint.pprint(COMMANDS)
-    sys.exit(1)
+    sys.exit(0)
 
 
 def main(argv=sys.argv):
@@ -84,10 +94,10 @@ def main(argv=sys.argv):
 
     if command not in COMMANDS:
         print("`%s` is not a valid command" % command)
-        exit()
+        exit(1)
     if subcommand not in COMMANDS[command]:
         print("`%s` is not a valid subcommand for `%s`" % (subcommand, command))
-        exit()
+        exit(1)
 
     # don't use this, as we need a real pyramid request
     # ctx = new_scripts_setup(config_uri, options=options)
@@ -123,7 +133,7 @@ def main(argv=sys.argv):
             elif subcommand == "new":
                 if "help" in options:
                     pprint.pprint(Form_AcmeAccount_new__auth.fields)
-                    exit()
+                    exit(0)
                 try:
                     _dbAcmeAccount, _is_created = v_acme_account.submit__new_auth(
                         request,
@@ -131,11 +141,9 @@ def main(argv=sys.argv):
                     )
                     print("success", "[CREATED]" if _is_created else "")
                     print(_dbAcmeAccount.as_json)
-                    exit()
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
-                    exit()
             # !!!: authenticate
             elif subcommand in (
                 "authenticate",
@@ -143,14 +151,14 @@ def main(argv=sys.argv):
             ):
                 if "help" in options:
                     print('%s id="{INT}' % subcommand)
-                    exit()
-                id_ = options["id"]
+                    exit(0)
+                acme_account_id = options["id"]
                 _dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
-                    request.api_context, id_
+                    request.api_context, acme_account_id
                 )
                 if not _dbAcmeAccount:
                     print("invalid `AcmeAccount`")
-                    exit()
+                    exit(1)
                 if subcommand == "authenticate":
                     _result, _err = v_acme_account.submit__authenticate(
                         request,
@@ -165,9 +173,8 @@ def main(argv=sys.argv):
                     )
                 if _result:
                     print("successful %s" % subcommand)
-                    exit()
+                    exit(0)
                 print("error", _err)
-                exit()
 
         # !!!: distpatch[acme-dns-server]
         elif command == "acme-dns-server":
@@ -180,7 +187,7 @@ def main(argv=sys.argv):
             elif subcommand == "new":
                 if "help" in options:
                     pprint.pprint(Form_AcmeDnsServer_new.fields)
-                    exit()
+                    exit(0)
                 try:
                     _dbAcmeDnsServer, _is_created = v_acme_dns_server.submit__new(
                         request,
@@ -188,23 +195,22 @@ def main(argv=sys.argv):
                     )
                     print("success", "[CREATED]" if _is_created else "")
                     print(_dbAcmeDnsServer.as_json)
-                    exit()
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
-                    exit()
+                    exit(1)
             # !!!: check
             elif subcommand == "check":
                 if "help" in options:
                     print('check id="{INT}')
-                    exit()
-                id_ = options["id"]
+                    exit(0)
+                acme_dns_server_id = options["id"]
                 _dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
-                    request.api_context, id_
+                    request.api_context, acme_dns_server_id
                 )
                 if not _dbAcmeDnsServer:
                     print("invalid `AcmeDnsServer`")
-                    exit()
+                    exit(1)
                 _result = v_acme_dns_server.submit__check(  # noqa: F841
                     request,
                     dbAcmeDnsServer=_dbAcmeDnsServer,
@@ -234,25 +240,50 @@ def main(argv=sys.argv):
                         acknowledge_transaction_commits=True,
                     )
                     print(_dbEnrollmentFactory.as_json_docs)
-                    exit()
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
-                    exit()
+                    exit(1)
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
-            _dbRenewalConfiguration: "RenewalConfiguration"
+            _dbRenewalConfiguration: Optional["RenewalConfiguration"]
 
             # !!!: list
             if subcommand == "list":
                 print("Renewal Configurations:")
                 _list_items(lib_db.get.get__RenewalConfiguration__paginated)
-            # !!!: new-enrollment
+            # !!!: mark
+            elif subcommand == "mark":
+                if "help" in options:
+                    pprint.pprint(Form_RenewalConfiguration_mark.fields)
+                    exit(0)
+                renewal_configuration_id = options["id"]
+                _dbRenewalConfiguration = lib_db.get.get__RenewalConfiguration__by_id(
+                    request.api_context, renewal_configuration_id
+                )
+                if not _dbRenewalConfiguration:
+                    print("invalid `RenewalConfiguration`")
+                    exit(1)
+                try:
+                    _dbRenewalConfiguration, _action = (
+                        v_renewal_configuration.submit__mark(
+                            request,
+                            dbRenewalConfiguration=_dbRenewalConfiguration,
+                            acknowledge_transaction_commits=True,
+                        )
+                    )
+                    print("success", _action)
+                    print(_dbRenewalConfiguration.as_json)
+                except formhandling.FormInvalid as exc:
+                    print("Errors:")
+                    pprint.pprint(exc.formStash.errors)
+                    exit(1)
+            # !!!: new
             elif subcommand == "new":
                 if "help" in options:
                     pprint.pprint(Form_RenewalConfig_new.fields)
-                    exit()
+                    exit(0)
                 try:
                     _dbRenewalConfiguration, _is_duplicate = (
                         v_renewal_configuration.submit__new(
@@ -262,23 +293,49 @@ def main(argv=sys.argv):
                     )
                     print("success", "[DUPLICATE]" if _is_duplicate else "")
                     print(_dbRenewalConfiguration.as_json)
-                    exit()
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
-                    exit()
+                    exit(1)
+            # !!!: new-configuration
+            elif subcommand == "new-configuration":
+                if "help" in options:
+                    print("MUST submit `id`")
+                    pprint.pprint(Form_RenewalConfig_new_configuration.fields)
+                    exit(0)
+                renewal_configuration_id = options["id"]
+                _dbRenewalConfiguration = lib_db.get.get__RenewalConfiguration__by_id(
+                    request.api_context, renewal_configuration_id
+                )
+                if not _dbRenewalConfiguration:
+                    print("invalid `RenewalConfiguration`")
+                    exit(1)
+                try:
+                    _dbRenewalConfigurationNew, _is_duplicate = (
+                        v_renewal_configuration.submit__new_configuration(
+                            request,
+                            dbRenewalConfiguration=_dbRenewalConfiguration,
+                            acknowledge_transaction_commits=True,
+                        )
+                    )
+                    print("success", "[DUPLICATE]" if _is_duplicate else "")
+                    print(_dbRenewalConfigurationNew.as_json)
+                except formhandling.FormInvalid as exc:
+                    print("Errors:")
+                    pprint.pprint(exc.formStash.errors)
             # !!!: new-enrollment
             elif subcommand == "new-enrollment":
                 if "help" in options:
+                    print("MUST submit `enrollment_factory_id`")
                     pprint.pprint(Form_RenewalConfig_new_enrollment.fields)
-                    exit()
+                    exit(0)
                 enrollment_factory_id = options["enrollment_factory_id"]
                 _dbEnrollmentFactory = lib_db.get.get__EnrollmentFactory__by_id(
                     request.api_context, enrollment_factory_id
                 )
                 if not _dbEnrollmentFactory:
                     print("invalid `EnrollmentFactory`")
-                    exit()
+                    exit(1)
                 try:
                     _dbRenewalConfiguration, _is_duplicate = (
                         v_renewal_configuration.submit__new_enrollment(
@@ -289,10 +346,39 @@ def main(argv=sys.argv):
                     )
                     print("success", "[DUPLICATE]" if _is_duplicate else "")
                     print(_dbRenewalConfiguration.as_json)
-                    exit()
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
-                    exit()
+            # !!!: new-order
+            elif subcommand == "new-order":
+                if "help" in options:
+                    print("MUST submit `renewal_configuration_id`")
+                    pprint.pprint(Form_RenewalConfig_new_order.fields)
+                    exit(0)
+                renewal_configuration_id = options["renewal_configuration_id"]
+                _dbRenewalConfiguration = lib_db.get.get__RenewalConfiguration__by_id(
+                    request.api_context, renewal_configuration_id
+                )
+                if not _dbRenewalConfiguration:
+                    print("invalid `RenewalConfiguration`")
+                    exit(1)
+                try:
+                    import pdb
 
-    exit()
+                    pdb.set_trace()
+                    exit()
+                    _dbAcmeOrder, _excAcmeOrder, _is_duplicate = (
+                        v_renewal_configuration.submit__new_order(
+                            request,
+                            dbRenewalConfiguration=_dbRenewalConfiguration,
+                            acknowledge_transaction_commits=True,
+                        )
+                    )
+                    print(
+                        "success",
+                        "[NonFatalError: %s]" % _excAcmeOrder if _excAcmeOrder else "",
+                    )
+                    print(_dbAcmeOrder.as_json)
+                except formhandling.FormInvalid as exc:
+                    print("Errors:")
+                    pprint.pprint(exc.formStash.errors)
