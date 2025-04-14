@@ -1556,6 +1556,7 @@ class View_Focus_Manipulate(View_Focus):
     def _focus_mark__submit(self):
         dbRenewalConfiguration = self._focus()  # noqa: F841
         try:
+            action = self.request.params.get("action")
             dbRenewalConfiguration, action = submit__mark(
                 self.request,
                 dbRenewalConfiguration=dbRenewalConfiguration,
