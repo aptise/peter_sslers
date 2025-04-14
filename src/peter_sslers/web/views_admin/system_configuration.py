@@ -1,5 +1,6 @@
 # stdlib
 from typing import Optional
+from typing import TYPE_CHECKING
 
 # from typing import Dict
 
@@ -8,6 +9,7 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
+from typing_extensions import Literal
 
 # local
 from ..lib import formhandling
@@ -19,9 +21,91 @@ from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
+from ...lib import errors
 from ...model.objects import SystemConfiguration
 
+if TYPE_CHECKING:
+    from pyramid_formencode_classic import FormStash
+    from pyramid.request import Request
 # ==============================================================================
+
+
+def submit__edit(
+    request: "Request",
+    dbSystemConfiguration: "SystemConfiguration",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> "SystemConfiguration":
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+    assert dbSystemConfiguration.name != "global"
+    (result, formStash) = formhandling.form_validate(
+        request, schema=Form_SystemConfiguration_edit, validate_get=False
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+    try:
+        result = lib_db.update.update_SystemConfiguration(
+            request.api_context,
+            dbSystemConfiguration,
+            acme_account_id__primary=formStash.results["acme_account_id__primary"],
+            private_key_cycle__primary=formStash.results["private_key_cycle__primary"],
+            private_key_technology__primary=formStash.results[
+                "private_key_technology__primary"
+            ],
+            acme_profile__primary=formStash.results["acme_profile__primary"],
+            acme_account_id__backup=formStash.results["acme_account_id__backup"],
+            private_key_cycle__backup=formStash.results["private_key_cycle__backup"],
+            private_key_technology__backup=formStash.results[
+                "private_key_technology__backup"
+            ],
+            acme_profile__backup=formStash.results["acme_profile__backup"],
+            force_reconciliation=formStash.results[
+                "force_reconciliation"
+            ],  # undocumented
+        )
+        return dbSystemConfiguration
+    except formhandling.FormInvalid:
+        raise
+    except Exception as exc:
+        formStash.fatal_form(error_main=str(exc))
+
+
+def submit__edit_global(
+    request: "Request",
+    dbSystemConfiguration: "SystemConfiguration",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> "SystemConfiguration":
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+    assert dbSystemConfiguration.name == "global"
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_SystemConfiguration_Global_edit,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+    try:
+        result = lib_db.update.update_SystemConfiguration(
+            request.api_context,
+            dbSystemConfiguration,
+            acme_account_id__primary=formStash.results["acme_account_id__primary"],
+            acme_account_id__backup=formStash.results["acme_account_id__backup"],
+            private_key_cycle__primary=dbSystemConfiguration.private_key_cycle__primary,
+            private_key_technology__primary=dbSystemConfiguration.private_key_technology__primary,
+            acme_profile__primary=dbSystemConfiguration.acme_profile__primary,
+            private_key_cycle__backup=dbSystemConfiguration.private_key_cycle__backup,
+            private_key_technology__backup=dbSystemConfiguration.private_key_technology__backup,
+            acme_profile__backup=dbSystemConfiguration.acme_profile__backup,
+            force_reconciliation=formStash.results[
+                "force_reconciliation"
+            ],  # undocumented
+        )
+        return dbSystemConfiguration
+    except formhandling.FormInvalid:
+        raise
+    except Exception as exc:
+        formStash.fatal_form(error_main=str(exc))
 
 
 class View_List(Handler):
@@ -203,37 +287,11 @@ class View_Focus(Handler):
         assert self.dbSystemConfiguration is not None
         assert self.dbSystemConfiguration.name == "global"
         try:
-            (result, formStash) = formhandling.form_validate(
+            dbSystemConfiguration = submit__edit_global(
                 self.request,
-                schema=Form_SystemConfiguration_Global_edit,
-                validate_get=False,
+                dbSystemConfiguration=self.dbSystemConfiguration,
+                acknowledge_transaction_commits=True,
             )
-            if not result:
-                raise formhandling.FormInvalid(formStash)
-
-            try:
-                result = lib_db.update.update_SystemConfiguration(
-                    self.request.api_context,
-                    self.dbSystemConfiguration,
-                    acme_account_id__primary=formStash.results[
-                        "acme_account_id__primary"
-                    ],
-                    acme_account_id__backup=formStash.results[
-                        "acme_account_id__backup"
-                    ],
-                    private_key_cycle__primary=self.dbSystemConfiguration.private_key_cycle__primary,
-                    private_key_technology__primary=self.dbSystemConfiguration.private_key_technology__primary,
-                    acme_profile__primary=self.dbSystemConfiguration.acme_profile__primary,
-                    private_key_cycle__backup=self.dbSystemConfiguration.private_key_cycle__backup,
-                    private_key_technology__backup=self.dbSystemConfiguration.private_key_technology__backup,
-                    acme_profile__backup=self.dbSystemConfiguration.acme_profile__backup,
-                    force_reconciliation=formStash.results[
-                        "force_reconciliation"
-                    ],  # undocumented
-                )
-            except Exception as exc:
-                formStash.fatal_form(error_main=str(exc))
-
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -246,52 +304,20 @@ class View_Focus(Handler):
                     self.dbSystemConfiguration.id,
                 )
             )
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._edit__print)
 
     def _edit__submit(self):
         assert self.dbSystemConfiguration is not None
+        assert self.dbSystemConfiguration.name != "global"
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_SystemConfiguration_edit, validate_get=False
+            dbSystemConfiguration = submit__edit(
+                self.request,
+                dbSystemConfiguration=self.dbSystemConfiguration,
+                acknowledge_transaction_commits=True,
             )
-            if not result:
-                raise formhandling.FormInvalid(formStash)
-
-            try:
-                result = lib_db.update.update_SystemConfiguration(
-                    self.request.api_context,
-                    self.dbSystemConfiguration,
-                    acme_account_id__primary=formStash.results[
-                        "acme_account_id__primary"
-                    ],
-                    private_key_cycle__primary=formStash.results[
-                        "private_key_cycle__primary"
-                    ],
-                    private_key_technology__primary=formStash.results[
-                        "private_key_technology__primary"
-                    ],
-                    acme_profile__primary=formStash.results["acme_profile__primary"],
-                    acme_account_id__backup=formStash.results[
-                        "acme_account_id__backup"
-                    ],
-                    private_key_cycle__backup=formStash.results[
-                        "private_key_cycle__backup"
-                    ],
-                    private_key_technology__backup=formStash.results[
-                        "private_key_technology__backup"
-                    ],
-                    acme_profile__backup=formStash.results["acme_profile__backup"],
-                    force_reconciliation=formStash.results[
-                        "force_reconciliation"
-                    ],  # undocumented
-                )
-            except Exception as exc:
-                formStash.fatal_form(error_main=str(exc))
-
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -304,8 +330,7 @@ class View_Focus(Handler):
                     self.dbSystemConfiguration.id,
                 )
             )
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._edit__print)

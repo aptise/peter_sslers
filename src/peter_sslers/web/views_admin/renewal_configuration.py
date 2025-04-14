@@ -98,6 +98,8 @@ def submit__mark(
     dbRenewalConfiguration: "RenewalConfiguration",
     acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> Tuple["RenewalConfiguration", str]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
     action = request.params.get("action")
     (result, formStash) = formhandling.form_validate(
         request,
@@ -341,15 +343,15 @@ def submit__new_configuration(
     dbRenewalConfiguration_new: "RenewalConfiguration"
     is_duplicate_renewal: bool
 
-    try:
-        (result, formStash) = formhandling.form_validate(
-            request,
-            schema=Form_RenewalConfig_new_configuration,
-            validate_get=False,
-        )
-        if not result:
-            raise formhandling.FormInvalid(formStash)
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_RenewalConfig_new_configuration,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
 
+    try:
         domains_challenged = form_utils.form_domains_challenge_typed(
             request,
             formStash,
@@ -547,15 +549,14 @@ def submit__new_enrollment(
     dbRenewalConfiguration: "RenewalConfiguration"
     is_duplicate_renewal: bool
 
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_RenewalConfig_new_enrollment,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
     try:
-        (result, formStash) = formhandling.form_validate(
-            request,
-            schema=Form_RenewalConfig_new_enrollment,
-            validate_get=False,
-        )
-        if not result:
-            raise formhandling.FormInvalid(formStash)
-
         # note: step 1 - analyze the "submitted" domain
         # this ensures only one domain
         # we'll pretend it's http-01, though that is irreleveant
@@ -1556,7 +1557,9 @@ class View_Focus_Manipulate(View_Focus):
     def _focus_mark__submit(self):
         dbRenewalConfiguration = self._focus()  # noqa: F841
         try:
-            action = self.request.params.get("action")
+            action = self.request.params.get(  # needed in case exception is raised
+                "action"
+            ) 
             dbRenewalConfiguration, action = submit__mark(
                 self.request,
                 dbRenewalConfiguration=dbRenewalConfiguration,

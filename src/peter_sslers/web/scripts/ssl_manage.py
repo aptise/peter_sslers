@@ -25,20 +25,24 @@ from ..lib.forms import Form_RenewalConfig_new_configuration
 from ..lib.forms import Form_RenewalConfig_new_enrollment
 from ..lib.forms import Form_RenewalConfig_new_order
 from ..lib.forms import Form_RenewalConfiguration_mark
+from ..lib.forms import Form_SystemConfiguration_edit
+from ..lib.forms import Form_SystemConfiguration_Global_edit
 from ..views_admin import acme_account as v_acme_account
 from ..views_admin import acme_dns_server as v_acme_dns_server
 from ..views_admin import enrollment_factory as v_enrollment_factory
 from ..views_admin import renewal_configuration as v_renewal_configuration
+from ..views_admin import system_configuration as v_system_configuration
 from ...lib import db as lib_db  # noqa: F401
 from ...model import objects as model_objects
 
-# from ..lib.forms import Form_EnrollmentFactory_edit_new
 
 if TYPE_CHECKING:
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
+    from ...model.objects import AcmeOrder
     from ...model.objects import EnrollmentFactory
     from ...model.objects import RenewalConfiguration
+    from ...model.objects import SystemConfiguration
 
 # ==============================================================================
 
@@ -47,6 +51,7 @@ COMMANDS: Dict[str, List[str]] = {
     "acme-account": [
         "authenticate",
         "check",
+        "focus",
         "list",
         "new",
     ],
@@ -55,20 +60,30 @@ COMMANDS: Dict[str, List[str]] = {
         "list",
         "new",
     ],
+    "acme-order": [
+        "focus",
+        "list",
+    ],
     "acme-server": [
         "list",
     ],
     "enrollment-factory": [
+        "focus",
         "list",
         "new",
     ],
     "renewal-configuration": [
+        "focus",
         "list",
         "mark",
         "new",
         "new-configuration",
         "new-enrollment",
         "new-order",
+    ],
+    "system-configuration": [
+        "list",
+        "edit",
     ],
 }
 
@@ -109,8 +124,19 @@ def main(argv=sys.argv):
         assert request == _request
 
         # generic functions
-        def _list_items(f_paginated: Callable, is_extended=True):
-            dbItems = f_paginated(request.api_context)
+        def _list_items(
+            f_count: Optional[Callable], f_paginated: Callable, is_extended=True
+        ):
+            offset = 0
+            limit = None
+            dbItemsCount: Optional[int]
+            if f_count:
+                offset = options.get("offset", 0)
+                limit = options.get("limit", 10)
+                dbItemsCount = f_count(request.api_context)
+            else:
+                dbItemsCount = None
+            dbItems = f_paginated(request.api_context, offset=offset, limit=limit)
             for _dbItem in dbItems:
                 print("-----")
                 if is_extended:
@@ -121,15 +147,94 @@ def main(argv=sys.argv):
                         pprint.pprint(_dbItem.as_json_docs)
                         continue
                 pprint.pprint(_dbItem.as_json)
+            print("Total Items: %s" % dbItemsCount)
+            print("Showing: offset %s, limit %s" % (offset, limit))
+
+        def _get_AcmeAccount(arg: str = "id", required: bool = True) -> "AcmeAccount":
+            acme_account_id = options[arg]
+            _dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
+                request.api_context, acme_account_id
+            )
+            if not _dbAcmeAccount:
+                print("invalid `AcmeAccount`")
+                exit(1)
+            return _dbAcmeAccount
+
+        def _get_AcmeDnsServer(
+            arg: str = "id", required: bool = True
+        ) -> "AcmeDnsServer":
+            acme_dns_server_id = options[arg]
+            _dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
+                request.api_context, acme_dns_server_id
+            )
+            if not _dbAcmeDnsServer:
+                print("invalid `AcmeDnsServer`")
+                exit(1)
+            return _dbAcmeDnsServer
+
+        def _get_AcmeOrder(
+            arg: str = "id", required: bool = True
+        ) -> "AcmeOrder":
+            acme_ord_id = options[arg]
+            _dbAcmeOrder = lib_db.get.get__AcmeOrder__by_id(
+                request.api_context, acme_ord_id
+            )
+            if not _dbAcmeOrder:
+                print("invalid `AcmeOrder`")
+                exit(1)
+            return _dbAcmeOrder
+
+        def _get_EnrollmentFactory(
+            arg: str = "id", required: bool = True
+        ) -> "EnrollmentFactory":
+            enrollment_factory_id = options[arg]
+            _dbEnrollmentFactory = lib_db.get.get__EnrollmentFactory__by_id(
+                request.api_context, enrollment_factory_id
+            )
+            if not _dbEnrollmentFactory:
+                print("invalid `EnrollmentFactory`")
+                exit(1)
+            return _dbEnrollmentFactory
+
+        def _get_RenewalConfiguration(
+            arg: str = "id", required: bool = True
+        ) -> "RenewalConfiguration":
+            renewal_configuration_id = options[arg]
+            _dbRenewalConfiguration = lib_db.get.get__RenewalConfiguration__by_id(
+                request.api_context, renewal_configuration_id
+            )
+            if not _dbRenewalConfiguration:
+                print("invalid `RenewalConfiguration`")
+                exit(1)
+            return _dbRenewalConfiguration
+
+        def _get_SystemConfiguration(
+            arg: str = "id", required: bool = True
+        ) -> "SystemConfiguration":
+            system_configuration_id = options[arg]
+            _dbSystemConfiguration = lib_db.get.get__SystemConfiguration__by_id(
+                request.api_context, system_configuration_id
+            )
+            if not _dbSystemConfiguration:
+                print("invalid `SystemConfiguration`")
+                exit(1)
+            return _dbSystemConfiguration
 
         # !!!: distpatch[acme-account]
         if command == "acme-account":
             _dbAcmeAccount: Optional["AcmeAccount"]
-            # !!!: list
-            if subcommand == "list":
+            # !!!: focus
+            if subcommand == "focus":
+                _dbAcmeAccount = _get_AcmeAccount()
+                print(_dbAcmeAccount.as_json)
+            # !!!: - list
+            elif subcommand == "list":
                 print("ACME Accounts:")
-                _list_items(lib_db.get.get__AcmeAccount__paginated)
-            # !!!: new
+                _list_items(
+                    lib_db.get.get__AcmeAccount__count,
+                    lib_db.get.get__AcmeAccount__paginated,
+                )
+            # !!!: - new
             elif subcommand == "new":
                 if "help" in options:
                     pprint.pprint(Form_AcmeAccount_new__auth.fields)
@@ -144,7 +249,7 @@ def main(argv=sys.argv):
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
-            # !!!: authenticate
+            # !!!: - authenticate
             elif subcommand in (
                 "authenticate",
                 "check",
@@ -152,13 +257,7 @@ def main(argv=sys.argv):
                 if "help" in options:
                     print('%s id="{INT}' % subcommand)
                     exit(0)
-                acme_account_id = options["id"]
-                _dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
-                    request.api_context, acme_account_id
-                )
-                if not _dbAcmeAccount:
-                    print("invalid `AcmeAccount`")
-                    exit(1)
+                _dbAcmeAccount = _get_AcmeAccount()
                 if subcommand == "authenticate":
                     _result, _err = v_acme_account.submit__authenticate(
                         request,
@@ -179,11 +278,14 @@ def main(argv=sys.argv):
         # !!!: distpatch[acme-dns-server]
         elif command == "acme-dns-server":
             _dbAcmeDnsServer: Optional["AcmeDnsServer"]
-            # !!!: list
+            # !!!: - list
             if subcommand == "list":
                 print("acme-dns Servers:")
-                _list_items(lib_db.get.get__AcmeDnsServer__paginated)
-            # !!!: new
+                _list_items(
+                    lib_db.get.get__AcmeDnsServer__count,
+                    lib_db.get.get__AcmeDnsServer__paginated,
+                )
+            # !!!: - new
             elif subcommand == "new":
                 if "help" in options:
                     pprint.pprint(Form_AcmeDnsServer_new.fields)
@@ -199,40 +301,54 @@ def main(argv=sys.argv):
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
                     exit(1)
-            # !!!: check
+            # !!!: - check
             elif subcommand == "check":
                 if "help" in options:
                     print('check id="{INT}')
                     exit(0)
-                acme_dns_server_id = options["id"]
-                _dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
-                    request.api_context, acme_dns_server_id
-                )
-                if not _dbAcmeDnsServer:
-                    print("invalid `AcmeDnsServer`")
-                    exit(1)
+                _dbAcmeDnsServer = _get_AcmeDnsServer()
                 _result = v_acme_dns_server.submit__check(  # noqa: F841
                     request,
                     dbAcmeDnsServer=_dbAcmeDnsServer,
                 )
                 print("successful check")
-
+        # !!!: distpatch[acme-order]
+        elif command == "acme-order":
+            # !!!: - focus
+            if command == "focus":
+                _dbAcmeOrder = _get_AcmeOrder()
+                print(_dbAcmeOrder.as_json)
+            # !!!: - list
+            elif subcommand == "list":
+                print("ACME Orders:")
+                _list_items(
+                    lib_db.get.get__AcmeOrder__count,
+                    lib_db.get.get__AcmeOrder__paginated,
+                )
         # !!!: distpatch[acme-server]
         elif command == "acme-server":
-            # !!!: list
+            # !!!: - list
             if subcommand == "list":
                 print("ACME Servers:")
-                _list_items(lib_db.get.get__AcmeServer__paginated)
-
+                _list_items(
+                    None,
+                    lib_db.get.get__AcmeServer__paginated,
+                )
         # !!!: distpatch[enrollment-factory]
         elif command == "enrollment-factory":
             _dbEnrollmentFactory: Optional["EnrollmentFactory"]
-
-            # !!!: list
-            if subcommand == "list":
+            # !!!: focus
+            if subcommand == "focus":
+                _dbEnrollmentFactory = _get_EnrollmentFactory()
+                print(_dbEnrollmentFactory.as_json)
+            # !!!: - list
+            elif subcommand == "list":
                 print("Enrollment Factories:")
-                _list_items(lib_db.get.get__EnrollmentFactory__paginated)
-            # !!!: new
+                _list_items(
+                    lib_db.get.get__EnrollmentFactory__count,
+                    lib_db.get.get__EnrollmentFactory__paginated,
+                )
+            # !!!: - new
             elif subcommand == "new":
                 try:
                     _dbEnrollmentFactory = v_enrollment_factory.submit__new(
@@ -248,24 +364,24 @@ def main(argv=sys.argv):
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
             _dbRenewalConfiguration: Optional["RenewalConfiguration"]
-
-            # !!!: list
-            if subcommand == "list":
+            # !!!: focus
+            if subcommand == "focus":
+                _dbRenewalConfiguration = _get_RenewalConfiguration()
+                print(_dbRenewalConfiguration.as_json)
+            # !!!: - list
+            elif subcommand == "list":
                 print("Renewal Configurations:")
-                _list_items(lib_db.get.get__RenewalConfiguration__paginated)
-            # !!!: mark
+                _list_items(
+                    lib_db.get.get__RenewalConfiguration__count,
+                    lib_db.get.get__RenewalConfiguration__paginated,
+                )
+            # !!!: - mark
             elif subcommand == "mark":
                 if "help" in options:
                     pprint.pprint(Form_RenewalConfiguration_mark.fields)
                     exit(0)
-                renewal_configuration_id = options["id"]
-                _dbRenewalConfiguration = lib_db.get.get__RenewalConfiguration__by_id(
-                    request.api_context, renewal_configuration_id
-                )
-                if not _dbRenewalConfiguration:
-                    print("invalid `RenewalConfiguration`")
-                    exit(1)
                 try:
+                    _dbRenewalConfiguration = _get_RenewalConfiguration()
                     _dbRenewalConfiguration, _action = (
                         v_renewal_configuration.submit__mark(
                             request,
@@ -279,7 +395,7 @@ def main(argv=sys.argv):
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
                     exit(1)
-            # !!!: new
+            # !!!: - new
             elif subcommand == "new":
                 if "help" in options:
                     pprint.pprint(Form_RenewalConfig_new.fields)
@@ -297,19 +413,13 @@ def main(argv=sys.argv):
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
                     exit(1)
-            # !!!: new-configuration
+            # !!!: - new-configuration
             elif subcommand == "new-configuration":
                 if "help" in options:
                     print("MUST submit `id`")
                     pprint.pprint(Form_RenewalConfig_new_configuration.fields)
                     exit(0)
-                renewal_configuration_id = options["id"]
-                _dbRenewalConfiguration = lib_db.get.get__RenewalConfiguration__by_id(
-                    request.api_context, renewal_configuration_id
-                )
-                if not _dbRenewalConfiguration:
-                    print("invalid `RenewalConfiguration`")
-                    exit(1)
+                _dbRenewalConfiguration = _get_RenewalConfiguration()
                 try:
                     _dbRenewalConfigurationNew, _is_duplicate = (
                         v_renewal_configuration.submit__new_configuration(
@@ -323,19 +433,15 @@ def main(argv=sys.argv):
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
-            # !!!: new-enrollment
+            # !!!: - new-enrollment
             elif subcommand == "new-enrollment":
                 if "help" in options:
                     print("MUST submit `enrollment_factory_id`")
                     pprint.pprint(Form_RenewalConfig_new_enrollment.fields)
                     exit(0)
-                enrollment_factory_id = options["enrollment_factory_id"]
-                _dbEnrollmentFactory = lib_db.get.get__EnrollmentFactory__by_id(
-                    request.api_context, enrollment_factory_id
+                _dbEnrollmentFactory = _get_EnrollmentFactory(
+                    arg="enrollment_factory_id"
                 )
-                if not _dbEnrollmentFactory:
-                    print("invalid `EnrollmentFactory`")
-                    exit(1)
                 try:
                     _dbRenewalConfiguration, _is_duplicate = (
                         v_renewal_configuration.submit__new_enrollment(
@@ -349,25 +455,15 @@ def main(argv=sys.argv):
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
-            # !!!: new-order
+            # !!!: - new-order
             elif subcommand == "new-order":
                 if "help" in options:
-                    print("MUST submit `renewal_configuration_id`")
+                    print("MUST submit `id`")
                     pprint.pprint(Form_RenewalConfig_new_order.fields)
                     exit(0)
-                renewal_configuration_id = options["renewal_configuration_id"]
-                _dbRenewalConfiguration = lib_db.get.get__RenewalConfiguration__by_id(
-                    request.api_context, renewal_configuration_id
-                )
-                if not _dbRenewalConfiguration:
-                    print("invalid `RenewalConfiguration`")
-                    exit(1)
+                _dbRenewalConfiguration = _get_RenewalConfiguration()
                 try:
-                    import pdb
-
-                    pdb.set_trace()
-                    exit()
-                    _dbAcmeOrder, _excAcmeOrder, _is_duplicate = (
+                    _dbAcmeOrder, _excAcmeOrder = (
                         v_renewal_configuration.submit__new_order(
                             request,
                             dbRenewalConfiguration=_dbRenewalConfiguration,
@@ -379,6 +475,47 @@ def main(argv=sys.argv):
                         "[NonFatalError: %s]" % _excAcmeOrder if _excAcmeOrder else "",
                     )
                     print(_dbAcmeOrder.as_json)
+                except formhandling.FormInvalid as exc:
+                    print("Errors:")
+                    pprint.pprint(exc.formStash.errors)
+        # !!!: distpatch[system-configuration]
+        elif command == "system-configuration":
+            # _dbRenewalConfiguration: Optional["RenewalConfiguration"]  # type: ignore[no-redef]
+
+            # !!!: - list
+            if subcommand == "list":
+                print("Renewal Configurations:")
+                _list_items(
+                    lib_db.get.get__SystemConfiguration__count,
+                    lib_db.get.get__SystemConfiguration__paginated,
+                )
+            # !!!: - edit
+            elif subcommand == "edit":
+                if "help" in options:
+                    print("MUST submit `id`")
+                    print("Global:")
+                    pprint.pprint(Form_SystemConfiguration_Global_edit.fields)
+                    print("Others:")
+                    pprint.pprint(Form_SystemConfiguration_edit.fields)
+                    exit(0)
+                _dbSystemConfiguration = _get_SystemConfiguration()
+                try:
+                    if _dbSystemConfiguration.name == "global":
+                        _dbSystemConfiguration = (
+                            v_system_configuration.submit__edit_global(
+                                request,
+                                dbSystemConfiguration=_dbSystemConfiguration,
+                                acknowledge_transaction_commits=True,
+                            )
+                        )
+                    else:
+                        _dbSystemConfiguration = v_system_configuration.submit__edit(
+                            request,
+                            dbSystemConfiguration=_dbSystemConfiguration,
+                            acknowledge_transaction_commits=True,
+                        )
+                    print("success")
+                    print(_dbSystemConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
