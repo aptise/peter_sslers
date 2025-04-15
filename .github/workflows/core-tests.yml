@@ -57,6 +57,7 @@ jobs:
         mkdir data_testing/nginx
         touch data_testing/acme-dns.db
         sudo cat tests/test_configuration/pebble/test/certs/pebble.minica.pem | sudo tee -a data_testing/nginx_ca_bundle.pem
+        sudo chown -R runner data_testing
         # debugging lines
         echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         echo "ls -alh data_testing"

@@ -188,7 +188,8 @@ class Test_CommandlineScripts(unittest.TestCase):
             raise
 
     def test__register_acme_servers(self):
-        _export_path = "_data_/_EXPORTED_ACME_SERVERS.json"
+        _data_dir = GLOBAL_appsettings.get("data_dir")
+        _export_path = "%s/_EXPORTED_ACME_SERVERS.json" % _data_dir
         try:
             with psutil.Popen(
                 [
