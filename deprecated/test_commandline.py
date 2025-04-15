@@ -116,15 +116,15 @@ class Test_CommandlineScripts(unittest.TestCase):
                     log.info("Wait 5 seconds...")
                     time.sleep(5)
                     response, err = proc.communicate()
-                    if False:
+                    if True:
                         print(response)
                         print(err)
                     try:
                         proc.terminate()
                     except psutil.NoSuchProcess:
                         pass
-                    # if err:
-                    #    raise ValueError("Exception", err)
+                    if err:
+                        raise ValueError("Exception", err)
             except Exception as exc:  # noqa: F841
                 raise
         finally:
