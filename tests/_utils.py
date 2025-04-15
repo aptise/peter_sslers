@@ -225,7 +225,7 @@ if DISABLE_WARNINGS:
 
 
 # override to "test_local.ini" if needed
-TEST_INI = os.environ.get("SSL_TEST_INI", "conf/test.ini")
+TEST_INI = os.environ.get("SSL_TEST_INI", "data_testing/test.ini")
 
 
 GLOBAL_appsettings: dict = {}

@@ -277,7 +277,7 @@
     
     Added tests to ensure AcmeOrder can be created with different kinds of inputs
 
-
+    changed the _data_ directory and config file layout
 
 
 0.6.0

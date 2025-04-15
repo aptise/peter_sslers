@@ -3,8 +3,9 @@ README DEVELOPMENT
 
 ## prep the data dir
 
-mkdir _data_
-cp tests/test_configuration/pebble/test/certs/pebble.minica.pem nginx_ca_bundle.pem
+    mkdir data_development
+    cp example_configs/development.ini data_development/config.ini
+    cp tests/test_configuration/pebble/test/certs/pebble.minica.pem data_development/nginx_ca_bundle.pem
 
 
 ## install with testing extras
@@ -31,7 +32,7 @@ Ensure we can reach ourselves
 
 For (most) testing and (all) development you need to follow a few initial steps.
 
-1. Configure the `environment.ini` to use a custom CA
+1. Configure the `data_development/config.ini` to use a custom CA
 
 It should look something like this:
 
@@ -192,11 +193,11 @@ please note the order:
 
     result, error, operation, action
 
-Unit tests will use the `test.ini` file for configuration.
+Unit tests will use the `data_testing/test.ini` file for configuration.
 
 Instead of editing this file, you can overwrite it with an environment variable:
 
-    export SSL_TEST_INI="conf/test_local.ini"
+    export SSL_TEST_INI="data_testing/test_local.ini"
 
 
 ## check nginx/openresty routes

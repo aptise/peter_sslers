@@ -53,14 +53,14 @@ jobs:
       # acme-dns: database
       # peter_sslers: database, pem files
       run: |
-        mkdir _data_
-        mkdir _data_/nginx
-        touch _data_/acme-dns.db
-        sudo cat tests/test_configuration/pebble/test/certs/pebble.minica.pem | sudo tee -a _data_/nginx_ca_bundle.pem
+        mkdir data_testing
+        mkdir data_testing/nginx
+        touch data_testing/acme-dns.db
+        sudo cat tests/test_configuration/pebble/test/certs/pebble.minica.pem | sudo tee -a data_testing/nginx_ca_bundle.pem
         # debugging lines
         echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-        echo "ls -alh _data_"
-        ls -alh _data_
+        echo "ls -alh data_testing"
+        ls -alh data_testing
         echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         echo "pwd"
         pwd
@@ -203,20 +203,20 @@ jobs:
         echo "=================="
         echo "https_localhost-access.log"
         echo "- - - - -"
-        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_localhost-access.log
+        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/data_testing/nginx/https_localhost-access.log
         echo "=================="
         echo "https_localhost-error.log"
         echo "- - - - -"
-        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_localhost-error.log
+        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/data_testing/nginx/https_localhost-error.log
         echo "- - - - -"
         echo "=================="
         echo "https_default-access.log"
         echo "- - - - -"
-        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_default-access.log
+        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/data_testing/nginx/https_default-access.log
         echo "=================="
         echo "https_default-error.log"
         echo "- - - - -"
-        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/_data_/nginx/https_default-error.log
+        tail -n 200 /home/runner/work/peter_sslers/peter_sslers/data_testing/nginx/https_default-error.log
 
     - name: Check Versions
       run: |
@@ -257,12 +257,12 @@ jobs:
 
 # These are only needed for debugging
 #
-#    - name: Upload Artifacts - _data_
+#    - name: Upload Artifacts - data_testing
 #      if: always()
 #      uses: actions/upload-artifact@v4
 #      with:
-#        name: _data_-${{ matrix.python-version }}-${{ matrix.os }}
-#        path: ${{ github.workspace }}/_data_
+#        name: data_testing-${{ matrix.python-version }}-${{ matrix.os }}
+#        path: ${{ github.workspace }}/data_testing
 #
 #    - name: Upload Artifacts - X_TESTRUN_DATA
 #      if: always()
