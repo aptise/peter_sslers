@@ -48,7 +48,7 @@ def run():
     _acme_dns()
 
 
-tests._utils.TEST_INI = "conf/example_development.ini"
+tests._utils.TEST_INI = "data_development/config.ini"
 tests._utils.intialize_appsettings()
 
 run()

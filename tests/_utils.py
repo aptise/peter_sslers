@@ -226,7 +226,15 @@ if DISABLE_WARNINGS:
 
 # override to "test_local.ini" if needed
 TEST_INI = os.environ.get("SSL_TEST_INI", "data_testing/test.ini")
-
+if not os.path.exists("data_testing"):
+    os.mkdir("data_testing")
+if not os.path.exists("data_testing/test.ini"):
+    shutil.copy2("tests/test_configuration/test.ini", "data_testing/test.ini")
+if not os.path.exists("data_testing/test_local.ini"):
+    shutil.copy2("tests/test_configuration/test_local.ini", "data_testing/test_local.ini")
+# copy our nginx pem
+if not os.path.exists("data_testing/nginx_ca_bundle.pem"):
+    shutil.copy2("tests/test_configuration/pebble/test/certs/pebble.minica.pem", "data_testing/nginx_ca_bundle.pem")
 
 GLOBAL_appsettings: dict = {}
 
@@ -986,7 +994,7 @@ def _db_unfreeze__actual(
                 print(
                     "DEBUG_DBFREEZE: clear failed; archiving for inspection:", failname
                 )
-            shutil.copy(active_filename, failname)
+            shutil.copy2(active_filename, failname)
         # instead of raising an exc, just delete it
         # TODO: bugfix how/why this is only breaking in CI on
         if DEBUG_DBFREEZE:

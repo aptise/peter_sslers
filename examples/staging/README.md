@@ -225,15 +225,15 @@ This URL should not serve anything, as we're not running a server now::
 
 Ensure there are no enabled debug routes / etc
 
-    cp data_staging/example_staging.ini data_staging/staging.ini
-    vi data_staging/staging.ini
+    cp example_configs/staging.ini data_staging/config.ini
+    vi data_staging/config.ini
     
 ## initialize the database
 
 This script sets up the database structure ::
 
     
-    initialize_peter_sslers_db data_staging/staging.ini
+    initialize_peter_sslers_db data_staging/config.ini
 
 ## Create an ACME Account
 

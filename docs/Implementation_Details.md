@@ -36,7 +36,7 @@ to contain the following files:
 THE ADMIN TOOL SHOULD NEVER BE PUBLICLY ACCESSIBLE.
 YOU SHOULD ONLY RUN IT ON A PRIVATE NETWORK
 
-By default, the `example_production.ini` file won't even run the admin tools.
+By default, the `example_confs/production.ini` file won't even run the admin tools.
 That is how serious we are about telling you to be careful!
 
 

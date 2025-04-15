@@ -1,12 +1,12 @@
+*.sqlite
 .coverage
 .eggs
 .tox
-_data_
+data_development
+data_testing
 dev
-*.sqlite
+examples/staging/www/com.aptise.opensource.testing.peter_sslers.*
+examples/staging/nginx_conf/com.aptise.opensource.testing.peter_sslers_/sites-available/com.aptise.opensource.testing.peter_sslers.*
 src/peter_sslers.egg-info
 src/peter_sslers/web/scripts/update_foo.py
 X_TESTRUN_DATA
-examples/staging/www/com.aptise.opensource.testing.peter_sslers.*
-examples/staging/nginx_conf/com.aptise.opensource.testing.peter_sslers_/sites-available/com.aptise.opensource.testing.peter_sslers.*
-
