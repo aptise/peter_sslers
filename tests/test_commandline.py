@@ -32,6 +32,7 @@ from ._utils import under_pebble_alt
 COMMANDLINE_ENV = os.environ.copy()
 COMMANDLINE_ENV["PYTHONWARNINGS"] = "ignore"
 COMMANDLINE_ENV["DISABLE_WARNINGS_COMMANDLINE"] = "1"
+COMMANDLINE_ENV["DISABLE_LOGS_COMMANDLINE_TESTS"] = "1"
 
 # ==============================================================================
 
@@ -116,7 +117,7 @@ class Test_CommandlineScripts(unittest.TestCase):
                     log.info("Wait 5 seconds...")
                     time.sleep(5)
                     response, err = proc.communicate()
-                    if True:
+                    if False:
                         print("===================")
                         print("test__initialize_db")
                         print("response")
