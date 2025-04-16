@@ -3573,20 +3573,16 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         #    return True
         return False
 
-    @reify
     def is_ari_checking_timely(self, ctx: "ApiContext") -> bool:
         """Returns False if ARI Checking would not be timely.
         ARI Checking should be done before the notAfter date.
         Anything after notAfter is expired and not worth polling.
-
-        Note: Value is cached via @reify.
         """
         timestamp_max_expiry = self._is_ari_checking_timely__expiry(ctx)
         if self.timestamp_not_after >= timestamp_max_expiry:
             return False
         return True
 
-    @reify
     def _is_ari_checking_timely__expiry(self, ctx: "ApiContext") -> datetime.datetime:
         """Returns a max datetime used to determine if ARI checking is timely when
         compared to the certificate's `notAfter`.
@@ -3595,8 +3591,6 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         offset interval for polling.
         
         See:: lib.db.get.get_CertificateSigneds_renew_now
-        
-        Note: Value is cached via @reify.
         """
         # don't rely on ctx.timestamp, as it can be old
         NOW = datetime.datetime.now(datetime.timezone.utc)
