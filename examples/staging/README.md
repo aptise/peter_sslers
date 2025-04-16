@@ -232,7 +232,6 @@ Ensure there are no enabled debug routes / etc
 
 This script sets up the database structure ::
 
-    
     initialize_peter_sslers_db data_staging/config.ini
 
 ## Create an ACME Account
@@ -253,7 +252,7 @@ According to the above, `acme_server_id = 4; letsencrypt staging`
     ssl_manage data_staging/config.ini acme-account new acme_server_id=4 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
     
     ssl_manage data_staging/config.ini acme-account list   
-    ssl_manage data_staging/config.ini acme-account authenticate id=5
+    ssl_manage data_staging/config.ini acme-account authenticate id=1
     
 ### Create an account with: BuyPass Staging
 
@@ -655,3 +654,57 @@ Experienced dev/ops and network administrators should understand how to properly
 ## TODO 
 
     crontab for scheduler
+
+# Making this in Production
+
+Now let's create a production environment. This will be much faster.
+
+    cd ~/peter_sslers
+    mkdir data_production
+    touch data_production/nginx_ca_bundle.pem
+    cp example_configs/production.ini data_production/config.ini
+    vi data_production/config.ini
+    initialize_peter_sslers_db data_production/config.ini
+
+### Create an account with: LetsEncrypt PRODUCTION
+
+Check the id for LetsEncrypt production::
+
+    ssl_manage data_production/config.ini acme-server list
+
+According to the above, `acme_server_id = 3; letsencrypt production`::
+    
+    ssl_manage data_production/config.ini acme-account new acme_server_id=3 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
+    ssl_manage data_production/config.ini acme-account authenticate id=1
+
+### Create an account with: BuyPass Production
+
+According to the above, `acme_server_id = 5; buypass production`::
+
+    ssl_manage data_production/config.ini acme-account new acme_server_id=5 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
+    ssl_manage data_production/config.ini acme-account authenticate id=2
+
+### Create a renewal configuration
+
+    ssl_manage data_production/config.ini renewal-configuration new \
+        domain_names_http01="peter-sslers.testing.opensource.aptise.com" \
+        is_export_filesystem="on" \
+        label="peter-sslers.testing.opensource.aptise.com" \
+        account_key_option=acme_account_id \
+        account_key_option_backup=acme_account_id \
+        acme_account_id=1 \
+        acme_account_id_backup=2 \
+        private_key_cycle__primary="account_default" \
+        private_key_cycle__backup="account_default" \
+        private_key_technology__primary="account_default" \
+        private_key_technology__backup="account_default"
+
+### Grab a Cert
+
+    routine__automatic_orders data_production/config.ini
+    routine__run_ari_checks data_production/config.ini
+
+    ls  ./data_production/certificates/global/peter-sslers.testing.opensource.aptise.com
+    ls  ./data_production/certificates/global/peter-sslers.testing.opensource.aptise.com/primary
+    ls  ./data_production/certificates/global/peter-sslers.testing.opensource.aptise.com/backup
+
