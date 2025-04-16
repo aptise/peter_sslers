@@ -56,6 +56,8 @@ def main(argv=sys.argv):
 
     # set up our exports root directory
     (EXPORTS_DIR, EXPORTS_DIR_WORKING) = exports.get_exports_dirs(ctx)
+    if not os.path.exists(EXPORTS_DIR):
+        os.makedirs(EXPORTS_DIR)
     if os.path.exists(EXPORTS_DIR_WORKING):
         raise ValueError(
             "An existing working directory has been encountered. If another process is not responsible, manual cleanup will be necessary."

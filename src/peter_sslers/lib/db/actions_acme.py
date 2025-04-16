@@ -2177,6 +2177,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     else:
                         raise ValueError("unknown dir type")
                     (EXPORTS_DIR, EXPORTS_DIR_WORKING) = exports.get_exports_dirs(ctx)
+                    if not os.path.exists(EXPORTS_DIR):
+                        os.makedirs(EXPORTS_DIR)
                     type_path = os.path.join(EXPORTS_DIR, type_dir)
                     rc_path = os.path.join(type_path, rc_dir)
                     if not os.path.exists(rc_path):

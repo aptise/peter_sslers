@@ -565,7 +565,7 @@ Run the audit script again, and look for no errors.
 
 You can run a testserver to ensure the proxies work right::
 
-    python tools/automatic_testserver.py conf/staging.py
+    python tools/automatic_testserver.py data_staging/config.ini
 
 That script just spins up a server with the same endpoints that our actual servers will use.
 
@@ -698,6 +698,12 @@ According to the above, `acme_server_id = 5; buypass production`::
         private_key_cycle__backup="account_default" \
         private_key_technology__primary="account_default" \
         private_key_technology__backup="account_default"
+
+## Ensure the example domains are configured correctly
+
+    python tools/automatic_testserver.py data_production/config.ini
+    curl http://peter-sslers.testing.opensource.aptise.com/.well-known/public/whoami
+
 
 ### Grab a Cert
 
