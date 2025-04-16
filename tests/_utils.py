@@ -57,6 +57,7 @@ from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.lib.db.update import (
     update_AcmeOrder_deactivate_AcmeAuthorizationPotentials,
 )
+from peter_sslers.lib.exports import relative_symlink
 from peter_sslers.model import meta as model_meta
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
@@ -229,12 +230,12 @@ TEST_INI = os.environ.get("SSL_TEST_INI", "data_testing/test.ini")
 if not os.path.exists("data_testing"):
     os.mkdir("data_testing")
 if not os.path.exists("data_testing/test.ini"):
-    shutil.copy2("tests/test_configuration/test.ini", "data_testing/test.ini")
+    relative_symlink("tests/test_configuration/test.ini", "data_testing/test.ini")
 if not os.path.exists("data_testing/test_local.ini"):
-    shutil.copy2("tests/test_configuration/test_local.ini", "data_testing/test_local.ini")
+    relative_symlink("tests/test_configuration/test_local.ini", "data_testing/test_local.ini")
 # copy our nginx pem
 if not os.path.exists("data_testing/nginx_ca_bundle.pem"):
-    shutil.copy2("tests/test_configuration/pebble/test/certs/pebble.minica.pem", "data_testing/nginx_ca_bundle.pem")
+    relative_symlink("tests/test_configuration/pebble/test/certs/pebble.minica.pem", "data_testing/nginx_ca_bundle.pem")
 
 GLOBAL_appsettings: dict = {}
 

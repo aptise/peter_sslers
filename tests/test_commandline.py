@@ -117,7 +117,11 @@ class Test_CommandlineScripts(unittest.TestCase):
                     time.sleep(5)
                     response, err = proc.communicate()
                     if True:
+                        print("===================")
+                        print("test__initialize_db")
+                        print("response")
                         print(response)
+                        print("err")
                         print(err)
                     try:
                         proc.terminate()
