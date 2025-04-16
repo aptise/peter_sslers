@@ -1203,12 +1203,12 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
             cert.is_ari_supported__order IS True
         )
         AND
-        cert.timestamp_not_after < datetime()
+        cert.timestamp_not_after <= datetime()
         AND
         (
             latest_ari_checks.latest_ari_id IS NULL
             OR
-            latest_ari_checks.timestamp_retry_after < datetime()
+            latest_ari_checks.timestamp_retry_after <= datetime()
         )
     ORDER BY cert.id DESC;
     """
@@ -1236,6 +1236,8 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
         )
         .filter(
             CertificateSigned.is_active.is_(True),
+            # these are considered expired
+            CertificateSigned.timestamp_not_after <= timestamp_max_expiry,
             sqlalchemy_or(
                 CertificateSigned.is_ari_supported__cert.is_(True),
                 CertificateSigned.is_ari_supported__order.is_(True),
