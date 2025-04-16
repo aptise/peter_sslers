@@ -2640,6 +2640,9 @@ def get_CertificateSigneds_renew_now(
     ctx: "ApiContext",
     timestamp_max_expiry: Optional[datetime.datetime] = None,
 ) -> List[CertificateSigned]:
+    """
+    See:: model.objects.CerrtificateSigneds._is_ari_checking_timely__expiry
+    """
 
     if not timestamp_max_expiry:
         # construct a max expiry based on...

@@ -2588,7 +2588,7 @@ def _ari_query(
             r = sess.get(acme_directory, verify=cas.path(ctx, "CA_ACME"))
             _renewal_base = r.json().get("renewalInfo")
             if not _renewal_base:
-                raise errors.AcmeAriCheckDeclined("no `renewalInfo` endpoint")
+                raise errors.AcmeAriCheckDeclined("ARI Check Declined; no `renewalInfo` endpoint")
             _renewal_url = "%s/%s" % (_renewal_base, ari_id)
             log.info("renewalInfo endpoint: %s", _renewal_url)
 
@@ -2628,11 +2628,14 @@ def ari_check(
     """
     log.info("ari_check(%s", dbCertificateSigned)
 
-    if not dbCertificateSigned.is_ari_check_timely(ctx):
+    # do not run ARI checks for certs that expire, or will expire before the
+    # next proces is run
+    if not dbCertificateSigned.is_ari_checking_timely(ctx):
         if not force:
-            _expiry = dbCertificateSigned.is_ari_check_timely_expiry(ctx)
+            # the expiry is a padded limit of the max time to rely on ARI checks
+            _expiry = dbCertificateSigned._is_ari_checking_timely_expiry(ctx)
             raise errors.AcmeAriCheckDeclined(
-                "ARI Check Not Timely: %s" % _expiry.replace(microsecond=0).isoformat()
+                "ARI Check Declined; Not Timely: %s" % _expiry.replace(microsecond=0).isoformat()
             )
 
     ari_identifier: Optional[str] = None
@@ -2660,7 +2663,7 @@ def ari_check(
     except Exception as exc:
         raise exc
     if not ari_identifier:
-        raise errors.AcmeAriCheckDeclined("No ARI Identifier")
+        raise errors.AcmeAriCheckDeclined("ARI Check Declined; No ARI Identifier")
 
     log.debug("ari_check: ")
     ariCheckResult = _ari_query(

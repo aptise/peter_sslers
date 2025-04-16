@@ -31,8 +31,8 @@ from ._utils import under_pebble_alt
 
 COMMANDLINE_ENV = os.environ.copy()
 COMMANDLINE_ENV["PYTHONWARNINGS"] = "ignore"
-COMMANDLINE_ENV["DISABLE_WARNINGS_COMMANDLINE"] = "1"
-COMMANDLINE_ENV["DISABLE_LOGS_COMMANDLINE_TESTS"] = "1"
+COMMANDLINE_ENV["COMMANDLINE_TESTS_DISABLE_WARNINGS"] = "1"
+COMMANDLINE_ENV["COMMANDLINE_TESTS_DISABLE_LOGGINGS"] = "1"
 
 # ==============================================================================
 

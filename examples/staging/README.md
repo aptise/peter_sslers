@@ -239,32 +239,32 @@ This script sets up the database structure ::
 
 List the accounts; expect none ::
 
-    ssl_manage data_staging/staging.ini acme-account list
+    ssl_manage data_staging/config.ini acme-account list
 
 List the CAs - we want STAGING::
 
-    ssl_manage data_staging/staging.ini acme-server list
+    ssl_manage data_staging/config.ini acme-server list
 
 ### Create an account with: LetsEncrypt Staging
 
 According to the above, `acme_server_id = 4; letsencrypt staging`
 
-    ssl_manage data_staging/staging.ini acme-account new help=1
-    ssl_manage data_staging/staging.ini acme-account new acme_server_id=4 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
+    ssl_manage data_staging/config.ini acme-account new help=1
+    ssl_manage data_staging/config.ini acme-account new acme_server_id=4 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
     
-    ssl_manage data_staging/staging.ini acme-account list   
-    ssl_manage data_staging/staging.ini acme-account authenticate id=5
+    ssl_manage data_staging/config.ini acme-account list   
+    ssl_manage data_staging/config.ini acme-account authenticate id=5
     
 ### Create an account with: BuyPass Staging
 
 According to the above, `acme_server_id = 6; buypass staging`
 
-    ssl_manage data_staging/staging.ini acme-account new help=1
-    ssl_manage data_staging/staging.ini acme-account new acme_server_id=6 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
+    ssl_manage data_staging/config.ini acme-account new help=1
+    ssl_manage data_staging/config.ini acme-account new acme_server_id=6 account__order_default_private_key_cycle=single_use account__order_default_private_key_technology=RSA_2048 account__private_key_technology=RSA_2048 account__contact="peter_sslers@2xlp.com"
 
 The above shows a success message, but double-check and note the account_id's
 
-    ssl_manage data_staging/staging.ini acme-account list
+    ssl_manage data_staging/config.ini acme-account list
 
 ## Obtain a Cert for our installation: a RenewalConfiguration
 
@@ -285,9 +285,9 @@ an initial Certificate and renewing it over time:
 We're going to create our first RenewalConfiguration for the Domain we will host
 the web tool on, `peter-sslers.testing.opensource.aptise.com` ::
 
-    ssl_manage data_staging/staging.ini renewal-configuration new
-    ssl_manage data_staging/staging.ini renewal-configuration new help=1
-    ssl_manage data_staging/staging.ini renewal-configuration new \
+    ssl_manage data_staging/config.ini renewal-configuration new
+    ssl_manage data_staging/config.ini renewal-configuration new help=1
+    ssl_manage data_staging/config.ini renewal-configuration new \
         domain_names_http01="peter-sslers.testing.opensource.aptise.com" \
         is_export_filesystem="on" \
         label="peter-sslers.testing.opensource.aptise.com" \
@@ -318,7 +318,8 @@ web interface yet, so we will rely on invoking a script that can be run as a bac
 
 Start the background process script to generate the certs; this will spin up a server on port 7202, which can answer the HTTP-01 challenges::
 
-    routine__automatic_orders data_staging/staging.ini
+    routine__automatic_orders data_staging/config.ini
+    routine__run_ari_checks data_staging/config.ini
 
 You should see some ACME logging, and a message that the certificates have been successfully obtained.
 
@@ -413,9 +414,9 @@ When we really make an EnrollmentFactory, it will utilize a backup account as we
 
 This should fail::
 
-    ssl_manage data_staging/staging.ini enrollment-factory list
-    ssl_manage data_staging/staging.ini enrollment-factory new help=1
-    ssl_manage data_staging/staging.ini enrollment-factory new \
+    ssl_manage data_staging/config.ini enrollment-factory list
+    ssl_manage data_staging/config.ini enrollment-factory new help=1
+    ssl_manage data_staging/config.ini enrollment-factory new \
         acme_account_id__primary=1 \
         domain_template_dns01="dns-01.{DOMAIN}" \
         domain_template_http01="http-01.{DOMAIN}" \
@@ -461,11 +462,11 @@ Setting up acme-dns is straightforward and fully covered by that project's docum
 
 We need to set up acme-dns !
 
-    ssl_manage data_staging/staging.ini acme-dns-server list
-    ssl_manage data_staging/staging.ini acme-dns-server new help=1
-    ssl_manage data_staging/staging.ini acme-dns-server new api_url="http://acme-dns.aptise.com:8011" domain="acme-dns.aptise.com"
-    ssl_manage data_staging/staging.ini acme-dns-server list
-    ssl_manage data_staging/staging.ini acme-dns-server check id=1
+    ssl_manage data_staging/config.ini acme-dns-server list
+    ssl_manage data_staging/config.ini acme-dns-server new help=1
+    ssl_manage data_staging/config.ini acme-dns-server new api_url="http://acme-dns.aptise.com:8011" domain="acme-dns.aptise.com"
+    ssl_manage data_staging/config.ini acme-dns-server list
+    ssl_manage data_staging/config.ini acme-dns-server check id=1
 
 Note the `api_url` and `domain` are different args.  This is because the API can be http or https, and run on any port.  The domain is used without a port though, as it is part of the target DNS records.
 
@@ -474,7 +475,7 @@ Note the `api_url` and `domain` are different args.  This is because the API can
 
 Now that we have acme-dns set up, create the Enrollment factory, with acme_account_id__primary = 1; acme_account_id__backup = 2; 
 
-    ssl_manage data_staging/staging.ini enrollment-factory new \
+    ssl_manage data_staging/config.ini enrollment-factory new \
         acme_account_id__primary=1 \
         domain_template_dns01="dns-01.{DOMAIN}" \
         domain_template_http01="http-01.{DOMAIN}" \
@@ -489,20 +490,20 @@ Now that we have acme-dns set up, create the Enrollment factory, with acme_accou
 
 This should pass.  Confirm the DB storage with::
 
-   ssl_manage data_staging/staging.ini enrollment-factory list
+   ssl_manage data_staging/config.ini enrollment-factory list
 
 
 ## Create RenewalConfigurations from the EnrollmentFactory
 
 As explained above, RenewalConfigurations drive automatic orders.
 
-    ssl_manage data_staging/staging.ini renewal-configuration list
-    ssl_manage data_staging/staging.ini renewal-configuration new-enrollment help=1
+    ssl_manage data_staging/config.ini renewal-configuration list
+    ssl_manage data_staging/config.ini renewal-configuration new-enrollment help=1
 
 By selecting `new-enrollment`, instead of `new`, we can leverage most options from the
 EnrollmentFactory::
 
-    ssl_manage data_staging/staging.ini renewal-configuration new-enrollment \
+    ssl_manage data_staging/config.ini renewal-configuration new-enrollment \
         enrollment_factory_id=1 \
         domain_name="a.peter-sslers.testing.opensource.aptise.com" \
         label="chall_prefix-{DOMAIN}" \
@@ -520,11 +521,11 @@ While the web interface will pre-fill the `label` and `is_export_filesystem` fie
 Let's quickly create several more RenewalConfigurations for b, c and d ::
 
 
-    ssl_manage data_staging/staging.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="b.peter-sslers.testing.opensource.aptise.com"
+    ssl_manage data_staging/config.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="b.peter-sslers.testing.opensource.aptise.com"
 
-    ssl_manage data_staging/staging.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="c.peter-sslers.testing.opensource.aptise.com"
+    ssl_manage data_staging/config.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="c.peter-sslers.testing.opensource.aptise.com"
 
-    ssl_manage data_staging/staging.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="d.peter-sslers.testing.opensource.aptise.com"
+    ssl_manage data_staging/config.ini renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="d.peter-sslers.testing.opensource.aptise.com"
 
 Again, this will only create a RenewalConfiguration - we need to do the initial setup of the delegated `_acme-dns` records before obtaining certificates.  This could be done by registering the domains with the PeterSSLers BEFORE creating a RenewalConfiguration as well; this tutorial is simply doing things in this order.
 
@@ -542,7 +543,7 @@ By default it outputs the report to CSV, which is ideal for manual audits, but i
 
 First, generate a report in JSON::
 
-    acme_dns_audit data_staging/staging.ini format=json
+    acme_dns_audit data_staging/config.ini format=json
     
 Reading this is easiest with jq, but anything can be used:
 
@@ -581,7 +582,7 @@ That should show the following text::
 
 this will order both the primary and backup Certificates::
 
-    routine__automatic_orders data_staging/staging.ini
+    routine__automatic_orders data_staging/config.ini
 
 Now list the certs::
 
@@ -591,7 +592,7 @@ Now list the certs::
 
 try running it again:
 
-    routine__automatic_orders data_staging/staging.ini
+    routine__automatic_orders data_staging/config.ini
 
 if you notice a message like the following in the JSON responses...
 
@@ -599,7 +600,7 @@ if you notice a message like the following in the JSON responses...
 
 Try to run the "reconcile blocks" tool.  This iterates stuck orders::
     
-    routine__reconcile_blocks data_staging/staging.ini
+    routine__reconcile_blocks data_staging/config.ini
 
 ## Install the certificates...
 
@@ -636,7 +637,7 @@ which shows the letter you are on, and allows you to toggle between domains
 
 You can spin up the web management tool with this command:
 
-    pserve data_staging/staging.ini
+    pserve data_staging/config.ini
     
 and visit it on the following url::    
 
