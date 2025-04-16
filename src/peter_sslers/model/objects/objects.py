@@ -3579,7 +3579,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         Anything after notAfter is expired and not worth polling.
         """
         timestamp_max_expiry = self._is_ari_checking_timely__expiry(ctx)
-        if self.timestamp_not_after >= timestamp_max_expiry:
+        if self.timestamp_not_after <= timestamp_max_expiry:
             return False
         return True
 
