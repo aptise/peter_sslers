@@ -1171,8 +1171,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     # don't rely on ctx.timestamp, as it can be old
     # also, we need to time the routine
     TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
-    
-    
+
     # the max_expiry will be in the future, to ensure we check ARI of anything
     # that expires until the next routine invocation
     timestamp_max_expiry = datetime_ari_timely(
