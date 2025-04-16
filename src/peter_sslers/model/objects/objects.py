@@ -41,6 +41,7 @@ from .mixins import _Mixin_Timestamps_Pretty
 from .. import utils as model_utils
 from ..meta import Base
 from ..utils import TZDateTime
+from ...lib.utils_datetime import datetime_ari_timely
 
 if TYPE_CHECKING:
     from ...lib.context import ApiContext
@@ -3573,37 +3574,19 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         #    return True
         return False
 
-    def is_ari_checking_timely(self, ctx: "ApiContext") -> bool:
+    def is_ari_checking_timely(
+        self,
+        ctx: "ApiContext",
+        datetime_now: Optional[datetime.datetime] = None,
+    ) -> bool:
         """Returns False if ARI Checking would not be timely.
         ARI Checking should be done before the notAfter date.
         Anything after notAfter is expired and not worth polling.
         """
-        timestamp_max_expiry = self._is_ari_checking_timely__expiry(ctx)
+        timestamp_max_expiry = datetime_ari_timely(ctx, datetime_now=datetime_now)
         if self.timestamp_not_after <= timestamp_max_expiry:
             return False
         return True
-
-    def _is_ari_checking_timely__expiry(self, ctx: "ApiContext") -> datetime.datetime:
-        """Returns a max datetime used to determine if ARI checking is timely when
-        compared to the certificate's `notAfter`.
-
-        This function pads the current datetime with a clockdrift and an expected
-        offset interval for polling.
-        
-        See:: lib.db.get.get_CertificateSigneds_renew_now
-        """
-        # don't rely on ctx.timestamp, as it can be old
-        NOW = datetime.datetime.now(datetime.timezone.utc)
-        TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
-        assert ctx.application_settings
-        _minutes = ctx.application_settings.get("offset.ari_updates", 60)
-        TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
-
-        # This may be confusing:
-        # usually we SUBTRACT for searches and automatic renewals to give a safer buffer
-        # here, we ADD the offset to give a wider buffer for on-demand
-        timestamp_max_expiry = NOW + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
-        return timestamp_max_expiry
 
     @property
     def is_ari_supported(self) -> bool:

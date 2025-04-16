@@ -35,6 +35,7 @@ from ... import lib
 from ...lib import db as lib_db
 from ...lib.http import StopableWSGIServer
 from ...lib.utils import url_to_server
+from ...lib.utils_datetime import datetime_ari_timely
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 from ...model.objects import AcmeServer
@@ -1170,15 +1171,9 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     # don't rely on ctx.timestamp, as it can be old
     # also, we need to time the routine
     TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
-
-    TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
-    assert ctx.application_settings
-    _minutes = ctx.application_settings.get("offset.ari_updates", 60)
-    TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
-    timestamp_max_expiry = (
-        TIMESTAMP_routine_start + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
+    timestamp_max_expiry = datetime_ari_timely(
+        ctx, datetime_now=TIMESTAMP_routine_start
     )
-
     """
     # The SQL we want (for now):
     SELECT

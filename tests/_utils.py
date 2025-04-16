@@ -232,10 +232,15 @@ if not os.path.exists("data_testing"):
 if not os.path.exists("data_testing/test.ini"):
     relative_symlink("tests/test_configuration/test.ini", "data_testing/test.ini")
 if not os.path.exists("data_testing/test_local.ini"):
-    relative_symlink("tests/test_configuration/test_local.ini", "data_testing/test_local.ini")
+    relative_symlink(
+        "tests/test_configuration/test_local.ini", "data_testing/test_local.ini"
+    )
 # copy our nginx pem
 if not os.path.exists("data_testing/nginx_ca_bundle.pem"):
-    relative_symlink("tests/test_configuration/pebble/test/certs/pebble.minica.pem", "data_testing/nginx_ca_bundle.pem")
+    relative_symlink(
+        "tests/test_configuration/pebble/test/certs/pebble.minica.pem",
+        "data_testing/nginx_ca_bundle.pem",
+    )
 
 GLOBAL_appsettings: dict = {}
 

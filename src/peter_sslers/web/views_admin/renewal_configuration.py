@@ -1559,7 +1559,7 @@ class View_Focus_Manipulate(View_Focus):
         try:
             action = self.request.params.get(  # needed in case exception is raised
                 "action"
-            ) 
+            )
             dbRenewalConfiguration, action = submit__mark(
                 self.request,
                 dbRenewalConfiguration=dbRenewalConfiguration,

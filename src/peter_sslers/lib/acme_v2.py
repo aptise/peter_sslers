@@ -43,6 +43,7 @@ from .db import create as db_create
 from .db import update as db_update
 from .utils import ari_timestamp_to_python
 from .utils import new_BrowserSession
+from .utils_datetime import datetime_ari_timely
 from .. import USER_AGENT
 from ..model import utils as model_utils
 
@@ -2588,7 +2589,9 @@ def _ari_query(
             r = sess.get(acme_directory, verify=cas.path(ctx, "CA_ACME"))
             _renewal_base = r.json().get("renewalInfo")
             if not _renewal_base:
-                raise errors.AcmeAriCheckDeclined("ARI Check Declined; no `renewalInfo` endpoint")
+                raise errors.AcmeAriCheckDeclined(
+                    "ARI Check Declined; no `renewalInfo` endpoint"
+                )
             _renewal_url = "%s/%s" % (_renewal_base, ari_id)
             log.info("renewalInfo endpoint: %s", _renewal_url)
 
@@ -2630,14 +2633,17 @@ def ari_check(
 
     # do not run ARI checks for certs that expire, or will expire before the
     # next proces is run
-    if not dbCertificateSigned.is_ari_checking_timely(ctx):
+
+    datetime_now = datetime.datetime.now(datetime.timezone.utc)
+    if not dbCertificateSigned.is_ari_checking_timely(ctx, datetime_now=datetime_now):
         if not force:
             # the expiry is a padded limit of the max time to rely on ARI checks
-            _expiry = dbCertificateSigned._is_ari_checking_timely__expiry(ctx)
+            timely_expiry = datetime_ari_timely(ctx, datetime_now=datetime_now)
             raise errors.AcmeAriCheckDeclined(
-                "ARI Check Declined; Not Timely: %s<%s" % (
+                "ARI Check Declined; Not Timely: %s<%s"
+                % (
                     dbCertificateSigned.timestamp_not_after,
-                    _expiry.replace(microsecond=0).isoformat(),
+                    timely_expiry.replace(microsecond=0).isoformat(),
                 )
             )
 

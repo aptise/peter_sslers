@@ -172,9 +172,7 @@ def main(argv=sys.argv):
                 exit(1)
             return _dbAcmeDnsServer
 
-        def _get_AcmeOrder(
-            arg: str = "id", required: bool = True
-        ) -> "AcmeOrder":
+        def _get_AcmeOrder(arg: str = "id", required: bool = True) -> "AcmeOrder":
             acme_ord_id = options[arg]
             _dbAcmeOrder = lib_db.get.get__AcmeOrder__by_id(
                 request.api_context, acme_ord_id

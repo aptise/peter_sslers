@@ -25,7 +25,6 @@ from ...lib import errors
 from ...model.objects import SystemConfiguration
 
 if TYPE_CHECKING:
-    from pyramid_formencode_classic import FormStash
     from pyramid.request import Request
 # ==============================================================================
 
@@ -295,13 +294,13 @@ class View_Focus(Handler):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "SystemConfiguration": self.dbSystemConfiguration.as_json,
+                    "SystemConfiguration": dbSystemConfiguration.as_json,
                 }
             return HTTPSeeOther(
                 "%s/system-configuration/%s?result=success&operation=edit"
                 % (
                     self.request.admin_url,
-                    self.dbSystemConfiguration.id,
+                    dbSystemConfiguration.id,
                 )
             )
         except formhandling.FormInvalid as exc:
@@ -321,13 +320,13 @@ class View_Focus(Handler):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "SystemConfiguration": self.dbSystemConfiguration.as_json,
+                    "SystemConfiguration": dbSystemConfiguration.as_json,
                 }
             return HTTPSeeOther(
                 "%s/system-configuration/%s?result=success&operation=edit"
                 % (
                     self.request.admin_url,
-                    self.dbSystemConfiguration.id,
+                    dbSystemConfiguration.id,
                 )
             )
         except formhandling.FormInvalid as exc:
