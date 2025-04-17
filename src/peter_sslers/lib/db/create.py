@@ -88,7 +88,7 @@ def create__AcmePollingError(
     acme_challenge_id: Optional[int] = None,
     timestamp_validated: Optional[datetime.datetime] = None,
     subproblems_len: Optional[int] = None,
-    response: Optional[str] = None,
+    response: Optional[Union[str, dict]] = None,
 ) -> "AcmePollingError":
     """
     :returns :class:`model.objects.    from ...model.objects import AcmeServer
