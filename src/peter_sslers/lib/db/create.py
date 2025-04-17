@@ -101,6 +101,8 @@ def create__AcmePollingError(
             "unknown acme_polling_error_endpoint_id: `%s`"
             % acme_polling_error_endpoint_id
         )
+    if not isinstance(response, str):
+        response = json.dumps(response)
     dbPollingError = model_objects.AcmePollingError()
     dbPollingError.timestamp_created = ctx.timestamp
     dbPollingError.acme_polling_error_endpoint_id = acme_polling_error_endpoint_id

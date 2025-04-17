@@ -611,10 +611,10 @@ def parse_AcmeAccountSelection_backup(
         account_key_pem_md5 = formStash.results["account_key_reuse_backup"]
     elif account_key_option == "acme_account_id":
         acmeAccountSelection.selection = "acme_account_id"
-        acme_account_id = formStash.results["acme_account_id"]
+        acme_account_id = formStash.results["acme_account_id_backup"]
     elif account_key_option == "acme_account_url":
         acmeAccountSelection.selection = "acme_account_url"
-        acme_account_url = formStash.results["acme_account_url"]
+        acme_account_url = formStash.results["acme_account_url_backup"]
     elif account_key_option in ("none", None):
         error_field = "account_key_existing_backup"
         if not allow_none:
