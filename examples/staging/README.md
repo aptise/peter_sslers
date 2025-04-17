@@ -714,3 +714,22 @@ According to the above, `acme_server_id = 5; buypass production`::
     ls  ./data_production/certificates/global/peter-sslers.testing.opensource.aptise.com/primary
     ls  ./data_production/certificates/global/peter-sslers.testing.opensource.aptise.com/backup
 
+### Upgrade Staging Cert to Production
+
+    cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_
+    cd certificates
+    rm peter-sslers.testing.opensource.aptise.com
+    sudo ln -s ~/peter_sslers/data_production/certificates/global/peter-sslers.testing.opensource.aptise.com .
+
+check and restart nginx
+
+    sudo /usr/local/openresty/nginx/sbin/nginx -t
+    ps aux | grep openresty
+    kill -HUP 3869000
+
+reload the url
+
+    https://peter-sslers.testing.opensource.aptise.com/.well-known/peter_sslers
+    
+it should have a lock. you may need to restart your browser.
+

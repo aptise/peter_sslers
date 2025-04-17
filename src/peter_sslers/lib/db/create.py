@@ -1309,12 +1309,12 @@ def create__EnrollmentFactory(
     ctx: "ApiContext",
     name: str,
     # Primary cert
-    dbAcmeAccount_primary: "AcmeAccount",
+    dbAcmeAccount__primary: "AcmeAccount",
     private_key_technology_id__primary: int,
     private_key_cycle_id__primary: int,
     acme_profile__primary: Optional[str] = None,
     # Backup cert
-    dbAcmeAccount_backup: Optional["AcmeAccount"] = None,
+    dbAcmeAccount__backup: Optional["AcmeAccount"] = None,
     private_key_technology_id__backup: Optional[int] = None,
     private_key_cycle_id__backup: Optional[int] = None,
     acme_profile__backup: Optional[str] = None,
@@ -1328,9 +1328,14 @@ def create__EnrollmentFactory(
     if not domain_template_http01 and not domain_template_dns01:
         raise ValueError("at least one template is required")
 
-    if dbAcmeAccount_backup:
-        if dbAcmeAccount_primary.acme_server_id == dbAcmeAccount_backup.acme_server_id:
-            raise ValueError("Primary and Backup ACME servers must be different")
+    if dbAcmeAccount__backup:
+        if dbAcmeAccount__primary.id == dbAcmeAccount__backup.id:
+            raise ValueError("Primary and Backup ACME Accounts must be different.")
+        if (
+            dbAcmeAccount__primary.acme_server_id
+            == dbAcmeAccount__backup.acme_server_id
+        ):
+            raise ValueError("Primary and Backup ACME Servers must be different")
 
     name = lib_utils.normalize_unique_text(name)
     if name.startswith("rc-") or name.startswith("global"):
@@ -1345,15 +1350,15 @@ def create__EnrollmentFactory(
     dbEnrollmentFactory = model_objects.EnrollmentFactory()
     dbEnrollmentFactory.name = name  # uniqueness on lower(name)
     # p
-    dbEnrollmentFactory.acme_account_id__primary = dbAcmeAccount_primary.id
+    dbEnrollmentFactory.acme_account_id__primary = dbAcmeAccount__primary.id
     dbEnrollmentFactory.private_key_technology_id__primary = (
         private_key_technology_id__primary
     )
     dbEnrollmentFactory.private_key_cycle_id__primary = private_key_cycle_id__primary
     dbEnrollmentFactory.acme_profile__primary = acme_profile__primary
     # b
-    if dbAcmeAccount_backup:
-        dbEnrollmentFactory.acme_account_id__backup = dbAcmeAccount_backup.id
+    if dbAcmeAccount__backup:
+        dbEnrollmentFactory.acme_account_id__backup = dbAcmeAccount__backup.id
         dbEnrollmentFactory.private_key_technology_id__backup = (
             private_key_technology_id__backup
         )
@@ -1519,6 +1524,18 @@ def create__RenewalConfiguration(
         raise ValueError("must supply active `dbAcmeAccount`")
     if dbAcmeAccount__backup and not dbAcmeAccount__backup.is_active:
         raise ValueError("`dbAcmeAccount__backup` is not active")
+    if dbAcmeAccount__backup:
+        if dbAcmeAccount__primary.id == dbAcmeAccount__backup.id:
+            raise ValueError("Primary and Backup ACME Accounts must be different.")
+        if (
+            dbAcmeAccount__primary.acme_server_id
+            == dbAcmeAccount__backup.acme_server_id
+        ):
+            raise ValueError("Primary and Backup ACME Servers must be different")
+        if not any((private_key_cycle_id__backup, private_key_technology_id__backup)):
+            raise ValueError(
+                "`dbAcmeAccount__backup` requires `private_key_cycle_id__backup, private_key_technology_id__backup`"
+            )
 
     if acme_profile__primary:
         if acme_profile__primary != "@":
@@ -1532,12 +1549,6 @@ def create__RenewalConfiguration(
                     acme_profile__primary,
                     dbAcmeAccount__primary.acme_server.profiles_list,
                 )
-
-    if dbAcmeAccount__backup:
-        if not any((private_key_cycle_id__backup, private_key_technology_id__backup)):
-            raise ValueError(
-                "`dbAcmeAccount__backup` requires `private_key_cycle_id__backup, private_key_technology_id__backup`"
-            )
 
     if acme_profile__backup:
         if not dbAcmeAccount__backup:
