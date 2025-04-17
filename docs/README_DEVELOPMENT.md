@@ -94,7 +94,7 @@ Which should look something like this...
     }
 
 
-Good to go?  Ok, run pebble!
+Good to go?  You can run pebble in a mode where it attempts to validate challenges...
 
     PEBBLE_VA_ALWAYS_VALID=0 \
         PEBBLE_AUTHZREUSE=100 \
@@ -103,7 +103,8 @@ Good to go?  Ok, run pebble!
         PEBBLE_CHAIN_LENGTH=3 \
         pebble --config  ./tests/test_configuration/pebble/test/config/pebble-config.json
 
-To have all challenge POST requests succeed without performing any validation run:
+but for development it is often preferred to have all challenge POST requests succeed
+without actually performing any validation, via::
 
     PEBBLE_VA_ALWAYS_VALID=1 \
         PEBBLE_AUTHZREUSE=100 \
@@ -112,7 +113,7 @@ To have all challenge POST requests succeed without performing any validation ru
         PEBBLE_CHAIN_LENGTH=3 \
         pebble -config ./tests/test_configuration/pebble/test/config/pebble-config.json
 
-A second testserver is used as well:
+A second testserver is used as well for backup certificates:
 
     PEBBLE_VA_ALWAYS_VALID=1 \
         PEBBLE_AUTHZREUSE=100 \

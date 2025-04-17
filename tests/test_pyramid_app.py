@@ -2841,6 +2841,14 @@ class FunctionalTests_AcmeOrder(AppTest):
         )
         assert dbSystemConfiguration_global
         assert dbSystemConfiguration_global.is_configured
+        assert dbSystemConfiguration_global.acme_account__primary
+        assert dbSystemConfiguration_global.acme_account__backup
+        if False:
+            # this should not be needed during normal flow
+            # but will be needed if dbAcmeOrder4 is run first
+            _did_auth = auth_SystemConfiguration_accounts__api(
+                self, dbSystemConfiguration_global
+            )
 
         # note: via account_key_global_default
         domain_names_1 = generate_random_domain(testCase=self)
@@ -2886,6 +2894,7 @@ class FunctionalTests_AcmeOrder(AppTest):
         self.ctx.dbSession.refresh(dbSystemConfiguration_global)
 
         # note: via acme_account_url [acme_account.account_url]
+        # note: did you read the bit about refreshing above?
         domain_names_4 = generate_random_domain(testCase=self)
         dbAcmeOrder4 = _make_one_base(
             domain_names_http01=domain_names_4,
@@ -2958,6 +2967,14 @@ class FunctionalTests_AcmeOrder(AppTest):
         )
         assert dbSystemConfiguration_global
         assert dbSystemConfiguration_global.is_configured
+        assert dbSystemConfiguration_global.acme_account__primary
+        assert dbSystemConfiguration_global.acme_account__backup
+        if False:
+            # this should not be needed during normal flow
+            # but will be needed if dbAcmeOrder4 is run first
+            _did_auth = auth_SystemConfiguration_accounts__api(
+                self, dbSystemConfiguration_global
+            )
 
         # note: via account_key_global_default
         domain_names_1 = generate_random_domain(testCase=self)
@@ -3004,6 +3021,7 @@ class FunctionalTests_AcmeOrder(AppTest):
         self.ctx.dbSession.refresh(dbSystemConfiguration_global)
 
         # note: via acme_account_url [acme_account.account_url]
+        # note: did you read the bit about refreshing above?
         domain_names_4 = generate_random_domain(testCase=self)
         dbAcmeOrder4 = _make_one_base(
             domain_names_http01=domain_names_4,
@@ -13323,8 +13341,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             self, "certificate-if-needed"
         )
         assert dbSystemConfiguration_cin.is_configured
-
-        auth_SystemConfiguration_accounts__api(
+        assert dbSystemConfiguration_cin.acme_account__primary
+        _did_authenticate = auth_SystemConfiguration_accounts__api(
             self,
             dbSystemConfiguration_cin,
             auth_only="primary",

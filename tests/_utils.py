@@ -1876,6 +1876,7 @@ def auth_SystemConfiguration_accounts__api(
             "?result=success&operation=acme-server--authenticate&is_authenticated=True"
         )
         _did_authenticate = True
+    testCase.ctx.dbSession.refresh(dbSystemConfiguration)
     return _did_authenticate
 
 
