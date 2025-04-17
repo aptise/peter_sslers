@@ -1266,6 +1266,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
             dbAriObject, ari_check_result = actions_acme.do__AcmeV2_AriCheck(
                 ctx,
                 dbCertificateSigned=dbCertificateSigned,
+                force_check=True,  # a potential delay exists after above SQL
             )
             count_records_success += 1
             ctx.pyramid_transaction_commit()

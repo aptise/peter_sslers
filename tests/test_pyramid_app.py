@@ -156,6 +156,8 @@ def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
                 dbAcmeOrder = make_one__AcmeOrder__random__api(testCase)
                 _orders.append(dbAcmeOrder)
 
+            DEBUG_SETUP = True
+
             # This is all to generate a valid ARI Check
             # only 1 is needed
             for dbAcmeOrder in _orders:
@@ -163,9 +165,11 @@ def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
                     "/.well-known/peter_sslers/acme-order/%s" % dbAcmeOrder.id,
                     status=200,
                 )
-                print(
-                    "setup_testing_data: process res:", "form-acme_process" in res.forms
-                )
+                if DEBUG_SETUP:
+                    print(
+                        "setup_testing_data: process res:",
+                        "form-acme_process" in res.forms,
+                    )
                 if "form-acme_process" in res.forms:
                     # the first acme_process should validate challenges
                     form = res.forms["form-acme_process"]
@@ -175,10 +179,11 @@ def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
                         "?result=success&operation=acme+process"
                     )
                     res3 = testCase.testapp.get(res2.location, status=200)
-                    print(
-                        "setup_testing_data: process res3:",
-                        "form-acme_process" in res3.forms,
-                    )
+                    if DEBUG_SETUP:
+                        print(
+                            "setup_testing_data: process res3:",
+                            "form-acme_process" in res3.forms,
+                        )
                     if "form-acme_process" in res3.forms:
                         # the second form should finalize and download the cert
                         form = res3.forms["form-acme_process"]
@@ -190,11 +195,12 @@ def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
                         res5 = testCase.testapp.get(res4.location, status=200)
                         assert "certificate_downloaded" in res5.text
                         matched = RE_CertificateSigned_main.search(res5.text)
-                        print(
-                            "setup_testing_data: process res5:",
-                            "form-acme_process" in res5.forms,
-                        )
-                        print("setup_testing_data: matched?", matched)
+                        if DEBUG_SETUP:
+                            print(
+                                "setup_testing_data: process res5:",
+                                "form-acme_process" in res5.forms,
+                            )
+                            print("setup_testing_data: matched?", matched)
                         if matched:
                             certificate_id = matched.groups()[0]
                             res = testCase.testapp.get(

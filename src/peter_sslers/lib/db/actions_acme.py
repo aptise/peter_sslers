@@ -3357,6 +3357,7 @@ def do__AcmeV2_AcmeOrder__retry(
 def do__AcmeV2_AriCheck(
     ctx: "ApiContext",
     dbCertificateSigned: "CertificateSigned",
+    force_check: bool = False,
 ) -> Tuple["AriCheck", Optional["AriCheckResult"]]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -3373,6 +3374,7 @@ def do__AcmeV2_AriCheck(
         ariCheckResult: Optional["AriCheckResult"] = acme_v2.ari_check(
             ctx=ctx,
             dbCertificateSigned=dbCertificateSigned,
+            force_check=force_check,
         )
         dbAriCheck = create__AriCheck(
             ctx=ctx,

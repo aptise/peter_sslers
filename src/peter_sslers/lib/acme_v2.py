@@ -2620,7 +2620,7 @@ def _ari_query(
 def ari_check(
     ctx: "ApiContext",
     dbCertificateSigned: "CertificateSigned",
-    force: bool = False,
+    force_check: bool = False,
 ) -> Optional[AriCheckResult]:
     """
     Returns:
@@ -2636,7 +2636,7 @@ def ari_check(
 
     datetime_now = datetime.datetime.now(datetime.timezone.utc)
     if not dbCertificateSigned.is_ari_checking_timely(ctx, datetime_now=datetime_now):
-        if not force:
+        if not force_check:
             # the expiry is a padded limit of the max time to rely on ARI checks
             timely_expiry = datetime_ari_timely(ctx, datetime_now=datetime_now)
             raise errors.AcmeAriCheckDeclined(

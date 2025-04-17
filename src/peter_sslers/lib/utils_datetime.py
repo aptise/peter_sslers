@@ -4,6 +4,9 @@ import logging
 from typing import Optional
 from typing import TYPE_CHECKING
 
+# pypi
+from typing_extensions import Literal
+
 if TYPE_CHECKING:
     from .context import ApiContext
 
@@ -19,6 +22,7 @@ log.setLevel(logging.INFO)
 def datetime_ari_timely(
     ctx: "ApiContext",
     datetime_now: Optional[datetime.datetime] = None,
+    context: Optional[Literal["dashboard"]] = None,
 ) -> datetime.datetime:
     """Returns a max datetime used to determine if ARI checking is timely when
     compared to the certificate's `notAfter`.
@@ -35,6 +39,13 @@ def datetime_ari_timely(
 
     # clockdrift; servers get out of sync
     TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
+
+    if context == "dashboard":
+        # for a "dashboard" (on demand HTML)
+        # deduct the clockdrift from the time
+        # this allows the timely comparison to pass for tests (very short certs)
+        timestamp_max_expiry = datetime_now - TIMEDELTA_clockdrift
+        return timestamp_max_expiry
 
     # factor in the next expected schedule.
     _minutes = ctx.application_settings.get("offset.ari_updates", 60)

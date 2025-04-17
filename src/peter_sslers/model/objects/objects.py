@@ -31,6 +31,7 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship as sa_orm_relationship
 from sqlalchemy.orm.session import Session as sa_Session
+from typing_extensions import Literal
 
 # from sqlalchemy import inspect as sa_inspect
 
@@ -3578,12 +3579,17 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         self,
         ctx: "ApiContext",
         datetime_now: Optional[datetime.datetime] = None,
+        context: Optional[Literal["dashboard"]] = None,
     ) -> bool:
         """Returns False if ARI Checking would not be timely.
         ARI Checking should be done before the notAfter date.
         Anything after notAfter is expired and not worth polling.
         """
-        timestamp_max_expiry = datetime_ari_timely(ctx, datetime_now=datetime_now)
+        timestamp_max_expiry = datetime_ari_timely(
+            ctx,
+            datetime_now=datetime_now,
+            context=context,
+        )
         if self.timestamp_not_after <= timestamp_max_expiry:
             return False
         return True
