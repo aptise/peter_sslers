@@ -2828,6 +2828,19 @@ class FunctionalTests_AcmeOrder(AppTest):
                 "/.well-known/peter_sslers/acme-order/new/freeform.json", form
             )
             assert res2.status_code == 200
+            if res2.json["result"] != "success":
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                pprint.pprint(res2.json)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
             assert res2.json["result"] == "success"
             assert "AcmeOrder" in res2.json
             obj_id = res2.json["AcmeOrder"]["id"]
@@ -2947,6 +2960,19 @@ class FunctionalTests_AcmeOrder(AppTest):
             form["acme_profile__backup"] = "@"
             form["processing_strategy"].force_value(processing_strategy)
             res2 = form.submit()
+            if res2.status_code != 303:
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print(res2.text)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
+                print("#" * 80)
             assert res2.status_code == 303
 
             matched = RE_AcmeOrder.match(res2.location)
