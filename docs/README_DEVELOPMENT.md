@@ -200,6 +200,9 @@ Instead of editing this file, you can overwrite it with an environment variable:
 
     export SSL_TEST_INI="data_testing/test_local.ini"
 
+Config file inheritance can be a bit wonky, so it is best to recreate the entire
+config file instead of inheriting to change values.
+
 
 ## check nginx/openresty routes
 

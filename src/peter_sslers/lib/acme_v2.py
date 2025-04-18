@@ -69,10 +69,7 @@ if TYPE_CHECKING:
 # ==============================================================================
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
-
 log_api = logging.getLogger("acme_api")
-log_api.setLevel(logging.DEBUG)
 
 # ------------------------------------------------------------------------------
 

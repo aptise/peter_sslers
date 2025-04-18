@@ -364,9 +364,9 @@ def getcreate__AcmeAccount(
     total_accounts = get__AcmeAccount__count(ctx)
     is_render_in_selects = True if total_accounts < 12 else False
 
-    account_url_sha256 = None
-    if account_url:
-        account_url_sha256 = hashlib.sha256(account_url.encode()).hexdigest()
+    account_url_sha256 = (
+        hashlib.sha256(account_url.encode()).hexdigest() if account_url else None
+    )
 
     # first, create the AcmeAccount
     dbAcmeAccount = model_objects.AcmeAccount()

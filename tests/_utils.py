@@ -1,7 +1,6 @@
 # stdlib
 import datetime
 from functools import wraps
-import hashlib
 from io import BufferedWriter
 from io import open  # overwrite `open` in Python2
 import logging
@@ -54,6 +53,9 @@ from peter_sslers.lib.config_utils import ApplicationSettings
 from peter_sslers.lib.context import ApiContext
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.lib.db import update as lib_db_update
+from peter_sslers.lib.db.update import (
+    update_AcmeAccount__account_url,
+)
 from peter_sslers.lib.db.update import (
     update_AcmeOrder_deactivate_AcmeAuthorizationPotentials,
 )
@@ -231,10 +233,7 @@ if not os.path.exists("data_testing"):
     os.mkdir("data_testing")
 if not os.path.exists("data_testing/test.ini"):
     relative_symlink("tests/test_configuration/test.ini", "data_testing/test.ini")
-if not os.path.exists("data_testing/test_local.ini"):
-    relative_symlink(
-        "tests/test_configuration/test_local.ini", "data_testing/test_local.ini"
-    )
+
 # copy our nginx pem
 if not os.path.exists("data_testing/nginx_ca_bundle.pem"):
     relative_symlink(
@@ -321,6 +320,9 @@ if DEBUG_GITHUB_ENV:
 # note: ApplicationSettings can be global
 GLOBAL_ApplicationSettings = ApplicationSettings(TEST_INI)
 GLOBAL_ApplicationSettings.from_settings_dict(GLOBAL_appsettings)
+
+
+DEBUG_DATABASE_ODDITY = False
 
 
 class CustomizedTestCase(unittest.TestCase):
@@ -469,11 +471,10 @@ def archive_pebble_data(pebble_ports: Tuple[int, int]):
                     _dbAcmeAccount.account_url,
                 )
                 account_url = _dbAcmeAccount.account_url
-                _dbAcmeAccount.account_url = "%s@%s" % (account_url, uuid.uuid4())
-                _dbAcmeAccount.account_url_sha256 = hashlib.sha256(
-                    _dbAcmeAccount.account_url.encode()
-                ).hexdigest()
-
+                account_url_archive = "%s@%s" % (account_url, uuid.uuid4())
+                update_AcmeAccount__account_url(
+                    ctx, dbAcmeAccount=_dbAcmeAccount, account_url=account_url_archive
+                )
                 ctx.dbSession.flush(
                     objects=[
                         _dbAcmeAccount,
@@ -1845,9 +1846,21 @@ def auth_SystemConfiguration_accounts__api(
     if only_required and auth_only is None:
         _needs_primary = False
         _needs_backup = False
-        if not dbSystemConfiguration.acme_account__primary.account_url:
+        if (
+            # not authenticated
+            (not dbSystemConfiguration.acme_account__primary.account_url)
+            or
+            # this is a migrated account; reauthenticate
+            ("@" in dbSystemConfiguration.acme_account__primary.account_url)
+        ):
             _needs_primary = True
-        if dbSystemConfiguration.acme_account_id__backup and not dbSystemConfiguration.acme_account__backup.account_url:
+        if dbSystemConfiguration.acme_account_id__backup and (
+            # not authenticated
+            (not dbSystemConfiguration.acme_account__backup.account_url)
+            or
+            # this is a migrated account; reauthenticate
+            ("@" in dbSystemConfiguration.acme_account__backup.account_url)
+        ):
             _needs_backup = True
         if not any((_needs_primary, _needs_backup)):
             return _did_authenticate
@@ -1877,6 +1890,11 @@ def auth_SystemConfiguration_accounts__api(
             if i
         ]
 
+    if DEBUG_DATABASE_ODDITY:
+        _resPre = testCase.testapp.get("/.well-known/peter_sslers/debug")
+        print("PRE AUTH")
+        pprint.pprint(_resPre.json)
+
     # return True if we authenticate for either account
     for _acme_account_id in account_ids:
         # authenticate will register; check will not
@@ -1890,6 +1908,12 @@ def auth_SystemConfiguration_accounts__api(
             "?result=success&operation=acme-server--authenticate&is_authenticated=True"
         )
         _did_authenticate = True
+
+    if DEBUG_DATABASE_ODDITY:
+        _resPost = testCase.testapp.get("/.well-known/peter_sslers/debug")
+        print("POST AUTH")
+        pprint.pprint(_resPost.json)
+
     testCase.ctx.dbSession.refresh(dbSystemConfiguration)
     return _did_authenticate
 
@@ -2168,6 +2192,8 @@ class AppTestCore(CustomizedTestCase, _Mixin_filedata):
         AppTestCore._DB_INTIALIZED = True
         if DEBUG_METRICS:
             self._db_filename = self.ctx.dbSession.connection().engine.url.database
+            if TYPE_CHECKING:
+                assert self._db_filename
             self._db_filesize = {
                 "setUp": os.path.getsize(self._db_filename),
             }
@@ -2183,6 +2209,8 @@ class AppTestCore(CustomizedTestCase, _Mixin_filedata):
             count_certificate_ca = self.ctx.dbSession.query(  # Pebble certs
                 model_objects.CertificateCA
             ).count()
+            if TYPE_CHECKING:
+                assert self._db_filename
             self._db_filesize["tearDown"] = os.path.getsize(self._db_filename)
             self._wrapped_end = time.time()
 

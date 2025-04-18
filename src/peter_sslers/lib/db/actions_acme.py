@@ -1,6 +1,5 @@
 # stdlib
 import datetime
-import hashlib
 import logging
 import os
 import typing
@@ -42,6 +41,7 @@ from .getcreate import getcreate__PrivateKey_for_AcmeAccount
 from .getcreate import process__AcmeAuthorization_payload
 from .logger import AcmeLogger
 from .logger import log__OperationsEvent
+from .update import update_AcmeAccount__account_url
 from .update import update_AcmeAccount__terms_of_service
 from .update import update_AcmeAuthorization_from_payload
 from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
@@ -660,7 +660,7 @@ def handle_AcmeAccount_AcmeServer_url_change(
         raise errors.AcknowledgeTransactionCommitRequired()
     assert authenticatedUser._api_account_headers
     acme_account_url = authenticatedUser._api_account_headers["Location"]
-    if acme_account_url != dbAcmeAccount.account_url:
+    if acme_account_url and (acme_account_url != dbAcmeAccount.account_url):
         # this is a bit tricky
         # this library defends against most duplicate accounts by checking
         # the account key for duplication
@@ -679,9 +679,9 @@ def handle_AcmeAccount_AcmeServer_url_change(
             raise errors.AcmeDuplicateAccount(_dbAcmeAccountOther)
 
         # this is now safe to set
-        dbAcmeAccount.account_url = acme_account_url
-        account_url_sha256 = hashlib.sha256(acme_account_url.encode()).hexdigest()
-        dbAcmeAccount.account_url_sha256 = account_url_sha256
+        update_AcmeAccount__account_url(
+            ctx, dbAcmeAccount=dbAcmeAccount, account_url=acme_account_url
+        )
         ctx.dbSession.add(dbAcmeAccount)
         ctx.pyramid_transaction_commit()
         return True

@@ -51,6 +51,7 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7("admin:help", "/help")
     config.add_route_7("admin:search", "/search")
     config.add_route_7("admin:settings", "/settings")
+    config.add_route_7("admin:debug", "/debug")
 
     # !!!: AcmeAccounts
     # AcmeAccounts are the LetsEncrypt accounts

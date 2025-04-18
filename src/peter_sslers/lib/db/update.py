@@ -1,5 +1,6 @@
 # stdlib
 import datetime
+import hashlib
 import logging
 from typing import Dict
 from typing import List
@@ -52,6 +53,32 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
+
+
+def update_AcmeAccount__account_url(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    account_url: Optional[str] = None,
+) -> bool:
+    print("#" * 80)
+    print("#" * 80)
+    print("#" * 80)
+    print("#" * 80)
+    print("#" * 80)
+    print("update_AcmeAccount__account_url")
+    print("SETTING:", dbAcmeAccount.id, account_url)
+    if account_url is None:
+        import pdb
+
+        pdb.set_trace()
+        dbAcmeAccount.account_url = None
+        dbAcmeAccount.account_url_sha256 = None
+    else:
+        dbAcmeAccount.account_url = account_url
+        dbAcmeAccount.account_url_sha256 = hashlib.sha256(
+            account_url.encode()
+        ).hexdigest()
+    return True
 
 
 def update_AcmeAccount__name(

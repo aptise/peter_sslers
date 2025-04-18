@@ -1,5 +1,4 @@
 # stdlib
-import hashlib
 from io import BytesIO  # noqa: F401
 from io import StringIO  # noqa: F401
 import json
@@ -30,6 +29,7 @@ from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib.db import actions as lib_db_actions
 from peter_sslers.lib.db import actions_acme as lib_db_actions_acme
 from peter_sslers.lib.db import get as lib_db_get
+from peter_sslers.lib.db.update import update_AcmeAccount__account_url
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 from . import _utils
@@ -323,6 +323,10 @@ class FunctionalTests_Main(AppTest):
     @routes_tested("admin:help")
     def test_help(self):
         res = self.testapp.get("/.well-known/peter_sslers/help", status=200)
+
+    @routes_tested("admin:debug")
+    def test_debug(self):
+        res = self.testapp.get("/.well-known/peter_sslers/debug", status=200)
 
     @routes_tested("admin:settings")
     def test_settings(self):
@@ -2828,19 +2832,6 @@ class FunctionalTests_AcmeOrder(AppTest):
                 "/.well-known/peter_sslers/acme-order/new/freeform.json", form
             )
             assert res2.status_code == 200
-            if res2.json["result"] != "success":
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                pprint.pprint(res2.json)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
             assert res2.json["result"] == "success"
             assert "AcmeOrder" in res2.json
             obj_id = res2.json["AcmeOrder"]["id"]
@@ -2868,6 +2859,8 @@ class FunctionalTests_AcmeOrder(AppTest):
         _did_auth = auth_SystemConfiguration_accounts__api(
             self, dbSystemConfiguration_global, only_required=True
         )
+        assert dbSystemConfiguration_global.acme_account__primary.account_url
+        assert dbSystemConfiguration_global.acme_account__backup.account_url
 
         # note: via account_key_global_default
         domain_names_1 = generate_random_domain(testCase=self)
@@ -2907,11 +2900,9 @@ class FunctionalTests_AcmeOrder(AppTest):
         dbAcmeOrder4 = _make_one_base(
             domain_names_http01=domain_names_4,
             account_key_option="acme_account_url",
-            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url
-            or "",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url,
             account_key_option_backup="acme_account_url",
-            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.account_url
-            or "",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.account_url,
             processing_strategy="create_order",
         )
 
@@ -2960,19 +2951,6 @@ class FunctionalTests_AcmeOrder(AppTest):
             form["acme_profile__backup"] = "@"
             form["processing_strategy"].force_value(processing_strategy)
             res2 = form.submit()
-            if res2.status_code != 303:
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print(res2.text)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
-                print("#" * 80)
             assert res2.status_code == 303
 
             matched = RE_AcmeOrder.match(res2.location)
@@ -3000,8 +2978,12 @@ class FunctionalTests_AcmeOrder(AppTest):
         # but that  would now be reflected on this object, because it is stale
         # refreshing this should ensure we load a field
         _did_auth = auth_SystemConfiguration_accounts__api(
-            self, dbSystemConfiguration_global, only_required=True,
+            self,
+            dbSystemConfiguration_global,
+            only_required=True,
         )
+        assert dbSystemConfiguration_global.acme_account__primary.account_url
+        assert dbSystemConfiguration_global.acme_account__backup.account_url
 
         # note: via account_key_global_default
         domain_names_1 = generate_random_domain(testCase=self)
@@ -3042,11 +3024,9 @@ class FunctionalTests_AcmeOrder(AppTest):
         dbAcmeOrder4 = _make_one_base(
             domain_names_http01=domain_names_4,
             account_key_option="acme_account_url",
-            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url
-            or "",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url,
             account_key_option_backup="acme_account_url",
-            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.account_url
-            or "",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.account_url,
             processing_strategy="create_order",
         )
 
@@ -12533,10 +12513,9 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         _account_url_altered = "%s?altered=1" % dbAcmeAccount.account_url
 
         # alter the database
-        dbAcmeAccount.account_url = _account_url_altered
-        dbAcmeAccount.account_url_sha256 = hashlib.sha256(
-            _account_url_altered.encode()
-        ).hexdigest()
+        update_AcmeAccount__account_url(
+            self.ctx, dbAcmeAccount=dbAcmeAccount, account_url=_account_url_altered
+        )
         self.ctx.dbSession.flush(
             objects=[
                 dbAcmeAccount,
@@ -13225,26 +13204,6 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res3b.status_code == 200
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("_did_authenticate ?", _did_authenticate)
-        pprint.pprint(res3b.json)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
         assert res3b.json["result"] == "success"
         assert "domain_results" in res3b.json
         assert DOMAIN_NAME__SINGLE in res3b.json["domain_results"]
