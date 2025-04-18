@@ -1954,6 +1954,15 @@
                <input class="form-control" name="acme_account_id" id="account_key_existing-acme_account_id" type="text"/>
             </div>
         </div>
+        <div class="radio">
+            <label for="account_key_option-acme_account_url">
+                <input type="radio" name="account_key_option" id="account_key_option-acme_account_url" value="acme_account_url"/>
+                The ACME Account URL (on the ACME Server).
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="acme_account_url" id="account_key_existing-acme_account_url" type="text"/>
+            </div>
+        </div>
         % if support_upload:
             <div class="radio">
                 <label>
@@ -2084,7 +2093,6 @@
                <input class="form-control" name="account_key_existing_backup" id="account_key_option_backup-account_key_existing" type="text"/>
             </div>
         </div>
-
         <div class="radio">
             <label for="account_key_option_backup-acme_account_id_backup">
                 <input type="radio" name="account_key_option_backup" id="account_key_option_backup-acme_account_id_backup" value="acme_account_id_backup"/>
@@ -2092,6 +2100,15 @@
             </label>
             <div class="form-control-static">
                <input class="form-control" name="acme_account_id_backup" id="account_key_option_backup-acme_account_id_backup" type="text"/>
+            </div>
+        </div>
+        <div class="radio">
+            <label for="account_key_option_backup-acme_account_url_backup">
+                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-acme_account_url_backup" value="acme_account_url_backup"/>
+                The ACME Account URL (on the ACME Server).
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="acme_account_url_backup" id="account_key_option_backup-acme_account_url_backup" type="text"/>
             </div>
         </div>
         % if support_profiles:

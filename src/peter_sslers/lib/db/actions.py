@@ -35,6 +35,7 @@ from ... import lib
 from ...lib import db as lib_db
 from ...lib.http import StopableWSGIServer
 from ...lib.utils import url_to_server
+from ...lib.utils_datetime import datetime_ari_timely
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 from ...model.objects import AcmeServer
@@ -1171,14 +1172,11 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     # also, we need to time the routine
     TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
 
-    TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
-    assert ctx.application_settings
-    _minutes = ctx.application_settings.get("offset.ari_updates", 60)
-    TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
-    timestamp_max_expiry = (
-        TIMESTAMP_routine_start + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
+    # the max_expiry will be in the future, to ensure we check ARI of anything
+    # that expires until the next routine invocation
+    timestamp_max_expiry = datetime_ari_timely(
+        ctx, datetime_now=TIMESTAMP_routine_start
     )
-
     """
     # The SQL we want (for now):
     SELECT
@@ -1205,12 +1203,12 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
             cert.is_ari_supported__order IS True
         )
         AND
-        cert.timestamp_not_after < datetime()
+        cert.timestamp_not_after <= datetime()
         AND
         (
             latest_ari_checks.latest_ari_id IS NULL
             OR
-            latest_ari_checks.timestamp_retry_after < datetime()
+            latest_ari_checks.timestamp_retry_after <= datetime()
         )
     ORDER BY cert.id DESC;
     """
@@ -1227,20 +1225,27 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     )
 
     certs = (
-        ctx.dbSession.query(CertificateSigned, latest_ari_checks.c.latest_ari_id)
+        ctx.dbSession.query(
+            CertificateSigned,
+            latest_ari_checks.c.latest_ari_id,
+            # latest_ari_checks.c.timestamp_retry_after,
+        )
         .outerjoin(
             latest_ari_checks,
             CertificateSigned.id == latest_ari_checks.c.certificate_signed_id,
         )
         .filter(
             CertificateSigned.is_active.is_(True),
+            # these are considered expired
+            CertificateSigned.timestamp_not_after <= timestamp_max_expiry,
             sqlalchemy_or(
                 CertificateSigned.is_ari_supported__cert.is_(True),
                 CertificateSigned.is_ari_supported__order.is_(True),
             ),
             sqlalchemy_or(
                 latest_ari_checks.c.latest_ari_id.is_(None),
-                latest_ari_checks.c.timestamp_retry_after >= timestamp_max_expiry,
+                # <= : select items that have expired
+                latest_ari_checks.c.timestamp_retry_after <= timestamp_max_expiry,
             ),
         )
         .order_by(
@@ -1261,6 +1266,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
             dbAriObject, ari_check_result = actions_acme.do__AcmeV2_AriCheck(
                 ctx,
                 dbCertificateSigned=dbCertificateSigned,
+                force_check=True,  # a potential delay exists after above SQL
             )
             count_records_success += 1
             ctx.pyramid_transaction_commit()

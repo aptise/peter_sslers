@@ -54,8 +54,12 @@ from peter_sslers.lib.context import ApiContext
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.lib.db.update import (
+    update_AcmeAccount__account_url,
+)
+from peter_sslers.lib.db.update import (
     update_AcmeOrder_deactivate_AcmeAuthorizationPotentials,
 )
+from peter_sslers.lib.exports import relative_symlink
 from peter_sslers.model import meta as model_meta
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
@@ -224,8 +228,18 @@ if DISABLE_WARNINGS:
 
 
 # override to "test_local.ini" if needed
-TEST_INI = os.environ.get("SSL_TEST_INI", "conf/test.ini")
+TEST_INI = os.environ.get("SSL_TEST_INI", "data_testing/test.ini")
+if not os.path.exists("data_testing"):
+    os.mkdir("data_testing")
+if not os.path.exists("data_testing/test.ini"):
+    relative_symlink("tests/test_configuration/test.ini", "data_testing/test.ini")
 
+# copy our nginx pem
+if not os.path.exists("data_testing/nginx_ca_bundle.pem"):
+    relative_symlink(
+        "tests/test_configuration/pebble/test/certs/pebble.minica.pem",
+        "data_testing/nginx_ca_bundle.pem",
+    )
 
 GLOBAL_appsettings: dict = {}
 
@@ -306,6 +320,9 @@ if DEBUG_GITHUB_ENV:
 # note: ApplicationSettings can be global
 GLOBAL_ApplicationSettings = ApplicationSettings(TEST_INI)
 GLOBAL_ApplicationSettings.from_settings_dict(GLOBAL_appsettings)
+
+
+DEBUG_DATABASE_ODDITY = False
 
 
 class CustomizedTestCase(unittest.TestCase):
@@ -454,7 +471,10 @@ def archive_pebble_data(pebble_ports: Tuple[int, int]):
                     _dbAcmeAccount.account_url,
                 )
                 account_url = _dbAcmeAccount.account_url
-                _dbAcmeAccount.account_url = "%s@%s" % (account_url, uuid.uuid4())
+                account_url_archive = "%s@%s" % (account_url, uuid.uuid4())
+                update_AcmeAccount__account_url(
+                    ctx, dbAcmeAccount=_dbAcmeAccount, account_url=account_url_archive
+                )
                 ctx.dbSession.flush(
                     objects=[
                         _dbAcmeAccount,
@@ -981,7 +1001,7 @@ def _db_unfreeze__actual(
                 print(
                     "DEBUG_DBFREEZE: clear failed; archiving for inspection:", failname
                 )
-            shutil.copy(active_filename, failname)
+            shutil.copy2(active_filename, failname)
         # instead of raising an exc, just delete it
         # TODO: bugfix how/why this is only breaking in CI on
         if DEBUG_DBFREEZE:
@@ -1819,9 +1839,35 @@ def auth_SystemConfiguration_accounts__api(
     testCase: CustomizedTestCase,
     dbSystemConfiguration: model_objects.SystemConfiguration,
     auth_only: Optional[Literal["primary", "backup"]] = None,
+    only_required: bool = False,
 ) -> bool:
     _did_authenticate = False
-    account_ids: List[int]
+    account_ids: List[int] = []
+    if only_required and auth_only is None:
+        _needs_primary = False
+        _needs_backup = False
+        if (
+            # not authenticated
+            (not dbSystemConfiguration.acme_account__primary.account_url)
+            or
+            # this is a migrated account; reauthenticate
+            ("@" in dbSystemConfiguration.acme_account__primary.account_url)
+        ):
+            _needs_primary = True
+        if dbSystemConfiguration.acme_account_id__backup and (
+            # not authenticated
+            (not dbSystemConfiguration.acme_account__backup.account_url)
+            or
+            # this is a migrated account; reauthenticate
+            ("@" in dbSystemConfiguration.acme_account__backup.account_url)
+        ):
+            _needs_backup = True
+        if not any((_needs_primary, _needs_backup)):
+            return _did_authenticate
+        if _needs_primary and not _needs_backup:
+            auth_only = "primary"
+        elif not _needs_primary and _needs_backup:
+            auth_only = "backup"
     if auth_only == "primary":
         account_ids = [
             dbSystemConfiguration.acme_account_id__primary,
@@ -1844,6 +1890,11 @@ def auth_SystemConfiguration_accounts__api(
             if i
         ]
 
+    if DEBUG_DATABASE_ODDITY:
+        _resPre = testCase.testapp.get("/.well-known/peter_sslers/debug")
+        print("PRE AUTH")
+        pprint.pprint(_resPre.json)
+
     # return True if we authenticate for either account
     for _acme_account_id in account_ids:
         # authenticate will register; check will not
@@ -1857,6 +1908,13 @@ def auth_SystemConfiguration_accounts__api(
             "?result=success&operation=acme-server--authenticate&is_authenticated=True"
         )
         _did_authenticate = True
+
+    if DEBUG_DATABASE_ODDITY:
+        _resPost = testCase.testapp.get("/.well-known/peter_sslers/debug")
+        print("POST AUTH")
+        pprint.pprint(_resPost.json)
+
+    testCase.ctx.dbSession.refresh(dbSystemConfiguration)
     return _did_authenticate
 
 
@@ -2134,6 +2192,8 @@ class AppTestCore(CustomizedTestCase, _Mixin_filedata):
         AppTestCore._DB_INTIALIZED = True
         if DEBUG_METRICS:
             self._db_filename = self.ctx.dbSession.connection().engine.url.database
+            if TYPE_CHECKING:
+                assert self._db_filename
             self._db_filesize = {
                 "setUp": os.path.getsize(self._db_filename),
             }
@@ -2149,6 +2209,8 @@ class AppTestCore(CustomizedTestCase, _Mixin_filedata):
             count_certificate_ca = self.ctx.dbSession.query(  # Pebble certs
                 model_objects.CertificateCA
             ).count()
+            if TYPE_CHECKING:
+                assert self._db_filename
             self._db_filesize["tearDown"] = os.path.getsize(self._db_filename)
             self._wrapped_end = time.time()
 

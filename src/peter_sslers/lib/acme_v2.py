@@ -28,6 +28,7 @@ from cert_utils.model import AccountKeyData
 import josepy
 import requests
 from requests.utils import parse_header_links
+from typing_extensions import Literal
 from typing_extensions import NotRequired
 from typing_extensions import TypedDict
 from urllib3.util.ssl_ import create_urllib3_context
@@ -42,6 +43,7 @@ from .db import create as db_create
 from .db import update as db_update
 from .utils import ari_timestamp_to_python
 from .utils import new_BrowserSession
+from .utils_datetime import datetime_ari_timely
 from .. import USER_AGENT
 from ..model import utils as model_utils
 
@@ -67,10 +69,7 @@ if TYPE_CHECKING:
 # ==============================================================================
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
-
 log_api = logging.getLogger("acme_api")
-log_api.setLevel(logging.DEBUG)
 
 # ------------------------------------------------------------------------------
 
@@ -145,6 +144,7 @@ def url_request(
             "User-Agent": USER_AGENT,
         }
         if alt_bundle:
+            # see https://github.com/urllib3/urllib3/issues/3571
             context = create_urllib3_context()
             context.load_verify_locations(cafile=alt_bundle)
             log_api.info("Making a request with alt_bundle: %s", alt_bundle)
@@ -534,7 +534,8 @@ class AuthenticatedUser(object):
         acmeAccount: "AcmeAccount",
         acme_directory: Optional[Dict] = None,
         log__OperationsEvent: Optional[Callable] = None,
-        func_account_updates: Optional[Callable] = None,
+        func_acmeAccount_directory_updates: Optional[Callable] = None,
+        acknowledge_transaction_commits: Optional[Literal[True]] = None,
     ):
         """
         :param acmeLogger: (required) A :class:`.logger.AcmeLogger` instance
@@ -543,15 +544,26 @@ class AuthenticatedUser(object):
             be generated.
         :param log__OperationsEvent: (required) callable function to log the operations event
         """
+        if not acknowledge_transaction_commits:
+            raise errors.AcknowledgeTransactionCommitRequired()
         self.ctx = ctx
         if not all((acmeLogger, acmeAccount)):
             raise ValueError("all elements are required: (acmeLogger, acmeAccount)")
 
         if acme_directory is None:
-            acme_directory = acme_directory_get(self.ctx, acmeAccount)
+            self.acme_directory = acme_directory_get(self.ctx, acmeAccount)
             db_update.update_AcmeServer_directory(
-                ctx, acmeAccount.acme_server, acme_directory
+                ctx, acmeAccount.acme_server, self.acme_directory
             )
+            if func_acmeAccount_directory_updates:
+                func_acmeAccount_directory_updates(
+                    ctx,
+                    acmeAccount,
+                    self,
+                    acknowledge_transaction_commits=acknowledge_transaction_commits,
+                )
+        else:
+            self.acme_directory = acme_directory
 
         # parse account key to get public key
         self.accountKeyData = AccountKeyData(
@@ -561,14 +573,10 @@ class AuthenticatedUser(object):
         # configure the object!
         self.acmeLogger = acmeLogger
         self.acmeAccount = acmeAccount
-        self.acme_directory = acme_directory
         self.log__OperationsEvent = log__OperationsEvent
         self._next_nonce = None
         if acmeAccount.acme_server and acmeAccount.acme_server.is_supports_ari:
             self.supports_ari = True
-
-        if func_account_updates:
-            func_account_updates(ctx, acmeAccount, self)
 
     def _send_signed_request(
         self,
@@ -2578,7 +2586,9 @@ def _ari_query(
             r = sess.get(acme_directory, verify=cas.path(ctx, "CA_ACME"))
             _renewal_base = r.json().get("renewalInfo")
             if not _renewal_base:
-                raise errors.AcmeAriCheckDeclined("no `renewalInfo` endpoint")
+                raise errors.AcmeAriCheckDeclined(
+                    "ARI Check Declined; no `renewalInfo` endpoint"
+                )
             _renewal_url = "%s/%s" % (_renewal_base, ari_id)
             log.info("renewalInfo endpoint: %s", _renewal_url)
 
@@ -2607,7 +2617,7 @@ def _ari_query(
 def ari_check(
     ctx: "ApiContext",
     dbCertificateSigned: "CertificateSigned",
-    force: bool = False,
+    force_check: bool = False,
 ) -> Optional[AriCheckResult]:
     """
     Returns:
@@ -2618,11 +2628,20 @@ def ari_check(
     """
     log.info("ari_check(%s", dbCertificateSigned)
 
-    if not dbCertificateSigned.is_ari_check_timely(ctx):
-        if not force:
-            _expiry = dbCertificateSigned.is_ari_check_timely_expiry(ctx)
+    # do not run ARI checks for certs that expire, or will expire before the
+    # next proces is run
+
+    datetime_now = datetime.datetime.now(datetime.timezone.utc)
+    if not dbCertificateSigned.is_ari_checking_timely(ctx, datetime_now=datetime_now):
+        if not force_check:
+            # the expiry is a padded limit of the max time to rely on ARI checks
+            timely_expiry = datetime_ari_timely(ctx, datetime_now=datetime_now)
             raise errors.AcmeAriCheckDeclined(
-                "ARI Check Not Timely: %s" % _expiry.replace(microsecond=0).isoformat()
+                "ARI Check Declined; Not Timely: %s<%s"
+                % (
+                    dbCertificateSigned.timestamp_not_after,
+                    timely_expiry.replace(microsecond=0).isoformat(),
+                )
             )
 
     ari_identifier: Optional[str] = None
@@ -2650,7 +2669,7 @@ def ari_check(
     except Exception as exc:
         raise exc
     if not ari_identifier:
-        raise errors.AcmeAriCheckDeclined("No ARI Identifier")
+        raise errors.AcmeAriCheckDeclined("ARI Check Declined; No ARI Identifier")
 
     log.debug("ari_check: ")
     ariCheckResult = _ari_query(

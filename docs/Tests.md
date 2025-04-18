@@ -31,9 +31,6 @@ There are a few environment variables you can set, some of which include:
     export SSL_LETSENCRYPT_API_VALIDATES=True
 
 Tests are done on a SQLite database as specified in `test.ini` .
- Do not edit `test.ini` though, instead create a
-`test_local.ini` file and set an environment variable to use that file. More info
-on this is available in the development readme file.
 
 `test_data/` contains the keys and Certificates used for testing
 

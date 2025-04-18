@@ -29,6 +29,7 @@ from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib.db import actions as lib_db_actions
 from peter_sslers.lib.db import actions_acme as lib_db_actions_acme
 from peter_sslers.lib.db import get as lib_db_get
+from peter_sslers.lib.db.update import update_AcmeAccount__account_url
 from peter_sslers.model import objects as model_objects
 from peter_sslers.model import utils as model_utils
 from . import _utils
@@ -155,6 +156,8 @@ def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
                 dbAcmeOrder = make_one__AcmeOrder__random__api(testCase)
                 _orders.append(dbAcmeOrder)
 
+            DEBUG_SETUP = True
+
             # This is all to generate a valid ARI Check
             # only 1 is needed
             for dbAcmeOrder in _orders:
@@ -162,9 +165,11 @@ def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
                     "/.well-known/peter_sslers/acme-order/%s" % dbAcmeOrder.id,
                     status=200,
                 )
-                print(
-                    "setup_testing_data: process res:", "form-acme_process" in res.forms
-                )
+                if DEBUG_SETUP:
+                    print(
+                        "setup_testing_data: process res:",
+                        "form-acme_process" in res.forms,
+                    )
                 if "form-acme_process" in res.forms:
                     # the first acme_process should validate challenges
                     form = res.forms["form-acme_process"]
@@ -174,10 +179,11 @@ def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
                         "?result=success&operation=acme+process"
                     )
                     res3 = testCase.testapp.get(res2.location, status=200)
-                    print(
-                        "setup_testing_data: process res3:",
-                        "form-acme_process" in res3.forms,
-                    )
+                    if DEBUG_SETUP:
+                        print(
+                            "setup_testing_data: process res3:",
+                            "form-acme_process" in res3.forms,
+                        )
                     if "form-acme_process" in res3.forms:
                         # the second form should finalize and download the cert
                         form = res3.forms["form-acme_process"]
@@ -189,11 +195,12 @@ def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
                         res5 = testCase.testapp.get(res4.location, status=200)
                         assert "certificate_downloaded" in res5.text
                         matched = RE_CertificateSigned_main.search(res5.text)
-                        print(
-                            "setup_testing_data: process res5:",
-                            "form-acme_process" in res5.forms,
-                        )
-                        print("setup_testing_data: matched?", matched)
+                        if DEBUG_SETUP:
+                            print(
+                                "setup_testing_data: process res5:",
+                                "form-acme_process" in res5.forms,
+                            )
+                            print("setup_testing_data: matched?", matched)
                         if matched:
                             certificate_id = matched.groups()[0]
                             res = testCase.testapp.get(
@@ -316,6 +323,10 @@ class FunctionalTests_Main(AppTest):
     @routes_tested("admin:help")
     def test_help(self):
         res = self.testapp.get("/.well-known/peter_sslers/help", status=200)
+
+    @routes_tested("admin:debug")
+    def test_debug(self):
+        res = self.testapp.get("/.well-known/peter_sslers/debug", status=200)
 
     @routes_tested("admin:settings")
     def test_settings(self):
@@ -2795,6 +2806,7 @@ class FunctionalTests_AcmeOrder(AppTest):
                 "account_key_global_backup": "account_key_global_backup",
                 "account_key_existing": "account_key_existing_backup",
                 "acme_account_id": "acme_account_id_backup",
+                "acme_account_url": "acme_account_url_backup",
             }
             _backup_field = _backup_translate[account_key_option_backup]
 
@@ -2833,6 +2845,22 @@ class FunctionalTests_AcmeOrder(AppTest):
         )
         assert dbSystemConfiguration_global
         assert dbSystemConfiguration_global.is_configured
+        assert dbSystemConfiguration_global.acme_account__primary
+        assert dbSystemConfiguration_global.acme_account__backup
+        # this might not be needed during normal flow
+        # but will be needed if dbAcmeOrder4 is run first
+        # The AcmeAccount was created during the boostraped setup process, without Pebble, from PEM files.
+        # consequently, it did not have an initial authentication, which would
+        # have ensured it is on the server and also populated the
+        # `AcmeAccount.account_url` field on the object.
+        # this field should have been populated by the tests above if needed,
+        # but that  would now be reflected on this object, because it is stale
+        # refreshing this should ensure we load a field
+        _did_auth = auth_SystemConfiguration_accounts__api(
+            self, dbSystemConfiguration_global, only_required=True
+        )
+        assert dbSystemConfiguration_global.acme_account__primary.account_url
+        assert dbSystemConfiguration_global.acme_account__backup.account_url
 
         # note: via account_key_global_default
         domain_names_1 = generate_random_domain(testCase=self)
@@ -2845,7 +2873,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
-        # note: via account_key_existing.pem_md5
+        # note: via account_key_existing [acme_account.acme_account_key.key_pem_md5]
         domain_names_2 = generate_random_domain(testCase=self)
         dbAcmeOrder2 = _make_one_base(
             domain_names_http01=domain_names_2,
@@ -2856,7 +2884,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
-        # note: via account_key_existing.pem_md5
+        # note: via acme_account_id [acme_account.id]
         domain_names_3 = generate_random_domain(testCase=self)
         dbAcmeOrder3 = _make_one_base(
             domain_names_http01=domain_names_3,
@@ -2864,6 +2892,17 @@ class FunctionalTests_AcmeOrder(AppTest):
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.id,
             account_key_option_backup="acme_account_id",
             account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.id,
+            processing_strategy="create_order",
+        )
+
+        # note: via acme_account_url [acme_account.account_url]
+        domain_names_4 = generate_random_domain(testCase=self)
+        dbAcmeOrder4 = _make_one_base(
+            domain_names_http01=domain_names_4,
+            account_key_option="acme_account_url",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url,
+            account_key_option_backup="acme_account_url",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.account_url,
             processing_strategy="create_order",
         )
 
@@ -2878,7 +2917,6 @@ class FunctionalTests_AcmeOrder(AppTest):
         This only tests creating the AcmeOrder, not processing it
         """
 
-        # note: _make_one_base
         def _make_one_base(
             domain_names_http01: str,
             account_key_option: str,
@@ -2896,6 +2934,7 @@ class FunctionalTests_AcmeOrder(AppTest):
                 "account_key_global_backup": "account_key_global_backup",
                 "account_key_existing": "account_key_existing_backup",
                 "acme_account_id": "acme_account_id_backup",
+                "acme_account_url": "acme_account_url_backup",
             }
             _backup_field = _backup_translate[account_key_option_backup]
 
@@ -2927,6 +2966,24 @@ class FunctionalTests_AcmeOrder(AppTest):
         )
         assert dbSystemConfiguration_global
         assert dbSystemConfiguration_global.is_configured
+        assert dbSystemConfiguration_global.acme_account__primary
+        assert dbSystemConfiguration_global.acme_account__backup
+        # this might not be needed during normal flow
+        # but will be needed if dbAcmeOrder4 is run first
+        # The AcmeAccount was created during the boostraped setup process, without Pebble, from PEM files.
+        # consequently, it did not have an initial authentication, which would
+        # have ensured it is on the server and also populated the
+        # `AcmeAccount.account_url` field on the object.
+        # this field should have been populated by the tests above if needed,
+        # but that  would now be reflected on this object, because it is stale
+        # refreshing this should ensure we load a field
+        _did_auth = auth_SystemConfiguration_accounts__api(
+            self,
+            dbSystemConfiguration_global,
+            only_required=True,
+        )
+        assert dbSystemConfiguration_global.acme_account__primary.account_url
+        assert dbSystemConfiguration_global.acme_account__backup.account_url
 
         # note: via account_key_global_default
         domain_names_1 = generate_random_domain(testCase=self)
@@ -2940,7 +2997,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
-        # note: via account_key_existing.pem_md5
+        # note: via account_key_existing [acme_account.acme_account_key.key_pem_md5]
         domain_names_2 = generate_random_domain(testCase=self)
         dbAcmeOrder2 = _make_one_base(
             domain_names_http01=domain_names_2,
@@ -2951,7 +3008,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
-        # note: via account_key_existing.pem_md5
+        # note: via acme_account_id [acme_account.id]
         domain_names_3 = generate_random_domain(testCase=self)
         dbAcmeOrder3 = _make_one_base(
             domain_names_http01=domain_names_3,
@@ -2959,6 +3016,17 @@ class FunctionalTests_AcmeOrder(AppTest):
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.id,
             account_key_option_backup="acme_account_id",
             account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.id,
+            processing_strategy="create_order",
+        )
+
+        # note: via acme_account_url [acme_account.account_url]
+        domain_names_4 = generate_random_domain(testCase=self)
+        dbAcmeOrder4 = _make_one_base(
+            domain_names_http01=domain_names_4,
+            account_key_option="acme_account_url",
+            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url,
+            account_key_option_backup="acme_account_url",
+            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.account_url,
             processing_strategy="create_order",
         )
 
@@ -12445,7 +12513,9 @@ class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
         _account_url_altered = "%s?altered=1" % dbAcmeAccount.account_url
 
         # alter the database
-        dbAcmeAccount.account_url = _account_url_altered
+        update_AcmeAccount__account_url(
+            self.ctx, dbAcmeAccount=dbAcmeAccount, account_url=_account_url_altered
+        )
         self.ctx.dbSession.flush(
             objects=[
                 dbAcmeAccount,
@@ -13134,26 +13204,6 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res3b.status_code == 200
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("_did_authenticate ?", _did_authenticate)
-        pprint.pprint(res3b.json)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
-        print("*" * 80)
         assert res3b.json["result"] == "success"
         assert "domain_results" in res3b.json
         assert DOMAIN_NAME__SINGLE in res3b.json["domain_results"]
@@ -13266,8 +13316,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             self, "certificate-if-needed"
         )
         assert dbSystemConfiguration_cin.is_configured
-
-        auth_SystemConfiguration_accounts__api(
+        assert dbSystemConfiguration_cin.acme_account__primary
+        _did_authenticate = auth_SystemConfiguration_accounts__api(
             self,
             dbSystemConfiguration_cin,
             auth_only="primary",

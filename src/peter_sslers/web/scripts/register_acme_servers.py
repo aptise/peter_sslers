@@ -72,8 +72,8 @@ with the `register` action
 def usage(argv):
     cmd = os.path.basename(argv[0])
     print("usage: %s <config_uri> <action> <file>\n" % cmd)
-    print('(example: "%s conf/example_development.ini register imports.json")\n' % cmd)
-    print('(example: "%s conf/example_development.ini export exports.json")\n' % cmd)
+    print('(example: "%s data_development/config.ini register imports.json")\n' % cmd)
+    print('(example: "%s data_development/config.ini export exports.json")\n' % cmd)
     print(INSTRUCTIONS)
     sys.exit(1)
 

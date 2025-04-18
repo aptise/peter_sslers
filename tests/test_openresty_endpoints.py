@@ -43,6 +43,12 @@ URL_EXPIRE_DOMAIN = "%s/.peter_sslers/nginx/shared_cache/expire/domain/%s"
 class FunctionalTests_Main(unittest.TestCase):
     """
     python -m unittest tests.test_openresty_endpoints.FunctionalTests_Main
+
+    These tests directly hit OpenResty/Nginx
+
+        https://localhost/.peter_sslers/nginx/shared_cache/status
+
+    They utilize the ApplicationSettings to grab the `nginx.ca_bundle_pem`
     """
 
     _settings = None

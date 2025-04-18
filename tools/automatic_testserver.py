@@ -1,11 +1,17 @@
 """
-this script spins up the actual testserver used by the automatic systems
+This script spins up the actual testserver used by the automatic systems.
+
+To debug integrations, `fake_server.py` is often preferred.
 """
 
-from peter_sslers.lib.db.actions import _create_public_server
+# stdlib
+import sys
+
+# pypi
 from pyramid.paster import get_appsettings
 
-import sys
+# local
+from peter_sslers.lib.db.actions import _create_public_server
 
 conf = sys.argv[1]
 print("conf:", conf)

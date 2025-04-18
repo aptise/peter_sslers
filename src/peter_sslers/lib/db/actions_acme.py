@@ -41,6 +41,7 @@ from .getcreate import getcreate__PrivateKey_for_AcmeAccount
 from .getcreate import process__AcmeAuthorization_payload
 from .logger import AcmeLogger
 from .logger import log__OperationsEvent
+from .update import update_AcmeAccount__account_url
 from .update import update_AcmeAccount__terms_of_service
 from .update import update_AcmeAuthorization_from_payload
 from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
@@ -620,18 +621,20 @@ def _AcmeV2_AcmeOrder__process_authorizations(
     return _task_finalize_order
 
 
-def handle_AcmeAccount_Updates(
+def handle_AcmeAccount_directory_updates(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
     authenticatedUser: "acme_v2.AuthenticatedUser",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> bool:
     # update based off the ACME service
     # the server's TOS should take precedence
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
     acme_tos = authenticatedUser.acme_directory["meta"]["termsOfService"].strip()
     if acme_tos:
         if acme_tos != dbAcmeAccount.terms_of_service:
             updated = update_AcmeAccount__terms_of_service(ctx, dbAcmeAccount, acme_tos)
-
             if updated:
                 event_payload_dict = lib_utils.new_event_payload_dict()
                 event_payload_dict["acme_account.id"] = dbAcmeAccount.id
@@ -642,7 +645,7 @@ def handle_AcmeAccount_Updates(
                     ),
                     event_payload_dict,
                 )
-
+                ctx.pyramid_transaction_commit()
             return updated
     return False
 
@@ -651,10 +654,13 @@ def handle_AcmeAccount_AcmeServer_url_change(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
     authenticatedUser: "AuthenticatedUser",
-) -> None:
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Optional[Literal[True]]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
     assert authenticatedUser._api_account_headers
     acme_account_url = authenticatedUser._api_account_headers["Location"]
-    if acme_account_url != dbAcmeAccount.account_url:
+    if acme_account_url and (acme_account_url != dbAcmeAccount.account_url):
         # this is a bit tricky
         # this library defends against most duplicate accounts by checking
         # the account key for duplication
@@ -673,8 +679,12 @@ def handle_AcmeAccount_AcmeServer_url_change(
             raise errors.AcmeDuplicateAccount(_dbAcmeAccountOther)
 
         # this is now safe to set
-        dbAcmeAccount.account_url = acme_account_url
+        update_AcmeAccount__account_url(
+            ctx, dbAcmeAccount=dbAcmeAccount, account_url=acme_account_url
+        )
         ctx.dbSession.add(dbAcmeAccount)
+        ctx.pyramid_transaction_commit()
+        return True
     return None
 
 
@@ -807,14 +817,20 @@ def do__AcmeV2_AcmeAccount__authenticate(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
-        func_account_updates=handle_AcmeAccount_Updates,
+        func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+        acknowledge_transaction_commits=transaction_commit,
     )
     authenticatedUser.authenticate(
         ctx,
         onlyReturnExisting=onlyReturnExisting,
         transaction_commit=transaction_commit,
     )
-    handle_AcmeAccount_AcmeServer_url_change(ctx, dbAcmeAccount, authenticatedUser)
+    handle_AcmeAccount_AcmeServer_url_change(
+        ctx,
+        dbAcmeAccount,
+        authenticatedUser,
+        acknowledge_transaction_commits=transaction_commit,
+    )
     return authenticatedUser
 
 
@@ -852,7 +868,8 @@ def do__AcmeV2_AcmeAccount__deactivate(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
-        func_account_updates=handle_AcmeAccount_Updates,
+        func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+        acknowledge_transaction_commits=transaction_commit,
     )
     authenticatedUser.authenticate(ctx, transaction_commit=transaction_commit)
     is_did_deactivate = authenticatedUser.deactivate(
@@ -974,14 +991,14 @@ def do__AcmeV2_AcmeAccount__key_change(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
-        func_account_updates=handle_AcmeAccount_Updates,
+        func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+        acknowledge_transaction_commits=transaction_commit,
     )
     authenticatedUser.authenticate(ctx, transaction_commit=transaction_commit)
     is_did_keychange = authenticatedUser.key_change(
         ctx, dbAcmeAccountKey_new, transaction_commit=transaction_commit
     )
     ctx.pyramid_transaction_commit()
-
     return authenticatedUser, is_did_keychange
 
 
@@ -1016,12 +1033,18 @@ def do__AcmeV2_AcmeAccount_register(
             acmeLogger=acmeLogger,
             acmeAccount=dbAcmeAccount,
             log__OperationsEvent=log__OperationsEvent,
-            func_account_updates=handle_AcmeAccount_Updates,
+            func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+            acknowledge_transaction_commits=transaction_commit,
         )
         authenticatedUser.authenticate(
             ctx, contact=dbAcmeAccount.contact, transaction_commit=transaction_commit
         )
-        handle_AcmeAccount_AcmeServer_url_change(ctx, dbAcmeAccount, authenticatedUser)
+        handle_AcmeAccount_AcmeServer_url_change(
+            ctx,
+            dbAcmeAccount,
+            authenticatedUser,
+            acknowledge_transaction_commits=transaction_commit,
+        )
         return authenticatedUser
     except Exception as exc:  # noqa: F841
         raise
@@ -2154,6 +2177,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     else:
                         raise ValueError("unknown dir type")
                     (EXPORTS_DIR, EXPORTS_DIR_WORKING) = exports.get_exports_dirs(ctx)
+                    if not os.path.exists(EXPORTS_DIR):
+                        os.makedirs(EXPORTS_DIR)
                     type_path = os.path.join(EXPORTS_DIR, type_dir)
                     rc_path = os.path.join(type_path, rc_dir)
                     if not os.path.exists(rc_path):
@@ -3332,6 +3357,7 @@ def do__AcmeV2_AcmeOrder__retry(
 def do__AcmeV2_AriCheck(
     ctx: "ApiContext",
     dbCertificateSigned: "CertificateSigned",
+    force_check: bool = False,
 ) -> Tuple["AriCheck", Optional["AriCheckResult"]]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -3348,6 +3374,7 @@ def do__AcmeV2_AriCheck(
         ariCheckResult: Optional["AriCheckResult"] = acme_v2.ari_check(
             ctx=ctx,
             dbCertificateSigned=dbCertificateSigned,
+            force_check=force_check,
         )
         dbAriCheck = create__AriCheck(
             ctx=ctx,

@@ -16,14 +16,14 @@ from ...lib.utils import new_scripts_setup
 # ==============================================================================
 
 # TESTING:
-# import_certbot example_development.ini dir=/Volumes/Development/webserver/environments/certbot-persistent/etc/letsencrypt
+# import_certbot data_development/config.ini dir=/Volumes/Development/webserver/environments/certbot-persistent/etc/letsencrypt
 
 
 def usage(argv):
     cmd = os.path.basename(argv[0])
     print(
         "usage: %s <config_uri> [dir=/etc/letsencrypt]\n"
-        '(example: "%s conf/example_development.ini")' % (cmd, cmd)
+        '(example: "%s data_development/config.ini")' % (cmd, cmd)
     )
     sys.exit(1)
 

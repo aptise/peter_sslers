@@ -1,5 +1,6 @@
 # stdlib
 import datetime
+import hashlib
 import logging
 from typing import Dict
 from typing import List
@@ -52,6 +53,32 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
+
+
+def update_AcmeAccount__account_url(
+    ctx: "ApiContext",
+    dbAcmeAccount: "AcmeAccount",
+    account_url: Optional[str] = None,
+) -> bool:
+    print("#" * 80)
+    print("#" * 80)
+    print("#" * 80)
+    print("#" * 80)
+    print("#" * 80)
+    print("update_AcmeAccount__account_url")
+    print("SETTING:", dbAcmeAccount.id, account_url)
+    if account_url is None:
+        import pdb
+
+        pdb.set_trace()
+        dbAcmeAccount.account_url = None
+        dbAcmeAccount.account_url_sha256 = None
+    else:
+        dbAcmeAccount.account_url = account_url
+        dbAcmeAccount.account_url_sha256 = hashlib.sha256(
+            account_url.encode()
+        ).hexdigest()
+    return True
 
 
 def update_AcmeAccount__name(
@@ -356,9 +383,9 @@ def update_AcmeDnsServer__api_url__domain(
     if (dbAcmeDnsServer.api_url == api_url) and (dbAcmeDnsServer.domain == domain):
         raise errors.InvalidTransition("No change")
     dbAcmeDnsServerAlt = get__AcmeDnsServer__by_api_url(ctx, api_url)
-    if dbAcmeDnsServerAlt:
+    if dbAcmeDnsServerAlt and (dbAcmeDnsServerAlt.id != dbAcmeDnsServer.id):
         raise errors.InvalidTransition(
-            "Another acme-dns Server is enrolled with this same root url."
+            "Another acme-dns Server is enrolled with this same API URL."
         )
     dbAcmeDnsServer.api_url = api_url
     dbAcmeDnsServer.domain = domain

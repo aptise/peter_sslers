@@ -5,7 +5,7 @@ this is a development tool only
 
 example:
 
-    python -m peter_sslers.web.scripts.workspace_migrations conf/example_development.ini
+    python -m peter_sslers.web.scripts.workspace_migrations data_development/config.ini
 
 """
 
@@ -32,7 +32,7 @@ def usage(argv):
     cmd = os.path.basename(argv[0])
     print(
         "usage: %s <config_uri> [var=value]\n"
-        '(example: "%s conf/example_development.ini")' % (cmd, cmd)
+        '(example: "%s data_development/config.ini")' % (cmd, cmd)
     )
     sys.exit(1)
 

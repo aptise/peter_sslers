@@ -357,10 +357,12 @@ source peter_sslers-venv/bin/activate
 git clone https://github.com/aptise/peter_sslers.git
 cd peter_sslers
 $VENV/bin/pip3 install -e .
-vi conf/example_development.ini
-$VENV/bin/initialize_peter_sslers_db conf/example_development.ini
-$VENV/bin/import_certbot conf/example_development.ini dir=/etc/letsencrypt
-$VENV/bin/pserve conf/example_development.ini
+mkdir data_development
+co example_configs/development.ini data_development/config.ini
+vi data_development/config.ini
+$VENV/bin/initialize_peter_sslers_db data_development/config.ini
+$VENV/bin/import_certbot data_development/config.ini dir=/etc/letsencrypt
+$VENV/bin/pserve data_development/config.ini
 ```
 
 
