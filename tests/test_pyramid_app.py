@@ -2843,12 +2843,18 @@ class FunctionalTests_AcmeOrder(AppTest):
         assert dbSystemConfiguration_global.is_configured
         assert dbSystemConfiguration_global.acme_account__primary
         assert dbSystemConfiguration_global.acme_account__backup
-        if False:
-            # this should not be needed during normal flow
-            # but will be needed if dbAcmeOrder4 is run first
-            _did_auth = auth_SystemConfiguration_accounts__api(
-                self, dbSystemConfiguration_global
-            )
+        # this might not be needed during normal flow
+        # but will be needed if dbAcmeOrder4 is run first
+        # The AcmeAccount was created during the boostraped setup process, without Pebble, from PEM files.
+        # consequently, it did not have an initial authentication, which would
+        # have ensured it is on the server and also populated the
+        # `AcmeAccount.account_url` field on the object.
+        # this field should have been populated by the tests above if needed,
+        # but that  would now be reflected on this object, because it is stale
+        # refreshing this should ensure we load a field
+        _did_auth = auth_SystemConfiguration_accounts__api(
+            self, dbSystemConfiguration_global, only_required=True
+        )
 
         # note: via account_key_global_default
         domain_names_1 = generate_random_domain(testCase=self)
@@ -2883,18 +2889,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
-        # Refresh the dbSystemConfiguration_global
-        # The AcmeAccount was created during the boostraped setup process, without Pebble, from PEM files.
-        # consequently, it did not have an initial authentication, which would
-        # have ensured it is on the server and also populated the
-        # `AcmeAccount.account_url` field on the object.
-        # this field should have been populated by the tests above if needed,
-        # but that  would now be reflected on this object, because it is stale
-        # refreshing this should ensure we load a field
-        self.ctx.dbSession.refresh(dbSystemConfiguration_global)
-
         # note: via acme_account_url [acme_account.account_url]
-        # note: did you read the bit about refreshing above?
         domain_names_4 = generate_random_domain(testCase=self)
         dbAcmeOrder4 = _make_one_base(
             domain_names_http01=domain_names_4,
@@ -2969,12 +2964,18 @@ class FunctionalTests_AcmeOrder(AppTest):
         assert dbSystemConfiguration_global.is_configured
         assert dbSystemConfiguration_global.acme_account__primary
         assert dbSystemConfiguration_global.acme_account__backup
-        if False:
-            # this should not be needed during normal flow
-            # but will be needed if dbAcmeOrder4 is run first
-            _did_auth = auth_SystemConfiguration_accounts__api(
-                self, dbSystemConfiguration_global
-            )
+        # this might not be needed during normal flow
+        # but will be needed if dbAcmeOrder4 is run first
+        # The AcmeAccount was created during the boostraped setup process, without Pebble, from PEM files.
+        # consequently, it did not have an initial authentication, which would
+        # have ensured it is on the server and also populated the
+        # `AcmeAccount.account_url` field on the object.
+        # this field should have been populated by the tests above if needed,
+        # but that  would now be reflected on this object, because it is stale
+        # refreshing this should ensure we load a field
+        _did_auth = auth_SystemConfiguration_accounts__api(
+            self, dbSystemConfiguration_global, only_required=True,
+        )
 
         # note: via account_key_global_default
         domain_names_1 = generate_random_domain(testCase=self)
@@ -3010,18 +3011,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             processing_strategy="create_order",
         )
 
-        # Refresh the dbSystemConfiguration_global
-        # The AcmeAccount was created during the boostraped setup process, without Pebble, from PEM files.
-        # consequently, it did not have an initial authentication, which would
-        # have ensured it is on the server and also populated the
-        # `AcmeAccount.account_url` field on the object.
-        # this field should have been populated by the tests above if needed,
-        # but that  would now be reflected on this object, because it is stale
-        # refreshing this should ensure we load a field
-        self.ctx.dbSession.refresh(dbSystemConfiguration_global)
-
         # note: via acme_account_url [acme_account.account_url]
-        # note: did you read the bit about refreshing above?
         domain_names_4 = generate_random_domain(testCase=self)
         dbAcmeOrder4 = _make_one_base(
             domain_names_http01=domain_names_4,

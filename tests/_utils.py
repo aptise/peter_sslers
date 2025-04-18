@@ -1838,9 +1838,23 @@ def auth_SystemConfiguration_accounts__api(
     testCase: CustomizedTestCase,
     dbSystemConfiguration: model_objects.SystemConfiguration,
     auth_only: Optional[Literal["primary", "backup"]] = None,
+    only_required: bool = False,
 ) -> bool:
     _did_authenticate = False
-    account_ids: List[int]
+    account_ids: List[int] = []
+    if only_required and auth_only is None:
+        _needs_primary = False
+        _needs_backup = False
+        if not dbSystemConfiguration.acme_account__primary.account_url:
+            _needs_primary = True
+        if dbSystemConfiguration.acme_account_id__backup and not dbSystemConfiguration.acme_account__backup.account_url:
+            _needs_backup = True
+        if not any((_needs_primary, _needs_backup)):
+            return _did_authenticate
+        if _needs_primary and not _needs_backup:
+            auth_only = "primary"
+        elif not _needs_primary and _needs_backup:
+            auth_only = "backup"
     if auth_only == "primary":
         account_ids = [
             dbSystemConfiguration.acme_account_id__primary,
