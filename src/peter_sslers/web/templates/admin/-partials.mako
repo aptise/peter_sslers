@@ -618,6 +618,7 @@
                 "acme_account_id",
                 "renewal_configuration_id",
                 "certificate_request_id",
+                "acme_order_types",
                 "certificate_signed_id",
                 "unique_fqdn_set_id",
                )
@@ -692,6 +693,17 @@
                                         CertificateRequest-${acme_order.certificate_request_id}
                                     </a>
                                 % endif
+                            % elif c == 'acme_order_types':
+                                <span class="label label-default">${acme_order.acme_order_type}</span>
+                                % if acme_order.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                                    <span class="label label-success">${acme_order.certificate_type}</span>
+                                % elif acme_order.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                                    <span class="label label-warning">${acme_order.certificate_type}</span>
+                                % elif acme_order.certificate_type_id == model_websafe.CertificateType.RAW_IMPORTED:
+                                    <span class="label label-default">${acme_order.certificate_type}</span>
+                                % endif
+                                
+                                
                             % elif c == 'certificate_signed_id':
                                 % if acme_order.certificate_signed_id:
                                     <a href="${admin_prefix}/certificate-signed/${acme_order.certificate_signed_id}" class="label label-info">
@@ -1017,9 +1029,13 @@
                             ${'Active' if cert.is_active else 'inactive'}
                         </span>
                     % endif
-                    <span class="label label-default">
-                        ${cert.certificate_type}
-                    </span>
+                    % if cert.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                        <span class="label label-success">${cert.certificate_type}</span>
+                    % elif cert.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                        <span class="label label-warning">${cert.certificate_type}</span>
+                    % elif cert.certificate_type_id == model_websafe.CertificateType.RAW_IMPORTED:
+                        <span class="label label-default">${cert.certificate_type}</span>
+                    % endif
                 </td>
                 % if perspective != "RenewalConfiguration":
                 <td>

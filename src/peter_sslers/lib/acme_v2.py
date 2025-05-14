@@ -40,6 +40,7 @@ from . import errors
 from . import utils
 from . import utils_dns
 from .db import create as db_create
+from .db import get as db_get
 from .db import update as db_update
 from .utils import ari_timestamp_to_python
 from .utils import new_BrowserSession
@@ -288,12 +289,12 @@ def acme_directory_get(ctx: "ApiContext", acmeAccount: "AcmeAccount") -> Dict:
     :param acmeAccount: (required) a :class:`model.objects.AcmeAccount` instance
     """
     log_api.info("acme_v2.acme_directory_get(")
-    url_directory = acmeAccount.acme_server.directory
-    if not url_directory:
+    directory_url = acmeAccount.acme_server.directory_url
+    if not directory_url:
         raise ValueError("no directory for the CERTIFICATE_AUTHORITY!")
     directory_payload, _status_code, _headers = url_request(
         ctx,
-        url_directory,
+        directory_url,
         err_msg="Error getting directory",
         dbAcmeServer=acmeAccount.acme_server,
     )
@@ -551,19 +552,43 @@ class AuthenticatedUser(object):
             raise ValueError("all elements are required: (acmeLogger, acmeAccount)")
 
         if acme_directory is None:
-            self.acme_directory = acme_directory_get(self.ctx, acmeAccount)
-            db_update.update_AcmeServer_directory(
-                ctx, acmeAccount.acme_server, self.acme_directory
-            )
-            if func_acmeAccount_directory_updates:
-                func_acmeAccount_directory_updates(
-                    ctx,
-                    acmeAccount,
-                    self,
-                    acknowledge_transaction_commits=acknowledge_transaction_commits,
+            # semaphore
+            fetch_directory = True
+            # don't trust the ctx.timestamp as we could be in a long running process
+            timestamp_now = datetime.datetime.now(datetime.timezone.utc)
+            dbAcmeServerConfiguration = (
+                db_get.get__AcmeServerConfiguration__by_AcmeServerId__active(
+                    ctx, acmeAccount.acme_server_id
                 )
-        else:
-            self.acme_directory = acme_directory
+            )
+            if dbAcmeServerConfiguration:
+                timestamp_max = timestamp_now - datetime.timedelta(seconds=300)
+                if dbAcmeServerConfiguration.timestamp_lastchecked > timestamp_max:
+                    fetch_directory = False
+                    acme_directory = json.loads(
+                        dbAcmeServerConfiguration.directory_payload
+                    )
+            if fetch_directory:
+                acme_directory = acme_directory_get(self.ctx, acmeAccount)
+                db_update.update_AcmeServer_directory(
+                    ctx,
+                    acmeAccount.acme_server,
+                    acme_directory_payload=acme_directory,
+                    timestamp=timestamp_now,
+                )
+                # TODO: the above and below should be consolidated
+                if func_acmeAccount_directory_updates:
+                    func_acmeAccount_directory_updates(
+                        ctx,
+                        acmeAccount,
+                        self,
+                        acknowledge_transaction_commits=acknowledge_transaction_commits,
+                    )
+            if TYPE_CHECKING:
+                assert acme_directory is not None
+
+        # covers submitted & cached/fetched
+        self.acme_directory = acme_directory
 
         # parse account key to get public key
         self.accountKeyData = AccountKeyData(

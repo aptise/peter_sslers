@@ -68,9 +68,6 @@ def update_AcmeAccount__account_url(
     print("update_AcmeAccount__account_url")
     print("SETTING:", dbAcmeAccount.id, account_url)
     if account_url is None:
-        import pdb
-
-        pdb.set_trace()
         dbAcmeAccount.account_url = None
         dbAcmeAccount.account_url_sha256 = None
     else:
@@ -424,6 +421,7 @@ def update_AcmeDnsServer__unset_active(
 def update_AcmeOrder_deactivate(
     ctx: "ApiContext",
     dbAcmeOrder: "AcmeOrder",
+    is_manual: bool = False,
 ) -> bool:
     """
     `deactivate` should mark the order as:
@@ -431,7 +429,12 @@ def update_AcmeOrder_deactivate(
     """
     if dbAcmeOrder.is_processing is not True:
         raise errors.InvalidTransition("This `AcmeOrder` is not processing.")
-    dbAcmeOrder.is_processing = False
+    if is_manual:
+        # False : The AcmeOrder has been cancelled by the user.
+        dbAcmeOrder.is_processing = False
+    else:
+        # None :  The AcmeOrder has completed, it may be successful or a failure.
+        dbAcmeOrder.is_processing = None
     dbAcmeOrder.timestamp_updated = ctx.timestamp
     ctx.dbSession.flush(objects=[dbAcmeOrder])
 
@@ -586,19 +589,24 @@ def update_AcmeServer_profiles(
 def update_AcmeServer_directory(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",
-    acme_directory: Dict,
+    acme_directory_payload: Dict,
+    timestamp: Optional[datetime.datetime] = None,
 ) -> bool:
+    # don't trust ctx.timestamp on this, as we be in a long-running action
+    if not timestamp:
+        timestamp = ctx.timestamp
     # the LetsEncrypt server puts in a random entry, so the directory changes
-    directory_string = acme_v2.serialize_directory_object(acme_directory)
+    directory_string = acme_v2.serialize_directory_object(acme_directory_payload)
     _changed = False
     if (not dbAcmeServer.directory_latest) or (
-        dbAcmeServer.directory_latest.directory != directory_string
+        dbAcmeServer.directory_latest.directory_payload != directory_string
     ):
         initial_config = True if not dbAcmeServer.directory_latest else False
         directoryLatest = create__AcmeServerConfiguration(  # noqa: F841
             ctx,
             dbAcmeServer,
             directory_string,
+            timestamp=timestamp,
         )
         _changed = True
         if not initial_config:
@@ -611,13 +619,18 @@ def update_AcmeServer_directory(
                 notification_type_id=model_utils.NotificationType.ACME_SERVER_CHANGED,
                 message=message,
             )
-    _meta, _profiles_str = acme_v2.parse_acme_directory(acme_directory)
+    else:
+        dbAcmeServer.directory_latest.timestamp_lastchecked = timestamp
+        _changed = True
+
+    _meta, _profiles_str = acme_v2.parse_acme_directory(acme_directory_payload)
     if _profiles_str != dbAcmeServer.profiles:
         _result = update_AcmeServer_profiles(  # noqa: F841
             ctx, dbAcmeServer, _profiles_str
         )
         _changed = True
 
+    #
     if _changed:
         ctx.dbSession.flush(objects=[dbAcmeServer])
 

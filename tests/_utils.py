@@ -56,6 +56,7 @@ from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.lib.db.update import (
     update_AcmeAccount__account_url,
 )
+from peter_sslers.lib.db.update import update_AcmeOrder_deactivate
 from peter_sslers.lib.db.update import (
     update_AcmeOrder_deactivate_AcmeAuthorizationPotentials,
 )
@@ -114,7 +115,7 @@ LETSENCRYPT_API_VALIDATES = bool(
 SSL_TEST_DOMAINS = os.environ.get("SSL_TEST_DOMAINS", "example.com")
 SSL_TEST_PORT = int(os.environ.get("SSL_TEST_PORT", 7201))
 
-# coordinate the port with `test.ini`
+# coordinate the port with `data_testing/config.ini`
 SSL_BIN_REDIS_SERVER = os.environ.get("SSL_BIN_REDIS_SERVER", None) or "redis-server"
 SSL_CONF_REDIS_SERVER = os.environ.get("SSL_CONF_REDIS_SERVER", None) or None
 if not SSL_CONF_REDIS_SERVER:
@@ -228,11 +229,11 @@ if DISABLE_WARNINGS:
 
 
 # override to "test_local.ini" if needed
-TEST_INI = os.environ.get("SSL_TEST_INI", "data_testing/test.ini")
+TEST_INI = os.environ.get("SSL_TEST_INI", "data_testing/config.ini")
 if not os.path.exists("data_testing"):
     os.mkdir("data_testing")
-if not os.path.exists("data_testing/test.ini"):
-    relative_symlink("tests/test_configuration/test.ini", "data_testing/test.ini")
+if not os.path.exists("data_testing/config.ini"):
+    relative_symlink("tests/test_configuration/config.ini", "data_testing/config.ini")
 
 # copy our nginx pem
 if not os.path.exists("data_testing/nginx_ca_bundle.pem"):
@@ -345,7 +346,8 @@ def clear_testing_setup_data(testCase: CustomizedTestCase) -> Literal[True]:
     )
     for domain in domains:
         for aap in domain.acme_authorization_potentials:
-            aap.acme_order.is_processing = False
+            if aap.acme_order.is_processing in (True, None):
+                update_AcmeOrder_deactivate(ctx, aap.acme_order)
             update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(ctx, aap.acme_order)
             ctx.pyramid_transaction_commit()
     return True

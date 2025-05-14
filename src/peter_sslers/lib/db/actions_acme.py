@@ -44,6 +44,7 @@ from .logger import log__OperationsEvent
 from .update import update_AcmeAccount__account_url
 from .update import update_AcmeAccount__terms_of_service
 from .update import update_AcmeAuthorization_from_payload
+from .update import update_AcmeOrder_deactivate
 from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
 from .update import update_AcmeOrder_finalized
 from .update import update_AcmeServer_directory
@@ -221,7 +222,7 @@ def updated_AcmeOrder_status(
     dbAcmeOrder: "AcmeOrder",
     acme_order_object: Dict,
     acme_order_processing_status_id: Optional[int] = None,
-    is_processing_False: Optional[bool] = None,
+    is_manual: Optional[bool] = None,
     timestamp: Optional[datetime.datetime] = None,
     transaction_commit: Optional[bool] = None,
     is_via_acme_sync: Optional[bool] = None,
@@ -233,7 +234,7 @@ def updated_AcmeOrder_status(
         have `status`
     :param acme_order_processing_status_id: (optional) If provided, update the
         `acme_order_processing_status_id` of the order
-    :param is_processing_False: (optional) if True, set `is_processing` to False.
+    :param is_manual: (optional) if True, set `is_processing` to False.
     :param timestamp: (required) `datetime.datetime`.
     :param transaction_commit: (required) Boolean. User must indicate they know
         this will commit, as 3rd party API can not be rolled back.
@@ -259,7 +260,7 @@ def updated_AcmeOrder_status(
         _edited = True
     if status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
         if dbAcmeOrder.is_processing is True:
-            dbAcmeOrder.is_processing = None
+            update_AcmeOrder_deactivate(ctx, dbAcmeOrder)
             _edited = True
 
         if update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(ctx, dbAcmeOrder):
@@ -276,9 +277,9 @@ def updated_AcmeOrder_status(
             _edited = True
 
     # only drop this if we haven't above
-    if is_processing_False:
+    if is_manual:
         if dbAcmeOrder.is_processing is True:
-            dbAcmeOrder.is_processing = False
+            update_AcmeOrder_deactivate(ctx, dbAcmeOrder, is_manual=True)
             _edited = True
 
     certificate_url = acme_order_object.get("certificate")
@@ -333,7 +334,7 @@ def updated_AcmeOrder_ProcessingStatus(
             _status_text = model_utils.Acme_Status_Order.as_string(acme_status_order_id)
             if _status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
                 if dbAcmeOrder.is_processing is True:
-                    dbAcmeOrder.is_processing = None
+                    update_AcmeOrder_deactivate(ctx, dbAcmeOrder)
                 update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
                     ctx, dbAcmeOrder
                 )
@@ -694,12 +695,12 @@ def check_endpoint_support(
 ) -> bool:
     # endpoints should automatically update now, but we can offer a manual
     resp = acme_v2.check_endpoint(
-        ctx, dbAcmeServer.directory, dbAcmeServer=dbAcmeServer
+        ctx, dbAcmeServer.directory_url, dbAcmeServer=dbAcmeServer
     )
 
     # note - the above `check` should autoupdate...
-    acme_directory = resp.json()
-    changed = update_AcmeServer_directory(ctx, dbAcmeServer, acme_directory)
+    acme_directory_payload = resp.json()
+    changed = update_AcmeServer_directory(ctx, dbAcmeServer, acme_directory_payload=acme_directory_payload)
     return changed
 
 
@@ -1713,7 +1714,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
             ctx,
             dbAcmeOrder,
             acme_v2.new_response_404(),
-            is_processing_False=True,
+            is_manual=True,
             timestamp=ctx.timestamp,
             transaction_commit=transaction_commit,
             is_via_acme_sync=True,
@@ -1773,7 +1774,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 dbAcmeOrder,
                 acmeOrderRfcObject.rfc_object,
                 acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
-                is_processing_False=True,
+                is_manual=True,
                 timestamp=ctx.timestamp,
                 transaction_commit=transaction_commit,
                 is_via_acme_sync=True,
@@ -2180,16 +2181,18 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     if not os.path.exists(EXPORTS_DIR):
                         os.makedirs(EXPORTS_DIR)
                     type_path = os.path.join(EXPORTS_DIR, type_dir)
+                    if not os.path.exists(type_path):
+                        os.makedirs(type_path)
                     rc_path = os.path.join(type_path, rc_dir)
                     if not os.path.exists(rc_path):
-                        os.mkdir(rc_path)
+                        os.makedirs(rc_path)
                     if rc_label:
                         rc_label_path = os.path.join(type_path, rc_label)
                         if not os.path.exists(rc_label_path):
                             exports.relative_symlink(rc_path, rc_label_path)
                     cert_path = os.path.join(rc_path, subdir)
                     if not os.path.exists(cert_path):
-                        os.mkdir(cert_path)
+                        os.makedirs(cert_path)
                     cert_data = exports.encode_CertificateSigned_a(dbCertificateSigned)
                     for fname, fcontents in cert_data.items():
                         exports.write_pem(
@@ -3236,7 +3239,7 @@ def do__AcmeV2_AcmeOrder__new(
         if dbAcmeOrder.acme_status_order not in ("pending", "ready"):
             return dbAcmeOrder
 
-        if False:
+        if True:
             # immediately sync the authorizations
             # otherwise we may allow competing authz
             dbAcmeOrder = do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
@@ -3294,15 +3297,6 @@ def do__AcmeV2_AcmeOrder__new(
 
     except Exception as exc:
         raise
-
-    finally:
-        if (
-            processing_strategy
-            in model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_DEACTIVATE_AUTHS
-        ):
-            # shut this down to deactivate the auths on our side
-            if dbAcmeOrder:
-                dbAcmeOrder.is_processing = None
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -42,7 +42,7 @@ def main(argv=sys.argv):
     dbRoutineExecution_1 = lib_db.actions.routine__order_missing(  # noqa: F841
         ctx,
         settings=settings,
-        DEBUG=False,
+        DEBUG_LOCAL=False,
     )
     print("routine__order_missing()")
     print(dbRoutineExecution_1.as_json)
@@ -51,7 +51,7 @@ def main(argv=sys.argv):
     dbRoutineExecution_2 = lib_db.actions.routine__renew_expiring(  # noqa: F841
         ctx,
         settings=settings,
-        DEBUG=False,
+        DEBUG_LOCAL=False,
     )
     print("routine__renew_expiring()")
     print(dbRoutineExecution_2.as_json)

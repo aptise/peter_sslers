@@ -30,6 +30,7 @@
                             <th>is_active</th>
                             <th>id</th>
                             <th>timestamp_created</th>
+                            <th>timestamp_lastchecked</th>
                             <th>directory</th>
                         </tr>
                     </thead>
@@ -49,7 +50,8 @@
                                     </span>
                                 </td>
                                 <td><timestamp>${item.timestamp_created}</timestamp></td>
-                                <td><code>${item.directory_pretty}</code></td>
+                                <td><timestamp>${item.timestamp_lastchecked}</timestamp></td>
+                                <td><code>${item.directory_payload_pretty}</code></td>
                             </tr>
                         % endfor
                     </tbody>

@@ -69,9 +69,9 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>directory</th>
+                    <th>directory_url</th>
                     <td>
-                        <code>${AcmeServer.directory}</code>
+                        <code>${AcmeServer.directory_url}</code>
                     </td>
                 </tr>
                 <tr>
@@ -80,7 +80,7 @@
                         % if AcmeServer.directory_latest:
                             <timestamp>${AcmeServer.directory_latest.timestamp_created_isoformat}</timestamp>
                             <p>
-                            <code>${AcmeServer.directory_latest.directory_pretty}</code>
+                            <code>${AcmeServer.directory_latest.directory_payload_pretty}</code>
                             </p>
                         % endif
 

@@ -931,6 +931,7 @@ class View_Focus_Manipulate(View_Focus):
                 lib_db.update.update_AcmeOrder_deactivate(
                     self.request.api_context,
                     dbAcmeOrder,
+                    is_manual=True,
                 )
 
             else:

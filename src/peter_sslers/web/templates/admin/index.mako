@@ -86,7 +86,7 @@
                 <li><a  href="${admin_prefix}/enrollment-factorys"
                     >
                         <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                        EnrollmentFactorys</a></li>
+                        enrollment-factorys</a></li>
                 <li><a href="${admin_prefix}/private-keys"
                        title="PrivateKeys"
                     >

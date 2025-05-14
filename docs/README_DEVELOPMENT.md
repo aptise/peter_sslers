@@ -194,7 +194,7 @@ please note the order:
 
     result, error, operation, action
 
-Unit tests will use the `data_testing/test.ini` file for configuration.
+Unit tests will use the `data_testing/config.ini` file for configuration.
 
 Instead of editing this file, you can overwrite it with an environment variable:
 

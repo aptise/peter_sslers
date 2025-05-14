@@ -64,7 +64,7 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
-DEBUG_CIN = True
+DEBUG_CIN = False
 DEBUG_CONCEPT = False
 
 
@@ -1052,16 +1052,17 @@ def register_acme_servers(
         elif ca_cert_bundle:
             server_ca_cert_bundle = cert_utils.cleanup_pem_text(ca_cert_bundle)
 
-        server = url_to_server(item["directory"])
+        server = url_to_server(item["directory_url"])
 
         def _new_AcmeServer():
+            # TODO: migrate to create.create__AcmeServer
             dbObject = model_objects.AcmeServer()
             dbObject.is_unlimited_pending_authz = item.get(
                 "is_unlimited_pending_authz", None
             )
             dbObject.timestamp_created = ctx.timestamp
             dbObject.name = item["name"]
-            dbObject.directory = item["directory"]
+            dbObject.directory_url = item["directory_url"]
             dbObject.protocol = item["protocol"]
             dbObject.is_supports_ari__version = item.get(
                 "is_supports_ari__version", None
@@ -1358,7 +1359,7 @@ def routine__order_missing(
     ctx: "ApiContext",
     settings: Dict,
     create_public_server: Callable = _create_public_server,
-    DEBUG: Optional[bool] = False,
+    DEBUG_LOCAL: Optional[bool] = False,
 ) -> "RoutineExecution":
     """
     returns "RoutineExecution" which contains
@@ -1447,7 +1448,8 @@ def routine__order_missing(
                 "RC:%s" % r.id,
             )
 
-    if DEBUG:
+    DEBUG_LOCAL = True
+    if DEBUG_LOCAL:
         _debug_results()
         pdb.set_trace()
         print("routine__order_missing")
@@ -1508,7 +1510,7 @@ def routine__order_missing(
                         "Renewal Result: CertificateSigned: %s",
                         dbAcmeOrderNew.certificate_signed_id,
                     )
-                    if DEBUG:
+                    if DEBUG_LOCAL:
 
                         def _debug():
                             print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
@@ -1669,7 +1671,7 @@ def routine__renew_expiring(
     create_public_server: Callable = _create_public_server,
     renewal_configuration_ids__only_process: Optional[Tuple[int]] = None,
     count_expected_configurations: Optional[int] = None,
-    DEBUG: Optional[bool] = False,
+    DEBUG_LOCAL: Optional[bool] = False,
 ) -> "RoutineExecution":
     """
     returns "RoutineExecution" which contains
@@ -1685,6 +1687,7 @@ def routine__renew_expiring(
     # `get_CertificateSigneds_renew_now` will compute a buffer,
     # so we do not have to submit a `timestamp_max_expiry`
     expiring_certs = get.get_CertificateSigneds_renew_now(ctx)
+
     if renewal_configuration_ids__only_process:
         # use a temporary variable for easier debugging
         _expiring_certs = [
@@ -1730,7 +1733,7 @@ def routine__renew_expiring(
             print(cert.id, cert.timestamp_not_after)
         print("---")
 
-    if DEBUG:
+    if DEBUG_LOCAL:
         _debug_results()
         pdb.set_trace()
         print("routine__renew_expiring")
@@ -1774,7 +1777,7 @@ def routine__renew_expiring(
                         "Renewal Result: CertificateSigned: %s",
                         dbAcmeOrderNew.certificate_signed_id,
                     )
-                    if DEBUG:
+                    if DEBUG_LOCAL:
 
                         def _debug():
                             print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)

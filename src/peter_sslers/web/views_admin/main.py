@@ -57,6 +57,22 @@ class ViewAdminMain(Handler):
                 "database_url": database_url,
                 "debugged_items": [i.as_json for i in items_paged],
             }
+        if False:
+            dbRoutineExecution_1 = lib_db.actions.routine__order_missing(  # noqa: F841
+                self.request.api_context,
+                settings=self.request.registry.settings,
+                DEBUG_LOCAL=False,
+            )
+            print("routine__order_missing()")
+            print(dbRoutineExecution_1.as_json)
+            dbRoutineExecution_2 = lib_db.actions.routine__renew_expiring(  # noqa: F841
+                self.request.api_context,
+                settings=self.request.registry.settings,
+                DEBUG_LOCAL=False,
+            )
+            print("routine__renew_expiring()")
+            print(dbRoutineExecution_2.as_json)
+
         return {}
 
     @view_config(route_name="admin:help", renderer="/admin/help.mako")

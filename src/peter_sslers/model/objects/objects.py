@@ -2321,7 +2321,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         TZDateTime(timezone=True), nullable=False
     )
     name: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False, unique=True)
-    directory: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
+    directory_url: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
     # the server is normalized from the `directory`
     # it is used to help figure out what server corresponds to an account
     server: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
@@ -2424,14 +2424,14 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def url(self) -> str:
-        return self.directory or ""
+        return self.directory_url or ""
 
     @property
     def as_json(self) -> Dict:
         return {
             "id": self.id,
             # - -
-            "directory": self.directory,
+            "directory_url": self.directory_url,
             "directory_latest": (
                 self.directory_latest.as_json_minimal if self.directory_latest else None
             ),
@@ -2452,7 +2452,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             # - -
-            "directory": self.directory,
+            "directory_url": self.directory_url,
         }
 
 
@@ -2476,23 +2476,26 @@ class AcmeServerConfiguration(Base, _Mixin_Timestamps_Pretty):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
+    timestamp_lastchecked: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
     is_active: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=True
     )  # allow NULL because of the index
-    directory: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    directory_payload: Mapped[str] = mapped_column(sa.Text, nullable=False)
 
     @property
-    def directory_pretty(self):
-        if not self.directory:
+    def directory_payload_pretty(self):
+        if not self.directory_payload:
             return ""
-        d_json = json.loads(self.directory)
+        d_json = json.loads(self.directory_payload)
         return pprint.pformat(d_json)
 
     @property
     def as_json_minimal(self):
         return {
             "timestamp_created": self.timestamp_created_isoformat,
-            "directory": self.directory,
+            "directory_payload": self.directory_payload,
         }
 
 

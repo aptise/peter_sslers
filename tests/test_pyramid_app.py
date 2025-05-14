@@ -12093,7 +12093,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             self.ctx,
             {},
             create_public_server=lib_db_actions._create_public_server__fake,
-            DEBUG=DEBUG,
+            DEBUG_LOCAL=DEBUG,
         )
         assert _results_11.count_records_success == 1  # Order Backup for RC1
         assert _results_11.count_records_fail == 0
@@ -12115,7 +12115,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
                 dbAcmeOrder_1.renewal_configuration_id,
             ),
             count_expected_configurations=2,
-            DEBUG=DEBUG,
+            DEBUG_LOCAL=DEBUG,
         )
         assert _results_12.count_records_success == 2  # Renew Primary/Backup for RC1
         assert _results_12.count_records_fail == 0
@@ -12169,7 +12169,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             self.ctx,
             {},
             create_public_server=lib_db_actions._create_public_server__fake,
-            DEBUG=DEBUG,
+            DEBUG_LOCAL=DEBUG,
         )
         assert _results_21.count_records_success == 2  # Order Backup+Primary for RC2
         assert _results_21.count_records_fail == 0
@@ -12189,7 +12189,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             create_public_server=lib_db_actions._create_public_server__fake,
             renewal_configuration_ids__only_process=(renewal_configuration_id__2,),
             count_expected_configurations=2,
-            DEBUG=DEBUG,
+            DEBUG_LOCAL=DEBUG,
         )
         assert _results_22.count_records_success == 2  # Renew Backup+Primary for RC2
         assert _results_22.count_records_fail == 0
@@ -12729,11 +12729,11 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             dbAcmeServer = dbAcmeAccount.acme_server
             if not dbAcmeServer.directory_latest:
                 raise ValueError("dbAcmeServer.directory_latest does not exist")
-            _directoryJson = json.loads(dbAcmeServer.directory_latest.directory)
+            _directoryJson = json.loads(dbAcmeServer.directory_latest.directory_payload)
             if "peterSSLersTesting" not in _directoryJson:
                 _directoryJson["peterSSLersTesting"] = 0
             _directoryJson["peterSSLersTesting"] += 1
-            dbAcmeServer.directory_latest.directory = json.dumps(_directoryJson)
+            dbAcmeServer.directory_latest.directory_payload = json.dumps(_directoryJson)
             self.ctx.dbSession.flush(objects=[dbAcmeServer.directory_latest])
             self.ctx.pyramid_transaction_commit()
 

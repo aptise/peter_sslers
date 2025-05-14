@@ -1411,7 +1411,7 @@ def get__AcmeServerConfiguration__by_AcmeServerId__paginated(
     acme_server_id: int,
     limit: Optional[int] = None,
     offset: int = 0,
-) -> List[AcmeAccount]:
+) -> List[AcmeServerConfiguration]:
     query = ctx.dbSession.query(AcmeServerConfiguration).filter(
         AcmeServerConfiguration.acme_server_id == acme_server_id
     )
@@ -1420,6 +1420,18 @@ def get__AcmeServerConfiguration__by_AcmeServerId__paginated(
     )
     dbAcmeServerConfigurations = query.all()
     return dbAcmeServerConfigurations
+
+
+def get__AcmeServerConfiguration__by_AcmeServerId__active(
+    ctx: "ApiContext",
+    acme_server_id: int,
+) -> Optional[AcmeAccount]:
+    query = ctx.dbSession.query(AcmeServerConfiguration).filter(
+        AcmeServerConfiguration.acme_server_id == acme_server_id,
+        AcmeServerConfiguration.is_active.is_(True),
+    )
+    dbAcmeServerConfiguration = query.first()
+    return dbAcmeServerConfiguration
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

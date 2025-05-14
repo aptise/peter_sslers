@@ -120,21 +120,24 @@ def create__AcmePollingError(
 def create__AcmeServer(
     ctx: "ApiContext",
     name: str,
-    directory: str,
+    directory_url: str,
     protocol: str,
     server_ca_cert_bundle: Optional[str] = None,
+    is_unlimited_pending_authz: Optional[bool] = None,
+    is_supports_ari__version: Optional[str] = None,
+    is_retry_challenges: Optional[bool] = None,
 ) -> "AcmeServer":
     """
     Create a new AcmeServer
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param name: (required) The name
-    :param directory: (required) The directory
+    :param directory_url: (required) The directory
     :param protocol: (required) The protocol, must be "acme-v2"
 
     returns: :class:`model.objects.AcmeServer`
     """
-    if not directory or (
-        not directory.startswith("http://") and not directory.startswith("https://")
+    if not directory_url or (
+        not directory_url.startswith("http://") and not directory_url.startswith("https://")
     ):
         raise ValueError("invalid `directory`")
 
@@ -149,12 +152,15 @@ def create__AcmeServer(
     dbAcmeServer = model_objects.AcmeServer()
     dbAcmeServer.timestamp_created = ctx.timestamp
     dbAcmeServer.name = name  # unique
-    dbAcmeServer.directory = directory
+    dbAcmeServer.directory_url = directory_url
     dbAcmeServer.is_default = None  # legacy and unused
     dbAcmeServer.is_enabled = True  # legacy and unused
     dbAcmeServer.protocol = protocol
-    dbAcmeServer.server = utils.url_to_server(directory)
+    dbAcmeServer.server = utils.url_to_server(directory_url)
     dbAcmeServer.server_ca_cert_bundle = server_ca_cert_bundle
+    dbAcmeServer.is_unlimited_pending_authz = is_unlimited_pending_authz
+    dbAcmeServer.is_supports_ari__version = is_supports_ari__version
+    dbAcmeServer.is_retry_challenges = is_retry_challenges
     ctx.dbSession.add(dbAcmeServer)
     ctx.dbSession.flush(
         objects=[
@@ -168,7 +174,11 @@ def create__AcmeServerConfiguration(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",
     directory_string: str,
+    timestamp: Optional[datetime.datetime] = None,
 ) -> "AcmeServerConfiguration":
+    # don't trust ctx.timestamp on this, as we be in a long-running action
+    if not timestamp:
+        timestamp = ctx.timestamp
     directoryOld: Optional["AcmeServerConfiguration"] = None
     if dbAcmeServer.directory_latest:
         directoryOld = dbAcmeServer.directory_latest
@@ -178,9 +188,10 @@ def create__AcmeServerConfiguration(
         ctx.dbSession.flush(objects=[directoryOld])
     directoryLatest = model_objects.AcmeServerConfiguration()
     directoryLatest.acme_server_id = dbAcmeServer.id
-    directoryLatest.timestamp_created = ctx.timestamp
+    directoryLatest.timestamp_created = timestamp
+    directoryLatest.timestamp_lastchecked = timestamp
     directoryLatest.is_active = True
-    directoryLatest.directory = directory_string
+    directoryLatest.directory_payload = directory_string
 
     ctx.dbSession.add(directoryLatest)
     dbAcmeServer.directory_latest = directoryLatest

@@ -845,7 +845,7 @@ class AcmeOrder_ProcessingStrategy(_mixin_mapping):
         2: "process_single",  # create the order, and process in a single request
         3: "process_multi",  # create the order, but process piecemeal
     }
-    OPTIONS_DEACTIVATE_AUTHS = ("process_single",)
+    # OPTIONS_DEACTIVATE_AUTHS = ("process_single",)
     OPTIONS_ALL = (
         "create_order",
         "process_single",
@@ -916,7 +916,7 @@ AcmeServerInput = TypedDict(
     "AcmeServerInput",
     {
         "name": str,
-        "directory": str,
+        "directory_url": str,
         "protocol": str,
         # "is_default": Optional[bool],
         "is_supports_ari__version": Optional[str],

@@ -32,7 +32,7 @@ log.setLevel(logging.INFO)
 acme_servers: List[model_utils.AcmeServerInput] = [
     {
         "name": "pebble",
-        "directory": "https://127.0.0.1:14000/dir",
+        "directory_url": "https://127.0.0.1:14000/dir",
         "protocol": "acme-v2",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test/certs/pebble.minica.pem",
@@ -40,7 +40,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
     },
     {
         "name": "pebble-alt",
-        "directory": "https://127.0.0.1:14001/dir",
+        "directory_url": "https://127.0.0.1:14001/dir",
         "protocol": "acme-v2",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "filepath_ca_cert_bundle": "tests/test_configuration/pebble/test-alt/certs/pebble.minica.pem",
@@ -48,7 +48,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
     },
     {
         "name": "letsencrypt-v2",
-        "directory": "https://acme-v02.api.letsencrypt.org/directory",
+        "directory_url": "https://acme-v02.api.letsencrypt.org/directory",
         "protocol": "acme-v2",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "is_unlimited_pending_authz": True,
@@ -56,7 +56,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
     },
     {
         "name": "letsencrypt-v2-staging",
-        "directory": "https://acme-staging-v02.api.letsencrypt.org/directory",
+        "directory_url": "https://acme-staging-v02.api.letsencrypt.org/directory",
         "protocol": "acme-v2",
         "is_supports_ari__version": "draft-ietf-acme-ari-03",
         "is_unlimited_pending_authz": True,
@@ -64,7 +64,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
     },
     {
         "name": "buypass",
-        "directory": "https://api.buypass.com/acme/directory",
+        "directory_url": "https://api.buypass.com/acme/directory",
         "protocol": "acme-v2",
         "is_supports_ari__version": "unknown",
         "is_unlimited_pending_authz": False,
@@ -72,7 +72,7 @@ acme_servers: List[model_utils.AcmeServerInput] = [
     },
     {
         "name": "buypass-testing",
-        "directory": "https://api.test4.buypass.no/acme/directory",
+        "directory_url": "https://api.test4.buypass.no/acme/directory",
         "protocol": "acme-v2",
         "is_supports_ari__version": "unknown",
         "is_unlimited_pending_authz": False,
