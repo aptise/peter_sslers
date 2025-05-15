@@ -34,7 +34,7 @@
             AcmeServerConfigurations
         </a>
 
-        <a href="${admin_prefix}/acme-account/new?acme-server-id=${AcmeServer.id}" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-account/new?acme-server-id=${AcmeServer.id}" class="btn btn-xs btn-primary">
             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
             New Account
         </a>

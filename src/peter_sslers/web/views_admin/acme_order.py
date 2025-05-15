@@ -1460,7 +1460,6 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 )
 
             except Exception as exc:  # noqa: F841
-                raise
                 # raise
                 return HTTPSeeOther(
                     "%s/acme-orders/all?result=error&operation=new-freeform"

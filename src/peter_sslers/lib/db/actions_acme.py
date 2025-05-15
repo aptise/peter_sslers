@@ -625,14 +625,14 @@ def _AcmeV2_AcmeOrder__process_authorizations(
 def handle_AcmeAccount_directory_updates(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
-    authenticatedUser: "acme_v2.AuthenticatedUser",
+    acme_directory: Dict,
     acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> bool:
     # update based off the ACME service
     # the server's TOS should take precedence
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
-    acme_tos = authenticatedUser.acme_directory["meta"]["termsOfService"].strip()
+    acme_tos = acme_directory["meta"]["termsOfService"].strip()
     if acme_tos:
         if acme_tos != dbAcmeAccount.terms_of_service:
             updated = update_AcmeAccount__terms_of_service(ctx, dbAcmeAccount, acme_tos)

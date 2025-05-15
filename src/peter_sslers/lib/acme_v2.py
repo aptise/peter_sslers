@@ -581,7 +581,7 @@ class AuthenticatedUser(object):
                     func_acmeAccount_directory_updates(
                         ctx,
                         acmeAccount,
-                        self,
+                        acme_directory,
                         acknowledge_transaction_commits=acknowledge_transaction_commits,
                     )
             if TYPE_CHECKING:

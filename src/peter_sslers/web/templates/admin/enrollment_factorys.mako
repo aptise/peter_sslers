@@ -22,7 +22,7 @@
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
-        <a href="${admin_prefix}/enrollment-factorys/new" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/enrollment-factorys/new" class="btn btn-xs btn-primary">
             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
             New EnrollmentFactory
         </a>
