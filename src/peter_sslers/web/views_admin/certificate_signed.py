@@ -1350,6 +1350,7 @@ class View_Focus_Manipulate(View_Focus):
             dbAriObject, ari_check_result = lib_db.actions_acme.do__AcmeV2_AriCheck(
                 self.request.api_context,
                 dbCertificateSigned=dbCertificateSigned,
+                force_check=True,
             )
             if self.request.wants_json:
                 return {"result": "success", "AriCheck": dbAriObject.as_json}

@@ -931,6 +931,7 @@ class View_Focus_Manipulate(View_Focus):
                 lib_db.update.update_AcmeOrder_deactivate(
                     self.request.api_context,
                     dbAcmeOrder,
+                    is_manual=True,
                 )
 
             else:
@@ -1067,6 +1068,7 @@ class View_New(Handler):
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`; used to ensure the default did not change.",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
                 "acme_account_id": "local AcmeAccount id. Must/Only submit if `account_key_option==acme_account_id`",
+                "acme_account_url": "AcmeAccount's URL. Must/Only submit if `account_key_option==acme_account_url`",
                 "private_key_cycle__primary": "how should the PrivateKey be cycled on renewals?",
                 "acme_profile": """The name of an ACME Profile on the ACME Server.
 Leave this blank for no profile.
@@ -1076,6 +1078,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 "account_key_global_backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option_backup==account_key_global_backup` [Backup Cert]",
                 "account_key_existing_backup": "pem_md5 of any key. Must/Only submit if `account_key_option_backup==account_key_existing_backup` [Backup Cert]",
                 "acme_account_id_backup": "local id of AcmeAccount. Must/Only submit if `account_key_option_backup==acme_account_id` [Backup Cert]",
+                "acme_account_url_backup": "AcmeAccount's URL. Must/Only submit if `account_key_option_backup==acme_account_url` [Backup Cert]",
                 "private_key_cycle__backup": "how should the PrivateKey be cycled on renewals?",
                 "acme_profile__backup": """The name of an ACME Profile on the ACME Server [Backup Cert].
 Leave this blank for no profile.
@@ -1090,6 +1093,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                     "account_key_existing",
                     "acme_profile__primary",
                     "acme_account_id",
+                    "acme_account_url",
                 ],
                 [
                     "account_key_option_backup",
@@ -1097,6 +1101,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                     "account_key_existing_backup",
                     "acme_profile__backup",
                     "acme_account_id_backup",
+                    "acme_account_url",
                 ],
             ],
             "valid_options": {
@@ -1365,6 +1370,12 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 except errors.DuplicateAcmeOrder as exc:
                     raise formStash.fatal_form(error_main=exc.args[0])
 
+                except errors.FieldError as exc:
+                    raise formStash.fatal_field(
+                        field=exc.args[0],
+                        error_field=exc.args[1],
+                    )
+
                 except Exception as exc:
                     # unpack a `errors.AcmeOrderCreatedError` to local vars
                     if isinstance(exc, errors.AcmeOrderCreatedError):
@@ -1454,9 +1465,10 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                     % (exc.args[2], exc.args[2]),
                 )
 
-            except Exception as exc:  # noqa: F841
+            except formhandling.FormInvalid:
                 raise
-                # raise
+
+            except Exception as exc:  # noqa: F841
                 return HTTPSeeOther(
                     "%s/acme-orders/all?result=error&operation=new-freeform"
                     % self.request.api_context.application_settings["admin_prefix"]

@@ -15,20 +15,25 @@ The server will respond to requests with the following header to identify it:
 
 # Configuration and Storage
 
-By default, configuration files are placed in the `conf/` directory.
+For each environment, a dedicated Data Directory should be created.
 
-By default, the configuration files specify a `_data_/` directory, which is used
-to contain the following files:
+At a minimum, the Data Directory should contain a `config.ini` file; 
+example configuraiton files are located in the `example_configs` directory.
 
-* `_data_/ssl_minnow.sqlite` - the core database
-* `_data_/_ACME_SERVER_BUNDLE/` - if ACME Servers require a Trusted Root that
+The following items will be created in the data directory::
+
+* `{DataDirectory}/ssl_minnow.sqlite` - the core database
+* `{DataDirectory}/_ACME_SERVER_BUNDLE/` - if ACME Servers require a Trusted Root that
   is not in the default trust store, on-disk bundle files will be created and
   stored here as needed.
-* `_data_/nginx_ca_bundle.pem` - if the nginx servers pool require a Trusted Root
+* `{DataDirectory}/acme-dns.db` - the testing system is configured to use this location
+   for it's storage.
+   
+Additionally, it is recommended to specify the `nginx_ca_bundle.pem` as a file in the data directory::
+
+* `{DataDirectory}/nginx_ca_bundle.pem` - if the nginx servers pool require a Trusted Root
   that is not in the default trust store, an on-disk bundle files will be looked
   for in this location.
-* `_data_/acme-dns.db` - the testing system is configured to use this location
-   for it's storage.
 
 
 ## Just a friendly reminder:
@@ -36,7 +41,7 @@ to contain the following files:
 THE ADMIN TOOL SHOULD NEVER BE PUBLICLY ACCESSIBLE.
 YOU SHOULD ONLY RUN IT ON A PRIVATE NETWORK
 
-By default, the `example_production.ini` file won't even run the admin tools.
+By default, the `example_configs/production.ini` file won't even run the admin tools.
 That is how serious we are about telling you to be careful!
 
 

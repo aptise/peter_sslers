@@ -89,7 +89,8 @@ class AcmeAccountUploadParser(object):
         acme_server_id = formStash.results.get("acme_server_id", None)
         if acme_server_id is None:
             formStash.fatal_field(
-                field="acme_server_id", error_field="No provider submitted."
+                field="acme_server_id",
+                error_field="No provider submitted.",
             )
 
         contact = formStash.results.get("account__contact", None)
@@ -474,9 +475,13 @@ def parse_AcmeAccountSelection(
     :param require_contact: ``True`` if required; ``False`` if not;
     :param support_upload: ``True`` if supported; ``False`` if not;
     """
+    # scoping
     account_key_pem_md5: Optional[str] = None
     acme_account_id: Optional[int] = None
+    acme_account_url: Optional[str] = None
     dbAcmeAccount: Optional["AcmeAccount"] = None
+
+    # compute
 
     account_key_option = formStash.results["account_key_option"]
 
@@ -509,6 +514,9 @@ def parse_AcmeAccountSelection(
         elif account_key_option == "acme_account_id":
             acmeAccountSelection.selection = "acme_account_id"
             acme_account_id = formStash.results["acme_account_id"]
+        elif account_key_option == "acme_account_url":
+            acmeAccountSelection.selection = "acme_account_url"
+            acme_account_url = formStash.results["acme_account_url"]
         elif account_key_option == "none":
             if not allow_none:
                 formStash.fatal_form("This form requires an AcmeAccount selection.")
@@ -521,10 +529,10 @@ def parse_AcmeAccountSelection(
             formStash.fatal_form(
                 error_main="Invalid `account_key_option`",
             )
-        if not account_key_pem_md5 and not acme_account_id:
+        if not any((account_key_pem_md5, acme_account_id, acme_account_url)):
             formStash.fatal_field(
                 field=account_key_option,
-                error_field="You did not provide a value",
+                error_field="You did not provide a value.",
             )
         if account_key_pem_md5:
             dbAcmeAccount = lib_db.get.get__AcmeAccount__by_pemMd5(
@@ -533,6 +541,10 @@ def parse_AcmeAccountSelection(
         elif acme_account_id:
             dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
                 request.api_context, acme_account_id
+            )
+        elif acme_account_url:
+            dbAcmeAccount = lib_db.get.get__AcmeAccount__by_account_url(
+                request.api_context, acme_account_url
             )
         if not dbAcmeAccount:
             formStash.fatal_field(
@@ -575,21 +587,21 @@ def parse_AcmeAccountSelection_backup(
     :param formStash: an instance of `pyramid_formencode_classic.FormStash`
     :param allow_none:
     """
+    # scoping
     account_key_pem_md5: Optional[str] = None
     acme_account_id: Optional[int] = None
+    acme_account_url: Optional[str] = None
     dbAcmeAccount: Optional["AcmeAccount"] = None
 
+    # compute
     account_key_option = formStash.results["account_key_option_backup"]
 
     # handle the explicit-option
     acmeAccountSelection = _AcmeAccountSelection()
-    error_field = "Error_Main"
     if account_key_option == "account_key_global_backup":
-        error_field = "account_key_global_backup"
         acmeAccountSelection.selection = "global_backup"
         account_key_pem_md5 = formStash.results["account_key_global_backup"]
     elif account_key_option == "account_key_existing":
-        error_field = "account_key_existing_backup"
         acmeAccountSelection.selection = "existing"
         account_key_pem_md5 = formStash.results["account_key_existing_backup"]
     elif account_key_option == "account_key_reuse":
@@ -597,9 +609,11 @@ def parse_AcmeAccountSelection_backup(
         account_key_pem_md5 = formStash.results["account_key_reuse_backup"]
     elif account_key_option == "acme_account_id":
         acmeAccountSelection.selection = "acme_account_id"
-        acme_account_id = formStash.results["acme_account_id"]
+        acme_account_id = formStash.results["acme_account_id_backup"]
+    elif account_key_option == "acme_account_url":
+        acmeAccountSelection.selection = "acme_account_url"
+        acme_account_url = formStash.results["acme_account_url_backup"]
     elif account_key_option in ("none", None):
-        error_field = "account_key_existing_backup"
         if not allow_none:
             formStash.fatal_form("This form requires a backup AcmeAccount selection.")
         # note the lowercase "none"; this is an explicit "no item" selection
@@ -612,10 +626,9 @@ def parse_AcmeAccountSelection_backup(
             field="account_key_option_backup",
             error_field="Invalid selection.",
         )
-    if not account_key_pem_md5 and not acme_account_id:
-        formStash.fatal_field(
-            field=error_field,
-            error_field="You did not provide a value",
+    if not any((account_key_pem_md5, acme_account_id, acme_account_url)):
+        formStash.fatal_form(
+            error_main="You did not provide a value.",
         )
     if account_key_pem_md5:
         dbAcmeAccount = lib_db.get.get__AcmeAccount__by_pemMd5(
@@ -625,10 +638,13 @@ def parse_AcmeAccountSelection_backup(
         dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
             request.api_context, acme_account_id
         )
+    elif acme_account_url:
+        dbAcmeAccount = lib_db.get.get__AcmeAccount__by_account_url(
+            request.api_context, acme_account_url
+        )
     if not dbAcmeAccount:
-        formStash.fatal_field(
-            field=error_field,
-            error_field="The selected AcmeAccount is not enrolled in the system.",
+        formStash.fatal_form(
+            error_main="The selected AcmeAccount is not enrolled in the system.",
         )
     if TYPE_CHECKING:
         assert dbAcmeAccount is not None
@@ -661,15 +677,15 @@ def parse_AcmeAccountSelections_v2(
     formStash: "FormStash",
     dbSystemConfiguration: "SystemConfiguration",
 ) -> Tuple["AcmeAccount", Optional["AcmeAccount"]]:
-    dbAcmeAccount_primary: "AcmeAccount"
-    dbAcmeAccount_backup: Optional["AcmeAccount"] = None
+    dbAcmeAccount__primary: "AcmeAccount"
+    dbAcmeAccount__backup: Optional["AcmeAccount"] = None
 
-    # !!!: dbAcmeAccount_primary
+    # !!!: dbAcmeAccount__primary
     if (
         formStash.results["account_key_option__primary"]
         == "system_configuration_default"
     ):
-        dbAcmeAccount_primary = dbSystemConfiguration.acme_account__primary
+        dbAcmeAccount__primary = dbSystemConfiguration.acme_account__primary
     elif formStash.results["account_key_option__primary"] == "account_key_existing":
         account_key_pem_md5 = formStash.results["account_key_existing__primary"]
         _candidate = lib_db.get.get__AcmeAccount__by_pemMd5(
@@ -687,36 +703,36 @@ def parse_AcmeAccountSelections_v2(
             )
         if TYPE_CHECKING:
             assert _candidate
-        dbAcmeAccount_primary = _candidate
+        dbAcmeAccount__primary = _candidate
     else:
         formStash.fatal_field(
             field="account_key_option__primary",
             error_field="Invalid option.",
         )
 
-    # !!!: dbAcmeAccount_backup
+    # !!!: dbAcmeAccount__backup
     if (
         formStash.results["account_key_option__backup"]
         == "system_configuration_default"
     ):
-        dbAcmeAccount_backup = dbSystemConfiguration.acme_account__backup
+        dbAcmeAccount__backup = dbSystemConfiguration.acme_account__backup
     elif formStash.results["account_key_option__backup"] == "none":
         # explicitly declared
-        dbAcmeAccount_backup = None
+        dbAcmeAccount__backup = None
     elif formStash.results["account_key_option__backup"] is None:
         # not submitted
-        dbAcmeAccount_backup = None
+        dbAcmeAccount__backup = None
     elif formStash.results["account_key_option__backup"] == "account_key_existing":
         account_key_pem_md5 = formStash.results["account_key_existing__backup"]
-        dbAcmeAccount_backup = lib_db.get.get__AcmeAccount__by_pemMd5(
+        dbAcmeAccount__backup = lib_db.get.get__AcmeAccount__by_pemMd5(
             request.api_context, account_key_pem_md5
         )
-        if not dbAcmeAccount_backup:
+        if not dbAcmeAccount__backup:
             formStash.fatal_field(
                 field="account_key_option__backup",
                 error_field="The selected AcmeAccount is not enrolled in the system.",
             )
-        elif not dbAcmeAccount_backup.is_active:
+        elif not dbAcmeAccount__backup.is_active:
             formStash.fatal_field(
                 field="account_key_option__backup",
                 error_field="The selected AcmeAccount is not active.",
@@ -727,7 +743,7 @@ def parse_AcmeAccountSelections_v2(
             error_field="Invalid option.",
         )
 
-    return dbAcmeAccount_primary, dbAcmeAccount_backup
+    return dbAcmeAccount__primary, dbAcmeAccount__backup
 
 
 def parse_PrivateKeySelections_v2(
@@ -923,7 +939,7 @@ def parse_PrivateKeySelection(
     if not private_key_pem_md5:
         formStash.fatal_field(
             field=private_key_option,
-            error_field="You did not provide a value",
+            error_field="You did not provide a value.",
         )
     if TYPE_CHECKING:
         assert private_key_pem_md5 is not None

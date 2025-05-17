@@ -88,7 +88,7 @@ def create__AcmePollingError(
     acme_challenge_id: Optional[int] = None,
     timestamp_validated: Optional[datetime.datetime] = None,
     subproblems_len: Optional[int] = None,
-    response: Optional[str] = None,
+    response: Optional[Union[str, dict]] = None,
 ) -> "AcmePollingError":
     """
     :returns :class:`model.objects.    from ...model.objects import AcmeServer
@@ -101,6 +101,8 @@ def create__AcmePollingError(
             "unknown acme_polling_error_endpoint_id: `%s`"
             % acme_polling_error_endpoint_id
         )
+    if not isinstance(response, str):
+        response = json.dumps(response)
     dbPollingError = model_objects.AcmePollingError()
     dbPollingError.timestamp_created = ctx.timestamp
     dbPollingError.acme_polling_error_endpoint_id = acme_polling_error_endpoint_id
@@ -118,21 +120,25 @@ def create__AcmePollingError(
 def create__AcmeServer(
     ctx: "ApiContext",
     name: str,
-    directory: str,
+    directory_url: str,
     protocol: str,
     server_ca_cert_bundle: Optional[str] = None,
+    is_unlimited_pending_authz: Optional[bool] = None,
+    is_supports_ari__version: Optional[str] = None,
+    is_retry_challenges: Optional[bool] = None,
 ) -> "AcmeServer":
     """
     Create a new AcmeServer
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param name: (required) The name
-    :param directory: (required) The directory
+    :param directory_url: (required) The directory
     :param protocol: (required) The protocol, must be "acme-v2"
 
     returns: :class:`model.objects.AcmeServer`
     """
-    if not directory or (
-        not directory.startswith("http://") and not directory.startswith("https://")
+    if not directory_url or (
+        not directory_url.startswith("http://")
+        and not directory_url.startswith("https://")
     ):
         raise ValueError("invalid `directory`")
 
@@ -147,12 +153,15 @@ def create__AcmeServer(
     dbAcmeServer = model_objects.AcmeServer()
     dbAcmeServer.timestamp_created = ctx.timestamp
     dbAcmeServer.name = name  # unique
-    dbAcmeServer.directory = directory
+    dbAcmeServer.directory_url = directory_url
     dbAcmeServer.is_default = None  # legacy and unused
     dbAcmeServer.is_enabled = True  # legacy and unused
     dbAcmeServer.protocol = protocol
-    dbAcmeServer.server = utils.url_to_server(directory)
+    dbAcmeServer.server = utils.url_to_server(directory_url)
     dbAcmeServer.server_ca_cert_bundle = server_ca_cert_bundle
+    dbAcmeServer.is_unlimited_pending_authz = is_unlimited_pending_authz
+    dbAcmeServer.is_supports_ari__version = is_supports_ari__version
+    dbAcmeServer.is_retry_challenges = is_retry_challenges
     ctx.dbSession.add(dbAcmeServer)
     ctx.dbSession.flush(
         objects=[
@@ -166,7 +175,11 @@ def create__AcmeServerConfiguration(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",
     directory_string: str,
+    timestamp: Optional[datetime.datetime] = None,
 ) -> "AcmeServerConfiguration":
+    # don't trust ctx.timestamp on this, as we be in a long-running action
+    if not timestamp:
+        timestamp = ctx.timestamp
     directoryOld: Optional["AcmeServerConfiguration"] = None
     if dbAcmeServer.directory_latest:
         directoryOld = dbAcmeServer.directory_latest
@@ -176,9 +189,10 @@ def create__AcmeServerConfiguration(
         ctx.dbSession.flush(objects=[directoryOld])
     directoryLatest = model_objects.AcmeServerConfiguration()
     directoryLatest.acme_server_id = dbAcmeServer.id
-    directoryLatest.timestamp_created = ctx.timestamp
+    directoryLatest.timestamp_created = timestamp
+    directoryLatest.timestamp_lastchecked = timestamp
     directoryLatest.is_active = True
-    directoryLatest.directory = directory_string
+    directoryLatest.directory_payload = directory_string
 
     ctx.dbSession.add(directoryLatest)
     dbAcmeServer.directory_latest = directoryLatest
@@ -397,6 +411,9 @@ def create__AcmeOrder(
                     acme_challenge_type_id=acme_challenge_type_id,
                 )
             )
+            # print("CREATED dbAcmeAuthorizationPotential.%s" % dbAcmeAuthorizationPotential.id)
+            # print("FOR dbAcmeOrder.%s" % dbAcmeOrder.id)
+            # print(dbAcmeAuthorizationPotential.__dict__)
 
     # now loop the authorization URLs to create stub records for this order
     for authorization_url in acme_order_rfc__original.get("authorizations", []):
@@ -1307,12 +1324,12 @@ def create__EnrollmentFactory(
     ctx: "ApiContext",
     name: str,
     # Primary cert
-    dbAcmeAccount_primary: "AcmeAccount",
+    dbAcmeAccount__primary: "AcmeAccount",
     private_key_technology_id__primary: int,
     private_key_cycle_id__primary: int,
     acme_profile__primary: Optional[str] = None,
     # Backup cert
-    dbAcmeAccount_backup: Optional["AcmeAccount"] = None,
+    dbAcmeAccount__backup: Optional["AcmeAccount"] = None,
     private_key_technology_id__backup: Optional[int] = None,
     private_key_cycle_id__backup: Optional[int] = None,
     acme_profile__backup: Optional[str] = None,
@@ -1326,9 +1343,14 @@ def create__EnrollmentFactory(
     if not domain_template_http01 and not domain_template_dns01:
         raise ValueError("at least one template is required")
 
-    if dbAcmeAccount_backup:
-        if dbAcmeAccount_primary.acme_server_id == dbAcmeAccount_backup.acme_server_id:
-            raise ValueError("Primary and Backup ACME servers must be different")
+    if dbAcmeAccount__backup:
+        if dbAcmeAccount__primary.id == dbAcmeAccount__backup.id:
+            raise ValueError("Primary and Backup ACME Accounts must be different.")
+        if (
+            dbAcmeAccount__primary.acme_server_id
+            == dbAcmeAccount__backup.acme_server_id
+        ):
+            raise ValueError("Primary and Backup ACME Servers must be different")
 
     name = lib_utils.normalize_unique_text(name)
     if name.startswith("rc-") or name.startswith("global"):
@@ -1343,15 +1365,15 @@ def create__EnrollmentFactory(
     dbEnrollmentFactory = model_objects.EnrollmentFactory()
     dbEnrollmentFactory.name = name  # uniqueness on lower(name)
     # p
-    dbEnrollmentFactory.acme_account_id__primary = dbAcmeAccount_primary.id
+    dbEnrollmentFactory.acme_account_id__primary = dbAcmeAccount__primary.id
     dbEnrollmentFactory.private_key_technology_id__primary = (
         private_key_technology_id__primary
     )
     dbEnrollmentFactory.private_key_cycle_id__primary = private_key_cycle_id__primary
     dbEnrollmentFactory.acme_profile__primary = acme_profile__primary
     # b
-    if dbAcmeAccount_backup:
-        dbEnrollmentFactory.acme_account_id__backup = dbAcmeAccount_backup.id
+    if dbAcmeAccount__backup:
+        dbEnrollmentFactory.acme_account_id__backup = dbAcmeAccount__backup.id
         dbEnrollmentFactory.private_key_technology_id__backup = (
             private_key_technology_id__backup
         )
@@ -1517,6 +1539,18 @@ def create__RenewalConfiguration(
         raise ValueError("must supply active `dbAcmeAccount`")
     if dbAcmeAccount__backup and not dbAcmeAccount__backup.is_active:
         raise ValueError("`dbAcmeAccount__backup` is not active")
+    if dbAcmeAccount__backup:
+        if dbAcmeAccount__primary.id == dbAcmeAccount__backup.id:
+            raise ValueError("Primary and Backup ACME Accounts must be different.")
+        if (
+            dbAcmeAccount__primary.acme_server_id
+            == dbAcmeAccount__backup.acme_server_id
+        ):
+            raise ValueError("Primary and Backup ACME Servers must be different")
+        if not any((private_key_cycle_id__backup, private_key_technology_id__backup)):
+            raise ValueError(
+                "`dbAcmeAccount__backup` requires `private_key_cycle_id__backup, private_key_technology_id__backup`"
+            )
 
     if acme_profile__primary:
         if acme_profile__primary != "@":
@@ -1530,12 +1564,6 @@ def create__RenewalConfiguration(
                     acme_profile__primary,
                     dbAcmeAccount__primary.acme_server.profiles_list,
                 )
-
-    if dbAcmeAccount__backup:
-        if not any((private_key_cycle_id__backup, private_key_technology_id__backup)):
-            raise ValueError(
-                "`dbAcmeAccount__backup` requires `private_key_cycle_id__backup, private_key_technology_id__backup`"
-            )
 
     if acme_profile__backup:
         if not dbAcmeAccount__backup:

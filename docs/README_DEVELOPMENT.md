@@ -3,8 +3,9 @@ README DEVELOPMENT
 
 ## prep the data dir
 
-mkdir _data_
-cp tests/test_configuration/pebble/test/certs/pebble.minica.pem nginx_ca_bundle.pem
+    mkdir data_development
+    cp example_configs/development.ini data_development/config.ini
+    cp tests/test_configuration/pebble/test/certs/pebble.minica.pem data_development/nginx_ca_bundle.pem
 
 
 ## install with testing extras
@@ -31,7 +32,7 @@ Ensure we can reach ourselves
 
 For (most) testing and (all) development you need to follow a few initial steps.
 
-1. Configure the `environment.ini` to use a custom CA
+1. Configure the `data_development/config.ini` to use a custom CA
 
 It should look something like this:
 
@@ -69,8 +70,7 @@ this will require you to install `go`.
 > 1. Set up Go [from binaries](https://golang.org/doc/install) or [from source](https://go.dev/doc/install/source) and your `$GOPATH`
 > 2. `git clone https://github.com/letsencrypt/pebble/`
 > 3. `cd pebble`
-> 4. `go install ./cmd/pebble
-`
+> 4. `go install ./cmd/pebble`
 
 As a precaution, copy the pebble config file. On the root project directory:
 
@@ -94,7 +94,7 @@ Which should look something like this...
     }
 
 
-Good to go?  Ok, run pebble!
+Good to go?  You can run pebble in a mode where it attempts to validate challenges...
 
     PEBBLE_VA_ALWAYS_VALID=0 \
         PEBBLE_AUTHZREUSE=100 \
@@ -103,7 +103,8 @@ Good to go?  Ok, run pebble!
         PEBBLE_CHAIN_LENGTH=3 \
         pebble --config  ./tests/test_configuration/pebble/test/config/pebble-config.json
 
-To have all challenge POST requests succeed without performing any validation run:
+but for development it is often preferred to have all challenge POST requests succeed
+without actually performing any validation, via::
 
     PEBBLE_VA_ALWAYS_VALID=1 \
         PEBBLE_AUTHZREUSE=100 \
@@ -112,7 +113,7 @@ To have all challenge POST requests succeed without performing any validation ru
         PEBBLE_CHAIN_LENGTH=3 \
         pebble -config ./tests/test_configuration/pebble/test/config/pebble-config.json
 
-A second testserver is used as well:
+A second testserver is used as well for backup certificates:
 
     PEBBLE_VA_ALWAYS_VALID=1 \
         PEBBLE_AUTHZREUSE=100 \
@@ -193,11 +194,14 @@ please note the order:
 
     result, error, operation, action
 
-Unit tests will use the `test.ini` file for configuration.
+Unit tests will use the `data_testing/config.ini` file for configuration.
 
 Instead of editing this file, you can overwrite it with an environment variable:
 
-    export SSL_TEST_INI="conf/test_local.ini"
+    export SSL_TEST_INI="data_testing/test_local.ini"
+
+Config file inheritance can be a bit wonky, so it is best to recreate the entire
+config file instead of inheriting to change values.
 
 
 ## check nginx/openresty routes

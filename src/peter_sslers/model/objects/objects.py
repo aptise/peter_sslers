@@ -31,6 +31,7 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship as sa_orm_relationship
 from sqlalchemy.orm.session import Session as sa_Session
+from typing_extensions import Literal
 
 # from sqlalchemy import inspect as sa_inspect
 
@@ -41,6 +42,7 @@ from .mixins import _Mixin_Timestamps_Pretty
 from .. import utils as model_utils
 from ..meta import Base
 from ..utils import TZDateTime
+from ...lib.utils_datetime import datetime_ari_timely
 
 if TYPE_CHECKING:
     from ...lib.context import ApiContext
@@ -72,6 +74,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     )
     account_url: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=True
+    )
+    account_url_sha256: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True, unique=True
     )
     count_acme_orders: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
@@ -292,18 +297,19 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
                 self.acme_account_key.as_json if self.acme_account_key else None
             ),
             # - -
-            "is_active": True if self.is_active else False,
-            "is_deactivated": self.timestamp_deactivated or False,
+            "account_url_sha256": self.account_url_sha256,
+            "account_url": self.account_url,
             "acme_server_id": self.acme_server_id,
             "acme_server_name": self.acme_server.name,
-            "acme_server_url": self.acme_server.url,
             "acme_server_protocol": self.acme_server.protocol,
-            "private_key_technology": self.private_key_technology,
+            "acme_server_url": self.acme_server.url,
+            "contact": self.contact,
+            "is_active": True if self.is_active else False,
+            "is_deactivated": self.timestamp_deactivated or False,
+            "name": self.name,
             "order_default_private_key_cycle": self.order_default_private_key_cycle,
             "order_default_private_key_technology": self.order_default_private_key_technology,
-            "contact": self.contact,
-            "account_url": self.account_url,
-            "name": self.name,
+            "private_key_technology": self.private_key_technology,
             "terms_of_service": self.terms_of_service,
         }
 
@@ -320,6 +326,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         rval = {
             "id": self.id,
             "account_url": self.account_url,
+            "account_url_sha256": self.account_url_sha256,
         }
         rval["AcmeAccountKey"] = (
             self.acme_account_key.as_json_minimal if self.acme_account_key else None
@@ -2314,7 +2321,9 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         TZDateTime(timezone=True), nullable=False
     )
     name: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False, unique=True)
-    directory: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
+    directory_url: Mapped[str] = mapped_column(
+        sa.Unicode(255), nullable=False, unique=True
+    )
     # the server is normalized from the `directory`
     # it is used to help figure out what server corresponds to an account
     server: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
@@ -2417,14 +2426,14 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def url(self) -> str:
-        return self.directory or ""
+        return self.directory_url or ""
 
     @property
     def as_json(self) -> Dict:
         return {
             "id": self.id,
             # - -
-            "directory": self.directory,
+            "directory_url": self.directory_url,
             "directory_latest": (
                 self.directory_latest.as_json_minimal if self.directory_latest else None
             ),
@@ -2445,7 +2454,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             # - -
-            "directory": self.directory,
+            "directory_url": self.directory_url,
         }
 
 
@@ -2469,23 +2478,26 @@ class AcmeServerConfiguration(Base, _Mixin_Timestamps_Pretty):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
+    timestamp_lastchecked: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
     is_active: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=True
     )  # allow NULL because of the index
-    directory: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    directory_payload: Mapped[str] = mapped_column(sa.Text, nullable=False)
 
     @property
-    def directory_pretty(self):
-        if not self.directory:
+    def directory_payload_pretty(self):
+        if not self.directory_payload:
             return ""
-        d_json = json.loads(self.directory)
+        d_json = json.loads(self.directory_payload)
         return pprint.pformat(d_json)
 
     @property
     def as_json_minimal(self):
         return {
             "timestamp_created": self.timestamp_created_isoformat,
-            "directory": self.directory,
+            "directory_payload": self.directory_payload,
         }
 
 
@@ -3568,25 +3580,24 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         #    return True
         return False
 
-    def is_ari_check_timely(self, ctx: "ApiContext") -> bool:
-        timestamp_max_expiry = self.is_ari_check_timely_expiry(ctx)
-        if self.timestamp_not_after >= timestamp_max_expiry:
+    def is_ari_checking_timely(
+        self,
+        ctx: "ApiContext",
+        datetime_now: Optional[datetime.datetime] = None,
+        context: Optional[Literal["dashboard"]] = None,
+    ) -> bool:
+        """Returns False if ARI Checking would not be timely.
+        ARI Checking should be done before the notAfter date.
+        Anything after notAfter is expired and not worth polling.
+        """
+        timestamp_max_expiry = datetime_ari_timely(
+            ctx,
+            datetime_now=datetime_now,
+            context=context,
+        )
+        if self.timestamp_not_after <= timestamp_max_expiry:
             return False
         return True
-
-    def is_ari_check_timely_expiry(self, ctx: "ApiContext") -> datetime.datetime:
-        # don't rely on ctx.timestamp, as it can be old
-        NOW = datetime.datetime.now(datetime.timezone.utc)
-        TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
-        assert ctx.application_settings
-        _minutes = ctx.application_settings.get("offset.ari_updates", 60)
-        TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
-
-        # This is WILD
-        # usually we SUBTRACT for searches and automatic renewals to give a safer buffer
-        # here, we ADD the offset to give a wider buffer for on-demand
-        timestamp_max_expiry = NOW + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
-        return timestamp_max_expiry
 
     @property
     def is_ari_supported(self) -> bool:

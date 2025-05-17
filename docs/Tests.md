@@ -30,12 +30,9 @@ There are a few environment variables you can set, some of which include:
     # - test suite that responds to public requests
     export SSL_LETSENCRYPT_API_VALIDATES=True
 
-Tests are done on a SQLite database as specified in `test.ini` .
- Do not edit `test.ini` though, instead create a
-`test_local.ini` file and set an environment variable to use that file. More info
-on this is available in the development readme file.
+Tests are done on a SQLite database as specified in `/data_testing/config.ini` .
 
-`test_data/` contains the keys and Certificates used for testing
+`/tests/test_data/` contains the keys and Certificates used for testing
 
 You can overwrite the testdb; beware that it CAN NOT run as a memory db. It must
 be a disk file due to how the tests are structured.

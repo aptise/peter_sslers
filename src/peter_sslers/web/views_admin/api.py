@@ -628,6 +628,12 @@ class ViewAdminApi_Domain(Handler):
                 log.debug("autocert - order invalid")
                 return rval
 
+            except errors.FieldError as exc:
+                raise formStash.fatal_field(
+                    field=exc.args[0],
+                    error_field=exc.args[1],
+                )
+
             except errors.DuplicateAcmeOrder as exc:
                 raise formStash.fatal_form(error_main=exc.args[0])
 

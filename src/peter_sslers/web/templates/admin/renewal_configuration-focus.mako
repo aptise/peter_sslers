@@ -341,7 +341,7 @@
                         <td>
                             <a href="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}/lineages"
                                 title="Lineages"
-                                class="label label-info"
+                                class="btn btn-xs btn-primary"
                             >
                                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                 Calculate Lineages
@@ -354,6 +354,9 @@
                         <th>ACME Orders</th>
                         <td>
                             ${admin_partials.table_AcmeOrders(RenewalConfiguration.acme_orders__5, perspective='RenewalConfiguration')}
+                            % if RenewalConfiguration.acme_orders__5:
+                                ${admin_partials.nav_pager("%s/renewal-configuration/%s/acme-orders" % (admin_prefix, RenewalConfiguration.id))}
+                            % endif
                         </td>
                     </tr>
                 </tbody>

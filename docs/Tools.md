@@ -11,9 +11,9 @@ Currently this includes:
   to support deterministically named DNS subdomains instead of the default randomized
   guid subdomains.
 
-* `update_filepaths {example_development.ini}` will export PEM certificate data onto the filesystem, with the following implementation details:
+* `update_filepaths {data_development/config.ini}` will export PEM certificate data onto the filesystem, with the following implementation details:
 
-  * data will be written to a `certificates` subfolder of the `_data_` directory
+  * data will be written to a `certificates` subfolder of the `{DATA}` directory
   * only certificates with an ACTIVE RenewalConfiguration will be written
   * data will be organized into
     * a `global` directory for certs without an EnrollmentFactory
@@ -30,23 +30,23 @@ Currently this includes:
 
 For example, a directory structure might look like this:
 
-    _data_/certificates/global/rc-1/primary/cert.pem
-    _data_/certificates/global/rc-1/primary/chain.pem
-    _data_/certificates/global/rc-1/primary/fullchain.pem
-    _data_/certificates/global/rc-1/primary/pkey.pem
-    _data_/certificates/global/rc-1/backup/cert.pem
-    _data_/certificates/global/rc-1/backup/chain.pem
-    _data_/certificates/global/rc-1/backup/fullchain.pem
-    _data_/certificates/global/rc-1/backup/pkey.pem
-    _data_/certificates/factory_a/rc-2/primary/cert.pem
-    _data_/certificates/factory_a/rc-2/primary/chain.pem
-    _data_/certificates/factory_a/rc-2/primary/fullchain.pem
-    _data_/certificates/factory_a/rc-2/primary/pkey.pem
-    _data_/certificates/factory_a/rc-2/backup/cert.pem
-    _data_/certificates/factory_a/rc-2/backup/chain.pem
-    _data_/certificates/factory_a/rc-2/backup/fullchain.pem
-    _data_/certificates/factory_a/rc-2/backup/pkey.pem
-    _data_/certificates/factory_a/example.com >symlink> rc-2
+    data_production/certificates/global/rc-1/primary/cert.pem
+    data_production/certificates/global/rc-1/primary/chain.pem
+    data_production/certificates/global/rc-1/primary/fullchain.pem
+    data_production/certificates/global/rc-1/primary/pkey.pem
+    data_production/certificates/global/rc-1/backup/cert.pem
+    data_production/certificates/global/rc-1/backup/chain.pem
+    data_production/certificates/global/rc-1/backup/fullchain.pem
+    data_production/certificates/global/rc-1/backup/pkey.pem
+    data_production/certificates/factory_a/rc-2/primary/cert.pem
+    data_production/certificates/factory_a/rc-2/primary/chain.pem
+    data_production/certificates/factory_a/rc-2/primary/fullchain.pem
+    data_production/certificates/factory_a/rc-2/primary/pkey.pem
+    data_production/certificates/factory_a/rc-2/backup/cert.pem
+    data_production/certificates/factory_a/rc-2/backup/chain.pem
+    data_production/certificates/factory_a/rc-2/backup/fullchain.pem
+    data_production/certificates/factory_a/rc-2/backup/pkey.pem
+    data_production/certificates/factory_a/example.com >symlink> rc-2
     
 
 ## `invoke` Script
@@ -100,7 +100,7 @@ Installation Instructions:
 
 You can use Pyramid's `prequest` syntax to spin up a URL and GET/POST data
 
-`$VENV/bin/prequest -m POST example_development.ini /.well-known/peter_sslers/api/redis/prime.json`
+`$VENV/bin/prequest -m POST data_development/config.ini /.well-known/peter_sslers/api/redis/prime.json`
 
 Using `prequest` is recommended in most contexts, because it will not timeout.
 This will allow for long-running processes.

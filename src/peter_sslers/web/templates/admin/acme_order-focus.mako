@@ -276,14 +276,17 @@
                             % if AcmeOrder.is_processing is True:
                                 <div class="label label-success">
                                     <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                    Processing
                                 </div>
                             % elif AcmeOrder.is_processing is None:
                                 <div class="label label-default">
-                                    <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span>
+                                    <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
+                                    Not Processing, Order Failure
                                 </div>
                             % elif AcmeOrder.is_processing is False:
                                 <div class="label label-warning">
                                     <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
+                                    Not Processing, Manual Failure
                                 </div>
                             % endif
                             % if AcmeOrder.is_processing:
@@ -487,7 +490,15 @@
                     <tr>
                         <th>CertificateType</th>
                         <td>
-                            <code>${AcmeOrder.certificate_type}</code>
+                            ##<code>${AcmeOrder.certificate_type}</code>
+                            % if AcmeOrder.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                                <span class="label label-success">${AcmeOrder.certificate_type}</span>
+                            % elif AcmeOrder.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                                <span class="label label-warning">${AcmeOrder.certificate_type}</span>
+                            % elif AcmeOrder.certificate_type_id == model_websafe.CertificateType.RAW_IMPORTED:
+                                ## impossible in AcmeOrder context
+                                <span class="label label-default">${AcmeOrder.certificate_type}</span>
+                            % endif
                         </td>
                     </tr>
                     <tr>

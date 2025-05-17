@@ -5,10 +5,21 @@ Cloudflare records as needed.
 This script requires::
 
     pip install --upgrade "cloudflare<3"
+
+You MUST export the following::
+
     export CLOUDFLARE_API_TOKEN="{YOUR_API_TOKEN}"
+    export ROOT_DOMAIN="{YOUR_DOMAIN}"
+
+e.g.
+
+    export CLOUDFLARE_API_TOKEN="12345"
+    export ROOT_DOMAIN="aptise.com"
+
 """
 
 import json
+import os
 import sys
 from typing import Dict
 from typing import Union
@@ -16,6 +27,12 @@ from typing import Union
 # pip install --upgrade "cloudflare<3"
 import CloudFlare
 from typing_extensions import Literal
+
+
+ROOT_DOMAIN = os.environ.get("ROOT_DOMAIN")
+if not all((ROOT_DOMAIN,)):
+    raise ValueError("required ENV vars not found")
+
 
 # ==============================================================================
 
@@ -30,8 +47,6 @@ CF_ZONES: Dict[str, Union[str, Literal[-1]]] = {}
 cf = CloudFlare.CloudFlare(raw=True)
 
 for result in audit_results:
-    if result["registered_domain"] == "aptise.":
-        continue
 
     domain_name = result["domain_name"]
 
@@ -53,7 +68,7 @@ for result in audit_results:
         zone_id = CF_ZONES.get(registered_domain)
         if zone_id is None:
             try:
-                params = {"name": "aptise.com"}
+                params = {"name": ROOT_DOMAIN}
                 _api_result = cf.zones.get(params=params)
                 zone_id = -1
                 if _api_result["result"]:

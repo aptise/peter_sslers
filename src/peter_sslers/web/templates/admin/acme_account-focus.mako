@@ -232,6 +232,10 @@
                         <td><code>${AcmeAccount.account_url or ''}</code></td>
                     </tr>
                     <tr>
+                        <th>account url (sha256)</th>
+                        <td><code>${AcmeAccount.account_url_sha256 or ''}</code></td>
+                    </tr>
+                    <tr>
                         <th>terms of service</th>
                         <td>
                             <code>${AcmeAccount.terms_of_service or ''}</code>
