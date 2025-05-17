@@ -2321,7 +2321,9 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         TZDateTime(timezone=True), nullable=False
     )
     name: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False, unique=True)
-    directory_url: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
+    directory_url: Mapped[str] = mapped_column(
+        sa.Unicode(255), nullable=False, unique=True
+    )
     # the server is normalized from the `directory`
     # it is used to help figure out what server corresponds to an account
     server: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)

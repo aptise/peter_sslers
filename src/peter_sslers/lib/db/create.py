@@ -137,7 +137,8 @@ def create__AcmeServer(
     returns: :class:`model.objects.AcmeServer`
     """
     if not directory_url or (
-        not directory_url.startswith("http://") and not directory_url.startswith("https://")
+        not directory_url.startswith("http://")
+        and not directory_url.startswith("https://")
     ):
         raise ValueError("invalid `directory`")
 
@@ -410,6 +411,9 @@ def create__AcmeOrder(
                     acme_challenge_type_id=acme_challenge_type_id,
                 )
             )
+            # print("CREATED dbAcmeAuthorizationPotential.%s" % dbAcmeAuthorizationPotential.id)
+            # print("FOR dbAcmeOrder.%s" % dbAcmeOrder.id)
+            # print(dbAcmeAuthorizationPotential.__dict__)
 
     # now loop the authorization URLs to create stub records for this order
     for authorization_url in acme_order_rfc__original.get("authorizations", []):

@@ -1370,6 +1370,12 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 except errors.DuplicateAcmeOrder as exc:
                     raise formStash.fatal_form(error_main=exc.args[0])
 
+                except errors.FieldError as exc:
+                    raise formStash.fatal_field(
+                        field=exc.args[0],
+                        error_field=exc.args[1],
+                    )
+
                 except Exception as exc:
                     # unpack a `errors.AcmeOrderCreatedError` to local vars
                     if isinstance(exc, errors.AcmeOrderCreatedError):
@@ -1459,8 +1465,10 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                     % (exc.args[2], exc.args[2]),
                 )
 
+            except formhandling.FormInvalid:
+                raise
+
             except Exception as exc:  # noqa: F841
-                # raise
                 return HTTPSeeOther(
                     "%s/acme-orders/all?result=error&operation=new-freeform"
                     % self.request.api_context.application_settings["admin_prefix"]

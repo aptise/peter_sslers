@@ -67,6 +67,9 @@ if TYPE_CHECKING:
 
     HEADERS_COMPAT = Union["HTTPMessage", "CaseInsensitiveDict", "Message"]
 
+    # (resp_data, status_code, headers)
+    RESPONSE_TUPLE = Tuple[Dict, Optional[int], "HTTPMessage"]
+
 # ==============================================================================
 
 log = logging.getLogger(__name__)
@@ -75,7 +78,7 @@ log_api = logging.getLogger("acme_api")
 # ------------------------------------------------------------------------------
 
 
-MAX_DEPTH = 150
+MAX_DEPTH = 10
 DEBUG_HEADERS = False
 SECONDS_POLLING_TIMEOUT = 45
 
@@ -115,7 +118,7 @@ def url_request(
     err_msg: str = "Error",
     depth: int = 0,
     dbAcmeServer: Optional["AcmeServer"] = None,
-) -> Tuple:
+) -> "RESPONSE_TUPLE":
     """
     Originally from acme-tiny
     # helper function - make request and automatically parse json response
@@ -396,25 +399,40 @@ def b64_payload(payload=Any) -> str:
 
 
 def sign_payload(
+    endpoint_type: str,
     url: str,
     payload: Any,
     accountKeyData: AccountKeyData,
-    kid: Any,
     nonce: str,
+    kid: Optional[str] = None,
 ):
     """
     This format is used by core operations
+
+    kid should be the AcmeAccount URL, if it exists
+
+    JWK is required for:
+        newAccount
+        revokeCert
+
+    For all other requests, the request is signed using an existing
+    account, and there MUST be a "kid" field.
+
     """
-    # TODO: type for kid
     protected: Dict = {
         "alg": accountKeyData.alg,
         "nonce": nonce,
         "url": url,
     }
-    if kid:
-        protected.update({"kid": kid})
-    else:
+    if endpoint_type in ("newAccount", "revokeCert"):
         protected.update({"jwk": accountKeyData.jwk})
+    else:
+        if not kid:
+            raise ValueError(
+                "`kid` is required for all payloads except: newAccount, revokeCert"
+            )
+        protected.update({"kid": kid})
+
     protected64 = b64_payload(protected)
     payload64 = b64_payload(payload)
     protected_input = "{0}.{1}".format(protected64, payload64).encode("utf8")
@@ -527,6 +545,7 @@ class AuthenticatedUser(object):
     # set False if server known to NOT support it
     # if None, we may want to check
     supports_ari: Optional[bool] = None
+    _next_nonce: Optional[str] = None
 
     def __init__(
         self,
@@ -599,16 +618,16 @@ class AuthenticatedUser(object):
         self.acmeLogger = acmeLogger
         self.acmeAccount = acmeAccount
         self.log__OperationsEvent = log__OperationsEvent
-        self._next_nonce = None
         if acmeAccount.acme_server and acmeAccount.acme_server.is_supports_ari:
             self.supports_ari = True
 
     def _send_signed_request(
         self,
+        endpoint_type: str,
         url: str,
         payload: Any = None,
         depth: int = 0,
-    ) -> Tuple:
+    ) -> "RESPONSE_TUPLE":
         """
         Originally from acme-tiny
         :param url: (required) The url
@@ -618,28 +637,39 @@ class AuthenticatedUser(object):
         This proxies `url_request` with a signed payload
         returns (resp_data, status_code, headers)
         """
+        log.debug("_send_signed_request")
+        log.debug("_send_signed_request | depth=%s" % depth)
         if depth > MAX_DEPTH:
             raise ValueError("depth > MAX_DEPTH[%s]" % MAX_DEPTH)
+        nonce: Optional[str] = None
         if self._next_nonce:
             nonce = self._next_nonce
         else:
+            log.debug("_send_signed_request > newNonce")
+            # TODO: store/retrieve a nonce from the db
             self._next_nonce = nonce = url_request(
                 self.ctx,
                 self.acme_directory["newNonce"],
                 dbAcmeServer=self.acmeAccount.acme_server,
             )[2]["Replay-Nonce"]
-        kid = None
-        if self._api_account_headers is not None:
-            kid = self._api_account_headers["Location"]
+
+        # the `kid` is the AccountURL on the acme server
+        kid = self.acmeAccount.account_url or None
+        # if kid is None:
+        #    if (self._api_account_headers is not None) and ("Location" in self._api_account_headers):
+        #        kid = self._api_account_headers["Location"]
         try:
             _signed_payload = sign_payload(
+                endpoint_type=endpoint_type,
                 url=url,
                 payload=payload,
                 accountKeyData=self.accountKeyData,
-                kid=kid,
                 nonce=nonce,
+                kid=kid,
             )
         except IOError as exc:  # noqa: F841
+            log.debug("_send_signed_request > sign_payload | IOError")
+            log.debug(exc)
             self._next_nonce = None
             raise
         try:
@@ -654,20 +684,31 @@ class AuthenticatedUser(object):
             try:
                 if DEBUG_HEADERS:
                     print("*******************************************************")
-                    print(result[2]._headers)
+                    print("_send_signed_request | DEBUG_HEADERS")
+                    # print(result[2]._headers)  # undocumented storage attribute
+                    print(result[2].items())
                     print("*******************************************************")
                 _next_nonce = result[2]["Replay-Nonce"]
                 if (not _next_nonce) or (nonce == _next_nonce):
                     self._next_nonce = None
                 else:
                     self._next_nonce = _next_nonce
+            except IndexError as exc:
+                log.debug(
+                    "_send_signed_request > sign_payload | _next_nonce IndexError"
+                )
+                log.debug(exc)
+                raise
             except Exception as exc:  # noqa: F841
+                log.debug("_send_signed_request > sign_payload | _next_nonce Exception")
+                log.debug(exc)
                 self._next_nonce = None
-                pass
             return result
         except IndexError:  # retry bad nonces (they raise IndexError)
+            log.debug("_send_signed_request > IndexError retry")
             self._next_nonce = None
             return self._send_signed_request(
+                endpoint_type,
                 url,
                 payload=payload,
                 depth=(depth + 1),
@@ -675,6 +716,7 @@ class AuthenticatedUser(object):
 
     def _poll_until_not(
         self,
+        _endpoint_type: str,
         _url: str,
         _pending_statuses: List[str],
         _log_message: str,
@@ -694,6 +736,7 @@ class AuthenticatedUser(object):
             log.debug(") polling...")
             time.sleep(1 if _result is None else 2)
             _result, _status_code, _headers = self._send_signed_request(
+                _endpoint_type,
                 _url,
                 payload=None,
             )
@@ -721,6 +764,7 @@ class AuthenticatedUser(object):
             _status_code,
             _acme_account_headers,
         ) = self._send_signed_request(
+            "AccountUrl",
             self._api_account_headers["Location"],
             payload=payload_contact,
         )
@@ -746,6 +790,8 @@ class AuthenticatedUser(object):
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param contact: (optional) The contact info
         :param onlyReturnExisting: bool. Default None. see ACME-spec (docs below)
+            `onlyReturnExisting=True` requires an EXISTING user
+            `onlyReturnExisting=False` will register a NEW user if applicable
 
         returns:
             False - no matching account
@@ -873,6 +919,7 @@ class AuthenticatedUser(object):
                     status_code,
                     acme_account_headers,
                 ) = self._send_signed_request(
+                    "newAccount",
                     self.acme_directory["newAccount"],
                     payload=payload_registration,
                 )
@@ -994,6 +1041,7 @@ class AuthenticatedUser(object):
                 status_code,
                 acme_account_headers,
             ) = self._send_signed_request(
+                "AccountUrl",
                 _account_url,
                 payload=_payload_deactivate,
             )
@@ -1115,6 +1163,7 @@ class AuthenticatedUser(object):
                 status_code,
                 acme_headers,
             ) = self._send_signed_request(
+                "keyChange",
                 _key_change_url,
                 payload=payload_inner,
             )
@@ -1188,7 +1237,7 @@ class AuthenticatedUser(object):
                 acme_order_object,
                 _status_code,
                 acme_order_headers,
-            ) = self._send_signed_request(dbAcmeOrder.order_url, None)
+            ) = self._send_signed_request("OrderUrl", dbAcmeOrder.order_url, None)
             log.debug(") acme_order_load | acme_order_object: %s" % acme_order_object)
             log.debug(") acme_order_load | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServer404 as exc:  # noqa: F841
@@ -1252,6 +1301,7 @@ class AuthenticatedUser(object):
                 _status_code,
                 acme_order_headers,
             ) = self._send_signed_request(
+                "newOrder",
                 self.acme_directory["newOrder"],
                 payload=payload_order,
             )
@@ -1259,6 +1309,7 @@ class AuthenticatedUser(object):
             log.debug(") acme_order_new | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServerError as exc:
             log.debug(") acme_order_new | AcmeServerError: %s" % exc)
+
             # (status_code, resp_data, url) = exc
             _raise = True
             if isinstance(exc.args[1], dict):
@@ -1280,7 +1331,7 @@ class AuthenticatedUser(object):
                 While these could be tested to ensure this error might be happening,
                 the status quo across clients right now is to just try again:
                 """
-                if payload_order["replaces"]:
+                if payload_order.get("replaces"):
                     # logging only
                     _type_details = {
                         "LetsEncrypt - Boulder": {
@@ -1309,6 +1360,7 @@ class AuthenticatedUser(object):
                         _status_code,
                         acme_order_headers,
                     ) = self._send_signed_request(
+                        "newOrder",
                         self.acme_directory["newOrder"],
                         payload=payload_order,
                     )
@@ -1325,7 +1377,7 @@ class AuthenticatedUser(object):
         # log the event to the db
         dbEventLogged = None
         assert ctx.application_settings
-        if ctx.application_settings["log.acme"]:
+        if ctx.application_settings.get("log.acme"):
             dbEventLogged = self.acmeLogger.log_newOrder(
                 "v2", dbUniqueFQDNSet, transaction_commit=transaction_commit
             )
@@ -1745,6 +1797,7 @@ class AuthenticatedUser(object):
                 _status_code,
                 _finalize_headers,
             ) = self._send_signed_request(
+                "OrderUrl",
                 dbAcmeOrder.finalize_url,
                 payload=payload_finalize,
             )
@@ -1764,6 +1817,7 @@ class AuthenticatedUser(object):
         log.info(") acme_order_finalize | checking order {0}".format("order"))
         try:
             acme_order_finalized = self._poll_until_not(
+                "OrderUrl",
                 url_order_status,
                 ["pending", "processing"],
                 "Error checking order status",
@@ -1819,7 +1873,7 @@ class AuthenticatedUser(object):
         # download the certificate
         # ACME-V2 furnishes a FULLCHAIN (certificate_pem + chain_pem)
         (fullchain_pem, _status_code, _certificate_headers) = self._send_signed_request(
-            url_certificate, None
+            "OrderUrl", url_certificate, None
         )
         log.debug(") download_certificate | fullchain_pem: %s" % fullchain_pem)
         log.debug(
@@ -1830,7 +1884,13 @@ class AuthenticatedUser(object):
         ]
         if is_save_alternate_chains:
             alt_chains_urls = get_header_links(_certificate_headers, "alternate")
-            alt_chains = [self._send_signed_request(url)[0] for url in alt_chains_urls]
+            alt_chains = []
+            for url in alt_chains_urls:
+                # wrap these in a try/except so a single failure doesn't kill the download
+                try:
+                    alt_chains.append(self._send_signed_request("OrderUrl", url)[0])
+                except Exception:
+                    pass
             fullchain_pems.extend(alt_chains)
         log.info(") download_certificate | downloaded signed certificate!")
         return fullchain_pems
@@ -1912,6 +1972,7 @@ class AuthenticatedUser(object):
             _status_code,
             _authorization_headers,
         ) = self._send_signed_request(
+            "AuthzUrl",
             authorization_url,
             payload=None,
         )
@@ -2083,7 +2144,9 @@ class AuthenticatedUser(object):
                 authorization_response,
                 _status_code,
                 _authorization_headers,
-            ) = self._send_signed_request(dbAcmeAuthorization.authorization_url, None)
+            ) = self._send_signed_request(
+                "AuthzUrl", dbAcmeAuthorization.authorization_url, None
+            )
             log.debug(
                 ") acme_authorization_load | authorization_response: %s"
                 % authorization_response
@@ -2149,7 +2212,9 @@ class AuthenticatedUser(object):
                 _status_code,
                 _authorization_headers,
             ) = self._send_signed_request(
-                dbAcmeAuthorization.authorization_url, {"status": "deactivated"}
+                "AuthzUrl",
+                dbAcmeAuthorization.authorization_url,
+                {"status": "deactivated"},
             )
             log.debug(
                 ") acme_authorization_deactivate | authorization_response: %s"
@@ -2201,7 +2266,9 @@ class AuthenticatedUser(object):
                 challenge_response,
                 _status_code,
                 _challenge_headers,
-            ) = self._send_signed_request(dbAcmeChallenge.challenge_url, None)
+            ) = self._send_signed_request(
+                "ChallengeUrl", dbAcmeChallenge.challenge_url, None
+            )
             log.debug(
                 ") acme_challenge_load | challenge_response: %s" % challenge_response
             )
@@ -2279,6 +2346,7 @@ class AuthenticatedUser(object):
                 _status_code,
                 _challenge_headers,
             ) = self._send_signed_request(
+                "ChallengeUrl",
                 dbAcmeChallenge.challenge_url,
                 payload={},  # `{}` will trigger; `None` will poll
             )
@@ -2369,6 +2437,7 @@ class AuthenticatedUser(object):
 
         try:
             authorization_response = self._poll_until_not(
+                "AuthzUrl",
                 dbAcmeChallenge.acme_authorization.authorization_url,
                 ["pending", "processing"],
                 "checking challenge status for {0}".format(

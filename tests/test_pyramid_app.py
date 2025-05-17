@@ -8,6 +8,7 @@ import pprint  # noqa: F401
 import re
 import time
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -42,6 +43,7 @@ from ._utils import CustomizedTestCase
 from ._utils import db_freeze
 from ._utils import db_unfreeze
 from ._utils import do__AcmeServers_sync__api
+from ._utils import ensure_AcmeAccount_auth
 from ._utils import ensure_SystemConfiguration__database
 from ._utils import generate_random_domain
 from ._utils import generate_random_emailaddress
@@ -116,6 +118,11 @@ from .regex_library import RE_RenewalConfiguration_link
 from .regex_library import RE_UniqueFQDNSet_modify
 from .regex_library import RE_UniqueFQDNSet_new
 
+if TYPE_CHECKING:
+    from peter_sslers.lib.context import ApiContext
+    from webtest import TestApp
+    from webtest.http import StopableWSGIServer
+
 
 # ==============================================================================
 #
@@ -133,7 +140,10 @@ log.setLevel(logging.CRITICAL)
 SLEEP_FOR_EXPIRY = False
 
 
-def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
+def setup_testing_data(
+    testCase: CustomizedTestCase,
+    required_object: Optional[Literal["AcmeAuthorizationPotential", "AriCheck"]] = None,
+) -> Literal[True]:
     """
     This function is used to setup some of the testing data under pebble.
 
@@ -142,84 +152,154 @@ def setup_testing_data(testCase: CustomizedTestCase) -> Literal[True]:
     """
     print("setup_testing_data")
 
+    DEBUG_SETUP = True
+
+    def generate_acme_orders(max_range: int = 2) -> List[model_objects.AcmeOrder]:
+        _orders = []
+        for i in range(0, max_range):
+            if DEBUG_SETUP:
+                print("setup_testing_data: generate_acme_orders: %s" % i)
+
+            # Pinpointing this regression took a full day;
+            # `do__AcmeV2_AcmeOrder__new` originally did not sync authz on creation,
+            # which led to a need for AcmeAuthorizationPotentials.
+            # When the code was updated to immediately sync,
+            # the AcmeAuthorizationPotentials became ephemeral as they are
+            # immediately deleted.
+            # In order to create and test this object, which only exists to
+            # block race conditions, we need to disable the immediate authz sync.
+            # Doing this will prevent the AcmeAuthorizationPotentials from
+            # becoming deleted.
+            assert lib_db_actions_acme.SYNC_AUTHZ_ON_ORDER_CREATION is True
+            if i >= 1:
+                lib_db_actions_acme.SYNC_AUTHZ_ON_ORDER_CREATION = False
+            try:
+                _dbAcmeOrder = make_one__AcmeOrder__random__api(
+                    testCase, processing_strategy="create_order"
+                )
+                _orders.append(_dbAcmeOrder)
+            except:
+                raise
+            finally:
+                # reset
+                if i >= 1:
+                    lib_db_actions_acme.SYNC_AUTHZ_ON_ORDER_CREATION = True
+        return _orders
+
+    def process_acme_order(dbAcmeOrder: model_objects.AcmeOrder) -> None:
+        if DEBUG_SETUP:
+            print("setup_testing_data: process_acme_order: %s" % dbAcmeOrder.id)
+        res = testCase.testapp.get(
+            "/.well-known/peter_sslers/acme-order/%s" % dbAcmeOrder.id,
+            status=200,
+        )
+        if DEBUG_SETUP:
+            print(
+                "setup_testing_data: process res:",
+                "form-acme_process" in res.forms,
+            )
+        if "form-acme_process" in res.forms:
+            # the first acme_process should validate challenges
+            form = res.forms["form-acme_process"]
+            res2 = form.submit()
+            assert res2.status_code == 303
+            assert res2.location.endswith("?result=success&operation=acme+process")
+            res3 = testCase.testapp.get(res2.location, status=200)
+            if DEBUG_SETUP:
+                print(
+                    "setup_testing_data: process res3:",
+                    "form-acme_process" in res3.forms,
+                )
+            if "form-acme_process" in res3.forms:
+                # the second form should finalize and download the cert
+                form = res3.forms["form-acme_process"]
+                res4 = form.submit()
+                assert res4.status_code == 303
+                assert res4.location.endswith("?result=success&operation=acme+process")
+                res5 = testCase.testapp.get(res4.location, status=200)
+                assert "certificate_downloaded" in res5.text
+                matched = RE_CertificateSigned_main.search(res5.text)
+                if DEBUG_SETUP:
+                    print(
+                        "setup_testing_data: process res5:",
+                        "form-acme_process" in res5.forms,
+                    )
+                    print("setup_testing_data: matched?", matched)
+                if matched:
+                    certificate_id = matched.groups()[0]
+                    res = testCase.testapp.get(
+                        "/.well-known/peter_sslers/certificate-signed/%s"
+                        % certificate_id,
+                        status=200,
+                    )
+                    if "form-certificate_signed-ari_check" in res.forms:
+                        form = res.forms["form-certificate_signed-ari_check"]
+                        res2 = form.submit()
+                        assert res2.status_code == 303
+                        assert "?result=success&operation=ari-check" in res2.location
+
     def _actual():
+        _using_frozen = None
         if db_unfreeze(
             testCase.ctx.dbSession,
             "test_pyramid_app-setup_testing_data",
             testCase=testCase,
         ):
             print("setup_testing_data | using frozen database")
+            _using_frozen = True
+
+            if DEBUG_SETUP:
+                print("FROZEN")
+
         else:
             print("setup_testing_data | creating new database records")
-            _orders = []
-            for i in range(0, 3):
-                dbAcmeOrder = make_one__AcmeOrder__random__api(testCase)
-                _orders.append(dbAcmeOrder)
+            _using_frozen = False
 
-            DEBUG_SETUP = True
+            if DEBUG_SETUP:
+                print("NEW DB")
 
-            # This is all to generate a valid ARI Check
-            # only 1 is needed
-            for dbAcmeOrder in _orders:
-                res = testCase.testapp.get(
-                    "/.well-known/peter_sslers/acme-order/%s" % dbAcmeOrder.id,
-                    status=200,
-                )
-                if DEBUG_SETUP:
-                    print(
-                        "setup_testing_data: process res:",
-                        "form-acme_process" in res.forms,
-                    )
-                if "form-acme_process" in res.forms:
-                    # the first acme_process should validate challenges
-                    form = res.forms["form-acme_process"]
-                    res2 = form.submit()
-                    assert res2.status_code == 303
-                    assert res2.location.endswith(
-                        "?result=success&operation=acme+process"
-                    )
-                    res3 = testCase.testapp.get(res2.location, status=200)
-                    if DEBUG_SETUP:
-                        print(
-                            "setup_testing_data: process res3:",
-                            "form-acme_process" in res3.forms,
-                        )
-                    if "form-acme_process" in res3.forms:
-                        # the second form should finalize and download the cert
-                        form = res3.forms["form-acme_process"]
-                        res4 = form.submit()
-                        assert res4.status_code == 303
-                        assert res4.location.endswith(
-                            "?result=success&operation=acme+process"
-                        )
-                        res5 = testCase.testapp.get(res4.location, status=200)
-                        assert "certificate_downloaded" in res5.text
-                        matched = RE_CertificateSigned_main.search(res5.text)
-                        if DEBUG_SETUP:
-                            print(
-                                "setup_testing_data: process res5:",
-                                "form-acme_process" in res5.forms,
-                            )
-                            print("setup_testing_data: matched?", matched)
-                        if matched:
-                            certificate_id = matched.groups()[0]
-                            res = testCase.testapp.get(
-                                "/.well-known/peter_sslers/certificate-signed/%s"
-                                % certificate_id,
-                                status=200,
-                            )
-                            if "form-certificate_signed-ari_check" in res.forms:
-                                form = res.forms["form-certificate_signed-ari_check"]
-                                res2 = form.submit()
-                                assert res2.status_code == 303
-                                assert (
-                                    "?result=success&operation=ari-check"
-                                    in res2.location
-                                )
-                                # we just need one!
-                                break
+            # pebble loses state across loads
+            ensure_AcmeAccount_auth(testCase=testCase)
+
+            # This is all to generate a valid AriCheck and AcmeAuthorizationPotential
+            # we need 1 completed AcmeOrder for an AriCheck
+            # we need 1 incomplete AcmeOrder for an AcmeAuthorizationPotential
+            _orders = generate_acme_orders(max_range=2)
+            for idx, dbAcmeOrder in enumerate(_orders):
+                process_acme_order(dbAcmeOrder)
+                break
+
+            if DEBUG_SETUP:
+                print("NEW PROCESSED")
 
             db_freeze(testCase.ctx.dbSession, "test_pyramid_app-setup_testing_data")
+
+        if _using_frozen and required_object:
+            if DEBUG_SETUP:
+                print("FROZEN PROCESS >>>")
+
+            # pebble loses state across loads
+            ensure_AcmeAccount_auth(testCase=testCase)
+
+            # This is all to generate a valid AriCheck and AcmeAuthorizationPotential
+            # we need 1 completed AcmeOrder for an AriCheck
+            # we need 1 incomplete AcmeOrder for an AcmeAuthorizationPotential
+            _orders = generate_acme_orders(max_range=2)
+
+            # dbAcmeOrder = testCase.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+
+            for idx, dbAcmeOrder in enumerate(_orders):
+                process_acme_order(dbAcmeOrder)
+                break
+
+            if DEBUG_SETUP:
+                print("FROZEN PROCESSED <<< ")
+
+            db_freeze(testCase.ctx.dbSession, "test_pyramid_app-setup_testing_data")
+
+        # do a commit, so we can sync the database state
+        testCase.ctx.pyramid_transaction_commit()
+        testCase.ctx.dbSession.query(model_objects.AcmeAuthorizationPotential).first()
 
     if _utils.PEBBLE_RUNNING:
         print("setup_testing_data | pebble already running, using that!")
@@ -864,7 +944,7 @@ class FunctionalTests_AcmeAuthorization(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeAuthorization
     """
 
-    def _get_one(self):
+    def _get_one(self) -> Tuple[model_objects.AcmeAuthorization, int]:
         # grab an order
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAuthorization)
@@ -1006,20 +1086,19 @@ class FunctionalTests_AcmeAuthorizationPotential(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeAuthorizationPotential
     """
 
-    def _ensure_one(self) -> model_objects.AcmeOrder:
+    def _ensure_one(self) -> model_objects.AcmeAuthorizationPotential:
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAuthorizationPotential)
             .order_by(model_objects.AcmeAuthorizationPotential.id.asc())
             .first()
         )
         if not focus_item:
-            setup_testing_data(self)
-
-        focus_item = (
-            self.ctx.dbSession.query(model_objects.AcmeAuthorizationPotential)
-            .order_by(model_objects.AcmeAuthorizationPotential.id.asc())
-            .first()
-        )
+            setup_testing_data(self, "AcmeAuthorizationPotential")
+            focus_item = (
+                self.ctx.dbSession.query(model_objects.AcmeAuthorizationPotential)
+                .order_by(model_objects.AcmeAuthorizationPotential.id.asc())
+                .first()
+            )
         assert focus_item is not None
         return focus_item
 
@@ -1173,7 +1252,7 @@ class FunctionalTests_AcmeChallenge(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeChallenge
     """
 
-    def _get_one(self):
+    def _get_one(self) -> Tuple[model_objects.AcmeChallenge, int]:
         # grab an order
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeChallenge)
@@ -1444,7 +1523,9 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             "acme_dns_support"
         ]
 
-    def _get_one(self, id_not=None):
+    def _get_one(
+        self, id_not: Optional[int] = None
+    ) -> Tuple[model_objects.AcmeDnsServer, int]:
         # grab an order
         q = self.ctx.dbSession.query(model_objects.AcmeDnsServer)
         if id_not:
@@ -1578,7 +1659,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeDnsServer.test_manipulate_html
         """
 
-        def _make_global_default(_item_id):
+        def _make_global_default(_item_id: int) -> None:
             res = self.testapp.get(
                 "/.well-known/peter_sslers/acme-dns-server/%s" % _item_id, status=200
             )
@@ -1589,7 +1670,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert res2.status_code == 303
             assert RE_AcmeDnsServer_marked_global_default.match(res2.location)
 
-        def _make_inactive(_item_id):
+        def _make_inactive(_item_id: int) -> None:
             res = self.testapp.get(
                 "/.well-known/peter_sslers/acme-dns-server/%s" % _item_id, status=200
             )
@@ -1600,7 +1681,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert res2.status_code == 303
             assert RE_AcmeDnsServer_marked_inactive.match(res2.location)
 
-        def _make_active(_item_id):
+        def _make_active(_item_id: int) -> None:
             res = self.testapp.get(
                 "/.well-known/peter_sslers/acme-dns-server/%s" % _item_id, status=200
             )
@@ -1750,7 +1831,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeDnsServer.test_manipulate_json
         """
 
-        def _make_global_default(_item_id):
+        def _make_global_default(_item_id: int) -> None:
             res = self.testapp.get(
                 "/.well-known/peter_sslers/acme-dns-server/%s.json" % _item_id,
                 status=200,
@@ -1786,7 +1867,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert "AcmeDnsServer" in res4.json
             assert res4.json["AcmeDnsServer"]["is_global_default"] is True
 
-        def _make_inactive(_item_id):
+        def _make_inactive(_item_id: int) -> None:
             res = self.testapp.get(
                 "/.well-known/peter_sslers/acme-dns-server/%s.json" % _item_id,
                 status=200,
@@ -1822,7 +1903,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             assert "AcmeDnsServer" in res4.json
             assert res4.json["AcmeDnsServer"]["is_active"] is False
 
-        def _make_active(_item_id):
+        def _make_active(_item_id: int) -> None:
             res = self.testapp.get(
                 "/.well-known/peter_sslers/acme-dns-server/%s.json" % _item_id,
                 status=200,
@@ -2207,7 +2288,7 @@ class FunctionalTests_AcmeDnsServerAccount(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeDnsServerAccount
     """
 
-    def _get_one(self):
+    def _get_one(self) -> Tuple[model_objects.AcmeDnsServerAccount, int]:
         # grab an order
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
@@ -2344,7 +2425,7 @@ class FunctionalTests_AcmeEventLog(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeEventLog
     """
 
-    def _get_one(self):
+    def _get_one(self) -> Tuple[model_objects.AcmeEventLog, int]:
         # grab an event
         focus_item = self.ctx.dbSession.query(model_objects.AcmeEventLog).first()
         assert focus_item is not None
@@ -2408,7 +2489,7 @@ class FunctionalTests_AcmePollingError(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_AcmePollingError
     """
 
-    def _get_one(self):
+    def _get_one(self) -> Tuple[model_objects.AcmePollingError, int]:
         # grab an event
         focus_item = self.ctx.dbSession.query(model_objects.AcmePollingError).first()
         assert focus_item is not None
@@ -2477,7 +2558,7 @@ class FunctionalTests_AcmeOrder(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_AcmeOrder
     """
 
-    def _get_one(self):
+    def _get_one(self) -> Tuple[model_objects.AcmeOrder, int]:
         # grab an order
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeOrder)
@@ -3253,7 +3334,7 @@ class FunctionalTests_AriCheck(AppTest):
             .first()
         )
         if not focus_item:
-            setup_testing_data(self)
+            setup_testing_data(self, "AriCheck")
 
         focus_item = (
             self.ctx.dbSession.query(model_objects.AriCheck)
@@ -4313,7 +4394,7 @@ class FunctionalTests_CertificateRequest(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateRequest
     """
 
-    def _get_one(self):
+    def _get_one(self) -> Tuple[model_objects.CertificateRequest, int]:
         # grab a certificate
         focus_item = (
             self.ctx.dbSession.query(model_objects.CertificateRequest)
@@ -4417,7 +4498,7 @@ class FunctionalTests_CertificateSigned(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateSigned
     """
 
-    def _get_one(self):
+    def _get_one(self) -> Tuple[model_objects.CertificateSigned, int]:
         # grab a certificate
         # iterate backwards
         focus_item = (
@@ -5040,8 +5121,7 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_CoverageAssuranceEvent
     """
 
-    def _get_one(self):
-        # grab a Domain
+    def _get_one(self) -> Tuple[model_objects.CoverageAssuranceEvent, int]:
         focus_item = (
             self.ctx.dbSession.query(model_objects.CoverageAssuranceEvent)
             .order_by(model_objects.CoverageAssuranceEvent.id.asc())
@@ -5288,7 +5368,7 @@ class FunctionalTests_Domain(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_Domain
     """
 
-    def _get_one(self):
+    def _get_one(self) -> Tuple[model_objects.Domain, int]:
         # grab a Domain
         focus_item = (
             self.ctx.dbSession.query(model_objects.Domain)
@@ -6128,6 +6208,9 @@ class FunctionalTests_DomainBlocklisted(AppTest):
 
 class _MixinEnrollmentFactory:
 
+    ctx: "ApiContext"
+    testapp: Union["TestApp", "StopableWSGIServer"]
+
     def _makeOne__EnrollmentFactory(self) -> int:
         _res = self.testapp.get(
             "/.well-known/peter_sslers/enrollment-factorys/new.json",
@@ -6520,7 +6603,7 @@ class FunctionalTests_PrivateKey(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_PrivateKey
     """
 
-    def _get_one(self):
+    def _get_one(self) -> Tuple[model_objects.PrivateKey, int]:
         # grab a Key
         # loop these in desc order, because latter items shouldn't have anything associated on them.
         focus_item = (
@@ -6828,8 +6911,7 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
     python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration
     """
 
-    def _get_one(self):
-        # grab an order
+    def _get_one(self) -> Tuple[model_objects.RenewalConfiguration, int]:
         focus_item = (
             self.ctx.dbSession.query(model_objects.RenewalConfiguration)
             .order_by(model_objects.RenewalConfiguration.id.asc())
@@ -7442,8 +7524,7 @@ class FunctionalTests_RootStore(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_RootStore
     """
 
-    def _get_one(self):
-        # grab a RootStore
+    def _get_one(self) -> Tuple[model_objects.RootStore, int]:
         focus_item = (
             self.ctx.dbSession.query(model_objects.RootStore)
             .order_by(model_objects.RootStore.id.asc())
@@ -7506,8 +7587,7 @@ class FunctionalTests_RootStoreVersion(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_RootStoreVersion
     """
 
-    def _get_one(self):
-        # grab a RootStoreVersion
+    def _get_one(self) -> Tuple[model_objects.RootStoreVersion, int]:
         focus_item = (
             self.ctx.dbSession.query(model_objects.RootStoreVersion)
             .order_by(model_objects.RootStoreVersion.id.asc())
@@ -7726,8 +7806,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_UniqueFQDNSet
     """
 
-    def _get_one(self):
-        # grab a UniqueFQDNSet
+    def _get_one(self) -> Tuple[model_objects.UniqueFQDNSet, int]:
         focus_item = (
             self.ctx.dbSession.query(model_objects.UniqueFQDNSet)
             .order_by(model_objects.UniqueFQDNSet.id.asc())
@@ -8275,8 +8354,7 @@ class FunctionalTests_UniquelyChallengedFQDNSet(AppTest):
     python -m unittest tests.test_pyramid_app.FunctionalTests_UniquelyChallengedFQDNSet
     """
 
-    def _get_one(self):
-        # grab a UniqueFQDNSet
+    def _get_one(self) -> Tuple[model_objects.UniquelyChallengedFQDNSet, int]:
         focus_item = (
             self.ctx.dbSession.query(model_objects.UniquelyChallengedFQDNSet)
             .order_by(model_objects.UniquelyChallengedFQDNSet.id.asc())
@@ -8394,8 +8472,7 @@ class FunctionalTests_AlternateChains(AppTest):
         AppTest.setUp(self)
         self._setUp_CertificateSigneds_FormatA("AlternateChains", "1")
 
-    def _get_one(self):
-        # grab an item
+    def _get_one(self) -> model_objects.CertificateSigned:
         # iterate backwards because we just added the AlternateChains
         focus_item = (
             self.ctx.dbSession.query(model_objects.CertificateSigned)
@@ -9025,7 +9102,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         assert "result" in res3_json
         assert res3_json["result"] == "success"
 
-    def _get_one_AcmeAccount(self):
+    def _get_one_AcmeAccount(self) -> Tuple[model_objects.AcmeAccount, int]:
         # grab an item
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccount)
@@ -11772,7 +11849,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             _dbAcmeOrder: model_objects.AcmeOrder,
             _replaces: Optional[str],
             _expected_result: Literal["FAIL", "PASS"],
-        ):
+        ) -> Literal[True]:
             """
             _dbAcmeOrder: use this AcmeOrder's RenewalConfiguration for new order
             _replaces: ari.identifier we are replacing
@@ -11804,6 +11881,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
                 print("EXCEPTION _make_one__AcmeOrder_Renewal")
                 pprint.pprint(_res2.json)
                 raise
+            return True
 
         # these are all single domain certs sharing a single key
         _existing_certs = (

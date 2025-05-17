@@ -86,6 +86,10 @@ log = logging.getLogger(__name__)
 
 TEST_CERTIFICATE_CHAIN = True
 
+# tests may require this to be off to test edge cases
+# using a variable to control this behavior allows the tests to enable/disable this
+SYNC_AUTHZ_ON_ORDER_CREATION = True
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -93,6 +97,7 @@ def new_Authenticated_user(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
     transaction_commit: Optional[bool] = None,
+    force_authentication: bool = False,
 ) -> "AuthenticatedUser":
     """
     helper function to authenticate the user
@@ -108,15 +113,60 @@ def new_Authenticated_user(
 
     account_key_pem = dbAcmeAccount.acme_account_key.key_pem
 
-    # register the account / ensure that it is registered
-    # the authenticatedUser will have a `logger.AcmeLogger` object as the
-    # `.acmeLogger` attribtue
-    # the `acmeLogger` may need to have the `AcmeOrder` registered
-    authenticatedUser = do__AcmeV2_AcmeAccount__authenticate(
-        ctx,
-        dbAcmeAccount,
-        transaction_commit=transaction_commit,
-    )
+    if not force_authentication:
+        if not dbAcmeAccount.timestamp_last_authenticated:
+            force_authentication = True
+        else:
+            # don't trust the ctx.timestamp as we could be in a long running process
+            timestamp_now = datetime.datetime.now(datetime.timezone.utc)
+            timestamp_max = timestamp_now - datetime.timedelta(seconds=300)
+            if dbAcmeAccount.timestamp_last_authenticated < timestamp_max:
+                force_authentication = True
+
+    if force_authentication:
+        # register the account / ensure that it is registered
+        # the authenticatedUser will have a `logger.AcmeLogger` object as the
+        # `.acmeLogger` attribtue
+        # the `acmeLogger` may need to have the `AcmeOrder` registered
+
+        # `onlyReturnExisting=True` requires an EXISTING user
+        try:
+            authenticatedUser = do__AcmeV2_AcmeAccount__authenticate(
+                ctx,
+                dbAcmeAccount,
+                onlyReturnExisting=True,
+                transaction_commit=transaction_commit,
+            )
+        except Exception as exc:
+            # TODO: log this loss of state on the server
+            # this is expected to happen on testing
+            # this should not happen on production
+            _raise = True
+            if isinstance(exc, errors.AcmeServerError):
+                if (exc.args[0] == 400) and (
+                    exc.args[1]["type"]
+                    == "urn:ietf:params:acme:error:accountDoesNotExist"
+                ):
+                    authenticatedUser = do__AcmeV2_AcmeAccount__authenticate(
+                        ctx,
+                        dbAcmeAccount,
+                        onlyReturnExisting=False,
+                        transaction_commit=transaction_commit,
+                    )
+                    _raise = False
+            if _raise:
+                raise exc
+    else:
+        acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
+        authenticatedUser = acme_v2.AuthenticatedUser(
+            ctx,
+            acmeLogger=acmeLogger,
+            acmeAccount=dbAcmeAccount,
+            log__OperationsEvent=log__OperationsEvent,
+            func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+            acknowledge_transaction_commits=transaction_commit,
+        )
+
     return authenticatedUser
 
 
@@ -700,7 +750,9 @@ def check_endpoint_support(
 
     # note - the above `check` should autoupdate...
     acme_directory_payload = resp.json()
-    changed = update_AcmeServer_directory(ctx, dbAcmeServer, acme_directory_payload=acme_directory_payload)
+    changed = update_AcmeServer_directory(
+        ctx, dbAcmeServer, acme_directory_payload=acme_directory_payload
+    )
     return changed
 
 
@@ -789,7 +841,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
 def do__AcmeV2_AcmeAccount__authenticate(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
-    onlyReturnExisting: Optional[bool] = None,
+    onlyReturnExisting: bool = False,
     transaction_commit: Optional[bool] = None,
 ) -> "AuthenticatedUser":
     """
@@ -798,6 +850,8 @@ def do__AcmeV2_AcmeAccount__authenticate(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param onlyReturnExisting: (optional) Boolean. passed on to `:meth:authenticate`.
+        `onlyReturnExisting=True` requires an EXISTING user
+        `onlyReturnExisting=False` will register a NEW user if applicable
     """
     if not transaction_commit:
         raise errors.AcknowledgeTransactionCommitRequired(
@@ -812,7 +866,9 @@ def do__AcmeV2_AcmeAccount__authenticate(
     # result is either: `new-account` or `existing-account`
     # failing will raise an exception
     #
-    # `onlyReturnExisting=True` will not create a new account, and only lookup
+    # `onlyReturnExisting=True` requires an EXISTING user
+    # `onlyReturnExisting=False` will register a NEW user
+    #
     authenticatedUser = acme_v2.AuthenticatedUser(
         ctx,
         acmeLogger=acmeLogger,
@@ -3239,7 +3295,9 @@ def do__AcmeV2_AcmeOrder__new(
         if dbAcmeOrder.acme_status_order not in ("pending", "ready"):
             return dbAcmeOrder
 
-        if True:
+        # tests may require this to be off to test edge cases
+        # using a variable to control this behavior allows the tests to enable/disable this
+        if SYNC_AUTHZ_ON_ORDER_CREATION:
             # immediately sync the authorizations
             # otherwise we may allow competing authz
             dbAcmeOrder = do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(

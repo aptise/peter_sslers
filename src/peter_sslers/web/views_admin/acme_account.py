@@ -157,7 +157,13 @@ def submit__authenticate(
     dbAcmeAccount: "AcmeAccount",
     acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> Tuple[bool, Optional[str]]:
-    # returns (success, error_message)
+    """
+    `Authenticate` will invoke `newAccount` with `onlyReturnExisting=False`
+
+    `onlyReturnExisting=False` will register a NEW user if applicable
+
+    returns (success:bool, error_message:Optional[str])
+    """
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
@@ -191,7 +197,13 @@ def submit__check(
     dbAcmeAccount: "AcmeAccount",
     acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> Tuple[bool, Optional[str]]:
-    # returns (success, error_message)
+    """
+    `Authenticate` will invoke `newAccount` with `onlyReturnExisting=True`
+
+    `onlyReturnExisting=True` requires an EXISTING user
+
+    returns (success:bool, error_message:Optional[str])
+    """
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
