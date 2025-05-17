@@ -1451,7 +1451,7 @@ def routine__order_missing(
     DEBUG_LOCAL = True
     if DEBUG_LOCAL:
         _debug_results()
-        pdb.set_trace()
+        # pdb.set_trace()
         print("routine__order_missing")
 
     count_renewals = 0
@@ -1735,7 +1735,7 @@ def routine__renew_expiring(
 
     if DEBUG_LOCAL:
         _debug_results()
-        pdb.set_trace()
+        # pdb.set_trace()
         print("routine__renew_expiring")
 
     count_renewals = 0
