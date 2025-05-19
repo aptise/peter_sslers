@@ -1,4 +1,5 @@
 # stdlib
+import datetime
 from io import BytesIO  # noqa: F401
 from io import StringIO  # noqa: F401
 import json
@@ -258,7 +259,7 @@ def setup_testing_data(
             if DEBUG_SETUP:
                 print("NEW DB")
 
-            # pebble loses state across loads
+            # pebble loses state across test runs
             ensure_AcmeAccount_auth(testCase=testCase)
 
             # This is all to generate a valid AriCheck and AcmeAuthorizationPotential
@@ -278,7 +279,7 @@ def setup_testing_data(
             if DEBUG_SETUP:
                 print("FROZEN PROCESS >>>")
 
-            # pebble loses state across loads
+            # pebble loses state across test runs
             ensure_AcmeAccount_auth(testCase=testCase)
 
             # This is all to generate a valid AriCheck and AcmeAuthorizationPotential
@@ -6960,7 +6961,7 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
         assert focusItem is not None
 
         if ensure_AcmeAccount:
-            # pebble loses state across loads
+            # pebble loses state across test runs
             ensure_AcmeAccount_auth(
                 testCase=self, acme_account_id=focusItem.acme_account_id__primary
             )
@@ -11823,6 +11824,9 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         Uploadable certs for these domains are in the test-data folder
         """
 
+        # pebble loses state across test runs
+        ensure_AcmeAccount_auth(testCase=self)
+
         def _upload_pebble_cert(privkey_id: int, lineage_name: str) -> Tuple[int, str]:
             # returns a Tuple[id, ari_identifier]
             # upload a test cert
@@ -12018,6 +12022,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
 
         do__AcmeServers_sync__api(self)
 
+        # pebble loses state across test runs
+        ensure_AcmeAccount_auth(testCase=self)
+
         # this will generate the primary cert
         dbAcmeOrder_1 = make_one__AcmeOrder__api(
             self,
@@ -12073,6 +12080,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
         """
 
         do__AcmeServers_sync__api(self)
+
+        # pebble loses state across test runs
+        ensure_AcmeAccount_auth(testCase=self)
 
         # this will generate the primary cert
         dbAcmeOrder_1 = make_one__AcmeOrder__api(
@@ -12140,6 +12150,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
         # #
 
         do__AcmeServers_sync__api(self)
+
+        # pebble loses state across test runs
+        ensure_AcmeAccount_auth(testCase=self)
 
         # this will generate the primary cert
         dbAcmeOrder_1 = make_one__AcmeOrder__api(
@@ -12751,7 +12764,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
             _json = resp.json()
             assert "AcmeAccount" in _json
-            acme_account_id = _json["AcmeAccount"]["id"]
+            # acme_account_id = _json["AcmeAccount"]["id"]
             assert "AcmeAccountKey" in _json["AcmeAccount"]
             acme_account_key_id = _json["AcmeAccount"]["AcmeAccountKey"]["id"]
 
@@ -12761,6 +12774,11 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             assert dbAcmeAccountKey.id == acme_account_key_id
 
         assert dbAcmeAccountKey
+        acme_account_id = dbAcmeAccountKey.acme_account_id
+
+        # pebble loses state across test runs
+        ensure_AcmeAccount_auth(testCase=self, acme_account_id=acme_account_id)
+
         form = {}
         form["account_key_option"] = "account_key_existing"
         form["account_key_existing"] = dbAcmeAccountKey.key_pem_md5
@@ -12807,15 +12825,25 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             )
             return True
 
-        def _adjust_directory() -> bool:
+        def _adjust_directory(acme_account_id: int) -> bool:
+            """
+            uses a raw db connection to:
+                 modify the directory;
+                 unset the account.timestamp_lastchecked
+            then invokes `acme_account_update` to sync, which creates a notification
+            """
+
+            # pull the global SystemConfiguration: get the acme_account_id
             dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
                 self.ctx, "global"
             )
             assert dbSystemConfiguration
             if not dbSystemConfiguration.acme_account_id__primary:
                 raise ValueError("dbSystemConfiguration not set up")
+            assert acme_account_id == dbSystemConfiguration.acme_account_id__primary
+
+            # unset the AcmeServer
             # grab these before losing session state
-            _acme_account_id__primary = dbSystemConfiguration.acme_account_id__primary
             dbAcmeAccount = dbSystemConfiguration.acme_account__primary
             dbAcmeServer = dbAcmeAccount.acme_server
             if not dbAcmeServer.directory_latest:
@@ -12826,9 +12854,24 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             _directoryJson["peterSSLersTesting"] += 1
             dbAcmeServer.directory_latest.directory_payload = json.dumps(_directoryJson)
             self.ctx.dbSession.flush(objects=[dbAcmeServer.directory_latest])
+
+            # pull the AcmeServerConfiguration
+            dbAcmeServerConfiguration = (
+                lib_db_get.get__AcmeServerConfiguration__by_AcmeServerId__active(
+                    self.ctx, dbAcmeAccount.acme_server_id
+                )
+            )
+            if dbAcmeServerConfiguration:
+                # unset the timestamp
+                # this will cause future auths to sync the director and notice the change
+                one_year_ago = self.ctx.timestamp - datetime.timedelta(days=365)
+                dbAcmeServerConfiguration.timestamp_lastchecked = one_year_ago
+                self.ctx.dbSession.flush(objects=[dbAcmeServerConfiguration])
+
             self.ctx.pyramid_transaction_commit()
 
-            acme_account_update(_acme_account_id__primary)
+            # now invoke this
+            acme_account_update(acme_account_id)
 
             return True
 
@@ -12844,13 +12887,13 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             dbSystemConfiguration.acme_account__primary.acme_server_id
         )
 
-        # run this first to be safe
+        # run this first, to ensure we have `dbAcmeServer.directory_latest`
         acme_account_update(acme_account_id__primary)
 
-        # this will adjust, then update
-        _adjust_directory()
+        # this will adjust the directory, then should invoke `acme_account_update`
+        _adjust_directory(acme_account_id=acme_account_id__primary)
 
-        res = self.testapp.get("/.well-known/peter_sslers/notifications", status=200)
+        # res = self.testapp.get("/.well-known/peter_sslers/notifications", status=200)
         res2 = self.testapp.get("/.well-known/peter_sslers/notifications", status=200)
 
         assert res2.forms
@@ -12868,7 +12911,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
 
         # this will adjust, then update
-        _adjust_directory()
+        _adjust_directory(acme_account_id=acme_account_id__primary)
 
         res = self.testapp.get(
             "/.well-known/peter_sslers/notifications.json", status=200
@@ -13294,8 +13337,14 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         res3b = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
-        assert res3b.status_code == 200
-        assert res3b.json["result"] == "success"
+        try:
+            assert res3b.status_code == 200
+            assert res3b.json["result"] == "success"
+        except:
+            print("#" * 80)
+            print(res3b.json)
+            print("#" * 80)
+            raise
         assert "domain_results" in res3b.json
         assert DOMAIN_NAME__SINGLE in res3b.json["domain_results"]
         assert (
@@ -13451,7 +13500,13 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res.status_code == 200
-        assert res.json["result"] == "success"
+        try:
+            assert res.json["result"] == "success"
+        except:
+            print("#" * 80)
+            print(res.json)
+            print("#" * 80)
+            raise
         assert "domain_results" in res.json
         assert DOMAIN_NAME__SINGLE in res.json["domain_results"]
         assert (

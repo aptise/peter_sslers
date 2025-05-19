@@ -1312,7 +1312,8 @@ class View_Focus_Manipulate(View_Focus):
     )
     def focus__acme_server_authenticate(self):
         """
-        this just hits the api, hoping we authenticate correctly.
+        Hits the ACME Server newAccount API with `onlyReturnExisting=False`
+        This will register if the account does not exist.
         """
         dbAcmeAccount = self._focus()
         _message: Optional[str] = None
@@ -1405,7 +1406,8 @@ class View_Focus_Manipulate(View_Focus):
     )
     def focus__acme_server_check(self):
         """
-        this just hits the api, hoping we check correctly.
+        Hits the ACME Server newAccount API with `onlyReturnExisting=True`
+        This will NOT register if the account does not exist.
         """
         dbAcmeAccount = self._focus()  # noqa: F841
         if not dbAcmeAccount.is_can_authenticate:

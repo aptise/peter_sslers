@@ -1861,6 +1861,19 @@ def setup_SystemConfiguration__api(
 
     assert dbSystemConfiguration
     assert dbSystemConfiguration.is_configured
+
+    # ensure auth/reg
+    # pebble loses state across tests
+    ensure_AcmeAccount_auth(
+        testCase=testCase,
+        acme_account_id=dbSystemConfiguration_global.acme_account_id__primary,
+    )
+    if dbSystemConfiguration_global.acme_account_id__backup:
+        ensure_AcmeAccount_auth(
+            testCase=testCase,
+            acme_account_id=dbSystemConfiguration_global.acme_account_id__backup,
+        )
+
     return dbSystemConfiguration
 
 
