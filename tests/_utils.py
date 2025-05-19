@@ -51,6 +51,7 @@ from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib import utils
 from peter_sslers.lib.config_utils import ApplicationSettings
 from peter_sslers.lib.context import ApiContext
+from peter_sslers.lib.db import actions as lib_db_actions
 from peter_sslers.lib.db import get as lib_db_get
 from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.lib.db.update import (
@@ -1909,16 +1910,9 @@ def ensure_AcmeAccount_auth(
         % acme_account_id,
         {},
     )
-    try:
-        assert _resCheck.location.endswith(
-            "?result=success&operation=acme-server--authenticate&is_authenticated=True"
-        )
-    except:
-        print("********")
-        print(_resCheck.location)
-        print(_resCheck.text)
-        raise
-    return True
+    assert _resCheck.location.endswith(
+        "?result=success&operation=acme-server--authenticate&is_authenticated=True"
+    )
 
 
 def auth_SystemConfiguration_accounts__api(
@@ -2121,22 +2115,7 @@ def unset_testing_data__AppTest(testCase: CustomizedTestCase) -> Literal[True]:
         dbSystemConfiguration.is_configured = False
 
     # make sure every acme-account will not use a cache and sync on the next test
-    dbAcmeAccounts = (
-        testCase.ctx.dbSession.query(model_objects.AcmeAccount)
-        .all()
-    )
-    for _dbAcmeAccount in dbAcmeAccounts:
-        _dbAcmeAccount.timestamp_last_authenticated = None
-
-    one_year_ago = testCase.ctx.timestamp - datetime.timedelta(days=365)
-    dbAcmeServers = (
-        testCase.ctx.dbSession.query(model_objects.AcmeServer)
-        .all()
-    )
-    for _dbAcmeServer in dbAcmeServers:
-        _dbAcmeServer.profiles = None
-        if _dbAcmeServer.directory_latest:
-            _dbAcmeServer.directory_latest.timestamp_lastchecked = one_year_ago
+    lib_db_actions.unset_acme_server_caches(testCase.ctx, transaction_commit=True)
 
     testCase.ctx.pyramid_transaction_commit()
     return True

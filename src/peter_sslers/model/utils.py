@@ -1656,6 +1656,7 @@ class Routine(_mixin_mapping):
         4: "routine__order_missing",
         5: "routine__renew_expiring",
         6: "routine__reconcile_blocks",
+        7: "unset_acme_server_caches",
     }
 
     periodic = 1
@@ -1664,3 +1665,4 @@ class Routine(_mixin_mapping):
     routine__order_missing = 4
     routine__renew_expiring = 5
     routine__reconcile_blocks = 6
+    unset_acme_server_caches = 7

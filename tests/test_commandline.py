@@ -310,3 +310,27 @@ class Test_CommandlineScripts(unittest.TestCase):
 
         except Exception as exc:  # noqa: F841
             raise
+
+    def test__unset_acme_server_caches(self):
+        try:
+            with psutil.Popen(
+                ["unset_acme_server_caches", TEST_INI],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=COMMANDLINE_ENV,
+            ) as proc:
+                log.info("Wait 5 seconds...")
+                time.sleep(5)
+                response, err = proc.communicate()
+                if False:
+                    print(response)
+                    print(err)
+                try:
+                    proc.terminate()
+                except psutil.NoSuchProcess:
+                    pass
+                if err:
+                    raise ValueError("Exception", err)
+        except Exception as exc:  # noqa: F841
+            raise

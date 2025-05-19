@@ -115,5 +115,6 @@ setup(
       acme_dns_audit = peter_sslers.web.scripts.acme_dns_audit:main
       periodic_tasks = peter_sslers.web.scripts.periodic_tasks:main
       ssl_manage = peter_sslers.web.scripts.ssl_manage:main
+      unset_acme_server_caches = peter_sslers.web.scripts.unset_acme_server_caches:main
       """,
 )

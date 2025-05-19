@@ -68,7 +68,8 @@ if TYPE_CHECKING:
     HEADERS_COMPAT = Union["HTTPMessage", "CaseInsensitiveDict", "Message"]
 
     # (resp_data, status_code, headers)
-    RESPONSE_TUPLE = Tuple[Dict, Optional[int], "HTTPMessage"]
+    # resp_data might be decoded from str into json
+    RESPONSE_TUPLE = Tuple[Union[Dict, str], Optional[int], "HTTPMessage"]
 
 # ==============================================================================
 
@@ -143,7 +144,7 @@ def url_request(
     context = None
     alt_bundle = dbAcmeServer.local_ca_bundle(ctx) if dbAcmeServer else None
     try:
-        headers = {
+        post_headers = {
             "Content-Type": "application/jose+json",
             "User-Agent": USER_AGENT,
         }
@@ -153,7 +154,9 @@ def url_request(
             context.load_verify_locations(cafile=alt_bundle)
             log_api.info("Making a request with alt_bundle: %s", alt_bundle)
         resp = urlopen(
-            Request(url, data=post_data, headers=headers), context=context, timeout=10
+            Request(url, data=post_data, headers=post_headers),
+            context=context,
+            timeout=10,
         )
         log_api.debug(" RESPONSE-")
         resp_data, status_code, headers = (
@@ -182,12 +185,11 @@ def url_request(
         # this happens on pebble if we set it to http, not https
         if resp_data == "Client sent an HTTP request to an HTTPS server.\n":
             raise IndexError(resp_data)
-    if (
-        depth < 100
-        and status_code == 400
-        and resp_data["type"] == "urn:ietf:params:acme:error:badNonce"
-    ):
-        raise IndexError(resp_data)  # allow 100 retrys for bad nonces
+        if (
+            isinstance(resp_data, dict)
+            and resp_data["type"] == "urn:ietf:params:acme:error:badNonce"
+        ):
+            raise IndexError(resp_data)  # allow 100 retrys for bad nonces
     if status_code not in [200, 201, 204]:
         if isinstance(resp_data, dict):
             # (status_code, resp_data, url) = exc
@@ -303,6 +305,8 @@ def acme_directory_get(ctx: "ApiContext", acmeAccount: "AcmeAccount") -> Dict:
     )
     if not directory_payload:
         raise ValueError("no directory data for the CERTIFICATE_AUTHORITY")
+    if not isinstance(directory_payload, dict):
+        raise ValueError("could not decode `directory_payload` to json")
     log_api.info(") acme_directory_get success")
     return directory_payload
 
@@ -539,7 +543,9 @@ class AuthenticatedUser(object):
     )
 
     _api_account_object: Optional[Dict] = None  # api server native/json object
-    _api_account_headers: Optional[Dict] = None  # api server native/json object
+    _api_account_headers: Optional[Union[Dict, "HTTPMessage"]] = (
+        None  # api server native/json object
+    )
     # default to None;
     # set True if server known to support it
     # set False if server known to NOT support it
@@ -732,7 +738,9 @@ class AuthenticatedUser(object):
         log.info("acme_v2.AuthenticatedUser._poll_until_not {0}".format(_log_message))
         _result = None
         _t0 = time.time()
-        while (_result is None) or (_result["status"] in _pending_statuses):
+        while (_result is None) or (
+            isinstance(_result, dict) and _result["status"] in _pending_statuses
+        ):
             log.debug(") polling...")
             time.sleep(1 if _result is None else 2)
             _result, _status_code, _headers = self._send_signed_request(
@@ -740,10 +748,14 @@ class AuthenticatedUser(object):
                 _url,
                 payload=None,
             )
+            if not isinstance(_result, dict):
+                raise ValueError("expected `dict` response")
             _tdelta = time.time() - _t0
             if _tdelta > SECONDS_POLLING_TIMEOUT:
                 log.critical("polling too long")
                 raise errors.AcmePollingTooLong(_tdelta, _result)  # args[0] = tDelta
+        if TYPE_CHECKING:
+            assert isinstance(_result, dict)
         return _result
 
     def update_contact(
@@ -768,6 +780,8 @@ class AuthenticatedUser(object):
             self._api_account_headers["Location"],
             payload=payload_contact,
         )
+        if not isinstance(acme_account_object, dict):
+            raise ValueError("expected `dict` response")
         self._api_account_object = acme_account_object
         log.debug(") update_contact | acme_account_object: %s" % acme_account_object)
         log.debug(
@@ -923,6 +937,8 @@ class AuthenticatedUser(object):
                     self.acme_directory["newAccount"],
                     payload=payload_registration,
                 )
+                if not isinstance(acme_account_object, dict):
+                    raise ValueError("expected `dict` response")
             except errors.AcmeServerError as exc:
                 # only catch this if `onlyReturnExisting` and there is an DNE error
                 if onlyReturnExisting:
@@ -1045,6 +1061,8 @@ class AuthenticatedUser(object):
                 _account_url,
                 payload=_payload_deactivate,
             )
+            if not isinstance(acme_account_object, dict):
+                raise ValueError("expected `dict` response")
 
             # this is a flag
             is_did_deactivate = True
@@ -1167,6 +1185,8 @@ class AuthenticatedUser(object):
                 _key_change_url,
                 payload=payload_inner,
             )
+            if not isinstance(acme_response, dict):
+                raise ValueError("expected `dict` response")
 
             is_did_keychange = True
 
@@ -1238,6 +1258,8 @@ class AuthenticatedUser(object):
                 _status_code,
                 acme_order_headers,
             ) = self._send_signed_request("OrderUrl", dbAcmeOrder.order_url, None)
+            if not isinstance(acme_order_object, dict):
+                raise ValueError("expected `dict` response")
             log.debug(") acme_order_load | acme_order_object: %s" % acme_order_object)
             log.debug(") acme_order_load | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServer404 as exc:  # noqa: F841
@@ -1305,6 +1327,8 @@ class AuthenticatedUser(object):
                 self.acme_directory["newOrder"],
                 payload=payload_order,
             )
+            if not isinstance(acme_order_object, dict):
+                raise ValueError("expected `dict` response")
             log.debug(") acme_order_new | acme_order_object: %s" % acme_order_object)
             log.debug(") acme_order_new | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServerError as exc:
@@ -1364,6 +1388,8 @@ class AuthenticatedUser(object):
                         self.acme_directory["newOrder"],
                         payload=payload_order,
                     )
+                    if not isinstance(acme_order_object, dict):
+                        raise ValueError("expected `dict` response")
                     log.debug(
                         ") acme_order_new | acme_order_object: %s" % acme_order_object
                     )
@@ -1381,6 +1407,9 @@ class AuthenticatedUser(object):
             dbEventLogged = self.acmeLogger.log_newOrder(
                 "v2", dbUniqueFQDNSet, transaction_commit=transaction_commit
             )
+
+        if TYPE_CHECKING:
+            assert isinstance(acme_order_object, dict)
 
         # this is just a convenience wrapper for our order object
         acmeOrderRfcObject = AcmeOrderRFC(
@@ -1801,6 +1830,8 @@ class AuthenticatedUser(object):
                 dbAcmeOrder.finalize_url,
                 payload=payload_finalize,
             )
+            if not isinstance(finalize_response, dict):
+                raise ValueError("expected `dict` response")
             log.debug(
                 ") acme_order_finalize | finalize_response: %s" % finalize_response
             )
@@ -1872,15 +1903,17 @@ class AuthenticatedUser(object):
 
         # download the certificate
         # ACME-V2 furnishes a FULLCHAIN (certificate_pem + chain_pem)
-        (fullchain_pem, _status_code, _certificate_headers) = self._send_signed_request(
-            "OrderUrl", url_certificate, None
+        (_fullchain_pem, _status_code, _certificate_headers) = (
+            self._send_signed_request("CertificateUrl", url_certificate, None)
         )
-        log.debug(") download_certificate | fullchain_pem: %s" % fullchain_pem)
+        if not isinstance(_fullchain_pem, str):
+            raise ValueError("expected `str` response")
+        log.debug(") download_certificate | fullchain_pem: %s" % _fullchain_pem)
         log.debug(
             ") download_certificate | _certificate_headers: %s" % _certificate_headers
         )
         fullchain_pems = [
-            fullchain_pem,
+            _fullchain_pem,
         ]
         if is_save_alternate_chains:
             alt_chains_urls = get_header_links(_certificate_headers, "alternate")
@@ -1888,8 +1921,16 @@ class AuthenticatedUser(object):
             for url in alt_chains_urls:
                 # wrap these in a try/except so a single failure doesn't kill the download
                 try:
-                    alt_chains.append(self._send_signed_request("OrderUrl", url)[0])
+                    _pem = self._send_signed_request("CertificateUrl", url)[0]
+                    if not isinstance(_pem, str):
+                        raise ValueError("expected `str` response")
+                    if TYPE_CHECKING:
+                        assert isinstance(_pem, str)
+                    alt_chains.append(_pem)
                 except Exception:
+                    log.error("Error downloading ALT chain.")
+                    log.error("    url_certificate: %s" % url_certificate)
+                    log.error("    alt_chains_url: %s" % url)
                     pass
             fullchain_pems.extend(alt_chains)
         log.info(") download_certificate | downloaded signed certificate!")
@@ -1976,6 +2017,8 @@ class AuthenticatedUser(object):
             authorization_url,
             payload=None,
         )
+        if not isinstance(authorization_response, dict):
+            raise ValueError("expected `dict` response")
         log.debug(
             ") acme_authorization_process_url | authorization_response: %s"
             % authorization_response
@@ -2147,6 +2190,8 @@ class AuthenticatedUser(object):
             ) = self._send_signed_request(
                 "AuthzUrl", dbAcmeAuthorization.authorization_url, None
             )
+            if not isinstance(authorization_response, dict):
+                raise ValueError("expected `dict` response")
             log.debug(
                 ") acme_authorization_load | authorization_response: %s"
                 % authorization_response
@@ -2216,6 +2261,8 @@ class AuthenticatedUser(object):
                 dbAcmeAuthorization.authorization_url,
                 {"status": "deactivated"},
             )
+            if not isinstance(authorization_response, dict):
+                raise ValueError("expected `dict` response")
             log.debug(
                 ") acme_authorization_deactivate | authorization_response: %s"
                 % authorization_response
@@ -2269,6 +2316,8 @@ class AuthenticatedUser(object):
             ) = self._send_signed_request(
                 "ChallengeUrl", dbAcmeChallenge.challenge_url, None
             )
+            if not isinstance(challenge_response, dict):
+                raise ValueError("expected `dict` response")
             log.debug(
                 ") acme_challenge_load | challenge_response: %s" % challenge_response
             )
@@ -2350,6 +2399,8 @@ class AuthenticatedUser(object):
                 dbAcmeChallenge.challenge_url,
                 payload={},  # `{}` will trigger; `None` will poll
             )
+            if not isinstance(challenge_response, dict):
+                raise ValueError("expected `dict` response")
             log.debug(
                 ") acme_challenge_trigger | challenge_response: %s" % challenge_response
             )

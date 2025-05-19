@@ -10254,11 +10254,8 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         )
 
         # new orders should default to auto-renew on
-        try:
-            assert "form-renewal_configuration-mark-inactive" in res.forms
-        except:
-            print(res.text)
-            raise
+        assert "form-renewal_configuration-mark-inactive" in res.forms
+
         form = res.forms["form-renewal_configuration-mark-inactive"]
         res = form.submit()
         assert res.status_code == 303
@@ -13338,14 +13335,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         res3b = self.testapp.post(
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
-        try:
-            assert res3b.status_code == 200
-            assert res3b.json["result"] == "success"
-        except:
-            print("#" * 80)
-            print(res3b.json)
-            print("#" * 80)
-            raise
+        assert res3b.status_code == 200
+        assert res3b.json["result"] == "success"
         assert "domain_results" in res3b.json
         assert DOMAIN_NAME__SINGLE in res3b.json["domain_results"]
         assert (
@@ -13501,13 +13492,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             "/.well-known/peter_sslers/api/domain/certificate-if-needed.json", form
         )
         assert res.status_code == 200
-        try:
-            assert res.json["result"] == "success"
-        except:
-            print("#" * 80)
-            print(res.json)
-            print("#" * 80)
-            raise
+        assert res.json["result"] == "success"
         assert "domain_results" in res.json
         assert DOMAIN_NAME__SINGLE in res.json["domain_results"]
         assert (

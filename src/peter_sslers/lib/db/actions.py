@@ -1,7 +1,6 @@
 # stdlib
 import datetime
 import logging
-import pdb
 import pprint
 from typing import Callable
 from typing import Dict
@@ -1809,6 +1808,61 @@ def routine__renew_expiring(
         timestamp_end=TIMESTAMP_routine_end,
         count_records_success=count_renewals,
         count_records_fail=count_failures,
+    )
+    ctx.pyramid_transaction_commit()
+
+    return dbRoutineExecution
+
+
+def unset_acme_server_caches(
+    ctx: "ApiContext",
+    transaction_commit: Optional[bool] = None,
+) -> "RoutineExecution":
+    """
+    Unsets the following cached information markers::
+
+    * AcmeAccount.timestamp_last_authenticated
+    * AcmeServerConfiguration.timestamp_lastchecked
+      - AcmeServer.directory_latest.timestamp_lastchecked
+
+    Unsetting these should trigger active reloads to the cache.
+
+    Originally designed for tests, this was exported to a library function and
+    commandline tool.
+    """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
+
+    # don't rely on ctx.timestamp, as it can be old
+    # also, we need to time the routine
+    TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
+
+    RENEWAL_RUN: str = "UnsetAcmeServerCaches[%s]" % TIMESTAMP_routine_start
+
+    # used to reset::
+    # `model_objects.AcmeServerConfiguration.timestamp_lastchecked TIMESTAMP NOT NULL`
+    one_year_ago = TIMESTAMP_routine_start - datetime.timedelta(days=365)
+
+    dbAcmeAccounts = ctx.dbSession.query(model_objects.AcmeAccount).all()
+    for _dbAcmeAccount in dbAcmeAccounts:
+        _dbAcmeAccount.timestamp_last_authenticated = None
+
+    dbAcmeServers = ctx.dbSession.query(model_objects.AcmeServer).all()
+    for _dbAcmeServer in dbAcmeServers:
+        _dbAcmeServer.profiles = None
+        if _dbAcmeServer.directory_latest:
+            _dbAcmeServer.directory_latest.timestamp_lastchecked = one_year_ago
+
+    ctx.pyramid_transaction_commit()
+
+    TIMESTAMP_routine_end = datetime.datetime.now(datetime.timezone.utc)
+    dbRoutineExecution = lib_db.create.create__RoutineExecution(
+        ctx,
+        routine_id=model_utils.Routine.unset_acme_server_caches,
+        timestamp_start=TIMESTAMP_routine_start,
+        timestamp_end=TIMESTAMP_routine_end,
     )
     ctx.pyramid_transaction_commit()
 
