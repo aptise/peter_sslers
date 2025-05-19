@@ -1537,6 +1537,7 @@
                 <th>count_records_fail</th>
                 <th>duration_seconds</th>
                 <th>average_speed</th>
+                <th>is_dry_run</th>
                 <th>routine_execution_id__via</th>
             </tr>
         </thead>
@@ -1557,6 +1558,11 @@
                 <td><code>${i.duration_seconds}</code></td>
                 <td><code>${i.average_speed}</code></td>
                 <td>
+                    % if is_dry_run:
+                        <span class="label label-warning">dry-run</span>
+                    % endif
+                </td>
+                <td>
                     % if routine_execution_id__via:
                         <span class="label label-default">${i.id}</span>
                     % endif
@@ -1566,10 +1572,6 @@
         </tbody>
     </table>
 </%def>
-
-
-    
-    
 
 
 <%def name="table_SystemConfigurations(data, perspective=None)">

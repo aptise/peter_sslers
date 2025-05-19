@@ -1747,6 +1747,7 @@ def create__RoutineExecution(
     timestamp_end: datetime.datetime,
     count_records_success: int = 0,
     count_records_fail: int = 0,
+    is_dry_run: bool = False,
     routine_execution_id__via: Optional[int] = None,
 ) -> "RoutineExecution":
     """
@@ -1760,6 +1761,7 @@ def create__RoutineExecution(
     :param timestamp_end: (required)
     :param count_records_success: (required)
     :param count_records_fail: (required)
+    :param is_dry_run: (optional) bool
     :paran routine_execution_id__via: (optional) int
 
     :returns :class:`model.objects.RoutineExecution`
@@ -1775,6 +1777,7 @@ def create__RoutineExecution(
     dbRoutine.count_records_success = count_records_success
     dbRoutine.count_records_fail = count_records_fail
     dbRoutine.routine_execution_id__via = routine_execution_id__via
+    dbRoutine.is_dry_run = is_dry_run
 
     # maths!
     count_records_processed = count_records_success + count_records_fail

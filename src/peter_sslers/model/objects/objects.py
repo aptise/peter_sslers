@@ -5366,6 +5366,7 @@ class RoutineExecution(Base, _Mixin_Timestamps_Pretty):
     count_records_fail: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     duration_seconds: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     average_speed: Mapped[float] = mapped_column(sa.Float, nullable=False)
+    is_dry_run: Mapped[bool] = mapped_column(sa.Boolean, nullable=False)
     routine_execution_id__via: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("routine_execution.id"), nullable=True
     )
@@ -5386,6 +5387,7 @@ class RoutineExecution(Base, _Mixin_Timestamps_Pretty):
             "duration_seconds": self.duration_seconds,
             "average_speed": self.average_speed,
             "routine_execution_id__via": self.routine_execution_id__via,
+            "dry_run": self.is_dry_run,
         }
 
 

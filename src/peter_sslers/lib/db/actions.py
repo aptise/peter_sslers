@@ -1358,6 +1358,7 @@ def routine__order_missing(
     ctx: "ApiContext",
     settings: Dict,
     create_public_server: Callable = _create_public_server,
+    dry_run: bool = False,
     DEBUG_LOCAL: Optional[bool] = False,
 ) -> "RoutineExecution":
     """
@@ -1438,17 +1439,16 @@ def routine__order_missing(
         print("dbRenewalConfigurations__backup:")
         for r in dbRenewalConfigurations__backup:
             print(
-                "RC:%s" % r.id,
+                "RC:%s %s" % (r.id, ("[%s]" % r.label if r.label else "")),
             )
         print("----")
         print("dbRenewalConfigurations__primary:")
         for r in dbRenewalConfigurations__primary:
             print(
-                "RC:%s" % r.id,
+                "RC:%s %s" % (r.id, ("[%s]" % r.label if r.label else "")),
             )
 
-    DEBUG_LOCAL = True
-    if DEBUG_LOCAL:
+    if DEBUG_LOCAL or dry_run:
         _debug_results()
         # pdb.set_trace()
         print("routine__order_missing")
@@ -1493,6 +1493,10 @@ def routine__order_missing(
                     (certificate_concept, _dbRenewalConfiguration.id),
                 )
                 try:
+                    if dry_run:
+                        count_renewals += 1
+                        return False
+
                     dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                         ctx,
                         dbRenewalConfiguration=_dbRenewalConfiguration,
@@ -1509,7 +1513,7 @@ def routine__order_missing(
                         "Renewal Result: CertificateSigned: %s",
                         dbAcmeOrderNew.certificate_signed_id,
                     )
-                    if DEBUG_LOCAL:
+                    if DEBUG_LOCAL or dry_run:
 
                         def _debug():
                             print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
@@ -1522,8 +1526,10 @@ def routine__order_missing(
 
                     if dbAcmeOrderNew.certificate_signed_id:
                         count_renewals += 1
+                        return True
                     else:
                         count_failures += 1
+                        return False
 
                 except Exception as exc:
                     log.critical(
@@ -1533,6 +1539,7 @@ def routine__order_missing(
                     # TODO: how should we handle this?
                     # raise or catch and continue?
                     count_failures += 1
+                    return False
 
             for _dbRenewalConfiguration in dbRenewalConfigurations__backup:
                 _order_missing(
@@ -1557,6 +1564,7 @@ def routine__order_missing(
         timestamp_end=TIMESTAMP_routine_end,
         count_records_success=count_renewals,
         count_records_fail=count_failures,
+        is_dry_run=dry_run,
     )
     ctx.pyramid_transaction_commit()
 
@@ -1565,6 +1573,7 @@ def routine__order_missing(
 
 def routine__reconcile_blocks(
     ctx: "ApiContext",
+    dry_run: bool = False,
     transaction_commit: Optional[bool] = None,
 ) -> "RoutineExecution":
     """
@@ -1589,63 +1598,72 @@ def routine__reconcile_blocks(
     )
     _order_ids_pass = []
     _order_ids_fail = []
-    for dbAcmeOrder in items_paged:
-        dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
-        log.debug("Syncing ACME Order %s" % (dbAcmeOrder.id,))
-        try:
-            dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
-                ctx,
-                dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=transaction_commit,
-            )
-            _order_ids_pass.append(dbAcmeOrder.id)
-            ctx.pyramid_transaction_commit()
-        except Exception as exc:
-            _order_ids_fail.append(dbAcmeOrder.id)
-            log.critical(
-                "Exception when syncing AcmeOrder[%s]: %s" % (dbAcmeOrder.id, exc)
-            )
-            print(exc)
+    if dry_run:
+        _order_ids_pass = [dbAcmeOrder.id for dbAcmeOrder in items_paged]
+    else:
+        for dbAcmeOrder in items_paged:
+            dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
+            log.debug("Syncing ACME Order %s" % (dbAcmeOrder.id,))
+            try:
+                dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+                    ctx,
+                    dbAcmeOrder=dbAcmeOrder,
+                    transaction_commit=transaction_commit,
+                )
+                _order_ids_pass.append(dbAcmeOrder.id)
+                ctx.pyramid_transaction_commit()
+            except Exception as exc:
+                _order_ids_fail.append(dbAcmeOrder.id)
+                log.critical(
+                    "Exception when syncing AcmeOrder[%s]: %s" % (dbAcmeOrder.id, exc)
+                )
+                print(exc)
 
-    # SECOND
-    # perhaps only do on `_order_ids_pass`
-    items_paged = lib_db.get.get__AcmeOrder__paginated(
-        ctx,
-        active_only=True,
-        limit=None,
-        offset=0,
-    )
-    for dbAcmeOrder in items_paged:
-        dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
-        if (not dbAcmeOrder.is_can_acme_process) and not (
-            dbAcmeOrder.is_can_acme_finalize
-        ):
-            continue
-        log.debug("Attempting Continuation of ACME Order %s" % (dbAcmeOrder.id,))
-        try:
-            while True:
-                if dbAcmeOrder.is_can_acme_process:
-                    dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__process(
-                        ctx,
-                        dbAcmeOrder=dbAcmeOrder,
-                        transaction_commit=True,
-                    )
-                elif dbAcmeOrder.is_can_acme_finalize:
-                    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
-                        ctx,
-                        dbAcmeOrder=dbAcmeOrder,
-                        transaction_commit=transaction_commit,
-                    )
-                else:
-                    break
-            _order_ids_pass.append(dbAcmeOrder.id)
-            ctx.pyramid_transaction_commit()
-        except Exception as exc:
-            _order_ids_fail.append(dbAcmeOrder.id)
-            log.critical(
-                "Exception when continuing AcmeOrder[%s]: %s" % (dbAcmeOrder.id, exc)
-            )
-            print(exc)
+    if dry_run:
+        pass
+    else:
+        # SECOND
+        # perhaps only do on `_order_ids_pass`
+        items_paged = lib_db.get.get__AcmeOrder__paginated(
+            ctx,
+            active_only=True,
+            limit=None,
+            offset=0,
+        )
+        for dbAcmeOrder in items_paged:
+            dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
+            if (not dbAcmeOrder.is_can_acme_process) and not (
+                dbAcmeOrder.is_can_acme_finalize
+            ):
+                continue
+            log.debug("Attempting Continuation of ACME Order %s" % (dbAcmeOrder.id,))
+            try:
+                while True:
+                    if dbAcmeOrder.is_can_acme_process:
+                        dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__process(
+                            ctx,
+                            dbAcmeOrder=dbAcmeOrder,
+                            transaction_commit=True,
+                        )
+                    elif dbAcmeOrder.is_can_acme_finalize:
+                        dbAcmeOrder = (
+                            lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
+                                ctx,
+                                dbAcmeOrder=dbAcmeOrder,
+                                transaction_commit=transaction_commit,
+                            )
+                        )
+                    else:
+                        break
+                _order_ids_pass.append(dbAcmeOrder.id)
+                ctx.pyramid_transaction_commit()
+            except Exception as exc:
+                _order_ids_fail.append(dbAcmeOrder.id)
+                log.critical(
+                    "Exception when continuing AcmeOrder[%s]: %s"
+                    % (dbAcmeOrder.id, exc)
+                )
+                print(exc)
 
     _order_ids_pass = list(set(_order_ids_pass))
     _order_ids_fail = list(set(_order_ids_fail))
@@ -1658,6 +1676,7 @@ def routine__reconcile_blocks(
         timestamp_end=TIMESTAMP_routine_end,
         count_records_success=len(_order_ids_pass),
         count_records_fail=len(_order_ids_fail),
+        is_dry_run=dry_run,
     )
     ctx.pyramid_transaction_commit()
 
@@ -1670,6 +1689,7 @@ def routine__renew_expiring(
     create_public_server: Callable = _create_public_server,
     renewal_configuration_ids__only_process: Optional[Tuple[int]] = None,
     count_expected_configurations: Optional[int] = None,
+    dry_run: bool = False,
     DEBUG_LOCAL: Optional[bool] = False,
 ) -> "RoutineExecution":
     """
@@ -1732,7 +1752,7 @@ def routine__renew_expiring(
             print(cert.id, cert.timestamp_not_after)
         print("---")
 
-    if DEBUG_LOCAL:
+    if DEBUG_LOCAL or dry_run:
         _debug_results()
         # pdb.set_trace()
         print("routine__renew_expiring")
@@ -1754,49 +1774,54 @@ def routine__renew_expiring(
                         dbCertificateSigned.acme_order.renewal_configuration_id,
                     ),
                 )
-                try:
-                    replaces_certificate_type = (
-                        model_utils.CertificateType.to_CertificateType_Enum(
-                            dbCertificateSigned.acme_order.certificate_type_id
-                        )
-                    )
-                    dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
-                        ctx,
-                        dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
-                        processing_strategy="process_single",
-                        acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
-                        note=RENEWAL_RUN,
-                        replaces=dbCertificateSigned.ari_identifier,
-                        replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                        replaces_certificate_type=replaces_certificate_type,
-                        transaction_commit=True,
-                    )
-                    log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
-                    log.debug(
-                        "Renewal Result: CertificateSigned: %s",
-                        dbAcmeOrderNew.certificate_signed_id,
-                    )
-                    if DEBUG_LOCAL:
-
-                        def _debug():
-                            print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
-                            print(
-                                "Renewal Result: CertificateSigned: %s",
-                                dbAcmeOrderNew.certificate_signed_id,
+                if dry_run:
+                    count_renewals += 1
+                else:
+                    try:
+                        replaces_certificate_type = (
+                            model_utils.CertificateType.to_CertificateType_Enum(
+                                dbCertificateSigned.acme_order.certificate_type_id
                             )
+                        )
+                        dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                            ctx,
+                            dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
+                            processing_strategy="process_single",
+                            acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                            note=RENEWAL_RUN,
+                            replaces=dbCertificateSigned.ari_identifier,
+                            replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                            replaces_certificate_type=replaces_certificate_type,
+                            transaction_commit=True,
+                        )
+                        log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
+                        log.debug(
+                            "Renewal Result: CertificateSigned: %s",
+                            dbAcmeOrderNew.certificate_signed_id,
+                        )
+                        if DEBUG_LOCAL or dry_run:
 
-                        _debug()
+                            def _debug():
+                                print(
+                                    "Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id
+                                )
+                                print(
+                                    "Renewal Result: CertificateSigned: %s",
+                                    dbAcmeOrderNew.certificate_signed_id,
+                                )
 
-                    if dbAcmeOrderNew.certificate_signed_id:
-                        count_renewals += 1
-                    else:
+                            _debug()
+
+                        if dbAcmeOrderNew.certificate_signed_id:
+                            count_renewals += 1
+                        else:
+                            count_failures += 1
+                        ctx.pyramid_transaction_commit()
+                    except Exception as exc:
+                        log.critical("Exception %s when processing AcmeOrder" % exc)
+                        # TODO: How should these be handled?
+                        # should we raise to end the process, or catch this and continue?
                         count_failures += 1
-                    ctx.pyramid_transaction_commit()
-                except Exception as exc:
-                    log.critical("Exception %s when processing AcmeOrder" % exc)
-                    # TODO: How should these be handled?
-                    # should we raise to end the process, or catch this and continue?
-                    count_failures += 1
         finally:
             wsgi_server.shutdown()
 
@@ -1808,6 +1833,7 @@ def routine__renew_expiring(
         timestamp_end=TIMESTAMP_routine_end,
         count_records_success=count_renewals,
         count_records_fail=count_failures,
+        is_dry_run=dry_run,
     )
     ctx.pyramid_transaction_commit()
 

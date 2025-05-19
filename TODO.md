@@ -59,6 +59,10 @@ Cache ACME Directory:
     ) SELECT id, timestamp_created, name, directory, server, is_default, is_supports_ari__version, is_unlimited_pending_authz, is_retry_challenges, is_enabled, protocol, server_ca_cert_bundle, profiles FROM acme_server_old;
     DROP TABLE acme_server_old;
 
+DRY RUN
+
+    alter table routine_execution add is_dry_run bool default false not null;
+
 
 
 

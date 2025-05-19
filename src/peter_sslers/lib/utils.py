@@ -4,6 +4,7 @@ import datetime
 import functools
 import json
 import logging
+import os.path
 import re
 from typing import Dict
 from typing import Optional
@@ -323,6 +324,11 @@ class RequestCommandline(object):
         from ..web.lib.handler import load_CertificateCAPreferencePolicy_global
 
         return load_CertificateCAPreferencePolicy_global(self)
+
+
+def validate_config_uri(config_uri: str) -> None:
+    if not os.path.exists(config_uri):
+        raise ValueError("Not a valid `config_uri` :: `%s`" % config_uri)
 
 
 def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiContext":
