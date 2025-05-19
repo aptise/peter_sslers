@@ -163,7 +163,7 @@
                                 
                                 <a href="${admin_prefix}/renewal-configuration/${CertificateSigned.acme_order.renewal_configuration_id}/lineages"
                                     title="Lineages"
-                                    class="label label-info"
+                                    class="btn btn-xs btn-primary"
                                 >
                                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                     Calculate Lineages
@@ -241,7 +241,14 @@
                     <tr>
                         <th>Certificate Types</th>
                         <td>
-                            <code>${CertificateSigned.certificate_type}</code>
+                            ## <code>${CertificateSigned.certificate_type}</code>
+                            % if CertificateSigned.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                                <span class="label label-success">${CertificateSigned.certificate_type}</span>
+                            % elif CertificateSigned.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                                <span class="label label-warning">${CertificateSigned.certificate_type}</span>
+                            % elif CertificateSigned.certificate_type_id == model_websafe.CertificateType.RAW_IMPORTED:
+                                <span class="label label-default">${CertificateSigned.certificate_type}</span>
+                            % endif
                             % if CertificateSigned.is_single_domain_cert is True:
                                 <span class="label label-default">
                                     single domain certificate
@@ -444,7 +451,7 @@
                                     <tr>
                                         <th>Manual Check</th>
                                         <td>
-                                            % if CertificateSigned.is_ari_check_timely(request.api_context):
+                                            % if CertificateSigned.is_ari_checking_timely(request.api_context, context="dashboard"):
                                                 <form
                                                     action="${admin_prefix}/certificate-signed/${CertificateSigned.id}/ari-check" 
                                                     method="POST"
@@ -457,7 +464,7 @@
                                                     </button>
                                                 </form>
                                             % else:
-                                                Too Old for ARI Checks
+                                                Certificate Too Old for ARI Checking
                                             % endif
                                         </td>
                                     </tr>

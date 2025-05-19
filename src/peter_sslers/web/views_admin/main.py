@@ -10,6 +10,7 @@ import sqlalchemy
 # local
 from ..lib import configuration_options
 from ..lib.handler import Handler
+from ...lib import db as lib_db
 from ...lib.db.get import get__Notification__count
 from ...model import objects as model_objects
 
@@ -42,6 +43,37 @@ class ViewAdminMain(Handler):
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:debug", renderer="json")
+    def debug(self):
+        if False:
+            database_url = (
+                self.request.api_context.dbSession.connection().engine.url.database
+            )
+            items_paged = lib_db.get.get__AcmeAccount__paginated(
+                self.request.api_context, limit=None, offset=0
+            )
+            return {
+                "database_url": database_url,
+                "debugged_items": [i.as_json for i in items_paged],
+            }
+        if False:
+            dbRoutineExecution_1 = lib_db.actions.routine__order_missing(  # noqa: F841
+                self.request.api_context,
+                settings=self.request.registry.settings,
+                DEBUG_LOCAL=False,
+            )
+            print("routine__order_missing()")
+            print(dbRoutineExecution_1.as_json)
+            dbRoutineExecution_2 = lib_db.actions.routine__renew_expiring(  # noqa: F841
+                self.request.api_context,
+                settings=self.request.registry.settings,
+                DEBUG_LOCAL=False,
+            )
+            print("routine__renew_expiring()")
+            print(dbRoutineExecution_2.as_json)
+
+        return {}
 
     @view_config(route_name="admin:help", renderer="/admin/help.mako")
     def help(self):

@@ -8,7 +8,7 @@ This script:
 
 After running this script, run
 
-    routine__automatic_orders conf/example_development.ini
+    routine__automatic_orders data_staging/config.ini
 
 the above command should order the backup certificates
 """

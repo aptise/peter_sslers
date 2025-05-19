@@ -3,7 +3,7 @@
 
 # Configuration Options
 
-Your `environment.ini` exposes a few configuration options.
+Your `{ENVIRONMENT}/config.ini` exposes a few configuration options.
 
 These are documented at-length on the in-app settings page.
 

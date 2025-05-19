@@ -11,6 +11,10 @@ from pyramid.scripts.common import parse_vars
 from ...lib import db as lib_db
 from ...lib.utils import new_scripts_setup
 
+
+# from ...lib import db as lib_db
+# from ...lib.config_utils import ApplicationSettings
+
 # ==============================================================================
 
 
@@ -28,8 +32,16 @@ def main(argv=sys.argv):
         usage(argv)
     config_uri = argv[1]
     options = parse_vars(argv[2:])
+
     ctx = new_scripts_setup(config_uri, options=options)
-    dbRoutineExecution = lib_db.actions.routine__reconcile_blocks(  # noqa: F841
-        ctx, transaction_commit=True
+
+    # actually, we order the backups first
+    dbRoutineExecution_1 = lib_db.actions.unset_acme_server_caches(  # noqa: F841
+        ctx,
+        transaction_commit=True,
     )
+    print("unset_acme_server_caches()")
+    print(dbRoutineExecution_1.as_json)
+
+    # already commited above
     ctx.pyramid_transaction_commit()

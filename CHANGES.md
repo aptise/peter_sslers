@@ -132,11 +132,6 @@
 
     new QuickStart guide
 
-    reorganization of files:
-    * the database files for peter_sslers and acme_dns are moved into a
-      `/_data_` subdirectory.
-    * the config files are consolidated into a `/conf` subdirectory.
-
     Name Changes
         AcmeAccountProvider -> AcmeServer
         acme_account_provider -> acme_server
@@ -277,7 +272,13 @@
     
     Added tests to ensure AcmeOrder can be created with different kinds of inputs
 
-
+    reorganization of files:
+        
+        each environment should have an isolated {DATA_DIRECTORY} which houses:
+        * the database files for peter_sslers (and acme_dns testing)
+        * the configuration file
+        
+    
 
 
 0.6.0

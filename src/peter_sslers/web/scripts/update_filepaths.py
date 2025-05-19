@@ -25,7 +25,7 @@ def usage(argv):
     cmd = os.path.basename(argv[0])
     print(
         "usage: %s <config_uri>\n"
-        '(example: "%s conf/example_development.ini")' % (cmd, cmd)
+        '(example: "%s data_development/config.ini")' % (cmd, cmd)
     )
     sys.exit(1)
 
@@ -56,6 +56,8 @@ def main(argv=sys.argv):
 
     # set up our exports root directory
     (EXPORTS_DIR, EXPORTS_DIR_WORKING) = exports.get_exports_dirs(ctx)
+    if not os.path.exists(EXPORTS_DIR):
+        os.makedirs(EXPORTS_DIR)
     if os.path.exists(EXPORTS_DIR_WORKING):
         raise ValueError(
             "An existing working directory has been encountered. If another process is not responsible, manual cleanup will be necessary."

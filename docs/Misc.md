@@ -17,7 +17,7 @@ For testing Certificates, these 2 commands can be useful:
 
 reprime `Redis` cache
 
-    $ prequest -m POST example_development.ini /.well-known/peter_sslers/api/redis/prime.json
+    $ prequest -m POST data_development/config.ini /.well-known/peter_sslers/api/redis/prime.json
 
 clear out `Nginx` cache
 

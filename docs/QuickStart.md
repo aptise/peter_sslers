@@ -21,15 +21,17 @@ If you just want to give this a quick go to explore your Certbot data:
     git clone https://github.com/aptise/peter_sslers.git
     cd peter_sslers
     pip install -e .
-    initialize_peter_sslers_db conf/example_development.ini
-    import_certbot conf/example_development.ini
-    pserve --reload  conf/example_development.ini
+    mkdir data_development
+    co example_configs/development.ini data_development/config.ini
+    initialize_peter_sslers_db data_development/config.ini
+    import_certbot data_development/config.ini
+    pserve --reload  data_development/config.ini
 
 Then you can visit `http://127.0.0.1:7201/.well-known/peter_sslers`
 
 Note: you can invoke `import_certbot` with any path to a Certbot directory:
 
-    import_certbot conf/example_development.ini dir=/path/to/etc/letsencrypt
+    import_certbot data_development/config.ini dir=/path/to/etc/letsencrypt
     
 
 # Initial Actions
@@ -104,8 +106,8 @@ Renewal and ordering (unordered) Backup Certificates can happen two ways:
 
 Routines are invoked with a configuration file and can be installed into schedulers like cron.
 
-    routine__run_ari_checks conf/production.ini
-    routine__automatic_orders conf/production.ini
+    routine__run_ari_checks data_production/config.ini
+    routine__automatic_orders data_production/config.ini
 
 The `routine__run_ari_checks` command will update stale ARI data for certificates
 
@@ -191,8 +193,8 @@ Renewal and ordering (unordered) Backup Certificates can happen two ways:
 
 Routines are invoked with a configuration file and can be installed into schedulers like cron.
 
-    routine__run_ari_checks conf/production.ini
-    routine__automatic_orders conf/production.ini
+    routine__run_ari_checks data_production/config.ini
+    routine__automatic_orders data_production/config.ini
 
 The `routine__run_ari_checks` command will update stale ARI data for certificates
 

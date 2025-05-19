@@ -41,8 +41,9 @@ requires = [
     "redis",
     "requests",
     "SQLAlchemy>2",
-    "tldextract",
+    "tldextract>=5.2.0",
     "typing_extensions",
+    "urllib3<2.4.0",
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3
 ]
@@ -56,7 +57,6 @@ tests_require = [
     "pytest",
     "types-invoke",
     "types-urllib3",
-    "urllib3",
     "webtest",
 ]
 testing_extras = tests_require + []
@@ -115,5 +115,6 @@ setup(
       acme_dns_audit = peter_sslers.web.scripts.acme_dns_audit:main
       periodic_tasks = peter_sslers.web.scripts.periodic_tasks:main
       ssl_manage = peter_sslers.web.scripts.ssl_manage:main
+      unset_acme_server_caches = peter_sslers.web.scripts.unset_acme_server_caches:main
       """,
 )

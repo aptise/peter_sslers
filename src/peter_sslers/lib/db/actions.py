@@ -1,7 +1,6 @@
 # stdlib
 import datetime
 import logging
-import pdb
 import pprint
 from typing import Callable
 from typing import Dict
@@ -35,6 +34,7 @@ from ... import lib
 from ...lib import db as lib_db
 from ...lib.http import StopableWSGIServer
 from ...lib.utils import url_to_server
+from ...lib.utils_datetime import datetime_ari_timely
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 from ...model.objects import AcmeServer
@@ -63,7 +63,7 @@ log = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 
 
-DEBUG_CIN = True
+DEBUG_CIN = False
 DEBUG_CONCEPT = False
 
 
@@ -1051,16 +1051,17 @@ def register_acme_servers(
         elif ca_cert_bundle:
             server_ca_cert_bundle = cert_utils.cleanup_pem_text(ca_cert_bundle)
 
-        server = url_to_server(item["directory"])
+        server = url_to_server(item["directory_url"])
 
         def _new_AcmeServer():
+            # TODO: migrate to create.create__AcmeServer
             dbObject = model_objects.AcmeServer()
             dbObject.is_unlimited_pending_authz = item.get(
                 "is_unlimited_pending_authz", None
             )
             dbObject.timestamp_created = ctx.timestamp
             dbObject.name = item["name"]
-            dbObject.directory = item["directory"]
+            dbObject.directory_url = item["directory_url"]
             dbObject.protocol = item["protocol"]
             dbObject.is_supports_ari__version = item.get(
                 "is_supports_ari__version", None
@@ -1171,14 +1172,11 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     # also, we need to time the routine
     TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
 
-    TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
-    assert ctx.application_settings
-    _minutes = ctx.application_settings.get("offset.ari_updates", 60)
-    TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
-    timestamp_max_expiry = (
-        TIMESTAMP_routine_start + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
+    # the max_expiry will be in the future, to ensure we check ARI of anything
+    # that expires until the next routine invocation
+    timestamp_max_expiry = datetime_ari_timely(
+        ctx, datetime_now=TIMESTAMP_routine_start
     )
-
     """
     # The SQL we want (for now):
     SELECT
@@ -1205,12 +1203,12 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
             cert.is_ari_supported__order IS True
         )
         AND
-        cert.timestamp_not_after < datetime()
+        cert.timestamp_not_after <= datetime()
         AND
         (
             latest_ari_checks.latest_ari_id IS NULL
             OR
-            latest_ari_checks.timestamp_retry_after < datetime()
+            latest_ari_checks.timestamp_retry_after <= datetime()
         )
     ORDER BY cert.id DESC;
     """
@@ -1227,20 +1225,27 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     )
 
     certs = (
-        ctx.dbSession.query(CertificateSigned, latest_ari_checks.c.latest_ari_id)
+        ctx.dbSession.query(
+            CertificateSigned,
+            latest_ari_checks.c.latest_ari_id,
+            # latest_ari_checks.c.timestamp_retry_after,
+        )
         .outerjoin(
             latest_ari_checks,
             CertificateSigned.id == latest_ari_checks.c.certificate_signed_id,
         )
         .filter(
             CertificateSigned.is_active.is_(True),
+            # these are considered expired
+            CertificateSigned.timestamp_not_after <= timestamp_max_expiry,
             sqlalchemy_or(
                 CertificateSigned.is_ari_supported__cert.is_(True),
                 CertificateSigned.is_ari_supported__order.is_(True),
             ),
             sqlalchemy_or(
                 latest_ari_checks.c.latest_ari_id.is_(None),
-                latest_ari_checks.c.timestamp_retry_after >= timestamp_max_expiry,
+                # <= : select items that have expired
+                latest_ari_checks.c.timestamp_retry_after <= timestamp_max_expiry,
             ),
         )
         .order_by(
@@ -1261,6 +1266,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
             dbAriObject, ari_check_result = actions_acme.do__AcmeV2_AriCheck(
                 ctx,
                 dbCertificateSigned=dbCertificateSigned,
+                force_check=True,  # a potential delay exists after above SQL
             )
             count_records_success += 1
             ctx.pyramid_transaction_commit()
@@ -1352,7 +1358,7 @@ def routine__order_missing(
     ctx: "ApiContext",
     settings: Dict,
     create_public_server: Callable = _create_public_server,
-    DEBUG: Optional[bool] = False,
+    DEBUG_LOCAL: Optional[bool] = False,
 ) -> "RoutineExecution":
     """
     returns "RoutineExecution" which contains
@@ -1441,9 +1447,10 @@ def routine__order_missing(
                 "RC:%s" % r.id,
             )
 
-    if DEBUG:
+    DEBUG_LOCAL = True
+    if DEBUG_LOCAL:
         _debug_results()
-        pdb.set_trace()
+        # pdb.set_trace()
         print("routine__order_missing")
 
     count_renewals = 0
@@ -1502,7 +1509,7 @@ def routine__order_missing(
                         "Renewal Result: CertificateSigned: %s",
                         dbAcmeOrderNew.certificate_signed_id,
                     )
-                    if DEBUG:
+                    if DEBUG_LOCAL:
 
                         def _debug():
                             print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
@@ -1663,7 +1670,7 @@ def routine__renew_expiring(
     create_public_server: Callable = _create_public_server,
     renewal_configuration_ids__only_process: Optional[Tuple[int]] = None,
     count_expected_configurations: Optional[int] = None,
-    DEBUG: Optional[bool] = False,
+    DEBUG_LOCAL: Optional[bool] = False,
 ) -> "RoutineExecution":
     """
     returns "RoutineExecution" which contains
@@ -1679,6 +1686,7 @@ def routine__renew_expiring(
     # `get_CertificateSigneds_renew_now` will compute a buffer,
     # so we do not have to submit a `timestamp_max_expiry`
     expiring_certs = get.get_CertificateSigneds_renew_now(ctx)
+
     if renewal_configuration_ids__only_process:
         # use a temporary variable for easier debugging
         _expiring_certs = [
@@ -1724,9 +1732,9 @@ def routine__renew_expiring(
             print(cert.id, cert.timestamp_not_after)
         print("---")
 
-    if DEBUG:
+    if DEBUG_LOCAL:
         _debug_results()
-        pdb.set_trace()
+        # pdb.set_trace()
         print("routine__renew_expiring")
 
     count_renewals = 0
@@ -1768,7 +1776,7 @@ def routine__renew_expiring(
                         "Renewal Result: CertificateSigned: %s",
                         dbAcmeOrderNew.certificate_signed_id,
                     )
-                    if DEBUG:
+                    if DEBUG_LOCAL:
 
                         def _debug():
                             print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
@@ -1800,6 +1808,61 @@ def routine__renew_expiring(
         timestamp_end=TIMESTAMP_routine_end,
         count_records_success=count_renewals,
         count_records_fail=count_failures,
+    )
+    ctx.pyramid_transaction_commit()
+
+    return dbRoutineExecution
+
+
+def unset_acme_server_caches(
+    ctx: "ApiContext",
+    transaction_commit: Optional[bool] = None,
+) -> "RoutineExecution":
+    """
+    Unsets the following cached information markers::
+
+    * AcmeAccount.timestamp_last_authenticated
+    * AcmeServerConfiguration.timestamp_lastchecked
+      - AcmeServer.directory_latest.timestamp_lastchecked
+
+    Unsetting these should trigger active reloads to the cache.
+
+    Originally designed for tests, this was exported to a library function and
+    commandline tool.
+    """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
+
+    # don't rely on ctx.timestamp, as it can be old
+    # also, we need to time the routine
+    TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
+
+    RENEWAL_RUN: str = "UnsetAcmeServerCaches[%s]" % TIMESTAMP_routine_start
+
+    # used to reset::
+    # `model_objects.AcmeServerConfiguration.timestamp_lastchecked TIMESTAMP NOT NULL`
+    one_year_ago = TIMESTAMP_routine_start - datetime.timedelta(days=365)
+
+    dbAcmeAccounts = ctx.dbSession.query(model_objects.AcmeAccount).all()
+    for _dbAcmeAccount in dbAcmeAccounts:
+        _dbAcmeAccount.timestamp_last_authenticated = None
+
+    dbAcmeServers = ctx.dbSession.query(model_objects.AcmeServer).all()
+    for _dbAcmeServer in dbAcmeServers:
+        _dbAcmeServer.profiles = None
+        if _dbAcmeServer.directory_latest:
+            _dbAcmeServer.directory_latest.timestamp_lastchecked = one_year_ago
+
+    ctx.pyramid_transaction_commit()
+
+    TIMESTAMP_routine_end = datetime.datetime.now(datetime.timezone.utc)
+    dbRoutineExecution = lib_db.create.create__RoutineExecution(
+        ctx,
+        routine_id=model_utils.Routine.unset_acme_server_caches,
+        timestamp_start=TIMESTAMP_routine_start,
+        timestamp_end=TIMESTAMP_routine_end,
     )
     ctx.pyramid_transaction_commit()
 

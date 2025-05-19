@@ -30,7 +30,7 @@ def usage(argv):
     cmd = os.path.basename(argv[0])
     print(
         "usage: %s <config_uri>\n"
-        '(example: "%s conf/example_development.ini")' % (cmd, cmd)
+        '(example: "%s data_development/config.ini")' % (cmd, cmd)
     )
     sys.exit(1)
 
@@ -106,7 +106,7 @@ def main(argv=sys.argv):
         dbRoutines["routine__order_missing"] = lib_db.actions.routine__order_missing(
             ctx,
             settings=settings,
-            DEBUG=False,
+            DEBUG_LOCAL=False,
         )
         ctx.pyramid_transaction_commit()
 
@@ -115,7 +115,7 @@ def main(argv=sys.argv):
         dbRoutines["routine__renew_expiring"] = lib_db.actions.routine__renew_expiring(
             ctx,
             settings=settings,
-            DEBUG=False,
+            DEBUG_LOCAL=False,
         )
         ctx.pyramid_transaction_commit()
 

@@ -1,0 +1,33 @@
+<html>
+<head>
+    <title>%(letter)s - %(challenge)s</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    <link href="https://netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">    
+</head>
+<body>
+    <!--
+    
+    WARNING
+    This file is managed by `_generate_openresty.py` and may be overwritten.
+    
+    -->
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <h1>Current Domain</h1>
+                <h2>%(letter)s - %(challenge)s</h2>
+                <ul>
+                    <li><a href="https://dns-01.%(letter)s.peter-sslers.testing.opensource.%(root_domain)s">dns-01.%(letter)s</a></li>
+                    <li><a href="https://http-01.%(letter)s.peter-sslers.testing.opensource.%(root_domain)s">http-01.%(letter)s</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <h1>All Domains</h1>
+                %(ALL_DOMAINS__HTML)s
+            </div>
+        </div>
+    </div>
+</body>
+</html>

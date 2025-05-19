@@ -35,7 +35,7 @@ def usage(argv):
     cmd = os.path.basename(argv[0])
     print(
         "usage: %s <config_uri> [var=value]\n"
-        '(example: "%s conf/example_development.ini")' % (cmd, cmd)
+        '(example: "%s data_development/config.ini")' % (cmd, cmd)
     )
     sys.exit(1)
 
@@ -57,25 +57,6 @@ def main(argv=sys.argv):
 
     audits = []
     acmeDnsServerAccounts = lib_db.get.get__AcmeDnsServerAccount__paginated(ctx)
-    """
-    # v1
-    for acc in acmeDnsServerAccounts:
-        r_cname = utils_dns.get_records(acc.cname_source, "CNAME")
-        r_txt = utils_dns.get_records(acc.cname_source, "TXT")
-        _status = True if r_cname == acc.cname_target else False
-        if not _status:
-            _audit: AccountAudit = {
-                "id": acc.id,
-                "status": _status,
-                "domain_name": acc.domain.domain_name,
-                "cname_source": acc.cname_source,
-                "cname_target": acc.cname_target,
-                "actual_cname": r_cname,
-                "actual_txt": r_txt,
-            }
-            audits.append(_audit)
-    """
-    # v2
     for dbAcmeDnsServerAccount in acmeDnsServerAccounts:
         print(
             "auditing:",

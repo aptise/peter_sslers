@@ -157,7 +157,13 @@ def submit__authenticate(
     dbAcmeAccount: "AcmeAccount",
     acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> Tuple[bool, Optional[str]]:
-    # returns (success, error_message)
+    """
+    `Authenticate` will invoke `newAccount` with `onlyReturnExisting=False`
+
+    `onlyReturnExisting=False` will register a NEW user if applicable
+
+    returns (success:bool, error_message:Optional[str])
+    """
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
@@ -191,7 +197,13 @@ def submit__check(
     dbAcmeAccount: "AcmeAccount",
     acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> Tuple[bool, Optional[str]]:
-    # returns (success, error_message)
+    """
+    `Authenticate` will invoke `newAccount` with `onlyReturnExisting=True`
+
+    `onlyReturnExisting=True` requires an EXISTING user
+
+    returns (success:bool, error_message:Optional[str])
+    """
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
@@ -1300,7 +1312,8 @@ class View_Focus_Manipulate(View_Focus):
     )
     def focus__acme_server_authenticate(self):
         """
-        this just hits the api, hoping we authenticate correctly.
+        Hits the ACME Server newAccount API with `onlyReturnExisting=False`
+        This will register if the account does not exist.
         """
         dbAcmeAccount = self._focus()
         _message: Optional[str] = None
@@ -1393,7 +1406,8 @@ class View_Focus_Manipulate(View_Focus):
     )
     def focus__acme_server_check(self):
         """
-        this just hits the api, hoping we check correctly.
+        Hits the ACME Server newAccount API with `onlyReturnExisting=True`
+        This will NOT register if the account does not exist.
         """
         dbAcmeAccount = self._focus()  # noqa: F841
         if not dbAcmeAccount.is_can_authenticate:

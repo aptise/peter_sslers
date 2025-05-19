@@ -116,9 +116,9 @@ This routine does not require inbound traffic or firewall adjustment.
 If an EnrolmentFactory or RenewalConfiguration is set to persist to disk, this
 will ensure the currently exported certificates are the most recent.
 
-* `update_filepaths {example_development.ini}` will export PEM certificate data onto the filesystem, with the following implementation details:
+* `update_filepaths {env_development/config.ini}` will export PEM certificate data onto the filesystem, with the following implementation details:
 
-  * data will be written to a `certificates` subfolder of the `_data_` directory
+  * data will be written to a `certificates` subfolder of the `{DATA_DIR}` directory
   * only certificates with an ACTIVE RenewalConfiguration will be written
   * data will be organized into
     * a `global` directory for certs without an EnrollmentFactory
@@ -135,23 +135,23 @@ will ensure the currently exported certificates are the most recent.
 
 For example, a directory structure might look like this:
 
-    _data_/certificates/global/rc-1/primary/cert.pem
-    _data_/certificates/global/rc-1/primary/chain.pem
-    _data_/certificates/global/rc-1/primary/fullchain.pem
-    _data_/certificates/global/rc-1/primary/pkey.pem
-    _data_/certificates/global/rc-1/backup/cert.pem
-    _data_/certificates/global/rc-1/backup/chain.pem
-    _data_/certificates/global/rc-1/backup/fullchain.pem
-    _data_/certificates/global/rc-1/backup/pkey.pem
-    _data_/certificates/factory_a/rc-2/primary/cert.pem
-    _data_/certificates/factory_a/rc-2/primary/chain.pem
-    _data_/certificates/factory_a/rc-2/primary/fullchain.pem
-    _data_/certificates/factory_a/rc-2/primary/pkey.pem
-    _data_/certificates/factory_a/rc-2/backup/cert.pem
-    _data_/certificates/factory_a/rc-2/backup/chain.pem
-    _data_/certificates/factory_a/rc-2/backup/fullchain.pem
-    _data_/certificates/factory_a/rc-2/backup/pkey.pem
-    _data_/certificates/factory_a/example.com >symlink> rc-2
+    data_production_/certificates/global/rc-1/primary/cert.pem
+    data_production_/certificates/global/rc-1/primary/chain.pem
+    data_production_/certificates/global/rc-1/primary/fullchain.pem
+    data_production_/certificates/global/rc-1/primary/pkey.pem
+    data_production_/certificates/global/rc-1/backup/cert.pem
+    data_production_/certificates/global/rc-1/backup/chain.pem
+    data_production_/certificates/global/rc-1/backup/fullchain.pem
+    data_production_/certificates/global/rc-1/backup/pkey.pem
+    data_production_/certificates/factory_a/rc-2/primary/cert.pem
+    data_production_/certificates/factory_a/rc-2/primary/chain.pem
+    data_production_/certificates/factory_a/rc-2/primary/fullchain.pem
+    data_production_/certificates/factory_a/rc-2/primary/pkey.pem
+    data_production_/certificates/factory_a/rc-2/backup/cert.pem
+    data_production_/certificates/factory_a/rc-2/backup/chain.pem
+    data_production_/certificates/factory_a/rc-2/backup/fullchain.pem
+    data_production_/certificates/factory_a/rc-2/backup/pkey.pem
+    data_production_/certificates/factory_a/example.com >symlink> rc-2
 
 
 ## Scripts

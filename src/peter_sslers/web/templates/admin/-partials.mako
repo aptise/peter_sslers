@@ -618,6 +618,7 @@
                 "acme_account_id",
                 "renewal_configuration_id",
                 "certificate_request_id",
+                "acme_order_types",
                 "certificate_signed_id",
                 "unique_fqdn_set_id",
                )
@@ -692,6 +693,17 @@
                                         CertificateRequest-${acme_order.certificate_request_id}
                                     </a>
                                 % endif
+                            % elif c == 'acme_order_types':
+                                <span class="label label-default">${acme_order.acme_order_type}</span>
+                                % if acme_order.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                                    <span class="label label-success">${acme_order.certificate_type}</span>
+                                % elif acme_order.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                                    <span class="label label-warning">${acme_order.certificate_type}</span>
+                                % elif acme_order.certificate_type_id == model_websafe.CertificateType.RAW_IMPORTED:
+                                    <span class="label label-default">${acme_order.certificate_type}</span>
+                                % endif
+                                
+                                
                             % elif c == 'certificate_signed_id':
                                 % if acme_order.certificate_signed_id:
                                     <a href="${admin_prefix}/certificate-signed/${acme_order.certificate_signed_id}" class="label label-info">
@@ -1017,9 +1029,13 @@
                             ${'Active' if cert.is_active else 'inactive'}
                         </span>
                     % endif
-                    <span class="label label-default">
-                        ${cert.certificate_type}
-                    </span>
+                    % if cert.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                        <span class="label label-success">${cert.certificate_type}</span>
+                    % elif cert.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                        <span class="label label-warning">${cert.certificate_type}</span>
+                    % elif cert.certificate_type_id == model_websafe.CertificateType.RAW_IMPORTED:
+                        <span class="label label-default">${cert.certificate_type}</span>
+                    % endif
                 </td>
                 % if perspective != "RenewalConfiguration":
                 <td>
@@ -1954,6 +1970,15 @@
                <input class="form-control" name="acme_account_id" id="account_key_existing-acme_account_id" type="text"/>
             </div>
         </div>
+        <div class="radio">
+            <label for="account_key_option-acme_account_url">
+                <input type="radio" name="account_key_option" id="account_key_option-acme_account_url" value="acme_account_url"/>
+                The ACME Account URL (on the ACME Server).
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="acme_account_url" id="account_key_existing-acme_account_url" type="text"/>
+            </div>
+        </div>
         % if support_upload:
             <div class="radio">
                 <label>
@@ -2084,7 +2109,6 @@
                <input class="form-control" name="account_key_existing_backup" id="account_key_option_backup-account_key_existing" type="text"/>
             </div>
         </div>
-
         <div class="radio">
             <label for="account_key_option_backup-acme_account_id_backup">
                 <input type="radio" name="account_key_option_backup" id="account_key_option_backup-acme_account_id_backup" value="acme_account_id_backup"/>
@@ -2092,6 +2116,15 @@
             </label>
             <div class="form-control-static">
                <input class="form-control" name="acme_account_id_backup" id="account_key_option_backup-acme_account_id_backup" type="text"/>
+            </div>
+        </div>
+        <div class="radio">
+            <label for="account_key_option_backup-acme_account_url_backup">
+                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-acme_account_url_backup" value="acme_account_url_backup"/>
+                The ACME Account URL (on the ACME Server).
+            </label>
+            <div class="form-control-static">
+               <input class="form-control" name="acme_account_url_backup" id="account_key_option_backup-acme_account_url_backup" type="text"/>
             </div>
         </div>
         % if support_profiles:

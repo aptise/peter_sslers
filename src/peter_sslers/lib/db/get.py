@@ -20,6 +20,7 @@ from typing_extensions import Literal
 
 # localapp
 from ...lib import utils as lib_utils
+from ...lib.utils_datetime import datetime_ari_timely
 from ...model import utils as model_utils
 from ...model.objects import AcmeAccount
 from ...model.objects import AcmeAccount_2_TermsOfService
@@ -1410,7 +1411,7 @@ def get__AcmeServerConfiguration__by_AcmeServerId__paginated(
     acme_server_id: int,
     limit: Optional[int] = None,
     offset: int = 0,
-) -> List[AcmeAccount]:
+) -> List[AcmeServerConfiguration]:
     query = ctx.dbSession.query(AcmeServerConfiguration).filter(
         AcmeServerConfiguration.acme_server_id == acme_server_id
     )
@@ -1419,6 +1420,18 @@ def get__AcmeServerConfiguration__by_AcmeServerId__paginated(
     )
     dbAcmeServerConfigurations = query.all()
     return dbAcmeServerConfigurations
+
+
+def get__AcmeServerConfiguration__by_AcmeServerId__active(
+    ctx: "ApiContext",
+    acme_server_id: int,
+) -> Optional[AcmeAccount]:
+    query = ctx.dbSession.query(AcmeServerConfiguration).filter(
+        AcmeServerConfiguration.acme_server_id == acme_server_id,
+        AcmeServerConfiguration.is_active.is_(True),
+    )
+    dbAcmeServerConfiguration = query.first()
+    return dbAcmeServerConfiguration
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2640,22 +2653,8 @@ def get_CertificateSigneds_renew_now(
     ctx: "ApiContext",
     timestamp_max_expiry: Optional[datetime.datetime] = None,
 ) -> List[CertificateSigned]:
-
     if not timestamp_max_expiry:
-        # construct a max expiry based on...
-        # clockdrift; servers get out of sync
-        TIMEDELTA_clockdrift = datetime.timedelta(minutes=5)
-        # runner interval; assume the next time we run this is in an houur
-        # TODO: make this configurable
-
-        # offsets
-        assert ctx.application_settings
-        _minutes = ctx.application_settings.get("offset.cert_renewals", 60)
-        TIMEDELTA_runner_interval = datetime.timedelta(minutes=_minutes)
-        # maths: add these times from the current timestamp
-        timestamp_max_expiry = (
-            ctx.timestamp + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
-        )
+        timestamp_max_expiry = datetime_ari_timely(ctx)
 
     # print("get_CertificateSigneds_renew_now(")
     # print("\tctx.timestamp:", ctx.timestamp)

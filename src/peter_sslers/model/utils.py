@@ -730,6 +730,7 @@ class AcmeAccountKeyOption(object):
         "account_key_global_default",
         "account_key_existing",
         "acme_account_id",
+        "acme_account_url",
     )
 
     options_basic_backup = (
@@ -737,6 +738,7 @@ class AcmeAccountKeyOption(object):
         "account_key_global_backup",
         "account_key_existing",
         "acme_account_id",
+        "acme_account_url",
     )
 
     options_streamlined = (
@@ -754,6 +756,7 @@ class AcmeAccountKeyOption(object):
         "account_key_existing",
         "account_key_reuse",
         "acme_account_id",
+        "acme_account_url",
     )
 
     options_basic_backup_reuse = (
@@ -762,6 +765,7 @@ class AcmeAccountKeyOption(object):
         "account_key_existing",
         "account_key_reuse",
         "acme_account_id",
+        "acme_account_url",
     )
 
 
@@ -841,7 +845,7 @@ class AcmeOrder_ProcessingStrategy(_mixin_mapping):
         2: "process_single",  # create the order, and process in a single request
         3: "process_multi",  # create the order, but process piecemeal
     }
-    OPTIONS_DEACTIVATE_AUTHS = ("process_single",)
+    # OPTIONS_DEACTIVATE_AUTHS = ("process_single",)
     OPTIONS_ALL = (
         "create_order",
         "process_single",
@@ -912,7 +916,7 @@ AcmeServerInput = TypedDict(
     "AcmeServerInput",
     {
         "name": str,
-        "directory": str,
+        "directory_url": str,
         "protocol": str,
         # "is_default": Optional[bool],
         "is_supports_ari__version": Optional[str],
@@ -1652,6 +1656,7 @@ class Routine(_mixin_mapping):
         4: "routine__order_missing",
         5: "routine__renew_expiring",
         6: "routine__reconcile_blocks",
+        7: "unset_acme_server_caches",
     }
 
     periodic = 1
@@ -1660,3 +1665,4 @@ class Routine(_mixin_mapping):
     routine__order_missing = 4
     routine__renew_expiring = 5
     routine__reconcile_blocks = 6
+    unset_acme_server_caches = 7

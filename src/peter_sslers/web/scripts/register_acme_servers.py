@@ -25,7 +25,7 @@ in the following format:
 
 [
     {"name": "letsencrypt",
-     "directory": "https://127.0.0.1:14000/dir",
+     "directory_url": "https://127.0.0.1:14000/dir",
      "protocol": "acme-v2",
      "is_supports_ari__version": "draft-ietf-acme-ari-03",
      "filepath_ca_cert_bundle": "/path/to/pem"
@@ -72,8 +72,8 @@ with the `register` action
 def usage(argv):
     cmd = os.path.basename(argv[0])
     print("usage: %s <config_uri> <action> <file>\n" % cmd)
-    print('(example: "%s conf/example_development.ini register imports.json")\n' % cmd)
-    print('(example: "%s conf/example_development.ini export exports.json")\n' % cmd)
+    print('(example: "%s data_development/config.ini register imports.json")\n' % cmd)
+    print('(example: "%s data_development/config.ini export exports.json")\n' % cmd)
     print(INSTRUCTIONS)
     sys.exit(1)
 
@@ -96,7 +96,7 @@ def main(argv=sys.argv):
         servers: List[AcmeServerInput] = []
         for _server in _acme_servers:
             assert _server["name"] is not None
-            assert _server["directory"] is not None
+            assert _server["directory_url"] is not None
             assert _server["protocol"] is not None
             if _server.get("filepath_ca_cert_bundle") and _server.get("ca_cert_bundle"):
                 raise ValueError(
@@ -104,7 +104,7 @@ def main(argv=sys.argv):
                 )
             server = AcmeServerInput(
                 name=_server["name"],
-                directory=_server["directory"],
+                directory_url=_server["directory_url"],
                 protocol=_server["protocol"],
                 is_supports_ari__version=_server.get("is_supports_ari__version"),
                 is_retry_challenges=_server.get("is_retry_challenges"),
@@ -133,7 +133,7 @@ def main(argv=sys.argv):
         for _dbserver in dbServers:
             _exportServer = AcmeServerInput(
                 name=_dbserver.name,
-                directory=_dbserver.directory,
+                directory_url=_dbserver.directory_url,
                 protocol=_dbserver.protocol,
                 is_supports_ari__version=_dbserver.is_supports_ari__version,
                 ca_cert_bundle=_dbserver.server_ca_cert_bundle,

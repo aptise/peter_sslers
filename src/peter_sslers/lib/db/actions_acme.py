@@ -41,8 +41,10 @@ from .getcreate import getcreate__PrivateKey_for_AcmeAccount
 from .getcreate import process__AcmeAuthorization_payload
 from .logger import AcmeLogger
 from .logger import log__OperationsEvent
+from .update import update_AcmeAccount__account_url
 from .update import update_AcmeAccount__terms_of_service
 from .update import update_AcmeAuthorization_from_payload
+from .update import update_AcmeOrder_deactivate
 from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
 from .update import update_AcmeOrder_finalized
 from .update import update_AcmeServer_directory
@@ -84,6 +86,10 @@ log = logging.getLogger(__name__)
 
 TEST_CERTIFICATE_CHAIN = True
 
+# tests may require this to be off to test edge cases
+# using a variable to control this behavior allows the tests to enable/disable this
+SYNC_AUTHZ_ON_ORDER_CREATION = True
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -91,6 +97,7 @@ def new_Authenticated_user(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
     transaction_commit: Optional[bool] = None,
+    force_authentication: bool = False,
 ) -> "AuthenticatedUser":
     """
     helper function to authenticate the user
@@ -106,15 +113,60 @@ def new_Authenticated_user(
 
     account_key_pem = dbAcmeAccount.acme_account_key.key_pem
 
-    # register the account / ensure that it is registered
-    # the authenticatedUser will have a `logger.AcmeLogger` object as the
-    # `.acmeLogger` attribtue
-    # the `acmeLogger` may need to have the `AcmeOrder` registered
-    authenticatedUser = do__AcmeV2_AcmeAccount__authenticate(
-        ctx,
-        dbAcmeAccount,
-        transaction_commit=transaction_commit,
-    )
+    if not force_authentication:
+        if not dbAcmeAccount.timestamp_last_authenticated:
+            force_authentication = True
+        else:
+            # don't trust the ctx.timestamp as we could be in a long running process
+            timestamp_now = datetime.datetime.now(datetime.timezone.utc)
+            timestamp_max = timestamp_now - datetime.timedelta(seconds=300)
+            if dbAcmeAccount.timestamp_last_authenticated < timestamp_max:
+                force_authentication = True
+
+    if force_authentication:
+        # register the account / ensure that it is registered
+        # the authenticatedUser will have a `logger.AcmeLogger` object as the
+        # `.acmeLogger` attribtue
+        # the `acmeLogger` may need to have the `AcmeOrder` registered
+
+        # `onlyReturnExisting=True` requires an EXISTING user
+        try:
+            authenticatedUser = do__AcmeV2_AcmeAccount__authenticate(
+                ctx,
+                dbAcmeAccount,
+                onlyReturnExisting=True,
+                transaction_commit=transaction_commit,
+            )
+        except Exception as exc:
+            # TODO: log this loss of state on the server
+            # this is expected to happen on testing
+            # this should not happen on production
+            _raise = True
+            if isinstance(exc, errors.AcmeServerError):
+                if (exc.args[0] == 400) and (
+                    exc.args[1]["type"]
+                    == "urn:ietf:params:acme:error:accountDoesNotExist"
+                ):
+                    authenticatedUser = do__AcmeV2_AcmeAccount__authenticate(
+                        ctx,
+                        dbAcmeAccount,
+                        onlyReturnExisting=False,
+                        transaction_commit=transaction_commit,
+                    )
+                    _raise = False
+            if _raise:
+                raise exc
+    else:
+        acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
+        authenticatedUser = acme_v2.AuthenticatedUser(
+            ctx,
+            acmeLogger=acmeLogger,
+            acmeAccount=dbAcmeAccount,
+            log__OperationsEvent=log__OperationsEvent,
+            func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+            acknowledge_transaction_commits=transaction_commit,
+        )
+
     return authenticatedUser
 
 
@@ -220,7 +272,7 @@ def updated_AcmeOrder_status(
     dbAcmeOrder: "AcmeOrder",
     acme_order_object: Dict,
     acme_order_processing_status_id: Optional[int] = None,
-    is_processing_False: Optional[bool] = None,
+    is_manual: Optional[bool] = None,
     timestamp: Optional[datetime.datetime] = None,
     transaction_commit: Optional[bool] = None,
     is_via_acme_sync: Optional[bool] = None,
@@ -232,7 +284,7 @@ def updated_AcmeOrder_status(
         have `status`
     :param acme_order_processing_status_id: (optional) If provided, update the
         `acme_order_processing_status_id` of the order
-    :param is_processing_False: (optional) if True, set `is_processing` to False.
+    :param is_manual: (optional) if True, set `is_processing` to False.
     :param timestamp: (required) `datetime.datetime`.
     :param transaction_commit: (required) Boolean. User must indicate they know
         this will commit, as 3rd party API can not be rolled back.
@@ -258,7 +310,7 @@ def updated_AcmeOrder_status(
         _edited = True
     if status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
         if dbAcmeOrder.is_processing is True:
-            dbAcmeOrder.is_processing = None
+            update_AcmeOrder_deactivate(ctx, dbAcmeOrder)
             _edited = True
 
         if update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(ctx, dbAcmeOrder):
@@ -275,9 +327,9 @@ def updated_AcmeOrder_status(
             _edited = True
 
     # only drop this if we haven't above
-    if is_processing_False:
+    if is_manual:
         if dbAcmeOrder.is_processing is True:
-            dbAcmeOrder.is_processing = False
+            update_AcmeOrder_deactivate(ctx, dbAcmeOrder, is_manual=True)
             _edited = True
 
     certificate_url = acme_order_object.get("certificate")
@@ -332,7 +384,7 @@ def updated_AcmeOrder_ProcessingStatus(
             _status_text = model_utils.Acme_Status_Order.as_string(acme_status_order_id)
             if _status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
                 if dbAcmeOrder.is_processing is True:
-                    dbAcmeOrder.is_processing = None
+                    update_AcmeOrder_deactivate(ctx, dbAcmeOrder)
                 update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
                     ctx, dbAcmeOrder
                 )
@@ -620,18 +672,20 @@ def _AcmeV2_AcmeOrder__process_authorizations(
     return _task_finalize_order
 
 
-def handle_AcmeAccount_Updates(
+def handle_AcmeAccount_directory_updates(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
-    authenticatedUser: "acme_v2.AuthenticatedUser",
+    acme_directory: Dict,
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
 ) -> bool:
     # update based off the ACME service
     # the server's TOS should take precedence
-    acme_tos = authenticatedUser.acme_directory["meta"]["termsOfService"].strip()
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+    acme_tos = acme_directory["meta"]["termsOfService"].strip()
     if acme_tos:
         if acme_tos != dbAcmeAccount.terms_of_service:
             updated = update_AcmeAccount__terms_of_service(ctx, dbAcmeAccount, acme_tos)
-
             if updated:
                 event_payload_dict = lib_utils.new_event_payload_dict()
                 event_payload_dict["acme_account.id"] = dbAcmeAccount.id
@@ -642,7 +696,7 @@ def handle_AcmeAccount_Updates(
                     ),
                     event_payload_dict,
                 )
-
+                ctx.pyramid_transaction_commit()
             return updated
     return False
 
@@ -651,10 +705,13 @@ def handle_AcmeAccount_AcmeServer_url_change(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
     authenticatedUser: "AuthenticatedUser",
-) -> None:
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Optional[Literal[True]]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
     assert authenticatedUser._api_account_headers
     acme_account_url = authenticatedUser._api_account_headers["Location"]
-    if acme_account_url != dbAcmeAccount.account_url:
+    if acme_account_url and (acme_account_url != dbAcmeAccount.account_url):
         # this is a bit tricky
         # this library defends against most duplicate accounts by checking
         # the account key for duplication
@@ -673,8 +730,12 @@ def handle_AcmeAccount_AcmeServer_url_change(
             raise errors.AcmeDuplicateAccount(_dbAcmeAccountOther)
 
         # this is now safe to set
-        dbAcmeAccount.account_url = acme_account_url
+        update_AcmeAccount__account_url(
+            ctx, dbAcmeAccount=dbAcmeAccount, account_url=acme_account_url
+        )
         ctx.dbSession.add(dbAcmeAccount)
+        ctx.pyramid_transaction_commit()
+        return True
     return None
 
 
@@ -684,12 +745,14 @@ def check_endpoint_support(
 ) -> bool:
     # endpoints should automatically update now, but we can offer a manual
     resp = acme_v2.check_endpoint(
-        ctx, dbAcmeServer.directory, dbAcmeServer=dbAcmeServer
+        ctx, dbAcmeServer.directory_url, dbAcmeServer=dbAcmeServer
     )
 
     # note - the above `check` should autoupdate...
-    acme_directory = resp.json()
-    changed = update_AcmeServer_directory(ctx, dbAcmeServer, acme_directory)
+    acme_directory_payload = resp.json()
+    changed = update_AcmeServer_directory(
+        ctx, dbAcmeServer, acme_directory_payload=acme_directory_payload
+    )
     return changed
 
 
@@ -778,7 +841,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
 def do__AcmeV2_AcmeAccount__authenticate(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
-    onlyReturnExisting: Optional[bool] = None,
+    onlyReturnExisting: bool = False,
     transaction_commit: Optional[bool] = None,
 ) -> "AuthenticatedUser":
     """
@@ -787,6 +850,8 @@ def do__AcmeV2_AcmeAccount__authenticate(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param onlyReturnExisting: (optional) Boolean. passed on to `:meth:authenticate`.
+        `onlyReturnExisting=True` requires an EXISTING user
+        `onlyReturnExisting=False` will register a NEW user if applicable
     """
     if not transaction_commit:
         raise errors.AcknowledgeTransactionCommitRequired(
@@ -801,20 +866,28 @@ def do__AcmeV2_AcmeAccount__authenticate(
     # result is either: `new-account` or `existing-account`
     # failing will raise an exception
     #
-    # `onlyReturnExisting=True` will not create a new account, and only lookup
+    # `onlyReturnExisting=True` requires an EXISTING user
+    # `onlyReturnExisting=False` will register a NEW user
+    #
     authenticatedUser = acme_v2.AuthenticatedUser(
         ctx,
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
-        func_account_updates=handle_AcmeAccount_Updates,
+        func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+        acknowledge_transaction_commits=transaction_commit,
     )
     authenticatedUser.authenticate(
         ctx,
         onlyReturnExisting=onlyReturnExisting,
         transaction_commit=transaction_commit,
     )
-    handle_AcmeAccount_AcmeServer_url_change(ctx, dbAcmeAccount, authenticatedUser)
+    handle_AcmeAccount_AcmeServer_url_change(
+        ctx,
+        dbAcmeAccount,
+        authenticatedUser,
+        acknowledge_transaction_commits=transaction_commit,
+    )
     return authenticatedUser
 
 
@@ -852,7 +925,8 @@ def do__AcmeV2_AcmeAccount__deactivate(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
-        func_account_updates=handle_AcmeAccount_Updates,
+        func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+        acknowledge_transaction_commits=transaction_commit,
     )
     authenticatedUser.authenticate(ctx, transaction_commit=transaction_commit)
     is_did_deactivate = authenticatedUser.deactivate(
@@ -974,14 +1048,14 @@ def do__AcmeV2_AcmeAccount__key_change(
         acmeLogger=acmeLogger,
         acmeAccount=dbAcmeAccount,
         log__OperationsEvent=log__OperationsEvent,
-        func_account_updates=handle_AcmeAccount_Updates,
+        func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+        acknowledge_transaction_commits=transaction_commit,
     )
     authenticatedUser.authenticate(ctx, transaction_commit=transaction_commit)
     is_did_keychange = authenticatedUser.key_change(
         ctx, dbAcmeAccountKey_new, transaction_commit=transaction_commit
     )
     ctx.pyramid_transaction_commit()
-
     return authenticatedUser, is_did_keychange
 
 
@@ -1016,12 +1090,18 @@ def do__AcmeV2_AcmeAccount_register(
             acmeLogger=acmeLogger,
             acmeAccount=dbAcmeAccount,
             log__OperationsEvent=log__OperationsEvent,
-            func_account_updates=handle_AcmeAccount_Updates,
+            func_acmeAccount_directory_updates=handle_AcmeAccount_directory_updates,
+            acknowledge_transaction_commits=transaction_commit,
         )
         authenticatedUser.authenticate(
             ctx, contact=dbAcmeAccount.contact, transaction_commit=transaction_commit
         )
-        handle_AcmeAccount_AcmeServer_url_change(ctx, dbAcmeAccount, authenticatedUser)
+        handle_AcmeAccount_AcmeServer_url_change(
+            ctx,
+            dbAcmeAccount,
+            authenticatedUser,
+            acknowledge_transaction_commits=transaction_commit,
+        )
         return authenticatedUser
     except Exception as exc:  # noqa: F841
         raise
@@ -1690,7 +1770,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
             ctx,
             dbAcmeOrder,
             acme_v2.new_response_404(),
-            is_processing_False=True,
+            is_manual=True,
             timestamp=ctx.timestamp,
             transaction_commit=transaction_commit,
             is_via_acme_sync=True,
@@ -1750,7 +1830,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 dbAcmeOrder,
                 acmeOrderRfcObject.rfc_object,
                 acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
-                is_processing_False=True,
+                is_manual=True,
                 timestamp=ctx.timestamp,
                 transaction_commit=transaction_commit,
                 is_via_acme_sync=True,
@@ -2154,17 +2234,21 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     else:
                         raise ValueError("unknown dir type")
                     (EXPORTS_DIR, EXPORTS_DIR_WORKING) = exports.get_exports_dirs(ctx)
+                    if not os.path.exists(EXPORTS_DIR):
+                        os.makedirs(EXPORTS_DIR)
                     type_path = os.path.join(EXPORTS_DIR, type_dir)
+                    if not os.path.exists(type_path):
+                        os.makedirs(type_path)
                     rc_path = os.path.join(type_path, rc_dir)
                     if not os.path.exists(rc_path):
-                        os.mkdir(rc_path)
+                        os.makedirs(rc_path)
                     if rc_label:
                         rc_label_path = os.path.join(type_path, rc_label)
                         if not os.path.exists(rc_label_path):
                             exports.relative_symlink(rc_path, rc_label_path)
                     cert_path = os.path.join(rc_path, subdir)
                     if not os.path.exists(cert_path):
-                        os.mkdir(cert_path)
+                        os.makedirs(cert_path)
                     cert_data = exports.encode_CertificateSigned_a(dbCertificateSigned)
                     for fname, fcontents in cert_data.items():
                         exports.write_pem(
@@ -3211,7 +3295,9 @@ def do__AcmeV2_AcmeOrder__new(
         if dbAcmeOrder.acme_status_order not in ("pending", "ready"):
             return dbAcmeOrder
 
-        if False:
+        # tests may require this to be off to test edge cases
+        # using a variable to control this behavior allows the tests to enable/disable this
+        if SYNC_AUTHZ_ON_ORDER_CREATION:
             # immediately sync the authorizations
             # otherwise we may allow competing authz
             dbAcmeOrder = do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
@@ -3270,15 +3356,6 @@ def do__AcmeV2_AcmeOrder__new(
     except Exception as exc:
         raise
 
-    finally:
-        if (
-            processing_strategy
-            in model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_DEACTIVATE_AUTHS
-        ):
-            # shut this down to deactivate the auths on our side
-            if dbAcmeOrder:
-                dbAcmeOrder.is_processing = None
-
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -3332,6 +3409,7 @@ def do__AcmeV2_AcmeOrder__retry(
 def do__AcmeV2_AriCheck(
     ctx: "ApiContext",
     dbCertificateSigned: "CertificateSigned",
+    force_check: bool = False,
 ) -> Tuple["AriCheck", Optional["AriCheckResult"]]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -3348,6 +3426,7 @@ def do__AcmeV2_AriCheck(
         ariCheckResult: Optional["AriCheckResult"] = acme_v2.ari_check(
             ctx=ctx,
             dbCertificateSigned=dbCertificateSigned,
+            force_check=force_check,
         )
         dbAriCheck = create__AriCheck(
             ctx=ctx,
