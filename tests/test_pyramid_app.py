@@ -11693,6 +11693,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
+    @under_pebble_alt
     @routes_tested(("admin:api:domain:autocert|json",))
     def test_Api_Domain_autocert_json(self):
         """
@@ -12863,7 +12864,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             )
             if dbAcmeServerConfiguration:
                 # unset the timestamp
-                # this will cause future auths to sync the director and notice the change
+                # this will cause future auths to sync the directory and notice the change
                 one_year_ago = self.ctx.timestamp - datetime.timedelta(days=365)
                 dbAcmeServerConfiguration.timestamp_lastchecked = one_year_ago
                 self.ctx.dbSession.flush(objects=[dbAcmeServerConfiguration])

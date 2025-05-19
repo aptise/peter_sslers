@@ -1909,9 +1909,15 @@ def ensure_AcmeAccount_auth(
         % acme_account_id,
         {},
     )
-    assert _resCheck.location.endswith(
-        "?result=success&operation=acme-server--authenticate&is_authenticated=True"
-    )
+    try:
+        assert _resCheck.location.endswith(
+            "?result=success&operation=acme-server--authenticate&is_authenticated=True"
+        )
+    except:
+        print("********")
+        print(_resCheck.location)
+        print(_resCheck.text)
+        raise
     return True
 
 
@@ -2113,6 +2119,25 @@ def unset_testing_data__AppTest(testCase: CustomizedTestCase) -> Literal[True]:
     )
     for dbSystemConfiguration in dbSystemConfigurations:
         dbSystemConfiguration.is_configured = False
+
+    # make sure every acme-account will not use a cache and sync on the next test
+    dbAcmeAccounts = (
+        testCase.ctx.dbSession.query(model_objects.AcmeAccount)
+        .all()
+    )
+    for _dbAcmeAccount in dbAcmeAccounts:
+        _dbAcmeAccount.timestamp_last_authenticated = None
+
+    one_year_ago = testCase.ctx.timestamp - datetime.timedelta(days=365)
+    dbAcmeServers = (
+        testCase.ctx.dbSession.query(model_objects.AcmeServer)
+        .all()
+    )
+    for _dbAcmeServer in dbAcmeServers:
+        _dbAcmeServer.profiles = None
+        if _dbAcmeServer.directory_latest:
+            _dbAcmeServer.directory_latest.timestamp_lastchecked = one_year_ago
+
     testCase.ctx.pyramid_transaction_commit()
     return True
 
