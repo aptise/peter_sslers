@@ -408,6 +408,7 @@ class FunctionalTests_Main(AppTest):
     @routes_tested("admin:debug")
     def test_debug(self):
         res = self.testapp.get("/.well-known/peter_sslers/debug", status=200)
+        assert res.text == "{}"
 
     @routes_tested("admin:settings")
     def test_settings(self):
