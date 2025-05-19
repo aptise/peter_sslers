@@ -2878,56 +2878,58 @@
         import pprint
         result = request.params.get('result', '')
     %>
-    % if result == 'success':
-        <div class="alert alert-success">
-    % elif result == 'error':
-        <div class="alert alert-danger">
-    % endif
+    % if result in ("success", "error"):
         % if result == 'success':
-            <p>
-                The operation `${request.params.get('operation')}` was successful.
-            </p>
+            <div class="alert alert-success">
+        % elif result == 'error':
+            <div class="alert alert-danger">
+        % endif
+            % if result == 'success':
+                <p>
+                    The operation `${request.params.get('operation')}` was successful.
+                </p>
+                % if request.params.get('message'):
+                    <p>
+                        Message: `${request.params.get('message')}`
+                    </p>
+                % endif
+                % if _AriCheck:
+                    ${pprint.pformat(_AriCheck)|n}
+                % endif
+            % elif result == 'error':
+                % if request.params.get('operation'):
+                    <p>
+                        The operation `${request.params.get('operation')}` was not successful.
+                    </p>
+                % endif
+                % if request.params.get('error'):
+                    <p>
+                        Error: `${request.params.get('error')}`
+                    </p>
+                % endif
+                % if request.params.get('error-encoded'):
+                    <p>
+                        Error: `${unurlify(request.params.get('error-encoded'))}`
+                    </p>
+                % endif
+            % endif
             % if request.params.get('message'):
                 <p>
                     Message: `${request.params.get('message')}`
                 </p>
             % endif
-            % if _AriCheck:
-                ${pprint.pformat(_AriCheck)|n}
-            % endif
-        % elif result == 'error':
-            % if request.params.get('operation'):
+            % if request.params.get('check-ari'):
                 <p>
-                    The operation `${request.params.get('operation')}` was not successful.
+                    Check-Ari Result: `${request.params.get('check-ari')}`
                 </p>
             % endif
-            % if request.params.get('error'):
+            % if request.params.get('check-support'):
                 <p>
-                    Error: `${request.params.get('error')}`
+                    Check-Support Result: `${request.params.get('check-support')}`
                 </p>
             % endif
-            % if request.params.get('error-encoded'):
-                <p>
-                    Error: `${unurlify(request.params.get('error-encoded'))}`
-                </p>
-            % endif
-        % endif
-        % if request.params.get('message'):
-            <p>
-                Message: `${request.params.get('message')}`
-            </p>
-        % endif
-        % if request.params.get('check-ari'):
-            <p>
-                Check-Ari Result: `${request.params.get('check-ari')}`
-            </p>
-        % endif
-        % if request.params.get('check-support'):
-            <p>
-                Check-Support Result: `${request.params.get('check-support')}`
-            </p>
-        % endif
         </div>
+    % endif
 </%def>
 
 
