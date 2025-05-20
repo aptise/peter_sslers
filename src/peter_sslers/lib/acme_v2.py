@@ -1851,7 +1851,7 @@ class AuthenticatedUser(object):
                 "OrderUrl",
                 url_order_status,
                 ["pending", "processing"],
-                "Error checking order status",
+                "via acme_v2.AuthenticatedUser.acme_order_finalize()",
             )
         except errors.AcmePollingTooLong as exc:
             log.debug(exc)
@@ -2491,6 +2491,7 @@ class AuthenticatedUser(object):
                 "AuthzUrl",
                 dbAcmeChallenge.acme_authorization.authorization_url,
                 ["pending", "processing"],
+                "via acme_v2.AuthenticatedUser.acme_challenge_trigger();"
                 "checking challenge status for {0}".format(
                     dbAcmeChallenge.acme_authorization.domain.domain_name
                 ),

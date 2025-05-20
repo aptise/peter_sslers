@@ -452,13 +452,14 @@ def update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
     This will only deactivate the authorization blocks...
     """
     if dbAcmeOrder.acme_authorization_potentials:
+        ctx.dbSession.flush()
         _updates = [
             dbAcmeOrder,
         ]
         for _pending in dbAcmeOrder.acme_authorization_potentials:
             ctx.dbSession.delete(_pending)
             _updates.append(_pending)
-        ctx.dbSession.flush(objects=_updates)
+        ctx.dbSession.flush()
         return True
     return False
 

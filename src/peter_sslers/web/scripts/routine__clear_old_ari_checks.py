@@ -31,4 +31,7 @@ def main(argv=sys.argv):
 
     ctx = new_scripts_setup(config_uri, options=options)
     dbRoutineExecution = lib_db.actions.routine__clear_old_ari_checks(ctx)  # noqa: F841
+    print("routine__clear_old_ari_checks()")
+    print(dbRoutineExecution.as_json)
+
     ctx.pyramid_transaction_commit()
