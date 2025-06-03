@@ -23,7 +23,7 @@
         <div class="col-sm-12">
             % if CertificateSigneds:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateSigneds(CertificateSigneds, show_domains=True, show_expiring_days=True)}
+                ${admin_partials.table_CertificateSigneds(CertificateSigneds, show_domains=True, show_days_to_expiry=True)}
             % else:
                 No known CertificateSigneds.
             % endif

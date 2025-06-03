@@ -1961,20 +1961,20 @@ def get__CertificateRequest__by_UniqueFQDNSetId__paginated(
 
 def get__CertificateSigned__count(
     ctx: "ApiContext",
-    expiring_days: Optional[int] = None,
+    days_to_expiry: Optional[int] = None,
     is_active: Optional[bool] = None,
     is_unexpired: Optional[bool] = None,
 ) -> int:
-    if (expiring_days is not None) and (is_unexpired is not None):
-        raise ValueError("only submit one of: expiring_days, is_unexpired")
+    if (days_to_expiry is not None) and (is_unexpired is not None):
+        raise ValueError("only submit one of: days_to_expiry, is_unexpired")
     q = ctx.dbSession.query(CertificateSigned)
     if is_active is not None:
         if is_active is True:
             q = q.filter(CertificateSigned.is_active.is_(True))
         elif is_active is False:
             q = q.filter(CertificateSigned.is_active.is_(False))
-    if expiring_days is not None:
-        _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
+    if days_to_expiry is not None:
+        _until = ctx.timestamp + datetime.timedelta(days=days_to_expiry)
         q = q.filter(
             CertificateSigned.timestamp_not_after <= _until,
         )
@@ -1988,15 +1988,15 @@ def get__CertificateSigned__count(
 
 def get__CertificateSigned__paginated(
     ctx: "ApiContext",
-    expiring_days: Optional[int] = None,
+    days_to_expiry: Optional[int] = None,
     is_active: Optional[bool] = None,
     is_unexpired: Optional[bool] = None,
     eagerload_web: bool = False,
     limit: Optional[int] = None,
     offset: int = 0,
 ) -> List[CertificateSigned]:
-    if (expiring_days is not None) and (is_unexpired is not None):
-        raise ValueError("only submit one of: expiring_days, is_unexpired")
+    if (days_to_expiry is not None) and (is_unexpired is not None):
+        raise ValueError("only submit one of: days_to_expiry, is_unexpired")
     q = ctx.dbSession.query(CertificateSigned)
     if eagerload_web:
         q = q.options(
@@ -2011,8 +2011,8 @@ def get__CertificateSigned__paginated(
             q = q.filter(CertificateSigned.is_active.is_(False))
         # q = q.order_by(CertificateSigned.timestamp_not_after.asc())
         q = q.order_by(CertificateSigned.id.desc())
-    if expiring_days is not None:
-        _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
+    if days_to_expiry is not None:
+        _until = ctx.timestamp + datetime.timedelta(days=days_to_expiry)
         q = q.filter(
             CertificateSigned.timestamp_not_after <= _until,
         ).order_by(CertificateSigned.timestamp_not_after.asc())
@@ -2776,13 +2776,13 @@ def get__CoverageAssuranceEvent__by_parentId__paginated(
 def _Domain_inject_exipring_days(
     ctx: "ApiContext",
     q,
-    expiring_days: int,
+    days_to_expiry: int,
     order: bool = False,
 ):
     """helper function for the count/paginated queries"""
     CertificateSignedMulti = sqlalchemy.orm.aliased(CertificateSigned)
     CertificateSignedSingle = sqlalchemy.orm.aliased(CertificateSigned)
-    _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
+    _until = ctx.timestamp + datetime.timedelta(days=days_to_expiry)
     q = (
         q.outerjoin(
             CertificateSignedMulti,
@@ -2817,32 +2817,32 @@ def _Domain_inject_exipring_days(
 
 def get__Domain__count(
     ctx: "ApiContext",
-    expiring_days: Optional[int] = None,
+    days_to_expiry: Optional[int] = None,
 ) -> int:
     q = ctx.dbSession.query(Domain)
-    if not expiring_days:
+    if not days_to_expiry:
         q = q.filter(
             sqlalchemy.or_(
                 Domain.certificate_signed_id__latest_single.is_not(None),
                 Domain.certificate_signed_id__latest_multi.is_not(None),
             )
         )
-    if expiring_days:
-        q = _Domain_inject_exipring_days(ctx, q, expiring_days, order=False)
+    if days_to_expiry:
+        q = _Domain_inject_exipring_days(ctx, q, days_to_expiry, order=False)
     counted = q.count()
     return counted
 
 
 def get__Domain__paginated(
     ctx: "ApiContext",
-    expiring_days: Optional[int] = None,
+    days_to_expiry: Optional[int] = None,
     eagerload_web: bool = False,
     limit: Optional[int] = None,
     offset: int = 0,
     active_certs_only: Optional[bool] = None,
 ) -> List[Domain]:
     q = ctx.dbSession.query(Domain)
-    if active_certs_only and not expiring_days:
+    if active_certs_only and not days_to_expiry:
         q = q.filter(
             sqlalchemy.or_(
                 Domain.certificate_signed_id__latest_single.is_not(None),
@@ -2854,8 +2854,8 @@ def get__Domain__paginated(
             joinedload(Domain.certificate_signed__latest_single),
             joinedload(Domain.certificate_signed__latest_multi),
         )
-    if expiring_days:
-        q = _Domain_inject_exipring_days(ctx, q, expiring_days, order=True)
+    if days_to_expiry:
+        q = _Domain_inject_exipring_days(ctx, q, days_to_expiry, order=True)
     else:
         q = q.order_by(sqlalchemy.func.lower(Domain.domain_name).asc())
     q = q.limit(limit).offset(offset)

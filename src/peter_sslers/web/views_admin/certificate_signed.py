@@ -285,7 +285,7 @@ class View_List(Handler):
         }
     )
     def list(self):
-        expiring_days = self.request.api_context.application_settings["expiring_days"]
+        expiring_days_ux = self.request.api_context.application_settings["expiring_days_ux"]
         if self.request.matched_route.name in (
             "admin:certificate_signeds:expiring",
             "admin:certificate_signeds:expiring-paginated",
@@ -300,12 +300,12 @@ class View_List(Handler):
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
             items_count = lib_db.get.get__CertificateSigned__count(
-                self.request.api_context, expiring_days=expiring_days
+                self.request.api_context, days_to_expiry=expiring_days_ux
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__CertificateSigned__paginated(
                 self.request.api_context,
-                expiring_days=expiring_days,
+                days_to_expiry=expiring_days_ux,
                 limit=items_per_page,
                 offset=offset,
             )
@@ -346,12 +346,12 @@ class View_List(Handler):
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
             items_count = lib_db.get.get__CertificateSigned__count(
-                self.request.api_context, expiring_days=expiring_days, is_active=True
+                self.request.api_context, days_to_expiry=expiring_days_ux, is_active=True
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__CertificateSigned__paginated(
                 self.request.api_context,
-                expiring_days=expiring_days,
+                days_to_expiry=expiring_days_ux,
                 is_active=True,
                 limit=items_per_page,
                 offset=offset,
@@ -433,7 +433,7 @@ class View_List(Handler):
             "CertificateSigneds_count": items_count,
             "CertificateSigneds": items_paged,
             "sidenav_option": sidenav_option,
-            "expiring_days": expiring_days,
+            "expiring_days_ux": expiring_days_ux,
             "pager": pager,
         }
 

@@ -334,8 +334,8 @@
                     <tr>
                         <th>expires in days</th>
                         <td>
-                            <span class="label label-${CertificateSigned.expiring_days_label}">
-                                ${CertificateSigned.expiring_days} days
+                            <span class="label label-${CertificateSigned.days_to_expiry_label}">
+                                ${CertificateSigned.days_to_expiry} days
                             </span>
                         </td>
                     </tr>
@@ -630,8 +630,8 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="label label-${latest_certificate.expiring_days_label}">
-                                                    ${latest_certificate.expiring_days} days
+                                                <span class="label label-${latest_certificate.days_to_expiry_label}">
+                                                    ${latest_certificate.days_to_expiry} days
                                                 </span>
                                             </td>
                                         % endif
@@ -657,8 +657,8 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="label label-${latest_active_certificate.expiring_days_label}">
-                                                    ${latest_active_certificate.expiring_days} days
+                                                <span class="label label-${latest_active_certificate.days_to_expiry_label}">
+                                                    ${latest_active_certificate.days_to_expiry} days
                                                 </span>
                                             </td>
                                         % endif

@@ -193,7 +193,7 @@
                                     <th>latest_single</th>
                                     <td>
                                         % if Domain.certificate_signed_id__latest_single:
-                                            ${admin_partials.table_CertificateSigneds([Domain.certificate_signed__latest_single,], show_domains=True, show_expiring_days=True)}
+                                            ${admin_partials.table_CertificateSigneds([Domain.certificate_signed__latest_single,], show_domains=True, show_days_to_expiry=True)}
                                         % endif
                                     </td>
                                 </tr>
@@ -201,7 +201,7 @@
                                     <th>latest_multi</th>
                                     <td>
                                         % if Domain.certificate_signed_id__latest_multi:
-                                            ${admin_partials.table_CertificateSigneds([Domain.certificate_signed__latest_multi,], show_domains=True, show_expiring_days=True)}
+                                            ${admin_partials.table_CertificateSigneds([Domain.certificate_signed__latest_multi,], show_domains=True, show_days_to_expiry=True)}
                                         % endif
                                     </td>
                                 </tr>
@@ -248,7 +248,7 @@
                         <th>CertificateSigneds ALL</th>
                         <td>
                             % if Domain.certificate_signeds__5:
-                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__5, show_domains=True, show_days_to_expiry=True)}
                             % else:
                                 No ACTIVE recents; inactive items will not appear on this view.
                             % endif
@@ -259,7 +259,7 @@
                         <th>CertificateSigneds Single Primary</th>
                         <td>
                             % if Domain.certificate_signeds__single_primary_5:
-                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__single_primary_5, show_domains=True, show_expiring_days=True)}
+                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__single_primary_5, show_domains=True, show_days_to_expiry=True)}
                             % else:
                                 No ACTIVE recents; inactive items will not appear on this view.
                             % endif
@@ -270,7 +270,7 @@
                         <th>CertificateSigneds Single Backup</th>
                         <td>
                             % if Domain.certificate_signeds__single_backup_5:
-                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__single_backup_5, show_domains=True, show_expiring_days=True)}
+                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__single_backup_5, show_domains=True, show_days_to_expiry=True)}
                             % else:
                                 No ACTIVE recents; inactive items will not appear on this view.
                             % endif

@@ -990,7 +990,7 @@
 </%def>
 
 
-<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False, show_replace=False)">
+<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_days_to_expiry=False, show_replace=False)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
@@ -1004,8 +1004,8 @@
                 % endif
                 <th>timestamp_not_before</th>
                 <th>timestamp_not_after</th>
-                % if show_expiring_days:
-                    <th>expiring days</th>
+                % if show_days_to_expiry:
+                    <th>days to expiry</th>
                 % endif
                 % if show_domains:
                     <th>domains</th>
@@ -1073,10 +1073,10 @@
                 % endif
                 <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
                 <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
-                % if show_expiring_days:
+                % if show_days_to_expiry:
                     <td>
-                        <span class="label label-${cert.expiring_days_label}">
-                            ${cert.expiring_days} days
+                        <span class="label label-${cert.days_to_expiry_label}">
+                            ${cert.days_to_expiry} days
                         </span>
                     </td>
                 % endif

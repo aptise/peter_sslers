@@ -89,15 +89,15 @@
                 <p>Inactive Unexpired CertificateSigneds.
                 </p>
             % else:
-                % if expiring_days and sidenav_option != 'all':
-                    <p>CertificateSigneds that will be expiring within `${expiring_days}` days.
+                % if expiring_days_ux and sidenav_option != 'all':
+                    <p>CertificateSigneds that will be expiring within `${expiring_days_ux}` days.
                     </p>
                 % endif
             % endif
 
             % if CertificateSigneds:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateSigneds(CertificateSigneds, show_domains=True, show_expiring_days=True)}
+                ${admin_partials.table_CertificateSigneds(CertificateSigneds, show_domains=True, show_days_to_expiry=True)}
             % else:
                 <em>
                     No Server Certificates

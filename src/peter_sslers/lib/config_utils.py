@@ -40,7 +40,7 @@ class ApplicationSettings(dict):
             "enable_redis",
             "enable_views_admin",
             "enable_views_public",
-            "expiring_days",
+            "expiring_days_ux",
             "log.acme",
             "log.objects",
             "log.operations",
@@ -120,7 +120,7 @@ class ApplicationSettings(dict):
         self["default_backup"] = default_backup
 
         # this is an int
-        self["expiring_days"] = set_int_setting(settings, "expiring_days", default=30)
+        self["expiring_days_ux"] = set_int_setting(settings, "expiring_days_ux", default=30)
 
         # should challenges block?
         self["block_competing_challenges"] = set_bool_setting(

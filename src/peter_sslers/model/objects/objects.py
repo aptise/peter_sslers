@@ -3554,18 +3554,18 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return self.unique_fqdn_set.domains_as_list
 
     @reify
-    def expiring_days(self) -> Optional[int]:
+    def days_to_expiry(self) -> Optional[int]:
         return (
             self.timestamp_not_after - datetime.datetime.now(datetime.timezone.utc)
         ).days
 
     @reify
-    def expiring_days_label(self) -> str:
-        if self.expiring_days <= 0:
+    def days_to_expiry__label(self) -> str:
+        if self.days_to_expiry <= 2:
             return "danger"
-        elif self.expiring_days <= 30:
+        elif self.days_to_expiry <= 7:
             return "warning"
-        elif self.expiring_days > 30:
+        elif self.days_to_expiry > 7:
             return "success"
         return "danger"
 
@@ -4019,14 +4019,14 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             payload["certificate__latest_multi"] = {
                 "id": self.certificate_signed_id__latest_multi,
                 "timestamp_not_after": self.certificate_signed__latest_multi.timestamp_not_after_isoformat,
-                "expiring_days": self.certificate_signed__latest_multi.expiring_days,
+                "days_to_expiry": self.certificate_signed__latest_multi.days_to_expiry,
                 "is_active": self.certificate_signed__latest_multi.is_active,
             }
         if self.certificate_signed_id__latest_single:
             payload["certificate__latest_single"] = {
                 "id": self.certificate_signed_id__latest_single,
                 "timestamp_not_after": self.certificate_signed__latest_single.timestamp_not_after_isoformat,
-                "expiring_days": self.certificate_signed__latest_single.expiring_days,
+                "days_to_expiry": self.certificate_signed__latest_single.days_to_expiry,
                 "is_active": self.certificate_signed__latest_single.is_active,
             }
 
@@ -4035,7 +4035,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 {
                     "id": i.id,
                     "timestamp_not_after": i.timestamp_not_after_isoformat,
-                    "expiring_days": i.expiring_days,
+                    "days_to_expiry": i.days_to_expiry,
                     "is_active": i.is_active,
                 }
                 for i in self.certificate_signeds__single_primary_5
@@ -4045,7 +4045,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 {
                     "id": i.id,
                     "timestamp_not_after": i.timestamp_not_after_isoformat,
-                    "expiring_days": i.expiring_days,
+                    "days_to_expiry": i.days_to_expiry,
                     "is_active": i.is_active,
                 }
                 for i in self.certificate_signeds__single_backup_5
