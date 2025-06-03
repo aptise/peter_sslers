@@ -3863,6 +3863,17 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             model_utils.indexable_lower(sa.text("domain_name")),
             unique=True,
         ),
+        sa.CheckConstraint(
+            "( "
+            "address_type_id IN (1, 2) "
+            "and "
+            "( "
+            "(address_type_id = 1 AND registered IS NOT NULL AND suffix IS NOT NULL) "
+            "OR "
+            "(address_type_id = 2 AND registered IS NULL AND suffix IS NULL) "
+            ") ",
+            name="_domain_type_check",
+        ),
     )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
@@ -3873,6 +3884,8 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
+
+    address_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     certificate_signed_id__latest_single: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
@@ -3890,7 +3903,13 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def address_type(self):
+        return model_utils.AddressType.as_string(self.address_type_id)
+
+    @property
     def registered_domain(self):
+        if self.address_type_id == model_utils.AddressType.IP_ADDRESS:
+            return self.domain_name
         return "%s.%s" % (self.registered, self.suffix)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3989,6 +4008,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             # - -
             "acme_challenge_domain_name": self.acme_challenge_domain_name,
+            "address_type": self.address_type,
             "certificate__latest_multi": {},
             "certificate__latest_single": {},
             "certificate_signeds__single_primary_5": [],
@@ -4453,7 +4473,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN uniquely_challenged_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END "
             " ) = 1",
-            name="check1",
+            name="ooe_check1",
         ),
     )
 

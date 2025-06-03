@@ -107,13 +107,19 @@
                         <td><code>${Domain.domain_name}</code></td>
                     </tr>
                     <tr>
-                        <th>registered</th>
-                        <td><code>${Domain.registered}</code></td>
+                        <th>type</th>
+                        <td><code>${Domain.address_type}</code></td>
                     </tr>
-                    <tr>
-                        <th>suffix</th>
-                        <td><code>${Domain.suffix}</code></td>
-                    </tr>
+                    % if Domain.address_type == "hostname":
+                        <tr>
+                            <th>registered</th>
+                            <td><code>${Domain.registered}</code></td>
+                        </tr>
+                        <tr>
+                            <th>suffix</th>
+                            <td><code>${Domain.suffix}</code></td>
+                        </tr>
+                    % endif
                     <tr>
                         <th>timestamp_created</th>
                         <td><timestamp>${Domain.timestamp_created}</timestamp></td>

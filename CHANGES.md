@@ -57,7 +57,7 @@
         * dbAcmeOrder_renewal_of - dropped
 
     Limited:
-        There is now only a single acme-dns server and it will function as the 
+        There is now only a single acme-dns server and it will function as the
         global default.  Supporting multiple acme-dns servers is too confusing
         and not currently worth pursuing.
 
@@ -164,7 +164,7 @@
           The lack of a physical presence in the USA makes this a more secure
           option than CAs with servers subject to the whims of problematic
           governments.
-          
+
     AcmeAccount can now have a "name", which is used on new Dropdown selects
 
     "Notes:"
@@ -221,18 +221,18 @@
 
     Export Feature
         write to disk on renewal
-    
+
     ACME logging is now controlled by config options
     we can pre-flight check dns-01 now
-    
+
     CertificateSigned now tracks 'duration_hours' as that may affect renewal logic
-    
+
     Background Routines are timed and logged
         The ARI replaces window can be extremly short:
-            90 day certs are about 45hours; potentially only 1 renewal 
+            90 day certs are about 45hours; potentially only 1 renewal
             short lived certs may be 2-4 hours
         There is concern for hourly
-    
+
     acme-dns-server
         now have an "all.json" to download everyting; post required
         now have an "all.csv" to download everyting; post required
@@ -250,7 +250,7 @@
         records are not available on AcmeOrder
             the UniquelyChallengedFqdnSet shows there is a dns-01 challenge;
             based on that, a secondary request can be made via html/json
-     
+
     CSV exports of acme_dns accounts
 
     Python 3.9+ only (josepy2.0 requirement)
@@ -267,18 +267,19 @@
 
     AcmeOrder & RenewalConfiguration
         allow acme_account_id instead of account_key
-    
+
     Added `regenerate.py` script for some test data, and invoke it in github workflow.
-    
+
     Added tests to ensure AcmeOrder can be created with different kinds of inputs
 
     reorganization of files:
-        
+
         each environment should have an isolated {DATA_DIRECTORY} which houses:
         * the database files for peter_sslers (and acme_dns testing)
         * the configuration file
-        
-    
+
+    Initial framework to allow IP address on Domain object/table
+
 
 
 0.6.0

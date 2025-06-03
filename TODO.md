@@ -10,19 +10,19 @@ AcmePollingError
 ProductionServer - keeps ordering certs
 
     routine__automatic_orders is not detecting fulfillment
-    
-    
-Cache ACME Directory:    
+
+
+Cache ACME Directory:
     DROP INDEX uidx_acme_server_configuration;
     ALTER TABLE acme_server_configuration RENAME TO acme_server_configuration_old;
     CREATE TABLE acme_server_configuration (
-        id INTEGER NOT NULL, 
-        acme_server_id INTEGER NOT NULL, 
-        timestamp_created DATETIME NOT NULL, 
-        timestamp_lastchecked DATETIME NOT NULL, 
-        is_active BOOLEAN, 
-        directory_payload TEXT NOT NULL, 
-        PRIMARY KEY (id), 
+        id INTEGER NOT NULL,
+        acme_server_id INTEGER NOT NULL,
+        timestamp_created DATETIME NOT NULL,
+        timestamp_lastchecked DATETIME NOT NULL,
+        is_active BOOLEAN,
+        directory_payload TEXT NOT NULL,
+        PRIMARY KEY (id),
         FOREIGN KEY(acme_server_id) REFERENCES acme_server (id)
     );
     CREATE UNIQUE INDEX uidx_acme_server_configuration ON acme_server_configuration (acme_server_id, is_active);
@@ -34,23 +34,23 @@ Cache ACME Directory:
     DROP INDEX uidx_acme_server_default;
     ALTER TABLE acme_server RENAME TO acme_server_old;
     CREATE TABLE acme_server (
-        id INTEGER NOT NULL, 
-        timestamp_created DATETIME NOT NULL, 
-        name VARCHAR(64) NOT NULL, 
-        directory_url VARCHAR(255) NOT NULL, 
-        server VARCHAR(255) NOT NULL, 
-        is_default BOOLEAN, 
-        is_supports_ari__version VARCHAR(32), 
-        is_unlimited_pending_authz BOOLEAN, 
-        is_retry_challenges BOOLEAN, 
-        is_enabled BOOLEAN NOT NULL, 
-        protocol VARCHAR(32) NOT NULL, 
-        server_ca_cert_bundle TEXT, 
-        profiles TEXT, 
-        PRIMARY KEY (id), 
-        CONSTRAINT check_protocol CHECK ((protocol = 'acme-v2')), 
-        UNIQUE (name), 
-        UNIQUE (directory_url), 
+        id INTEGER NOT NULL,
+        timestamp_created DATETIME NOT NULL,
+        name VARCHAR(64) NOT NULL,
+        directory_url VARCHAR(255) NOT NULL,
+        server VARCHAR(255) NOT NULL,
+        is_default BOOLEAN,
+        is_supports_ari__version VARCHAR(32),
+        is_unlimited_pending_authz BOOLEAN,
+        is_retry_challenges BOOLEAN,
+        is_enabled BOOLEAN NOT NULL,
+        protocol VARCHAR(32) NOT NULL,
+        server_ca_cert_bundle TEXT,
+        profiles TEXT,
+        PRIMARY KEY (id),
+        CONSTRAINT check_protocol CHECK ((protocol = 'acme-v2')),
+        UNIQUE (name),
+        UNIQUE (directory_url),
         UNIQUE (server)
     );
     CREATE UNIQUE INDEX uidx_acme_server_default ON acme_server (is_default);
@@ -58,6 +58,66 @@ Cache ACME Directory:
         id, timestamp_created, name, directory_url, server, is_default, is_supports_ari__version, is_unlimited_pending_authz, is_retry_challenges, is_enabled, protocol, server_ca_cert_bundle, profiles
     ) SELECT id, timestamp_created, name, directory, server, is_default, is_supports_ari__version, is_unlimited_pending_authz, is_retry_challenges, is_enabled, protocol, server_ca_cert_bundle, profiles FROM acme_server_old;
     DROP TABLE acme_server_old;
+
+
+
+
+    DROP INDEX uidx_domain;
+    ALTER TABLE domain RENAME TO domain_old;
+    CREATE TABLE domain (
+        id INTEGER NOT NULL,
+        domain_name VARCHAR(255) NOT NULL,
+        address_type_id INT NOT NULL,
+        registered VARCHAR(255) ,
+        suffix VARCHAR(255) ,
+        timestamp_created DATETIME NOT NULL,
+        certificate_signed_id__latest_single INTEGER,
+        certificate_signed_id__latest_multi INTEGER,
+        operations_event_id__created INTEGER NOT NULL,
+        discovery_type VARCHAR(255),
+        PRIMARY KEY (id),
+        FOREIGN KEY(certificate_signed_id__latest_single) REFERENCES certificate_signed (id),
+        FOREIGN KEY(certificate_signed_id__latest_multi) REFERENCES certificate_signed (id),
+        FOREIGN KEY(operations_event_id__created) REFERENCES operations_event (id),
+        CONSTRAINT _domain_type_check_ CHECK (
+            address_type_id IN (1, 2) AND
+            (
+                (address_type_id = 1 AND registered IS NOT NULL AND suffix IS NOT NULL)
+                OR
+                (address_type_id = 2 AND registered IS NULL AND suffix IS NULL)
+            )
+        )
+    );
+    CREATE UNIQUE INDEX uidx_domain ON domain (LOWER(domain_name));
+
+    INSERT INTO domain (
+        id,
+        domain_name,
+        address_type_id,
+        registered,
+        suffix,
+        timestamp_created,
+        certificate_signed_id__latest_single,
+        certificate_signed_id__latest_multi,
+        operations_event_id__created,
+        discovery_type
+    ) SELECT
+        id,
+        domain_name,
+        1,
+        registered,
+        suffix,
+        timestamp_created,
+        certificate_signed_id__latest_single,
+        certificate_signed_id__latest_multi,
+        operations_event_id__created,
+        discovery_type
+    FROM domain_old;
+    DROP TABLE domain_old;
+
+
+
+
 
 DRY RUN
 
@@ -74,15 +134,15 @@ Audit:
         AcknowledgeTransactionCommitRequired
         TransactionCommitRequired
         transaction_commit
-    Explanation:    
+    Explanation:
         These concepts need to be split into the following:
-            transaction_commit: 
+            transaction_commit:
                 instructs the def to commit the transaction
             acknowlege_transaction_commits:
                 the def will commit the transaction; the caller must acknowledge this
 
 
-    
+
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 
@@ -91,7 +151,7 @@ Feature?
     * db logging : control via config
         operations events
     * use a md5hash of the acme account url as an account identifier; likely better than acme_account_key
-    
+
 Fix
     ARI Checks
         see:

@@ -1357,7 +1357,7 @@ class View_Focus_New(View_Focus):
                 "%s/acme-order/%s?result=success&operation=renewal+configuration"
                 % (self.request.admin_url, dbAcmeOrderNew.id)
             )
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new_order__print)
@@ -1498,7 +1498,7 @@ class View_Focus_New(View_Focus):
                     "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                 )
             )
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(
@@ -1578,7 +1578,7 @@ class View_Focus_Manipulate(View_Focus):
             )
             return HTTPSeeOther(url_success)
 
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": exc.formStash.errors}
             url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
@@ -1844,7 +1844,7 @@ class View_New_Enrollment(Handler):
                     "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                 )
             )
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new_enrollment__print)

@@ -943,6 +943,18 @@ class AcmePollingErrorEndpoint(_mixin_mapping):
     }
 
 
+class AddressType(_mixin_mapping):
+    """ """
+
+    HOSTNAME = 1
+    IP_ADDRESS = 2
+
+    _mapping = {
+        1: "hostname",
+        2: "ip_address",
+    }
+
+
 class CertificateRequestSource(_mixin_mapping):
     """
     How was the CertificateRequest generated?
