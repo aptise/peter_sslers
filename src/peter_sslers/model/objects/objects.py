@@ -3865,12 +3865,13 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         ),
         sa.CheckConstraint(
             "( "
-            "address_type_id IN (1, 2) "
-            "and "
-            "( "
-            "(address_type_id = 1 AND registered IS NOT NULL AND suffix IS NOT NULL) "
-            "OR "
-            "(address_type_id = 2 AND registered IS NULL AND suffix IS NULL) "
+            "  address_type_id IN (1, 2) "
+            "  and "
+            "  ( "
+            "    (address_type_id = 1 AND registered IS NOT NULL AND suffix IS NOT NULL) "
+            "    OR "
+            "    (address_type_id = 2 AND registered IS NULL AND suffix IS NULL) "
+            "  ) "
             ") ",
             name="_domain_type_check",
         ),
