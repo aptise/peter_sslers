@@ -800,6 +800,11 @@ class AcmeChallengeType(_mixin_mapping):
     DEFAULT = "http-01"
 
 
+class AcmeChallengeType_Enum(Enum):
+    HTTP_01 = AcmeChallengeType.http_01
+    DNS_01 = AcmeChallengeType.dns_01
+
+
 class AcmeChallengeFailType(_mixin_mapping):
     """
     Used for Acme Logging
@@ -947,11 +952,13 @@ class AddressType(_mixin_mapping):
     """ """
 
     HOSTNAME = 1
-    IP_ADDRESS = 2
+    IP_ADDRESS_V4 = 2
+    IP_ADDRESS_V6 = 3
 
     _mapping = {
         1: "hostname",
-        2: "ip_address",
+        2: "ipv4",
+        3: "ipv6",
     }
 
 

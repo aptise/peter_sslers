@@ -120,7 +120,9 @@ class ApplicationSettings(dict):
         self["default_backup"] = default_backup
 
         # this is an int
-        self["expiring_days_ux"] = set_int_setting(settings, "expiring_days_ux", default=30)
+        self["expiring_days_ux"] = set_int_setting(
+            settings, "expiring_days_ux", default=30
+        )
 
         # should challenges block?
         self["block_competing_challenges"] = set_bool_setting(

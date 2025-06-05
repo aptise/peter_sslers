@@ -1234,11 +1234,27 @@ def getcreate__Domain__by_domainName(
     :param discovery_type:
     """
     is_created = False
-    dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
     domain_name = lib_utils.normalize_unique_text(domain_name)
 
+    dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
+
     if not dbDomain:
-        _registered, _suffix = lib_utils.parse_domain_name(domain_name)
+
+        _address_type_id: int
+        _registered: Optional[str] = None
+        _suffix: Optional[str] = None
+
+        _san_type = cert_utils.utils.identify_san_type(domain_name)
+        if _san_type == "hostname":
+            _address_type_id = model_utils.AddressType.HOSTNAME
+            _registered, _suffix = lib_utils.parse_domain_name(domain_name)
+        elif _san_type == "ipv4":
+            _address_type_id = model_utils.AddressType.IP_ADDRESS_V4
+        elif _san_type == "ipv6":
+            _address_type_id = model_utils.AddressType.IP_ADDRESS_V6
+        else:
+            # this should not happen
+            raise ValueError("unsupported san type: %s" % _san_type)
 
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
@@ -1246,6 +1262,7 @@ def getcreate__Domain__by_domainName(
         )
         dbDomain = model_objects.Domain()
         dbDomain.domain_name = domain_name  # unique
+        dbDomain.address_type_id = _address_type_id
         dbDomain.registered = _registered
         dbDomain.suffix = _suffix
         dbDomain.timestamp_created = ctx.timestamp

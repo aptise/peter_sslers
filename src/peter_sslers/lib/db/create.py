@@ -850,7 +850,12 @@ def create__CertificateRequest(
         submitted_domain_names=domain_names,
     )
     # this function checks the domain names match a simple regex
-    csr_domain_names = cert_utils.utils.domains_from_list(_csr_domain_names)
+    csr_domain_names = cert_utils.utils.domains_from_list(
+        _csr_domain_names,
+        allow_hostname=True,
+        allow_ipv4=True,
+        allow_ipv6=True,
+    )
     if len(csr_domain_names) != len(_csr_domain_names):
         raise ValueError(
             "One or more of the domain names in the CSR are not allowed (%s)"

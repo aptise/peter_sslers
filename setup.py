@@ -22,13 +22,13 @@ with open(os.path.join(HERE, "src", "peter_sslers", "__init__.py")) as v_file:
 
 requires = [
     "alembic",
-    "cert_utils>=1.0.0",  # formerly in this package, but migrated out
+    "cert_utils>=1.0.4",
     "configobj",  # used to read Certbot files
     "cryptography>42.0.0",
     "dnspython",
     "formencode>=2.0.0",
     "josepy>=2.0.0",
-    "psutil>=4.4.0",  # for Python2/3 compat
+    "psutil>=4.4.0",
     "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
@@ -51,7 +51,6 @@ tests_require = [
     "certbot",
     "cloudflare<3",
     "pre-commit",
-    # "pycryptodome",  # installs into pycrypto's space
     "pyramid_debugtoolbar>=4.4",
     "pyramid-debugtoolbar-ajax",
     "pytest",

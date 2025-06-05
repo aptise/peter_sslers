@@ -3879,15 +3879,12 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    registered: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    suffix: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-
+    address_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    registered: Mapped[Optional[str]] = mapped_column(sa.Unicode(255))  # nullable via `_domain_type_check`
+    suffix: Mapped[Optional[str]] = mapped_column(sa.Unicode(255))  # nullable via `_domain_type_check`
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
-
-    address_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-
     certificate_signed_id__latest_single: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
@@ -3897,7 +3894,6 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-
     discovery_type: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, default=None
     )
@@ -3909,7 +3905,10 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def registered_domain(self):
-        if self.address_type_id == model_utils.AddressType.IP_ADDRESS:
+        if self.address_type_id in (
+            model_utils.AddressType.IP_ADDRESS_V4,
+            model_utils.AddressType.IP_ADDRESS_V6,
+        ):
             return self.domain_name
         return "%s.%s" % (self.registered, self.suffix)
 

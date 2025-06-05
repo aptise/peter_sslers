@@ -605,7 +605,17 @@ def submit__new_enrollment(
                 "{DOMAIN}", domain_name
             ).replace("{NIAMOD}", reverse_domain_name)
             # domains will also be lowercase+strip
-            submitted_ = cert_utils.utils.domains_from_string(templated_domains)
+            #
+            # IMPORTANT RFC 8738
+            #       https://www.rfc-editor.org/rfc/rfc8738#section-7
+            #       The existing "dns-01" challenge MUST NOT be used to validate IP identifiers.
+            #
+            submitted_ = cert_utils.utils.domains_from_string(
+                templated_domains,
+                allow_hostname=True,
+                allow_ipv4=False,
+                allow_ipv6=False,
+            )
             domain_names_all.extend(submitted_)
             domains_challenged["dns-01"] = submitted_
 
@@ -614,7 +624,12 @@ def submit__new_enrollment(
                 "{DOMAIN}", domain_name
             ).replace("{NIAMOD}", reverse_domain_name)
             # domains will also be lowercase+strip
-            submitted_ = cert_utils.utils.domains_from_string(templated_domains)
+            submitted_ = cert_utils.utils.domains_from_string(
+                templated_domains,
+                allow_hostname=True,
+                allow_ipv4=True,
+                allow_ipv6=True,
+            )
             domain_names_all.extend(submitted_)
             domains_challenged["http-01"] = submitted_
 

@@ -264,7 +264,9 @@ class View_List(Handler):
         }
     )
     def list(self):
-        expiring_days_ux = self.request.api_context.application_settings["expiring_days_ux"]
+        expiring_days_ux = self.request.api_context.application_settings[
+            "expiring_days_ux"
+        ]
         if self.request.matched_route.name in (
             "admin:domains:expiring",
             "admin:domains:expiring-paginated",
