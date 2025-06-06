@@ -1075,7 +1075,7 @@
                 <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
                 % if show_days_to_expiry:
                     <td>
-                        <span class="label label-${cert.days_to_expiry_label}">
+                        <span class="label label-${cert.days_to_expiry__label}">
                             ${cert.days_to_expiry} days
                         </span>
                     </td>

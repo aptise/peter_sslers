@@ -79,7 +79,7 @@
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         CertificateSigned-${d.certificate_signed_id__latest_multi}</a>
                                     <timestamp>${d.certificate_signed__latest_multi.timestamp_not_after}</timestamp>
-                                    <span class="label label-${d.certificate_signed__latest_multi.days_to_expiry_label}">${d.certificate_signed__latest_multi.days_to_expiry} days</span>
+                                    <span class="label label-${d.certificate_signed__latest_multi.days_to_expiry__label}">${d.certificate_signed__latest_multi.days_to_expiry} days</span>
                                 % endif
                             </td>
                             <td>
@@ -90,7 +90,7 @@
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         CertificateSigned-${d.certificate_signed_id__latest_single}</a>
                                     <timestamp>${d.certificate_signed__latest_single.timestamp_not_after}</timestamp>
-                                    <span class="label label-${d.certificate_signed__latest_single.days_to_expiry_label}">${d.certificate_signed__latest_single.days_to_expiry} days</span>
+                                    <span class="label label-${d.certificate_signed__latest_single.days_to_expiry__label}">${d.certificate_signed__latest_single.days_to_expiry} days</span>
                                 % endif
                             </td>
                         </tr>

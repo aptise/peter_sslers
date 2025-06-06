@@ -334,7 +334,7 @@
                     <tr>
                         <th>expires in days</th>
                         <td>
-                            <span class="label label-${CertificateSigned.days_to_expiry_label}">
+                            <span class="label label-${CertificateSigned.days_to_expiry__label}">
                                 ${CertificateSigned.days_to_expiry} days
                             </span>
                         </td>
@@ -630,7 +630,7 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="label label-${latest_certificate.days_to_expiry_label}">
+                                                <span class="label label-${latest_certificate.days_to_expiry__label}">
                                                     ${latest_certificate.days_to_expiry} days
                                                 </span>
                                             </td>
@@ -657,7 +657,7 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="label label-${latest_active_certificate.days_to_expiry_label}">
+                                                <span class="label label-${latest_active_certificate.days_to_expiry__label}">
                                                     ${latest_active_certificate.days_to_expiry} days
                                                 </span>
                                             </td>
