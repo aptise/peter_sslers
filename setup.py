@@ -22,7 +22,7 @@ with open(os.path.join(HERE, "src", "peter_sslers", "__init__.py")) as v_file:
 
 requires = [
     "alembic",
-    "cert_utils>=1.0.4",
+    "cert_utils>=1.0.5",
     "configobj",  # used to read Certbot files
     "cryptography>42.0.0",
     "dnspython",
