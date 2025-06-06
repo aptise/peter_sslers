@@ -888,9 +888,9 @@ def update_DomainAutocert_with_AcmeOrder(
     ctx: "ApiContext",
     dbDomainAutocert: "DomainAutocert",
     dbAcmeOrder: Optional["AcmeOrder"] = None,
-) -> bool:
+) -> Literal[True]:
     if not dbAcmeOrder:
-        raise errors.InvalidTransition("missing `AcmeOrder`")
+        raise errors.InvalidTransition("missing `dbAcmeOrder`")
     dbDomainAutocert.acme_order_id = dbAcmeOrder.id
     dbDomainAutocert.timestamp_finished = datetime.datetime.now(datetime.timezone.utc)
     if dbAcmeOrder.acme_status_order == "valid":
@@ -901,13 +901,23 @@ def update_DomainAutocert_with_AcmeOrder(
     return True
 
 
+def update_DomainAutocert_with_RenewalConfiguration(
+    ctx: "ApiContext",
+    dbDomainAutocert: "DomainAutocert",
+    dbRenewalConfiguration: "RenewalConfiguration",
+) -> Literal[True]:
+    dbDomainAutocert.renewal_configuration_id = dbRenewalConfiguration.id
+    ctx.dbSession.flush(objects=[dbDomainAutocert])
+    return True
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 def update_Notification__dismiss(
     ctx: "ApiContext",
     dbNotification: "Notification",
-) -> bool:
+) -> Literal[True]:
     dbNotification.is_active = False
     ctx.dbSession.flush(objects=[dbNotification])
     return True

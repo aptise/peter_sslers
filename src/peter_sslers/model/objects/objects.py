@@ -4015,6 +4015,9 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             "certificate_signeds__single_backup_5": [],
             "domain_name": self.domain_name,
         }
+        if self.address_type == "hostname":
+            payload["registered"] = self.registered
+            payload["suffix"] = self.suffix
         if self.certificate_signed_id__latest_multi:
             payload["certificate__latest_multi"] = {
                 "id": self.certificate_signed_id__latest_multi,
@@ -4127,6 +4130,10 @@ class DomainAutocert(Base, _Mixin_Timestamps_Pretty):
     acme_order_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
     )
+    renewal_configuration_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("renewal_configuration.id"), nullable=True
+    )
+    
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

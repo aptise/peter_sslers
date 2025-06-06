@@ -545,7 +545,6 @@ class ViewAdminApi_Domain(Handler):
                     )
                     self.request.api_context.pyramid_transaction_commit()
 
-                # TODO: tie in the cert we get?
                 dbDomainAutocert = lib_db.create.create__DomainAutocert(
                     self.request.api_context,
                     dbDomain=dbDomain,
@@ -573,6 +572,13 @@ class ViewAdminApi_Domain(Handler):
                     is_duplicate_renewal = True  # noqa: F841
                     # we could raise exc to abort, but this is likely preferred
                     dbRenewalConfiguration = exc.args[0]
+                
+                # log the dbRenewalConfiguration onto the AutoCert
+                lib_db.update.update_DomainAutocert_with_RenewalConfiguration(
+                    self.request.api_context,
+                    dbDomainAutocert,
+                    dbRenewalConfiguration=dbRenewalConfiguration,
+                )
 
                 # run an order
                 dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
