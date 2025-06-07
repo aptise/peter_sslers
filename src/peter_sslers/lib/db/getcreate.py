@@ -31,6 +31,7 @@ from .get import get__CertificateCA__by_pem_text
 from .get import get__CertificateCAChain__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
+from .get import get__DomainBlocklisted__by_name
 from .get import get__PrivateKey_CurrentDay_AcmeAccount
 from .get import get__PrivateKey_CurrentDay_Global
 from .get import get__PrivateKey_CurrentWeek_AcmeAccount
@@ -47,7 +48,6 @@ from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
-# from .get import get__DomainBlocklisted__by_name
 
 if TYPE_CHECKING:
     from ..acme_v2 import AuthenticatedUser
@@ -62,6 +62,7 @@ if TYPE_CHECKING:
     from ...model.objects import CertificateRequest
     from ...model.objects import CertificateSigned
     from ...model.objects import Domain
+    from ...model.objects import DomainBlocklisted
     from ...model.objects import PrivateKey
     from ...model.objects import RemoteIpAddress
     from ...model.objects import UniqueFQDNSet
@@ -1288,6 +1289,22 @@ def getcreate__Domain__by_domainName(
     return (dbDomain, is_created)
 
 
+def getcreate__DomainBlocklisted__by_domainName(
+    ctx: "ApiContext",
+    domain_name: str,
+) -> Tuple["DomainBlocklisted", bool]:
+    is_created = False
+    domain_name = lib_utils.normalize_unique_text(domain_name)
+    dbDomainBlocklisted = get__DomainBlocklisted__by_name(ctx, domain_name)
+    if not dbDomainBlocklisted:
+        dbDomainBlocklisted = model_objects.DomainBlocklisted()
+        dbDomainBlocklisted.domain_name = domain_name
+        ctx.dbSession.add(dbDomainBlocklisted)
+        ctx.dbSession.flush(objects=[dbDomainBlocklisted])
+        is_created = True
+    return (dbDomainBlocklisted, is_created)
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -1750,18 +1767,3 @@ def getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged(
         )
 
     return (dbUniquelyChallengedFQDNSet, is_created)
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-__all__ = (
-    "getcreate__AcmeAccount",
-    "getcreate__CertificateCA__by_pem_text",
-    "getcreate__CertificateRequest__by_pem_text",
-    "getcreate__Domain__by_domainName",
-    "getcreate__PrivateKey__by_pem_text",
-    "getcreate__CertificateSigned",
-    "getcreate__UniqueFQDNSet__by_domainObjects",
-    "getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged",
-)

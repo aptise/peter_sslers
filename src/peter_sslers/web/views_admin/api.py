@@ -572,7 +572,7 @@ class ViewAdminApi_Domain(Handler):
                     is_duplicate_renewal = True  # noqa: F841
                     # we could raise exc to abort, but this is likely preferred
                     dbRenewalConfiguration = exc.args[0]
-                
+
                 # log the dbRenewalConfiguration onto the AutoCert
                 lib_db.update.update_DomainAutocert_with_RenewalConfiguration(
                     self.request.api_context,

@@ -289,13 +289,10 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
         )
 
     # !!!: DomainBlocklisted
-    dbDomainBlocklisted = model_objects.DomainBlocklisted()
-    dbDomainBlocklisted.domain_name = "always-fail.example.com"
-    ctx.dbSession.add(dbDomainBlocklisted)
-    ctx.dbSession.flush(
-        objects=[
-            dbDomainBlocklisted,
-        ]
+    dbDomainBlocklisted = (  # noqa: F841
+        db_getcreate.getcreate__DomainBlocklisted__by_domainName(
+            ctx, "always-fail.example.com"
+        )
     )
 
     # !!!: SystemConfigurations

@@ -3880,8 +3880,12 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     address_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    registered: Mapped[Optional[str]] = mapped_column(sa.Unicode(255))  # nullable via `_domain_type_check`
-    suffix: Mapped[Optional[str]] = mapped_column(sa.Unicode(255))  # nullable via `_domain_type_check`
+    registered: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255)
+    )  # nullable via `_domain_type_check`
+    suffix: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255)
+    )  # nullable via `_domain_type_check`
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
@@ -4133,7 +4137,6 @@ class DomainAutocert(Base, _Mixin_Timestamps_Pretty):
     renewal_configuration_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("renewal_configuration.id"), nullable=True
     )
-    
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

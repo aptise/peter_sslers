@@ -1309,7 +1309,7 @@ def create__DomainAutocert(
 ) -> "DomainAutocert":
     """
     Generates a new :class:`model.objects.DomainAutocert` for the datastore.
-    
+
     This just tracks which domains we autocert on via `certificate_if_needed`
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
