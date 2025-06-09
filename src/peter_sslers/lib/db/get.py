@@ -2654,7 +2654,9 @@ def get_CertificateSigneds_renew_now(
     timestamp_max_expiry: Optional[datetime.datetime] = None,
 ) -> List[CertificateSigned]:
     if not timestamp_max_expiry:
-        timestamp_max_expiry = datetime_ari_timely(ctx)
+        timestamp_max_expiry = datetime_ari_timely(
+            ctx, context="get_CertificateSigneds_renew_now"
+        )
 
     # print("get_CertificateSigneds_renew_now(")
     # print("\tctx.timestamp:", ctx.timestamp)
@@ -2695,6 +2697,14 @@ def get_CertificateSigneds_renew_now(
             sqlalchemy.or_(
                 CertificateSigned.timestamp_not_after <= timestamp_max_expiry,
                 AriCheck.suggested_window_end <= timestamp_max_expiry,
+                sqlalchemy.and_(
+                    AriCheck.suggested_window_end.is_(None),
+                    (
+                        CertificateSigned.timestamp_not_after
+                        - (CertificateSigned.duration_hours / 3)  # remove 1/3 the hours
+                    )
+                    < timestamp_max_expiry,
+                ),
             ),
         )
     )

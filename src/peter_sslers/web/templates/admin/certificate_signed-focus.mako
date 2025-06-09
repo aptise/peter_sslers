@@ -332,6 +332,10 @@
                         <td><timestamp>${CertificateSigned.duration_hours}</timestamp></td>
                     </tr>
                     <tr>
+                        <th>remaining_hours</th>
+                        <td><timestamp>${CertificateSigned.remaining_hours(request.api_context)} (${CertificateSigned.remaining_percent(request.api_context)}%)</timestamp></td>
+                    </tr>
+                    <tr>
                         <th>expires in days</th>
                         <td>
                             <span class="label label-${CertificateSigned.days_to_expiry__label}">

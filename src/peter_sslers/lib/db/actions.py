@@ -1175,7 +1175,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     # the max_expiry will be in the future, to ensure we check ARI of anything
     # that expires until the next routine invocation
     timestamp_max_expiry = datetime_ari_timely(
-        ctx, datetime_now=TIMESTAMP_routine_start
+        ctx, datetime_now=TIMESTAMP_routine_start, context="routine__run_ari_checks"
     )
     """
     # The SQL we want (for now):

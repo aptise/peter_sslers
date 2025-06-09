@@ -1,15 +1,17 @@
 URGENT
 =====
 
+ProductionServer - keeps ordering certs
+    routine__automatic_orders is not detecting fulfillment
+    trouble duplicating, was this fixed?
+
+
 urllib3 has a breaking change in 2.4.0
     # see https://github.com/urllib3/urllib3/issues/3571
 
 AcmePollingError
     bug on server; could have a dict;;  converting to json but ensure this is okay
 
-ProductionServer - keeps ordering certs
-
-    routine__automatic_orders is not detecting fulfillment
 
 Tests
     submit (hostname, ipv4, ipv6) to domain new

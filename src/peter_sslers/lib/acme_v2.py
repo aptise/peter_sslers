@@ -2781,7 +2781,9 @@ def ari_check(
     if not dbCertificateSigned.is_ari_checking_timely(ctx, datetime_now=datetime_now):
         if not force_check:
             # the expiry is a padded limit of the max time to rely on ARI checks
-            timely_expiry = datetime_ari_timely(ctx, datetime_now=datetime_now)
+            timely_expiry = datetime_ari_timely(
+                ctx, datetime_now=datetime_now, context="ari_check"
+            )
             raise errors.AcmeAriCheckDeclined(
                 "ARI Check Declined; Not Timely: %s<%s"
                 % (

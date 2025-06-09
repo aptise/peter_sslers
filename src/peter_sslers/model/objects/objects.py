@@ -21,6 +21,7 @@ import pprint
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import overload
 from typing import TYPE_CHECKING
 from typing import Union
 
@@ -3611,6 +3612,51 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             return None
         return model_utils.KeyTechnology.as_string(self.key_technology_id)
 
+    @overload
+    def remaining_hours(
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+        as_float: Literal[True] = True,
+    ) -> int:
+        ...
+
+    @overload
+    def remaining_hours(
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+        as_float: Literal[False] = False,
+    ) -> float:
+        ...
+
+    def remaining_hours(
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+        as_float: Literal[True, False] = False,
+    ) -> Union[float, int]:
+        if not self.duration_hours:
+            return 0
+        if timestamp is None:
+            timestamp = ctx.timestamp
+        if self.timestamp_not_after <= timestamp:
+            return 0
+        computed = (self.timestamp_not_after - timestamp).total_seconds() / 60 / 60
+        return int(computed) if not as_float else computed
+
+    def remaining_percent(
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+    ) -> float:
+        remaining_hours = self.remaining_hours(
+            ctx=ctx, timestamp=timestamp, as_float=True
+        )
+        if not remaining_hours:
+            return 0.0
+        return round((remaining_hours / self.duration_hours) * 100, 2)
+
     @property
     def renewal__private_key_strategy_id(self) -> int:
         if self.acme_order:
@@ -3655,9 +3701,10 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def as_json(self) -> Dict:
-        return {
+        rval = {
             "id": self.id,
             # - -
+            # cert.acme_order.renewal_configuration.is_active
             # "acme_account_id": self.acme_account_id,
             "ari_check_latest_id": (
                 self.ari_check__latest.id if self.ari_check__latest else None
@@ -3688,16 +3735,28 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             ),
             "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
+            "remaining_hours": self.remaining_hours,
+            "remaining_percent": self.remaining_percent,
             "spki_sha256": self.spki_sha256,
             "timestamp_not_after": self.timestamp_not_after_isoformat,
             "timestamp_not_before": self.timestamp_not_before_isoformat,
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
+        if self.acme_order:
+            rval["AcmeOrder"] = {
+                "id": self.acme_order.id,
+            }
+            if self.acme_order.renewal_configuration_id:
+                rval["AcmeOrder"]["RenewalConfiguration"] = {
+                    "id": self.acme_order.renewal_configuration_id,
+                    "is_active": self.acme_order.renewal_configuration.is_active,
+                }
+        return rval
 
     @property
     def as_json_replaces_candidate(self) -> Dict:
-        return {
+        rval = {
             "id": self.id,
             "ari_identifier": self.ari_identifier,
             "cert_pem_md5": self.cert_pem_md5,
@@ -3705,6 +3764,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "timestamp_not_after": self.timestamp_not_after_isoformat,
             "timestamp_not_before": self.timestamp_not_before_isoformat,
         }
+        return rval
 
 
 # ==============================================================================

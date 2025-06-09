@@ -1039,10 +1039,16 @@
                 </td>
                 % if perspective != "RenewalConfiguration":
                 <td>
-                    % if cert.acme_order:
+                    % if cert.acme_order and cert.acme_order.renewal_configuration:
                         <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.acme_order.renewal_configuration_id}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             RenewalConfiguration-${cert.acme_order.renewal_configuration_id}</a>
+                            
+                            % if cert.acme_order.renewal_configuration.is_active:
+                                <span class="label label-success">Active</span>
+                            % else:
+                                <span class="label label-warning">Inactive</span>
+                            % endif
                             
                             % if cert.certificate_signed_id__replaces:
                                 <span class="label label-default">replaces ${cert.certificate_signed_id__replaces}</span>
@@ -1050,8 +1056,6 @@
                             % if cert.certificate_signed_id__replaced_by:
                                 <span class="label label-default">replaced by ${cert.certificate_signed_id__replaced_by}</span>
                             % endif
-                            
-                            
                     % else:
                         <span class="label label-warning">
                             unavailable
