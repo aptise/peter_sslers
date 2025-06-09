@@ -3701,6 +3701,11 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def as_json(self) -> Dict:
+        _dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert _dbSession
+        _request = _dbSession.info.get("request")
+
         rval = {
             "id": self.id,
             # - -
@@ -3735,8 +3740,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             ),
             "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
-            "remaining_hours": self.remaining_hours,
-            "remaining_percent": self.remaining_percent,
+            "remaining_hours": self.remaining_hours(_request.api_context),
+            "remaining_percent": self.remaining_percent(_request.api_context),
             "spki_sha256": self.spki_sha256,
             "timestamp_not_after": self.timestamp_not_after_isoformat,
             "timestamp_not_before": self.timestamp_not_before_isoformat,
