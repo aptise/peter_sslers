@@ -95,6 +95,7 @@ def validate_formstash_domain_templates(
             allow_hostname=True,
             allow_ipv4=True,
             allow_ipv6=True,
+            ipv6_require_compressed=True,
         )
         if domain_names:
             domain_names_all.extend(domain_names)

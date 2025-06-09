@@ -227,6 +227,7 @@ def validate_domains_template(
                 allow_hostname=True,
                 allow_ipv4=True,
                 allow_ipv6=True,
+                ipv6_require_compressed=True,
             )
         else:
             raise ValueError(

@@ -1049,6 +1049,7 @@ def form_domains_challenge_typed(
                     allow_hostname=True,
                     allow_ipv4=True,
                     allow_ipv6=True,
+                    ipv6_require_compressed=True,
                 )
                 if submitted_:
                     domain_names_all.extend(submitted_)
@@ -1118,6 +1119,7 @@ def form_single_domain_challenge_typed(
         allow_hostname=True,
         allow_ipv4=True,
         allow_ipv6=True,
+        ipv6_require_compressed=True,
     )
     if not domain_names:
         formStash.fatal_field(

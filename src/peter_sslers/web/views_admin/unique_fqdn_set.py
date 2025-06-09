@@ -404,6 +404,7 @@ class View_Focus(Handler):
                     allow_hostname=True,
                     allow_ipv4=True,
                     allow_ipv6=True,
+                    ipv6_require_compressed=True,
                 )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
@@ -419,6 +420,7 @@ class View_Focus(Handler):
                     allow_hostname=True,
                     allow_ipv4=True,
                     allow_ipv6=True,
+                    ipv6_require_compressed=True,
                 )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
@@ -552,6 +554,7 @@ class ViewNew(Handler):
                     allow_hostname=True,
                     allow_ipv4=True,
                     allow_ipv6=True,
+                    ipv6_require_compressed=True,
                 )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(

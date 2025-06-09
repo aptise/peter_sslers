@@ -629,6 +629,7 @@ def submit__new_enrollment(
                 allow_hostname=True,
                 allow_ipv4=True,
                 allow_ipv6=True,
+                ipv6_require_compressed=True,
             )
             domain_names_all.extend(submitted_)
             domains_challenged["http-01"] = submitted_

@@ -35,7 +35,13 @@ def main(argv=sys.argv):
     ctx = new_scripts_setup(config_uri, options=options)
     assert ctx.request
 
-    if not cert_utils.utils.validate_domains([candidate]):
+    if not cert_utils.utils.validate_domains(
+        [candidate],
+        allow_hostname=True,
+        allow_ipv4=True,
+        allow_ipv6=True,
+        ipv6_require_compressed=True,
+    ):
         raise ValueError("`%s` is not a valid hostname/ipv4/ipv6" % candidate)
 
     dbDomainBlocklisted, is_created = (
