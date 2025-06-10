@@ -67,6 +67,447 @@ DEBUG_CIN = False
 DEBUG_CONCEPT = False
 
 
+class FakeStopableWSGIServer(object):
+    # used to mock interface for `StopableWSGIServer`
+    def shutdown(self):
+        pass
+
+
+def _create_public_server(settings: Dict) -> StopableWSGIServer:
+    """
+    This is used to create a public WSGI server
+    The public server DISABLES the admin routes
+
+    def tearDown(self):
+        if self._testapp_wsgi is not None:
+            self._testapp_wsgi.shutdown()
+        AppTest.tearDown(self)
+    """
+
+    #
+    # sanitize the settings
+    #
+    pryamid_bools = (
+        "pyramid.debug_authorization"
+        "pyramid.debug_notfound"
+        "pyramid.debug_routematch"
+    )
+    for field in pryamid_bools:
+        if field in settings:
+            settings[field] = "false"
+    if "pyramid.includes" in settings:
+        settings["pyramid.includes"] = settings["pyramid.includes"].replace(
+            "pyramid_debugtoolbar", ""
+        )
+
+    # ensure what the public can and can't see
+    settings["enable_views_admin"] = "false"
+    settings["enable_views_public"] = "true"
+
+    try:
+        http_port = settings.get("http_port.renewals")
+        http_port = int(http_port)  # type: ignore[arg-type]
+    except Exception:
+        http_port = 7202
+
+    # import here to avoid circular imports
+    from ...web import main as app_main
+
+    app = app_main(global_config=None, **settings)
+    app_wsgi = StopableWSGIServer.create(
+        app,
+        host="localhost",
+        port=http_port,
+    )
+
+    return app_wsgi
+
+
+def _create_public_server__fake(settings: Dict) -> FakeStopableWSGIServer:
+    # used to mock interface for `StopableWSGIServer`
+    fake_wsgi = FakeStopableWSGIServer()
+    return fake_wsgi
+
+
+def acme_dns__ensure_accounts(
+    ctx: "ApiContext",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[int, int]:
+    """Checks `Domain`s that need acme-dns accounts. Creates accounts if needed.
+
+    Returns a tuple of (accounts_existing:int, accounts_new:int)
+    """
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    accounts_existing = 0
+    accounts_new = 0
+
+    results = (
+        ctx.dbSession.query(model_objects.RenewalConfiguration)
+        .join(
+            model_objects.UniquelyChallengedFQDNSet2Domain,
+            model_objects.RenewalConfiguration.uniquely_challenged_fqdn_set_id
+            == model_objects.UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id,
+        )
+        .join(
+            model_objects.Domain,
+            model_objects.UniquelyChallengedFQDNSet2Domain.domain_id
+            == model_objects.Domain.id,
+        )
+        .join(
+            model_objects.AcmeDnsServerAccount,
+            model_objects.Domain.id == model_objects.AcmeDnsServerAccount.domain_id,
+            isouter=True,
+        )
+        .filter(
+            model_objects.UniquelyChallengedFQDNSet2Domain.acme_challenge_type_id
+            == model_utils.AcmeChallengeType.dns_01,
+        )
+        .all()
+    )
+    for rc in results:
+        for to_domain in rc.uniquely_challenged_fqdn_set.to_domains__dns_01:
+            if False:
+                print("===")
+                print(to_domain.domain.domain_name)
+                print(to_domain.domain.acme_dns_server_account__active)
+            if to_domain.domain.acme_dns_server_account__active:
+                accounts_existing += 1
+            else:
+                print(
+                    "ensure_Domain_to_AcmeDnsServer: %s" % to_domain.domain.domain_name
+                )
+                _dbAcmeDnsServerAccount = (
+                    lib_db.associate.ensure_Domain_to_AcmeDnsServer(
+                        ctx,
+                        to_domain.domain,
+                        ctx.dbAcmeDnsServer_GlobalDefault,
+                        discovery_type="via acme_dns_server._ensure_domains__submit",
+                    )
+                )
+                accounts_new += 1
+                ctx.pyramid_transaction_commit()
+
+    return accounts_existing, accounts_new
+
+
+def api_domains__certificate_if_needed(
+    ctx: "ApiContext",
+    domains_challenged: "DomainsChallenged",
+    # PRIMARY
+    dbAcmeAccount__primary: "AcmeAccount",
+    dbPrivateKey__primary: Optional["PrivateKey"],
+    acme_profile__primary: Optional[str],
+    private_key_cycle__primary: str,
+    private_key_technology__primary: str,
+    # BACKUP
+    dbAcmeAccount__backup: Optional["AcmeAccount"],
+    dbPrivateKey__backup: Optional["PrivateKey"],
+    acme_profile__backup: Optional[str],
+    private_key_cycle__backup: Optional[str],
+    private_key_technology__backup: Optional[str],
+    # SHARED
+    note: Optional[str],
+    processing_strategy: str,
+    dbSystemConfiguration: "SystemConfiguration",
+    transaction_commit: Optional[bool] = None,
+) -> Dict:
+    """
+    Adds Domains if needed
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names, as instance of :class:`model.utils.DomainsChallenged`.
+
+    :param dbAcmeAccount__primary: (required) A :class:`model.objects.AcmeAccount` object
+    :param dbPrivateKey__primary: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
+    :param private_key_cycle__primary: (required)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_technology__primary: (required)  A value from :class:`model.utils.PrivateKeyTechnology`
+    :param acme_profile__primary: (optional)
+
+    :param dbAcmeAccount__backup: (optional) A :class:`model.objects.AcmeAccount` object
+    :param dbPrivateKey__backup: (optional) A :class:`model.objects.PrivateKey` object used to sign the request.
+    :param acme_profile__backup: (optional)  str
+    :param private_key_cycle__backup: (optional)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_technology__backup: (optional)  A value from :class:`model.utils.PrivateKeyTechnology`
+
+    :param note: (optional)  user note
+    :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
+    :param dbSystemConfiguration: (required) The sytem configuration
+
+    results will be a dict:
+
+        {%DOMAIN_NAME%: {'domain': # active, activated, new, FAIL
+                         'certificate':  # active, new, FAIL
+
+    logging codes
+        2010: 'ApiDomains__certificate_if_needed',
+        2011: 'ApiDomains__certificate_if_needed__domain_exists',
+        2012: 'ApiDomains__certificate_if_needed__domain_activate',
+        2013: 'ApiDomains__certificate_if_needed__domain_new',
+        2015: 'ApiDomains__certificate_if_needed__certificate_exists',
+        2016: 'ApiDomains__certificate_if_needed__certificate_new_success',
+        2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
+    """
+    if not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
+    # validate this first!
+    # dbSystemConfiguration = ctx._load_SystemConfiguration_cin()
+    if not dbSystemConfiguration or not dbSystemConfiguration.is_configured:
+        raise errors.DisplayableError(
+            "the `certificate-if-needed` SystemConfiguration is not configured"
+        )
+
+    if DEBUG_CIN:
+        print("api_domains__certificate_if_needed")
+        pprint.pprint(locals())
+
+    acme_order_processing_strategy_id = (
+        model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
+    )
+    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle__primary
+    )
+    private_key_cycle_id__backup: Optional[int] = None
+    private_key_technology_id__backup: Optional[int] = None
+    if dbAcmeAccount__backup:
+        # private_key_cycle__backup and private_key_technology__backup are required
+        # acme_profile__backup is not required
+        if not private_key_cycle__backup:
+            raise errors.DisplayableError("missing `private_key_cycle__backup`")
+        if not private_key_technology__backup:
+            raise errors.DisplayableError("missing `private_key_technology__backup`")
+
+        private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle__backup
+        )
+        private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
+            private_key_technology__backup
+        )
+    else:
+        acme_profile__backup = None
+        private_key_cycle__backup = None
+        private_key_technology__backup = None
+
+    if dbAcmeAccount__primary is None:
+        raise errors.DisplayableError("missing AcmeAccount[Primary]")
+    elif not dbAcmeAccount__primary.is_active:
+        raise errors.DisplayableError("AcmeAccount[Primary] is not active")
+
+    if not dbPrivateKey__primary:
+        raise errors.DisplayableError("missing PrivateKey[Primary]")
+
+    # bookkeeping
+    event_payload_dict = lib.utils.new_event_payload_dict()
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string(
+            "ApiDomains__certificate_if_needed"
+        ),
+        event_payload_dict,
+    )
+
+    # this function checks the domain names match a simple regex
+    domain_names = domains_challenged.domains_as_list
+    results: Dict = {d: None for d in domain_names}
+    # _timestamp = dbOperationsEvent.timestamp_event
+
+    if DEBUG_CIN:
+        print("domain_names", domain_names)
+
+    for _domain_name in domain_names:
+        # scoping
+        _logger_args: Dict = {
+            "event_status_id": None,
+        }
+        _result: Dict = {
+            "domain.status": None,
+            "domain.id": None,
+            "certificate_signed.id": None,
+            "certificate_signed.status": None,
+            "acme_order.id": None,
+        }
+
+        # Step 1- is the domain_name blocklisted?
+        _dbDomainBlocklisted = lib.db.get.get__DomainBlocklisted__by_name(
+            ctx, _domain_name
+        )
+        if _dbDomainBlocklisted:
+            _result["domain.status"] = "blocklisted"
+            continue
+
+        # Step 2- is the domain_name a Domain?
+        _dbDomain = lib.db.get.get__Domain__by_name(ctx, _domain_name, preload=False)
+        if _dbDomain:
+            _result["domain.id"] = _dbDomain.id
+
+            _result["domain.status"] = "existing"
+
+            _logger_args["event_status_id"] = (
+                model_utils.OperationsObjectEventStatus.from_string(
+                    "ApiDomains__certificate_if_needed__domain_exists"
+                )
+            )
+            _logger_args["dbDomain"] = _dbDomain
+
+        elif not _dbDomain:
+            _dbDomain = lib.db.getcreate.getcreate__Domain__by_domainName(
+                ctx,
+                _domain_name,
+                discovery_type="via certificate_if_needed",
+            )[
+                0
+            ]  # (dbDomain, _is_created)
+            _result["domain.status"] = "new"
+            _result["domain.id"] = _dbDomain.id
+            _logger_args["event_status_id"] = (
+                model_utils.OperationsObjectEventStatus.from_string(
+                    "ApiDomains__certificate_if_needed__domain_new"
+                )
+            )
+            _logger_args["dbDomain"] = _dbDomain
+
+        # log Domain event
+        _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)
+
+        if DEBUG_CIN:
+            print("commiting for domain work")
+            print("_result")
+            pprint.pprint(_result)
+            print("_logger_args")
+            pprint.pprint(_logger_args)
+
+        # do commit, just because we may have created a domain; also, logging!
+        ctx.pyramid_transaction_commit()
+
+        # look for a certificate
+        _logger_args = {"event_status_id": None}
+        _dbCertificateSigned = lib.db.get.get__CertificateSigned__by_DomainId__latest(
+            ctx, _dbDomain.id
+        )
+        if _dbCertificateSigned:
+            _result["certificate_signed.status"] = "exists"
+            _result["certificate_signed.id"] = _dbCertificateSigned.id
+            _logger_args["event_status_id"] = (
+                model_utils.OperationsObjectEventStatus.from_string(
+                    "ApiDomains__certificate_if_needed__certificate_exists"
+                )
+            )
+            _logger_args["dbCertificateSigned"] = _dbCertificateSigned
+        else:
+            try:
+                _domains_challenged__single = model_utils.DomainsChallenged.new_http01(
+                    [
+                        _domain_name,
+                    ]
+                )
+
+                try:
+                    dbRenewalConfiguration = create.create__RenewalConfiguration(
+                        ctx,
+                        domains_challenged=_domains_challenged__single,
+                        # Primary cert
+                        dbAcmeAccount__primary=dbAcmeAccount__primary,
+                        private_key_technology_id__primary=model_utils.KeyTechnology.from_string(
+                            private_key_technology__primary
+                        ),
+                        private_key_cycle_id__primary=private_key_cycle_id__primary,
+                        acme_profile__primary=acme_profile__primary,
+                        # Backup cert
+                        dbAcmeAccount__backup=dbAcmeAccount__backup,
+                        private_key_technology_id__backup=private_key_technology_id__backup,
+                        private_key_cycle_id__backup=private_key_cycle_id__backup,
+                        acme_profile__backup=acme_profile__backup,
+                        # misc
+                        note=note,
+                        dbSystemConfiguration=dbSystemConfiguration,
+                    )
+                    is_duplicate_renewal = False
+                except errors.DuplicateRenewalConfiguration as exc:
+                    is_duplicate_renewal = True
+                    # we could raise exc to abort, but this is likely preferred
+                    dbRenewalConfiguration = exc.args[0]
+
+                dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                    ctx,
+                    dbRenewalConfiguration=dbRenewalConfiguration,
+                    processing_strategy=processing_strategy,
+                    acme_order_type_id=model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
+                    dbPrivateKey=dbPrivateKey__primary,
+                    replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                    transaction_commit=True,
+                )
+
+                _logger_args["dbAcmeOrder"] = dbAcmeOrder
+                _result["acme_order.id"] = dbAcmeOrder.id
+                if dbAcmeOrder.certificate_signed_id:
+                    _result["certificate_signed.status"] = "new"
+                    _result["certificate_signed.id"] = dbAcmeOrder.certificate_signed_id
+                    _logger_args["event_status_id"] = (
+                        model_utils.OperationsObjectEventStatus.from_string(
+                            "ApiDomains__certificate_if_needed__certificate_new_success"
+                        )
+                    )
+                    _logger_args["dbCertificateSigned"] = dbAcmeOrder.certificate_signed
+                else:
+                    _result["error"] = "AcmeOrder did not generate a CertificateSigned"
+                    _result["certificate_signed.status"] = "fail"
+                    _logger_args["event_status_id"] = (
+                        model_utils.OperationsObjectEventStatus.from_string(
+                            "ApiDomains__certificate_if_needed__certificate_new_fail"
+                        )
+                    )
+
+            except Exception as exc:
+                # unpack a `errors.AcmeOrderCreatedError` to local vars
+
+                if isinstance(exc, errors.AcmeOrderCreatedError):
+                    dbAcmeOrder = exc.acme_order
+                    exc = exc.original_exception
+
+                    _logger_args["dbAcmeOrder"] = dbAcmeOrder
+                    _result["acme_order.id"] = dbAcmeOrder.id
+
+                elif isinstance(exc, errors.AcmeError):
+                    _result["error"] = "Could not process AcmeOrder, %s" % str(exc)
+                    _result["certificate_signed.status"] = "fail"
+                    _logger_args["event_status_id"] = (
+                        model_utils.OperationsObjectEventStatus.from_string(
+                            "ApiDomains__certificate_if_needed__certificate_new_fail"
+                        )
+                    )
+                elif isinstance(exc, errors.DuplicateAcmeOrder):
+                    _result["error"] = "Could not process AcmeOrder, %s" % exc.args[0]
+                    _result["certificate_signed.status"] = "fail"
+
+                raise
+
+        # log domain event
+        if DEBUG_CONCEPT:
+            print("=====================")
+            print("DEBUGGING CONCEPT")
+            print(dbOperationsEvent.__dict__)
+            print("-----")
+            print(_logger_args)
+            print("=====================")
+        _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)
+
+        # do commit, just because THE LOGGGING
+        ctx.pyramid_transaction_commit()
+
+        # note result
+        results[_domain_name] = _result
+
+    event_payload_dict["results"] = results
+    # dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
+    dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+    return results
+
+
 def operations_deactivate_expired(
     ctx: "ApiContext",
 ) -> "OperationsEvent":
@@ -601,322 +1042,6 @@ def operations_update_recents__global(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def api_domains__certificate_if_needed(
-    ctx: "ApiContext",
-    domains_challenged: "DomainsChallenged",
-    # PRIMARY
-    dbAcmeAccount__primary: "AcmeAccount",
-    dbPrivateKey__primary: Optional["PrivateKey"],
-    acme_profile__primary: Optional[str],
-    private_key_cycle__primary: str,
-    private_key_technology__primary: str,
-    # BACKUP
-    dbAcmeAccount__backup: Optional["AcmeAccount"],
-    dbPrivateKey__backup: Optional["PrivateKey"],
-    acme_profile__backup: Optional[str],
-    private_key_cycle__backup: Optional[str],
-    private_key_technology__backup: Optional[str],
-    # SHARED
-    note: Optional[str],
-    processing_strategy: str,
-    dbSystemConfiguration: "SystemConfiguration",
-    transaction_commit: Optional[bool] = None,
-) -> Dict:
-    """
-    Adds Domains if needed
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names, as instance of :class:`model.utils.DomainsChallenged`.
-
-    :param dbAcmeAccount__primary: (required) A :class:`model.objects.AcmeAccount` object
-    :param dbPrivateKey__primary: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
-    :param private_key_cycle__primary: (required)  A value from :class:`model.utils.PrivateKeyCycle`
-    :param private_key_technology__primary: (required)  A value from :class:`model.utils.PrivateKeyTechnology`
-    :param acme_profile__primary: (optional)
-
-    :param dbAcmeAccount__backup: (optional) A :class:`model.objects.AcmeAccount` object
-    :param dbPrivateKey__backup: (optional) A :class:`model.objects.PrivateKey` object used to sign the request.
-    :param acme_profile__backup: (optional)  str
-    :param private_key_cycle__backup: (optional)  A value from :class:`model.utils.PrivateKeyCycle`
-    :param private_key_technology__backup: (optional)  A value from :class:`model.utils.PrivateKeyTechnology`
-
-    :param note: (optional)  user note
-    :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
-    :param dbSystemConfiguration: (required) The sytem configuration
-
-    results will be a dict:
-
-        {%DOMAIN_NAME%: {'domain': # active, activated, new, FAIL
-                         'certificate':  # active, new, FAIL
-
-    logging codes
-        2010: 'ApiDomains__certificate_if_needed',
-        2011: 'ApiDomains__certificate_if_needed__domain_exists',
-        2012: 'ApiDomains__certificate_if_needed__domain_activate',
-        2013: 'ApiDomains__certificate_if_needed__domain_new',
-        2015: 'ApiDomains__certificate_if_needed__certificate_exists',
-        2016: 'ApiDomains__certificate_if_needed__certificate_new_success',
-        2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
-    """
-    if not transaction_commit:
-        raise errors.AcknowledgeTransactionCommitRequired(
-            "MUST persist external system data."
-        )
-    # validate this first!
-    # dbSystemConfiguration = ctx._load_SystemConfiguration_cin()
-    if not dbSystemConfiguration or not dbSystemConfiguration.is_configured:
-        raise errors.DisplayableError(
-            "the `certificate-if-needed` SystemConfiguration is not configured"
-        )
-
-    if DEBUG_CIN:
-        print("api_domains__certificate_if_needed")
-        pprint.pprint(locals())
-
-    acme_order_processing_strategy_id = (
-        model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
-    )
-    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
-        private_key_cycle__primary
-    )
-    private_key_cycle_id__backup: Optional[int] = None
-    private_key_technology_id__backup: Optional[int] = None
-    if dbAcmeAccount__backup:
-        # private_key_cycle__backup and private_key_technology__backup are required
-        # acme_profile__backup is not required
-        if not private_key_cycle__backup:
-            raise errors.DisplayableError("missing `private_key_cycle__backup`")
-        if not private_key_technology__backup:
-            raise errors.DisplayableError("missing `private_key_technology__backup`")
-
-        private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
-            private_key_cycle__backup
-        )
-        private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
-            private_key_technology__backup
-        )
-    else:
-        acme_profile__backup = None
-        private_key_cycle__backup = None
-        private_key_technology__backup = None
-
-    if dbAcmeAccount__primary is None:
-        raise errors.DisplayableError("missing AcmeAccount[Primary]")
-    elif not dbAcmeAccount__primary.is_active:
-        raise errors.DisplayableError("AcmeAccount[Primary] is not active")
-
-    if not dbPrivateKey__primary:
-        raise errors.DisplayableError("missing PrivateKey[Primary]")
-
-    # bookkeeping
-    event_payload_dict = lib.utils.new_event_payload_dict()
-    dbOperationsEvent = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string(
-            "ApiDomains__certificate_if_needed"
-        ),
-        event_payload_dict,
-    )
-
-    # this function checks the domain names match a simple regex
-    domain_names = domains_challenged.domains_as_list
-    results: Dict = {d: None for d in domain_names}
-    # _timestamp = dbOperationsEvent.timestamp_event
-
-    if DEBUG_CIN:
-        print("domain_names", domain_names)
-
-    for _domain_name in domain_names:
-        # scoping
-        _logger_args: Dict = {
-            "event_status_id": None,
-        }
-        _result: Dict = {
-            "domain.status": None,
-            "domain.id": None,
-            "certificate_signed.id": None,
-            "certificate_signed.status": None,
-            "acme_order.id": None,
-        }
-
-        # Step 1- is the domain_name blocklisted?
-        _dbDomainBlocklisted = lib.db.get.get__DomainBlocklisted__by_name(
-            ctx, _domain_name
-        )
-        if _dbDomainBlocklisted:
-            _result["domain.status"] = "blocklisted"
-            continue
-
-        # Step 2- is the domain_name a Domain?
-        _dbDomain = lib.db.get.get__Domain__by_name(ctx, _domain_name, preload=False)
-        if _dbDomain:
-            _result["domain.id"] = _dbDomain.id
-
-            _result["domain.status"] = "existing"
-
-            _logger_args["event_status_id"] = (
-                model_utils.OperationsObjectEventStatus.from_string(
-                    "ApiDomains__certificate_if_needed__domain_exists"
-                )
-            )
-            _logger_args["dbDomain"] = _dbDomain
-
-        elif not _dbDomain:
-            _dbDomain = lib.db.getcreate.getcreate__Domain__by_domainName(
-                ctx,
-                _domain_name,
-                discovery_type="via certificate_if_needed",
-            )[
-                0
-            ]  # (dbDomain, _is_created)
-            _result["domain.status"] = "new"
-            _result["domain.id"] = _dbDomain.id
-            _logger_args["event_status_id"] = (
-                model_utils.OperationsObjectEventStatus.from_string(
-                    "ApiDomains__certificate_if_needed__domain_new"
-                )
-            )
-            _logger_args["dbDomain"] = _dbDomain
-
-        # log Domain event
-        _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)
-
-        if DEBUG_CIN:
-            print("commiting for domain work")
-            print("_result")
-            pprint.pprint(_result)
-            print("_logger_args")
-            pprint.pprint(_logger_args)
-
-        # do commit, just because we may have created a domain; also, logging!
-        ctx.pyramid_transaction_commit()
-
-        # look for a certificate
-        _logger_args = {"event_status_id": None}
-        _dbCertificateSigned = lib.db.get.get__CertificateSigned__by_DomainId__latest(
-            ctx, _dbDomain.id
-        )
-        if _dbCertificateSigned:
-            _result["certificate_signed.status"] = "exists"
-            _result["certificate_signed.id"] = _dbCertificateSigned.id
-            _logger_args["event_status_id"] = (
-                model_utils.OperationsObjectEventStatus.from_string(
-                    "ApiDomains__certificate_if_needed__certificate_exists"
-                )
-            )
-            _logger_args["dbCertificateSigned"] = _dbCertificateSigned
-        else:
-            try:
-                _domains_challenged__single = model_utils.DomainsChallenged.new_http01(
-                    [
-                        _domain_name,
-                    ]
-                )
-
-                try:
-                    dbRenewalConfiguration = create.create__RenewalConfiguration(
-                        ctx,
-                        domains_challenged=_domains_challenged__single,
-                        # Primary cert
-                        dbAcmeAccount__primary=dbAcmeAccount__primary,
-                        private_key_technology_id__primary=model_utils.KeyTechnology.from_string(
-                            private_key_technology__primary
-                        ),
-                        private_key_cycle_id__primary=private_key_cycle_id__primary,
-                        acme_profile__primary=acme_profile__primary,
-                        # Backup cert
-                        dbAcmeAccount__backup=dbAcmeAccount__backup,
-                        private_key_technology_id__backup=private_key_technology_id__backup,
-                        private_key_cycle_id__backup=private_key_cycle_id__backup,
-                        acme_profile__backup=acme_profile__backup,
-                        # misc
-                        note=note,
-                        dbSystemConfiguration=dbSystemConfiguration,
-                    )
-                    is_duplicate_renewal = False
-                except errors.DuplicateRenewalConfiguration as exc:
-                    is_duplicate_renewal = True
-                    # we could raise exc to abort, but this is likely preferred
-                    dbRenewalConfiguration = exc.args[0]
-
-                dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
-                    ctx,
-                    dbRenewalConfiguration=dbRenewalConfiguration,
-                    processing_strategy=processing_strategy,
-                    acme_order_type_id=model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
-                    dbPrivateKey=dbPrivateKey__primary,
-                    replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                    transaction_commit=True,
-                )
-
-                _logger_args["dbAcmeOrder"] = dbAcmeOrder
-                _result["acme_order.id"] = dbAcmeOrder.id
-                if dbAcmeOrder.certificate_signed_id:
-                    _result["certificate_signed.status"] = "new"
-                    _result["certificate_signed.id"] = dbAcmeOrder.certificate_signed_id
-                    _logger_args["event_status_id"] = (
-                        model_utils.OperationsObjectEventStatus.from_string(
-                            "ApiDomains__certificate_if_needed__certificate_new_success"
-                        )
-                    )
-                    _logger_args["dbCertificateSigned"] = dbAcmeOrder.certificate_signed
-                else:
-                    _result["error"] = "AcmeOrder did not generate a CertificateSigned"
-                    _result["certificate_signed.status"] = "fail"
-                    _logger_args["event_status_id"] = (
-                        model_utils.OperationsObjectEventStatus.from_string(
-                            "ApiDomains__certificate_if_needed__certificate_new_fail"
-                        )
-                    )
-
-            except Exception as exc:
-                # unpack a `errors.AcmeOrderCreatedError` to local vars
-
-                if isinstance(exc, errors.AcmeOrderCreatedError):
-                    dbAcmeOrder = exc.acme_order
-                    exc = exc.original_exception
-
-                    _logger_args["dbAcmeOrder"] = dbAcmeOrder
-                    _result["acme_order.id"] = dbAcmeOrder.id
-
-                elif isinstance(exc, errors.AcmeError):
-                    _result["error"] = "Could not process AcmeOrder, %s" % str(exc)
-                    _result["certificate_signed.status"] = "fail"
-                    _logger_args["event_status_id"] = (
-                        model_utils.OperationsObjectEventStatus.from_string(
-                            "ApiDomains__certificate_if_needed__certificate_new_fail"
-                        )
-                    )
-                elif isinstance(exc, errors.DuplicateAcmeOrder):
-                    _result["error"] = "Could not process AcmeOrder, %s" % exc.args[0]
-                    _result["certificate_signed.status"] = "fail"
-
-                raise
-
-        # log domain event
-        if DEBUG_CONCEPT:
-            print("=====================")
-            print("DEBUGGING CONCEPT")
-            print(dbOperationsEvent.__dict__)
-            print("-----")
-            print(_logger_args)
-            print("=====================")
-        _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)
-
-        # do commit, just because THE LOGGGING
-        ctx.pyramid_transaction_commit()
-
-        # note result
-        results[_domain_name] = _result
-
-    event_payload_dict["results"] = results
-    # dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
-    dbOperationsEvent.set_event_payload(event_payload_dict)
-    ctx.dbSession.flush(objects=[dbOperationsEvent])
-
-    return results
-
-
 def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
     """
     pebble uses a new ca_cert bundle each time it runs
@@ -962,69 +1087,6 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
     # force_refresh will update
     pebbleServer.local_ca_bundle(ctx, force_refresh=True)
     return True
-
-
-def acme_dns__ensure_accounts(
-    ctx: "ApiContext",
-    acknowledge_transaction_commits: Optional[Literal[True]] = None,
-) -> Tuple[int, int]:
-    """Checks `Domain`s that need acme-dns accounts. Creates accounts if needed.
-
-    Returns a tuple of (accounts_existing:int, accounts_new:int)
-    """
-    if not acknowledge_transaction_commits:
-        raise errors.AcknowledgeTransactionCommitRequired()
-
-    accounts_existing = 0
-    accounts_new = 0
-
-    results = (
-        ctx.dbSession.query(model_objects.RenewalConfiguration)
-        .join(
-            model_objects.UniquelyChallengedFQDNSet2Domain,
-            model_objects.RenewalConfiguration.uniquely_challenged_fqdn_set_id
-            == model_objects.UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id,
-        )
-        .join(
-            model_objects.Domain,
-            model_objects.UniquelyChallengedFQDNSet2Domain.domain_id
-            == model_objects.Domain.id,
-        )
-        .join(
-            model_objects.AcmeDnsServerAccount,
-            model_objects.Domain.id == model_objects.AcmeDnsServerAccount.domain_id,
-            isouter=True,
-        )
-        .filter(
-            model_objects.UniquelyChallengedFQDNSet2Domain.acme_challenge_type_id
-            == model_utils.AcmeChallengeType.dns_01,
-        )
-        .all()
-    )
-    for rc in results:
-        for to_domain in rc.uniquely_challenged_fqdn_set.to_domains__dns_01:
-            if False:
-                print("===")
-                print(to_domain.domain.domain_name)
-                print(to_domain.domain.acme_dns_server_account__active)
-            if to_domain.domain.acme_dns_server_account__active:
-                accounts_existing += 1
-            else:
-                print(
-                    "ensure_Domain_to_AcmeDnsServer: %s" % to_domain.domain.domain_name
-                )
-                _dbAcmeDnsServerAccount = (
-                    lib_db.associate.ensure_Domain_to_AcmeDnsServer(
-                        ctx,
-                        to_domain.domain,
-                        ctx.dbAcmeDnsServer_GlobalDefault,
-                        discovery_type="via acme_dns_server._ensure_domains__submit",
-                    )
-                )
-                accounts_new += 1
-                ctx.pyramid_transaction_commit()
-
-    return accounts_existing, accounts_new
 
 
 def register_acme_servers(
@@ -1290,68 +1352,6 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     ctx.pyramid_transaction_commit()
 
     return dbRoutineExecution
-
-
-def _create_public_server(settings: Dict) -> StopableWSGIServer:
-    """
-    This is used to create a public WSGI server
-    The public server DISABLES the admin routes
-
-    def tearDown(self):
-        if self._testapp_wsgi is not None:
-            self._testapp_wsgi.shutdown()
-        AppTest.tearDown(self)
-    """
-
-    #
-    # sanitize the settings
-    #
-    pryamid_bools = (
-        "pyramid.debug_authorization"
-        "pyramid.debug_notfound"
-        "pyramid.debug_routematch"
-    )
-    for field in pryamid_bools:
-        if field in settings:
-            settings[field] = "false"
-    if "pyramid.includes" in settings:
-        settings["pyramid.includes"] = settings["pyramid.includes"].replace(
-            "pyramid_debugtoolbar", ""
-        )
-
-    # ensure what the public can and can't see
-    settings["enable_views_admin"] = "false"
-    settings["enable_views_public"] = "true"
-
-    try:
-        http_port = settings.get("http_port.renewals")
-        http_port = int(http_port)  # type: ignore[arg-type]
-    except Exception:
-        http_port = 7202
-
-    # import here to avoid circular imports
-    from ...web import main as app_main
-
-    app = app_main(global_config=None, **settings)
-    app_wsgi = StopableWSGIServer.create(
-        app,
-        host="localhost",
-        port=http_port,
-    )
-
-    return app_wsgi
-
-
-class FakeStopableWSGIServer(object):
-    # used to mock interface for `StopableWSGIServer`
-    def shutdown(self):
-        pass
-
-
-def _create_public_server__fake(settings: Dict) -> FakeStopableWSGIServer:
-    # used to mock interface for `StopableWSGIServer`
-    fake_wsgi = FakeStopableWSGIServer()
-    return fake_wsgi
 
 
 def routine__order_missing(
