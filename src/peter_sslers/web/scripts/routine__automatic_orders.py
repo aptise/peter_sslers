@@ -3,6 +3,7 @@ from . import _disable_warnings  # noqa: F401
 # stdlib
 import os  # noqa: I100
 import sys
+from typing import Optional
 
 # pypi
 from pyramid.paster import get_appsettings
@@ -28,7 +29,7 @@ def usage(argv):
     )
     print(
         "optional: this routine accepts a `dry-run` argument\n"
-        '(example: "%s data_development/config.ini dry-run=true")' % (cmd)
+        '(example: "%s data_development/config.ini dry-run=true limit=1")' % (cmd)
     )
     sys.exit(1)
 
@@ -47,6 +48,7 @@ def main(argv=sys.argv):
         print("Attempting DRY RUN")
         print("#" * 80)
         print("#" * 80)
+    limit: Optional[int] = int(options.get("limit", 0)) or None
 
     settings = get_appsettings(config_uri, options=options)
 
@@ -57,19 +59,32 @@ def main(argv=sys.argv):
         ctx,
         settings=settings,
         dry_run=dry_run,
+        limit=limit,
         DEBUG_LOCAL=False,
     )
     print("routine__order_missing()")
     print(dbRoutineExecution_1.as_json)
 
-    # then we renew the expiring
-    dbRoutineExecution_2 = lib_db.actions.routine__renew_expiring(  # noqa: F841
-        ctx,
-        settings=settings,
-        dry_run=dry_run,
-        DEBUG_LOCAL=False,
-    )
-    print("routine__renew_expiring()")
-    print(dbRoutineExecution_2.as_json)
+    if limit:
+        if dbRoutineExecution_1.count_records_processed >= limit:
+            limit = 0
+        else:
+            limit = limit - dbRoutineExecution_1.count_records_processed
+
+    if limit == 0:
+        print("NOT RUNNIN (LIMIT) routine__renew_expiring()")
+
+    else:
+
+        # then we renew the expiring
+        dbRoutineExecution_2 = lib_db.actions.routine__renew_expiring(  # noqa: F841
+            ctx,
+            settings=settings,
+            dry_run=dry_run,
+            limit=limit,
+            DEBUG_LOCAL=False,
+        )
+        print("routine__renew_expiring()")
+        print(dbRoutineExecution_2.as_json)
 
     ctx.pyramid_transaction_commit()

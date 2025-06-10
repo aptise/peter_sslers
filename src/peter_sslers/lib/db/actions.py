@@ -1359,6 +1359,7 @@ def routine__order_missing(
     settings: Dict,
     create_public_server: Callable = _create_public_server,
     dry_run: bool = False,
+    limit: Optional[int] = None,
     DEBUG_LOCAL: Optional[bool] = False,
 ) -> "RoutineExecution":
     """
@@ -1401,6 +1402,9 @@ def routine__order_missing(
             ),
         )
     )
+    if limit:
+        q__backup = q__backup.order_by(model_objects.RenewalConfiguration.id.asc())
+        q__backup = q__backup.limit(limit)
     dbRenewalConfigurations__backup = q__backup.all()
 
     q__primary = (
@@ -1432,6 +1436,9 @@ def routine__order_missing(
             ),
         )
     )
+    if limit:
+        q__primary = q__primary.order_by(model_objects.RenewalConfiguration.id.asc())
+        q__primary = q__primary.limit(limit)
     dbRenewalConfigurations__primary = q__primary.all()
 
     def _debug_results():
@@ -1541,17 +1548,25 @@ def routine__order_missing(
                     count_failures += 1
                     return False
 
+            total_runs = 0
+
             for _dbRenewalConfiguration in dbRenewalConfigurations__backup:
                 _order_missing(
                     _dbRenewalConfiguration,
                     model_utils.CertificateType_Enum.MANAGED_BACKUP,
                 )
+                total_runs += 1
+                if limit and total_runs >= limit:
+                    break
 
             for _dbRenewalConfiguration in dbRenewalConfigurations__primary:
                 _order_missing(
                     _dbRenewalConfiguration,
                     model_utils.CertificateType_Enum.MANAGED_PRIMARY,
                 )
+                total_runs += 1
+                if limit and total_runs >= limit:
+                    break
 
         finally:
             wsgi_server.shutdown()
@@ -1690,6 +1705,7 @@ def routine__renew_expiring(
     renewal_configuration_ids__only_process: Optional[Tuple[int]] = None,
     count_expected_configurations: Optional[int] = None,
     dry_run: bool = False,
+    limit: Optional[int] = None,
     DEBUG_LOCAL: Optional[bool] = False,
 ) -> "RoutineExecution":
     """
@@ -1705,7 +1721,7 @@ def routine__renew_expiring(
 
     # `get_CertificateSigneds_renew_now` will compute a buffer,
     # so we do not have to submit a `timestamp_max_expiry`
-    expiring_certs = get.get_CertificateSigneds_renew_now(ctx)
+    expiring_certs = get.get_CertificateSigneds_renew_now(ctx, limit=limit)
 
     if renewal_configuration_ids__only_process:
         # use a temporary variable for easier debugging

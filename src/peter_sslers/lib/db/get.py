@@ -2652,6 +2652,7 @@ def get_CertificateSigneds_duplicatePairs__paginated(
 def get_CertificateSigneds_renew_now(
     ctx: "ApiContext",
     timestamp_max_expiry: Optional[datetime.datetime] = None,
+    limit: Optional[int] = None,
 ) -> List[CertificateSigned]:
     if not timestamp_max_expiry:
         timestamp_max_expiry = datetime_ari_timely(
@@ -2708,6 +2709,9 @@ def get_CertificateSigneds_renew_now(
             ),
         )
     )
+    if limit:
+        q = q.order_by(CertificateSigned.id.asc())
+        q = q.limit(limit)
     # print(q.statement.compile(ctx.dbSession.connection().engine))
     # print(q.statement.compile())
     expiring_certs = q.all()

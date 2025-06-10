@@ -3703,6 +3703,8 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         if TYPE_CHECKING:
             assert _dbSession
         _request = _dbSession.info.get("request")
+        if TYPE_CHECKING:
+            assert _request is not None
 
         rval = {
             "id": self.id,
