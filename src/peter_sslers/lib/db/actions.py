@@ -1588,6 +1588,8 @@ def routine__order_missing(
 
 def routine__reconcile_blocks(
     ctx: "ApiContext",
+    settings: Dict,
+    create_public_server: Callable = _create_public_server,
     dry_run: bool = False,
     transaction_commit: Optional[bool] = None,
 ) -> "RoutineExecution":
@@ -1615,10 +1617,12 @@ def routine__reconcile_blocks(
     _order_ids_fail = []
     if dry_run:
         _order_ids_pass = [dbAcmeOrder.id for dbAcmeOrder in items_paged]
+        for dbAcmeOrder in items_paged:
+            print("Sync ACME Order | %s" % dbAcmeOrder.id)
     else:
         for dbAcmeOrder in items_paged:
             dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
-            log.debug("Syncing ACME Order %s" % (dbAcmeOrder.id,))
+            log.debug("Syncing ACME Order | %s" % (dbAcmeOrder.id,))
             try:
                 dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
                     ctx,
@@ -1634,51 +1638,67 @@ def routine__reconcile_blocks(
                 )
                 print(exc)
 
-    if dry_run:
-        pass
-    else:
-        # SECOND
-        # perhaps only do on `_order_ids_pass`
-        items_paged = lib_db.get.get__AcmeOrder__paginated(
-            ctx,
-            active_only=True,
-            limit=None,
-            offset=0,
-        )
-        for dbAcmeOrder in items_paged:
-            dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
-            if (not dbAcmeOrder.is_can_acme_process) and not (
-                dbAcmeOrder.is_can_acme_finalize
-            ):
-                continue
-            log.debug("Attempting Continuation of ACME Order %s" % (dbAcmeOrder.id,))
-            try:
-                while True:
-                    if dbAcmeOrder.is_can_acme_process:
-                        dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__process(
-                            ctx,
-                            dbAcmeOrder=dbAcmeOrder,
-                            transaction_commit=True,
-                        )
-                    elif dbAcmeOrder.is_can_acme_finalize:
-                        dbAcmeOrder = (
-                            lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
-                                ctx,
-                                dbAcmeOrder=dbAcmeOrder,
-                                transaction_commit=transaction_commit,
-                            )
-                        )
-                    else:
-                        break
+    items_paged = lib_db.get.get__AcmeOrder__paginated(
+        ctx,
+        active_only=True,
+        limit=None,
+        offset=0,
+    )
+    if items_paged:
+        if dry_run:
+            for dbAcmeOrder in items_paged:
+                if dbAcmeOrder.is_can_acme_process:
+                    print("AcmeOrder.is_can_acme_process | %s" % dbAcmeOrder.id)
+                elif dbAcmeOrder.is_can_acme_finalize:
+                    print("AcmeOrder.is_can_acme_finalize | %s" % dbAcmeOrder.id)
+                else:
+                    continue
                 _order_ids_pass.append(dbAcmeOrder.id)
-                ctx.pyramid_transaction_commit()
-            except Exception as exc:
-                _order_ids_fail.append(dbAcmeOrder.id)
-                log.critical(
-                    "Exception when continuing AcmeOrder[%s]: %s"
-                    % (dbAcmeOrder.id, exc)
-                )
-                print(exc)
+        else:
+            # SECOND
+            # perhaps only do on `_order_ids_pass`
+            wsgi_server = create_public_server(settings)
+            try:
+                for dbAcmeOrder in items_paged:
+                    dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
+                    if (not dbAcmeOrder.is_can_acme_process) and not (
+                        dbAcmeOrder.is_can_acme_finalize
+                    ):
+                        continue
+                    log.debug(
+                        "Attempting Continuation of ACME Order %s" % (dbAcmeOrder.id,)
+                    )
+                    try:
+                        while True:
+                            if dbAcmeOrder.is_can_acme_process:
+                                dbAcmeOrder = (
+                                    actions_acme.do__AcmeV2_AcmeOrder__process(
+                                        ctx,
+                                        dbAcmeOrder=dbAcmeOrder,
+                                        transaction_commit=True,
+                                    )
+                                )
+                            elif dbAcmeOrder.is_can_acme_finalize:
+                                dbAcmeOrder = (
+                                    lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
+                                        ctx,
+                                        dbAcmeOrder=dbAcmeOrder,
+                                        transaction_commit=transaction_commit,
+                                    )
+                                )
+                            else:
+                                break
+                        _order_ids_pass.append(dbAcmeOrder.id)
+                        ctx.pyramid_transaction_commit()
+                    except Exception as exc:
+                        _order_ids_fail.append(dbAcmeOrder.id)
+                        log.critical(
+                            "Exception when continuing AcmeOrder[%s]: %s"
+                            % (dbAcmeOrder.id, exc)
+                        )
+                        print(exc)
+            finally:
+                wsgi_server.shutdown()
 
     _order_ids_pass = list(set(_order_ids_pass))
     _order_ids_fail = list(set(_order_ids_fail))
@@ -1776,7 +1796,6 @@ def routine__renew_expiring(
     count_renewals = 0
     count_failures = 0
     if expiring_certs:
-
         wsgi_server = create_public_server(settings)
         try:
             for dbCertificateSigned in expiring_certs:

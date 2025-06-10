@@ -5,6 +5,7 @@ import os  # noqa: I100
 import sys
 
 # pypi
+from pyramid.paster import get_appsettings
 from pyramid.scripts.common import parse_vars
 from pyramid.settings import asbool
 
@@ -44,9 +45,12 @@ def main(argv=sys.argv):
         print("#" * 80)
         print("#" * 80)
 
+    settings = get_appsettings(config_uri, options=options)
+
     ctx = new_scripts_setup(config_uri, options=options)
     dbRoutineExecution = lib_db.actions.routine__reconcile_blocks(  # noqa: F841
         ctx,
+        settings=settings,
         dry_run=dry_run,
         transaction_commit=True,
     )

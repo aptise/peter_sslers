@@ -96,6 +96,7 @@ def main(argv=sys.argv):
         dbRoutines["routine__reconcile_blocks"] = (
             lib_db.actions.routine__reconcile_blocks(
                 ctx,
+                settings=settings,
                 transaction_commit=True,
             )
         )

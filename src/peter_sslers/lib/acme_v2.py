@@ -1530,7 +1530,7 @@ class AuthenticatedUser(object):
                             transaction_commit=True,
                         )
                     raise errors.DomainVerificationError(
-                        "Precheck Failure: Wrote keyauth challenge, but couldn't download {0}".format(
+                        "Precheck Failure: Hosting keyauth challenge, but couldn't download {0}".format(
                             wellknown_url
                         )
                     )
