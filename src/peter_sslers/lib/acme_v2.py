@@ -5,6 +5,8 @@ import datetime
 import hashlib
 import json
 import logging
+import os
+import pdb
 import re
 import time
 from typing import Any
@@ -82,6 +84,13 @@ log_api = logging.getLogger("acme_api")
 MAX_DEPTH = 10
 DEBUG_HEADERS = False
 SECONDS_POLLING_TIMEOUT = 45
+
+# TODO - should this be a config var?
+DEBUG_CHALLENGES_MANUAL = bool(int(os.getenv("DEBUG_CHALLENGES_MANUAL", "0")))
+if DEBUG_CHALLENGES_MANUAL:
+    print("ALERT!!!!")
+    print("ENV is set with `DEBUG_CHALLENGES_MANUAL=1`")
+    print("This will pause the application if a failure occurs during precheck")
 
 
 class AriCheckResult(TypedDict):
@@ -1529,6 +1538,10 @@ class AuthenticatedUser(object):
                             "precheck-1",
                             transaction_commit=True,
                         )
+                    if DEBUG_CHALLENGES_MANUAL:
+                        print("DEBUG_CHALLENGES_MANUAL=True")
+                        print("precheck failure, HTTP-01", wellknown_url)
+                        pdb.set_trace()
                     raise errors.DomainVerificationError(
                         "Precheck Failure: Hosting keyauth challenge, but couldn't download {0}".format(
                             wellknown_url
@@ -1675,8 +1688,25 @@ class AuthenticatedUser(object):
                                 expected_record_name
                             )
                         )
-                except Exception:
-                    raise
+
+                except errors.DomainVerificationError as exc:
+                    if ctx.application_settings["log.acme"]:
+                        self.acmeLogger.log_challenge_error(
+                            "v2",
+                            dbAcmeChallenge,
+                            "precheck-1",
+                            transaction_commit=True,
+                        )
+                    if DEBUG_CHALLENGES_MANUAL:
+                        print("DEBUG_CHALLENGES_MANUAL=True")
+                        print(
+                            "precheck failure, DNS-01",
+                            dns_record_prime,
+                            expected_record_name,
+                        )
+                        print(exc.args)
+                        pdb.set_trace()
+                    raise exc
             else:
                 log.debug("no precheck configured for dns-01")
         except (AssertionError, ValueError) as exc:
