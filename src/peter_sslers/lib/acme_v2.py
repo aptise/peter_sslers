@@ -1243,7 +1243,9 @@ class AuthenticatedUser(object):
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeOrder: (required) a :class:`model.objects.AcmeOrder` instance
         """
-        log.info("acme_v2.AuthenticatedUser.acme_order_load(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_order_load(AcmeOrder[%s]" % dbAcmeOrder.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -1718,7 +1720,10 @@ class AuthenticatedUser(object):
         :param updated_AcmeOrder_ProcessingStatus: callable. expects (ctx, dbAcmeChallenge, acme_order_processing_status_id, transaction_commit)
 
         """
-        log.info("acme_v2.AuthenticatedUser.acme_order_process_authorizations(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_order_process_authorizations(AcmeOrder[%s]"
+            % dbAcmeOrder.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "MUST persist external system data."
@@ -1795,7 +1800,10 @@ class AuthenticatedUser(object):
 
         # get the new certificate
         """
-        log.info("acme_v2.AuthenticatedUser.acme_order_finalize(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_order_finalize(AcmeOrder[%s]"
+            % dbAcmeOrder.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `update_order_status` callable"
@@ -2027,7 +2035,10 @@ class AuthenticatedUser(object):
             ") acme_authorization_process_url | _authorization_headers: %s"
             % _authorization_headers
         )
-        log.info(") .acme_authorization_process_url | handle_authorization_payload(")
+        log.info(
+            ") .acme_authorization_process_url | handle_authorization_payload(AcmeAuthorization[%s]"
+            % (dbAcmeAuthorization.id if dbAcmeAuthorization else "")
+        )
 
         _dbAcmeAuthorization = handle_authorization_payload(
             authorization_url,
@@ -2171,7 +2182,10 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) a
             :class:`model.objects.AcmeAuthorization` instance
         """
-        log.info("acme_v2.AuthenticatedUser.acme_authorization_load(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_authorization_load(AcmeAuthorization[%s]"
+            % dbAcmeAuthorization.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -2240,7 +2254,10 @@ class AuthenticatedUser(object):
                authorization URL.
 
         """
-        log.info("acme_v2.AuthenticatedUser.acme_authorization_deactivate(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_authorization_deactivate(AcmeAuthorization[%s]"
+            % dbAcmeAuthorization.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -2299,7 +2316,10 @@ class AuthenticatedUser(object):
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeChallenge: (required) a :class:`model.objects.AcmeChallenge` instance
         """
-        log.info("acme_v2.AuthenticatedUser.acme_challenge_load(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_challenge_load(AcmeChallenge[%s]"
+            % dbAcmeChallenge.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -2362,7 +2382,10 @@ class AuthenticatedUser(object):
 
         returns `challenge_response` the ACME paylaod for the specific challenge
         """
-        log.info("acme_v2.AuthenticatedUser.acme_challenge_trigger(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_challenge_trigger(AcmeChallenge[%s]"
+            % dbAcmeChallenge.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
