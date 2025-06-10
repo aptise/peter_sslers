@@ -1448,6 +1448,14 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
+        log.info(
+            "acme_v2.AuthenticatedUser.prepare_acme_challenge("
+            "AcmeAuthorization[%s], AcmeChallenge[%s]"
+            % (
+                dbAcmeAuthorization.id if dbAcmeAuthorization else "",
+                dbAcmeChallenge.id if dbAcmeChallenge else "",
+            )
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "MUST persist external system data."
@@ -1496,6 +1504,14 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
+        log.info(
+            "acme_v2.AuthenticatedUser._prepare_acme_challenge__http01("
+            "AcmeAuthorization[%s], AcmeChallenge[%s]"
+            % (
+                dbAcmeAuthorization.id if dbAcmeAuthorization else "",
+                dbAcmeChallenge.id if dbAcmeChallenge else "",
+            )
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "MUST persist external system data."
@@ -1581,6 +1597,14 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
+        log.info(
+            "acme_v2.AuthenticatedUser._prepare_acme_challenge__dns01("
+            "AcmeAuthorization[%s], AcmeChallenge[%s]"
+            % (
+                dbAcmeAuthorization.id if dbAcmeAuthorization else "",
+                dbAcmeChallenge.id if dbAcmeChallenge else "",
+            )
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "MUST persist external system data."
