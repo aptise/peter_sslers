@@ -3613,22 +3613,20 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return model_utils.KeyTechnology.as_string(self.key_technology_id)
 
     @overload
-    def remaining_hours(
+    def remaining_hours(  # noqa: E704
         self,
         ctx: "ApiContext",
         timestamp: Optional[datetime.datetime] = None,
         as_float: Literal[True] = True,
-    ) -> int:
-        ...
+    ) -> int: ...
 
     @overload
-    def remaining_hours(
+    def remaining_hours(  # noqa: E704
         self,
         ctx: "ApiContext",
         timestamp: Optional[datetime.datetime] = None,
         as_float: Literal[False] = False,
-    ) -> float:
-        ...
+    ) -> float: ...
 
     def remaining_hours(
         self,
