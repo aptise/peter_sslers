@@ -37,7 +37,7 @@ class ViewPublic(Handler):
         )
         if dbDomainBlocklisted:
             log.info(
-                "dbDomainBlocklisted [%s]",
+                "DomainBlocklisted [%s]",
                 self.request.active_domain_name,
             )
         else:
