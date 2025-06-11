@@ -281,6 +281,8 @@
     Initial framework to allow IP address on Domain object/table
     Add `create_domain_blocklisted` script
 
+    support Alembic
+
 
 
 0.6.0

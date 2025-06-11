@@ -1,0 +1,13 @@
+pyproject configuration, based on the generic configuration.
+
+
+
+Creating Revisions
+    alembic revision -m "create account table"
+
+Applying Revisions
+
+    alembic -c data_development/config.ini upgrade head
+    alembic -c data_development/config.ini downgrade base
+    
+See https://alembic.sqlalchemy.org/en/latest/autogenerate.html
