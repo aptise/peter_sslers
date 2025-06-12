@@ -4919,6 +4919,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
 # ==============================================================================
 
+
 class RateLimited(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "rate_limited"
@@ -4976,8 +4977,8 @@ class RateLimited(Base, _Mixin_Timestamps_Pretty):
             # - -
             "server_response_body": self.server_response_body,
             "server_response_headers": self.server_response_headers,
-            "timestamp_created": self.timestamp_created__isoformat,
-    }
+            "timestamp_created": self.timestamp_created_isoformat,
+        }
 
 
 # ==============================================================================

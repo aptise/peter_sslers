@@ -1181,7 +1181,6 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
 
-
     # !!!: Renewal Configurations
     config.add_route_7(
         "admin:renewal_configurations",

@@ -1504,7 +1504,9 @@ def create__RateLimited(
         dbRateLimited.server_response_body = json.dumps(server_response_body)
     elif isinstance(server_response_body, str):
         dbRateLimited.server_response_body = server_response_body
-    dbRateLimited.server_response_headers = json.dumps(server_response_headers) if server_response_headers else None
+    dbRateLimited.server_response_headers = (
+        json.dumps(server_response_headers) if server_response_headers else None
+    )
     ctx.dbSession.add(dbRateLimited)
     ctx.dbSession.flush(objects=[dbRateLimited])
     return dbRateLimited

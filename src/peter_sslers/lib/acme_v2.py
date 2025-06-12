@@ -71,7 +71,7 @@ if TYPE_CHECKING:
 
     # (resp_data, status_code, headers)
     # resp_data might be decoded from str into json
-    RESPONSE_TUPLE = Tuple[Union[Dict, str], Optional[int], "HTTPMessage"]
+    RESPONSE_TUPLE = Tuple[int, Union[Dict, str], "HTTPMessage"]
 
 # ==============================================================================
 
@@ -141,7 +141,7 @@ def url_request(
         with a function `local_ca_bundle(ctx)` that will return a CA Bundle filepath
         if a custom CA bundle is needed
 
-    returns (resp_data, status_code, headers)
+    returns (status_code, resp_data, headers)
     """
     log_api.info("acme_v2.url_request(")
     log_api.debug(" REQUEST-")
@@ -203,12 +203,14 @@ def url_request(
         if isinstance(resp_data, dict):
             # (status_code, url, resp_data, headers) = exc.args
             raise errors.AcmeServerError(status_code, url, resp_data, headers)
+        # reformat the error for display
+        # this should probably be undone
         msg = "{0}:\nUrl: {1}\nData: {2}\nResponse Code: {3}\nResponse: {4}".format(
             err_msg, url, post_data, status_code, resp_data
         )
         # (status_code, url, resp_data, headers) = exc.args
-        raise errors.AcmeServerError(status_code, url, resp_data, headers)
-    return resp_data, status_code, headers
+        raise errors.AcmeServerError(status_code, url, msg, headers)
+    return status_code, resp_data, headers
 
 
 # ------------------------------------------------------------------------------
@@ -306,7 +308,7 @@ def acme_directory_get(ctx: "ApiContext", acmeAccount: "AcmeAccount") -> Dict:
     directory_url = acmeAccount.acme_server.directory_url
     if not directory_url:
         raise ValueError("no directory for the CERTIFICATE_AUTHORITY!")
-    directory_payload, _status_code, _headers = url_request(
+    _status_code, directory_payload, _headers = url_request(
         ctx,
         directory_url,
         err_msg="Error getting directory",
@@ -650,7 +652,7 @@ class AuthenticatedUser(object):
         :param depth: (optional) An integer nothing the depth of this function being called
 
         This proxies `url_request` with a signed payload
-        returns (resp_data, status_code, headers)
+        returns (status_code, resp_data, headers)
         """
         log.debug("_send_signed_request")
         log.debug("_send_signed_request | depth=%s" % depth)
@@ -662,6 +664,7 @@ class AuthenticatedUser(object):
         else:
             log.debug("_send_signed_request > newNonce")
             # TODO: store/retrieve a nonce from the db
+            # this pulls it off the headers
             self._next_nonce = nonce = url_request(
                 self.ctx,
                 self.acme_directory["newNonce"],
@@ -752,7 +755,7 @@ class AuthenticatedUser(object):
         ):
             log.debug(") polling...")
             time.sleep(1 if _result is None else 2)
-            _result, _status_code, _headers = self._send_signed_request(
+            _status_code, _result, _headers = self._send_signed_request(
                 _endpoint_type,
                 _url,
                 payload=None,
@@ -781,8 +784,8 @@ class AuthenticatedUser(object):
         payload_contact = {"contact": contact}
         assert self._api_account_headers
         (
-            acme_account_object,
             _status_code,
+            acme_account_object,
             _acme_account_headers,
         ) = self._send_signed_request(
             "AccountUrl",
@@ -938,8 +941,8 @@ class AuthenticatedUser(object):
 
             try:
                 (
-                    acme_account_object,
                     status_code,
+                    acme_account_object,
                     acme_account_headers,
                 ) = self._send_signed_request(
                     "newAccount",
@@ -1063,8 +1066,8 @@ class AuthenticatedUser(object):
         try:
             _payload_deactivate = {"status": "deactivated"}
             (
-                acme_account_object,
                 status_code,
+                acme_account_object,
                 acme_account_headers,
             ) = self._send_signed_request(
                 "AccountUrl",
@@ -1187,8 +1190,8 @@ class AuthenticatedUser(object):
             )
 
             (
-                acme_response,
                 status_code,
+                acme_response,
                 acme_headers,
             ) = self._send_signed_request(
                 "keyChange",
@@ -1266,8 +1269,8 @@ class AuthenticatedUser(object):
 
         try:
             (
-                acme_order_object,
                 _status_code,
+                acme_order_object,
                 acme_order_headers,
             ) = self._send_signed_request("OrderUrl", dbAcmeOrder.order_url, None)
             if not isinstance(acme_order_object, dict):
@@ -1331,8 +1334,8 @@ class AuthenticatedUser(object):
             payload_order["replaces"] = replaces
         try:
             (
-                acme_order_object,
                 _status_code,
+                acme_order_object,
                 acme_order_headers,
             ) = self._send_signed_request(
                 "newOrder",
@@ -1345,7 +1348,7 @@ class AuthenticatedUser(object):
             log.debug(") acme_order_new | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServerError as exc:
             log.debug(") acme_order_new | AcmeServerError: %s" % exc)
-            
+
             # (status_code, url, resp_data, headers) = exc.args
             # OR (exc = exc.args[0])
             if exc.args[0] == 429:
@@ -1361,7 +1364,7 @@ class AuthenticatedUser(object):
                 )
                 ctx.pyramid_transaction_commit()
                 raise
-            
+
             # (status_code, url, resp_data, resp_headers) = exc
             _raise = True
             if isinstance(exc.args[2], dict):
@@ -1408,8 +1411,8 @@ class AuthenticatedUser(object):
                     log.debug(") acme_order_new | retrying without `replaces`:")
                     del payload_order["replaces"]
                     (
-                        acme_order_object,
                         _status_code,
+                        acme_order_object,
                         acme_order_headers,
                     ) = self._send_signed_request(
                         "newOrder",
@@ -1901,8 +1904,8 @@ class AuthenticatedUser(object):
         payload_finalize = {"csr": cert_utils.jose_b64(csr_der)}
         try:
             (
-                finalize_response,
                 _status_code,
+                finalize_response,
                 _finalize_headers,
             ) = self._send_signed_request(
                 "OrderUrl",
@@ -1982,7 +1985,7 @@ class AuthenticatedUser(object):
 
         # download the certificate
         # ACME-V2 furnishes a FULLCHAIN (certificate_pem + chain_pem)
-        (_fullchain_pem, _status_code, _certificate_headers) = (
+        (_status_code, _fullchain_pem, _certificate_headers) = (
             self._send_signed_request("CertificateUrl", url_certificate, None)
         )
         if not isinstance(_fullchain_pem, str):
@@ -2000,7 +2003,7 @@ class AuthenticatedUser(object):
             for url in alt_chains_urls:
                 # wrap these in a try/except so a single failure doesn't kill the download
                 try:
-                    _pem = self._send_signed_request("CertificateUrl", url)[0]
+                    _pem = self._send_signed_request("CertificateUrl", url)[1]
                     if not isinstance(_pem, str):
                         raise ValueError("expected `str` response")
                     if TYPE_CHECKING:
@@ -2088,8 +2091,8 @@ class AuthenticatedUser(object):
         # in v1, we know the domain before the authorization request
         # in v2, we must query an order's authorization url to get the domain
         (
-            authorization_response,
             _status_code,
+            authorization_response,
             _authorization_headers,
         ) = self._send_signed_request(
             "AuthzUrl",
@@ -2269,8 +2272,8 @@ class AuthenticatedUser(object):
 
         try:
             (
-                authorization_response,
                 _status_code,
+                authorization_response,
                 _authorization_headers,
             ) = self._send_signed_request(
                 "AuthzUrl", dbAcmeAuthorization.authorization_url, None
@@ -2341,8 +2344,8 @@ class AuthenticatedUser(object):
 
         try:
             (
-                authorization_response,
                 _status_code,
+                authorization_response,
                 _authorization_headers,
             ) = self._send_signed_request(
                 "AuthzUrl",
@@ -2401,8 +2404,8 @@ class AuthenticatedUser(object):
 
         try:
             (
-                challenge_response,
                 _status_code,
+                challenge_response,
                 _challenge_headers,
             ) = self._send_signed_request(
                 "ChallengeUrl", dbAcmeChallenge.challenge_url, None
@@ -2485,8 +2488,8 @@ class AuthenticatedUser(object):
             )
         try:
             (
-                challenge_response,
                 _status_code,
+                challenge_response,
                 _challenge_headers,
             ) = self._send_signed_request(
                 "ChallengeUrl",

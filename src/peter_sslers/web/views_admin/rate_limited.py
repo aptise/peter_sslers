@@ -21,7 +21,9 @@ from ...model.objects import RateLimited
 class View_List(Handler):
 
     @view_config(route_name="admin:rate_limiteds", renderer="/admin/rate_limiteds.mako")
-    @view_config(route_name="admin:rate_limiteds-paginated", renderer="/admin/rate_limiteds.mako")
+    @view_config(
+        route_name="admin:rate_limiteds-paginated", renderer="/admin/rate_limiteds.mako"
+    )
     @view_config(route_name="admin:rate_limiteds-paginated|json", renderer="json")
     @view_config(route_name="admin:rate_limiteds|json", renderer="json")
     @docify(

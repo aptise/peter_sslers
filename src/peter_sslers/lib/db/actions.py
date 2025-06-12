@@ -1788,7 +1788,11 @@ def routine__renew_expiring(
             print(
                 cert.id,
                 cert.timestamp_not_after,
-                cert.cert_issuer.replace(" ", "_").replace("\n", ";") if cert.cert_issuer else "",
+                (
+                    cert.cert_issuer.replace(" ", "_").replace("\n", ";")
+                    if cert.cert_issuer
+                    else ""
+                ),
                 cert.domains_as_string,
             )
         print("---")
