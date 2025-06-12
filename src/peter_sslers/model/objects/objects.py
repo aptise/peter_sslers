@@ -1918,12 +1918,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def domains_as_list(self) -> List[str]:
-        domain_names = [
-            to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains
-        ]
-        domain_names = list(set(domain_names))
-        domain_names = sorted(domain_names)
-        return domain_names
+        return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def domains_as_string(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_string
 
     @property
     def domains_challenged(self) -> model_utils.DomainsChallenged:
@@ -3143,20 +3142,12 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         )
 
     @property
-    def domains_as_string(self) -> str:
-        domains = sorted(
-            [to_d.domain.domain_name for to_d in self.unique_fqdn_set.to_domains]
-        )
-        return ", ".join(domains)
+    def domains_as_list(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_list
 
     @property
-    def domains_as_list(self) -> List[str]:
-        domain_names = [
-            to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains
-        ]
-        domain_names = list(set(domain_names))
-        domain_names = sorted(domain_names)
-        return domain_names
+    def domains_as_string(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_string
 
     @property
     def key_technology(self) -> Optional[str]:
@@ -3547,12 +3538,12 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return model_utils.CertificateType.as_string(self.certificate_type_id)
 
     @property
-    def domains_as_string(self) -> str:
-        return self.unique_fqdn_set.domains_as_string
-
-    @property
     def domains_as_list(self) -> List[str]:
         return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def domains_as_string(self) -> str:
+        return self.unique_fqdn_set.domains_as_string
 
     @reify
     def days_to_expiry(self) -> Optional[int]:
@@ -5088,12 +5079,11 @@ class RenewalConfiguration(
 
     @property
     def domains_as_list(self) -> List[str]:
-        domain_names = [
-            to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains
-        ]
-        domain_names = list(set(domain_names))
-        domain_names = sorted(domain_names)
-        return domain_names
+        return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def domains_as_string(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_string
 
     def domains_challenged_liststr(self, acme_challenge_type: str) -> str:
         domain_names = self.domains_challenged[acme_challenge_type] or []
@@ -5568,16 +5558,16 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         return [to_d.domain for to_d in self.to_domains]
 
     @property
-    def domains_as_string(self) -> str:
-        domains = sorted([to_d.domain.domain_name for to_d in self.to_domains])
-        return ", ".join(domains)
-
-    @property
     def domains_as_list(self) -> List[str]:
         domain_names = [to_d.domain.domain_name.lower() for to_d in self.to_domains]
         domain_names = list(set(domain_names))
         domain_names = sorted(domain_names)
         return domain_names
+
+    @property
+    def domains_as_string(self) -> str:
+        domains = sorted([to_d.domain.domain_name for to_d in self.to_domains])
+        return ", ".join(domains)
 
     @property
     def domain_objects(self) -> Dict[str, "Domain"]:
