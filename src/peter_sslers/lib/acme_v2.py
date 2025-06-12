@@ -1359,6 +1359,7 @@ class AuthenticatedUser(object):
                     dbAcmeAccount=self.acmeAccount,
                     dbAcmeOrder=None,
                     dbAcmeServer=self.acmeAccount.acme_server,
+                    dbUniqueFQDNSet=dbUniqueFQDNSet,
                     server_response_body=exc.args[2],
                     server_response_headers=exc.args[3],
                 )

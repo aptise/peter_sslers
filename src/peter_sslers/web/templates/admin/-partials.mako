@@ -1432,6 +1432,7 @@
                 "acme_account_id",
                 "acme_server_id",
                 "acme_order_id",
+                "unique_fqdn_set_id",
                 "server_response_body",
                 "server_response_headers",
                )
@@ -1483,6 +1484,13 @@
                                 <code>${rate_limited.server_resposne_headers}</code>
                             % elif c == 'timestamp_created':
                                 <timestamp>${rate_limited.timestamp_created or ''}</timestamp>
+                            % elif c == 'unique_fqdn_set_id':
+                                % if rate_limited.unique_fqdn_set_id:
+                                    <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${rate_limited.unique_fqdn_set_id}">
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        UniqueFQDNSet-${rate_limited.unique_fqdn_set_id}
+                                    </a>
+                                % endif
                             % else:
                                 ${getattr(rate_limited, c)}
                             % endif

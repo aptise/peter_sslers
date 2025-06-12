@@ -90,6 +90,20 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>unique fqdn set</th>
+                        <td>
+                            % if RateLimited.unique_fqdn_set_id:
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/unique-fqdn-set/${RateLimited.unique_fqdn_set_id}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    UniqueFQDNSet-${RateLimited.unique_fqdn_set_id}
+                                </a>
+                                <code>${RateLimited.unique_fqdn_set.domains_as_string}</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>server_resposne_body</th>
                         <td>
                             <code>${RateLimited.server_resposne_body}</code>

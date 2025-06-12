@@ -28,11 +28,13 @@ def upgrade() -> None:
     sa.Column('acme_server_id', sa.Integer(), nullable=False),
     sa.Column('acme_account_id', sa.Integer(), nullable=True),
     sa.Column('acme_order_id', sa.Integer(), nullable=True),
+    sa.Column('unique_fqdn_set_id', sa.Integer(), nullable=True),
     sa.Column('server_response_body', sa.Text(), nullable=True),
     sa.Column('server_response_headers', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['acme_account_id'], ['acme_account.id'], ),
     sa.ForeignKeyConstraint(['acme_order_id'], ['acme_order.id'], ),
     sa.ForeignKeyConstraint(['acme_server_id'], ['acme_server.id'], ),
+    sa.ForeignKeyConstraint(['unique_fqdn_set_id'], ['unique_fqdn_set.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.drop_table('migrations')

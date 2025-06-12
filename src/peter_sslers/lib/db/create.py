@@ -1488,6 +1488,7 @@ def create__RateLimited(
     # optionals
     dbAcmeAccount: Optional["AcmeAccount"] = None,
     dbAcmeOrder: Optional["AcmeOrder"] = None,
+    dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
     # misc
     server_response_body: Optional[Union[str, Dict]] = None,
     server_response_headers: Optional[Dict] = None,
@@ -1507,6 +1508,8 @@ def create__RateLimited(
     dbRateLimited.server_response_headers = (
         json.dumps(server_response_headers) if server_response_headers else None
     )
+    if dbUniqueFQDNSet:
+        dbRateLimited.unique_fqdn_set_id = dbUniqueFQDNSet.id
     ctx.dbSession.add(dbRateLimited)
     ctx.dbSession.flush(objects=[dbRateLimited])
     return dbRateLimited

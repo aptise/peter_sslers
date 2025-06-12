@@ -4939,6 +4939,9 @@ class RateLimited(Base, _Mixin_Timestamps_Pretty):
     acme_order_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
     )
+    unique_fqdn_set_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
+    )
 
     server_response_body: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, unique=False
@@ -4965,6 +4968,20 @@ class RateLimited(Base, _Mixin_Timestamps_Pretty):
         back_populates="rate_limiteds",
         uselist=False,
     )
+    unique_fqdn_set = sa.orm.relationship(
+        "UniqueFQDNSet",
+        primaryjoin="RateLimited.unique_fqdn_set_id==UniqueFQDNSet.id",
+        back_populates="rate_limiteds",
+        uselist=False,
+    )
+
+    @property
+    def domains_as_list(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_list if self.unique_fqdn_set_id else None
+
+    @property
+    def domains_as_string(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_string if self.unique_fqdn_set_id else None
 
     @property
     def as_json(self) -> Dict:
@@ -4974,10 +4991,13 @@ class RateLimited(Base, _Mixin_Timestamps_Pretty):
             "acme_account_id": self.acme_account_id,
             "acme_server_id": self.acme_server_id,
             "acme_order_id": self.acme_order_id,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
             # - -
             "server_response_body": self.server_response_body,
             "server_response_headers": self.server_response_headers,
             "timestamp_created": self.timestamp_created_isoformat,
+            # - -
+            "domains_as_list": self.domains_as_list,
         }
 
 
@@ -5610,6 +5630,11 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         "OperationsEvent",
         primaryjoin="UniqueFQDNSet.operations_event_id__created==OperationsEvent.id",
         uselist=False,
+    )
+    rate_limiteds = sa.orm.relationship(
+        "RateLimited",
+        primaryjoin="UniqueFQDNSet.id==RateLimited.unique_fqdn_set_id",
+        back_populates="unique_fqdn_set",
     )
     renewal_configurations = sa_orm_relationship(
         "RenewalConfiguration",
