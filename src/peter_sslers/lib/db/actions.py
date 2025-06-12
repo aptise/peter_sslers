@@ -1785,7 +1785,7 @@ def routine__renew_expiring(
         print("---")
         print("Expiring Certs @ ", ctx.timestamp)
         for cert in expiring_certs:
-            print(cert.id, cert.timestamp_not_after)
+            print(cert.id, cert.timestamp_not_after, cert.cert_issuer, cert.domains_as_string, )
         print("---")
 
     if DEBUG_LOCAL or dry_run:
