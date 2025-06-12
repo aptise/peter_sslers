@@ -4939,7 +4939,10 @@ class RateLimited(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
     )
 
-    server_response: Mapped[Optional[str]] = mapped_column(
+    server_response_body: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True, unique=False
+    )
+    server_response_headers: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, unique=False
     )
 
@@ -4971,7 +4974,8 @@ class RateLimited(Base, _Mixin_Timestamps_Pretty):
             "acme_server_id": self.acme_server_id,
             "acme_order_id": self.acme_order_id,
             # - -
-            "server_response": self.server_response,
+            "server_response_body": self.server_response_body,
+            "server_response_headers": self.server_response_headers,
             "timestamp_created": self.timestamp_created__isoformat,
     }
 

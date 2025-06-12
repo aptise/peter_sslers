@@ -201,14 +201,13 @@ def url_request(
             raise IndexError(resp_data)  # allow 100 retrys for bad nonces
     if status_code not in [200, 201, 204]:
         if isinstance(resp_data, dict):
-            # (status_code, resp_data, url) = exc
-            import pdb; pdb.set_trace()
-            raise errors.AcmeServerError(status_code, resp_data, url)
+            # (status_code, url, resp_data, headers) = exc.args
+            raise errors.AcmeServerError(status_code, url, resp_data, headers)
         msg = "{0}:\nUrl: {1}\nData: {2}\nResponse Code: {3}\nResponse: {4}".format(
             err_msg, url, post_data, status_code, resp_data
         )
-        # (status_code, resp_data, url) = exc
-        raise errors.AcmeServerError(status_code, msg, url)
+        # (status_code, url, resp_data, headers) = exc.args
+        raise errors.AcmeServerError(status_code, url, resp_data, headers)
     return resp_data, status_code, headers
 
 
@@ -952,7 +951,8 @@ class AuthenticatedUser(object):
             except errors.AcmeServerError as exc:
                 # only catch this if `onlyReturnExisting` and there is an DNE error
                 if onlyReturnExisting:
-                    # (status_code, resp_data, url) = exc
+                    # (status_code, url, resp_data, headers) = exc.args
+                    # OR (exc = exc.args[0])
                     if exc.args[0] == 400:
                         if (
                             exc.args[1]["type"]
@@ -1346,7 +1346,8 @@ class AuthenticatedUser(object):
         except errors.AcmeServerError as exc:
             log.debug(") acme_order_new | AcmeServerError: %s" % exc)
             
-            # (status_code, resp_data, url) = exc
+            # (status_code, url, resp_data, headers) = exc.args
+            # OR (exc = exc.args[0])
             if exc.args[0] == 429:
                 log.debug("Ratelimited Error")
                 log.debug(exc.args)
@@ -1355,14 +1356,15 @@ class AuthenticatedUser(object):
                     dbAcmeAccount=self.acmeAccount,
                     dbAcmeOrder=dbAcmeOrder,
                     dbAcmeServer=self.acmeAccount.acme_server,
-                    server_response=exc.args[1],
+                    server_response_body=exc.args[2],
+                    server_response_headers=exc.args[3],
                 )
                 ctx.pyramid_transaction_commit()
                 raise
             
-            # (status_code, resp_data, url) = exc
+            # (status_code, url, resp_data, resp_headers) = exc
             _raise = True
-            if isinstance(exc.args[1], dict):
+            if isinstance(exc.args[2], dict):
                 """
                 Neither the ACME RFC, nor any extensions, standardize an invalid `replaces` field.
                 Different ACME Servers will handle an invalid "replaces" field differently.
@@ -2504,8 +2506,8 @@ class AuthenticatedUser(object):
             raise
 
         except errors.AcmeServerError as exc:
-            # (status_code, resp_data, url) = exc
-            (_status_code, _resp, _url) = exc.args
+            # (status_code, url, resp_data, headers) = exc.args
+            (_status_code, _url, _resp, _headers) = exc.args
             """
             if isinstance(_resp, dict):
                 if _resp["type"].startswith("urn:ietf:params:acme:error:"):

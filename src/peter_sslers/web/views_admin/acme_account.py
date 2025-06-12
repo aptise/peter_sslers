@@ -116,7 +116,7 @@ def submit__new_auth(
         # dbAcmeAccount = _dbAcmeAccountDuplicate
 
     except errors.AcmeServerError as exc:
-        # (status_code, resp_data, url) = exc
+        # (status_code, url, resp_data, headers) = exc.args
         request.tm.abort()
         if _dbAcmeAccount and not dbAcmeAccount:
             # we've created an AcmeAccount locally but not on the server
@@ -124,13 +124,13 @@ def submit__new_auth(
             # unless we raise an exception or set an error
             message = "Can not validate on upstream ACME Server."
             if exc.args[0] == 400:
-                if isinstance(exc.args[1], dict):
+                if isinstance(exc.args[2], dict):
                     if (
-                        exc.args[1].get("type")
+                        exc.args[2].get("type")
                         == "urn:ietf:params:acme:error:unsupportedContact"
                     ):
                         message += " Server says `urn:ietf:params:acme:error:unsupportedContact`"
-                        _detail = exc.args[1].get("detail")
+                        _detail = exc.args[2].get("detail")
                         if _detail:
                             message += " " + _detail
                         if message[-1] != ".":
@@ -184,7 +184,7 @@ def submit__authenticate(
     except errors.AcmeDuplicateAccount as exc:  # noqa: F841
         return False, "AcmeDuplicateAccount detected"
     except errors.AcmeServerError as exc:
-        # (status_code, resp_data, url) = exc
+        # (status_code, url, resp_data, headers) = exc.args
         log.critical(exc)
         return False, "AcmeServerError"
     except Exception as exc:
@@ -225,14 +225,14 @@ def submit__check(
     except errors.AcmeDuplicateAccount as exc:  # noqa: F841
         return False, "AcmeDuplicateAccount detected"
     except errors.AcmeServerError as exc:
-        # (status_code, resp_data, url) = exc
+        # (status_code, url, resp_data, headers) = exc.args
         log.critical(exc)
         # only catch this if `onlyReturnExisting` and there is an DNE error
         if (exc.args[0] == 400) and (
-            exc.args[1]["type"] == "urn:ietf:params:acme:error:accountDoesNotExist"
+            exc.args[2]["type"] == "urn:ietf:params:acme:error:accountDoesNotExist"
         ):
-            if "detail" in exc.args[1]:
-                return False, exc.args[1]["detail"]
+            if "detail" in exc.args[2]:
+                return False, exc.args[2]["detail"]
         return False, "AcmeServerError"
     except Exception as exc:
         log.critical(exc)
@@ -1803,9 +1803,9 @@ class View_Focus_Manipulate(View_Focus):
                         transaction_commit=True,
                     )
                 except errors.AcmeServerError as exc:
-                    # (status_code, resp_data, url) = exc
+                    # (status_code, url, resp_data, headers) = exc.args
                     if self._handle_potentially_deactivated(exc):
-                        formStash.fatal_form(error_main=str(exc.args[1]))
+                        formStash.fatal_form(error_main=str(exc.args[2]))
                     raise
                 if self.request.wants_json:
                     return {

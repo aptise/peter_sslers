@@ -283,6 +283,10 @@
 
     support Alembic
 
+    AcmeServerError
+        tracks headers now
+    
+
 
 
 0.6.0

@@ -1432,7 +1432,8 @@
                 "acme_account_id",
                 "acme_server_id",
                 "acme_order_id",
-                "server_response"
+                "server_response_body",
+                "server_response_headers",
                )
         if perspective == 'RateLimited':
             cols = [c for c in cols]
@@ -1476,8 +1477,10 @@
                                         AcmeOrder-${rate_limited.acme_order_id}
                                     </a>
                                 % endif
-                            % elif c == 'server_resposne':
-                                <code>${rate_limited.server_resposne}</code>
+                            % elif c == 'server_resposne_body':
+                                <code>${rate_limited.server_resposne_body}</code>
+                            % elif c == 'server_resposne_headers':
+                                <code>${rate_limited.server_resposne_headers}</code>
                             % elif c == 'timestamp_created':
                                 <timestamp>${rate_limited.timestamp_created or ''}</timestamp>
                             % else:

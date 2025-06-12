@@ -239,7 +239,7 @@ class View_Focus_Manipulate(View_Focus):
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
-            # (status_code, resp_data, url) = AcmeServerError
+            # (status_code, url, resp_data, headers) = exc.args
             if self.request.wants_json:
                 return {
                     "result": "error",
@@ -317,7 +317,7 @@ class View_Focus_Manipulate(View_Focus):
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
-            # (status_code, resp_data, url) = AcmeServerError
+            # (status_code, url, resp_data, headers) = exc.args
             if self.request.wants_json:
                 return {
                     "result": "error",

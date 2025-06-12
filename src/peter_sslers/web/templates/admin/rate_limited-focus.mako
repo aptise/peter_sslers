@@ -90,9 +90,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>server_respone</th>
+                        <th>server_resposne_body</th>
                         <td>
-                            <code>${RateLimited.server_respone}</code>
+                            <code>${RateLimited.server_resposne_body}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>server_resposne_headers</th>
+                        <td>
+                            <code>${RateLimited.server_resposne_headers}</code>
                         </td>
                     </tr>
                 </tbody>

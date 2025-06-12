@@ -1489,7 +1489,8 @@ def create__RateLimited(
     dbAcmeAccount: Optional["AcmeAccount"] = None,
     dbAcmeOrder: Optional["AcmeOrder"] = None,
     # misc
-    server_response: Optional[str] = None,
+    server_response_body: Optional[str] = None,
+    server_response_headers: Optional[Dict] = None,
 ) -> "RateLimited":
     """
     :returns :class:`model.objects.RateLimited`
@@ -1499,7 +1500,8 @@ def create__RateLimited(
     dbRateLimited.acme_server_id = dbAcmeServer.id
     dbRateLimited.acme_account_id = dbAcmeAccount.id if dbAcmeAccount else None
     dbRateLimited.acme_order_id = dbAcmeOrder.id if dbAcmeOrder else None
-    dbRateLimited.server_response = server_response
+    dbRateLimited.server_response_body = server_response_body
+    dbRateLimited.server_response_headers = json.dumps(server_response_headers) if server_response_headers else None
     ctx.dbSession.add(dbRateLimited)
     ctx.dbSession.flush(objects=[dbRateLimited])
     return dbRateLimited

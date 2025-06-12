@@ -7,7 +7,10 @@ ProductionServer - keeps ordering certs
     
     
 AcmeServerError
-    should have headers
+    arg[0] might be an int or exc
+    
+url_request
+    should return status_code first
 
 
 urllib3 has a breaking change in 2.4.0
