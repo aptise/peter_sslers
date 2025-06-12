@@ -1354,7 +1354,7 @@ class AuthenticatedUser(object):
                 dbRateLimited = db_create.create__RateLimited(  # noqa: F841
                     ctx,
                     dbAcmeAccount=self.acmeAccount,
-                    dbAcmeOrder=dbAcmeOrder,
+                    dbAcmeOrder=None,
                     dbAcmeServer=self.acmeAccount.acme_server,
                     server_response_body=exc.args[2],
                     server_response_headers=exc.args[3],

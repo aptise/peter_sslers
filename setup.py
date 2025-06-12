@@ -21,7 +21,7 @@ with open(os.path.join(HERE, "src", "peter_sslers", "__init__.py")) as v_file:
     VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
 requires = [
-    "alembic",
+    "alembic>=1.16.0",
     "cert_utils>=1.0.6",
     "configobj",  # used to read Certbot files
     "cryptography>42.0.0",
