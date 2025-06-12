@@ -121,6 +121,10 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     ari-checks</a></li>
+                <li><a href="${admin_prefix}/rate-limiteds"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    rate-limiteds</a></li>
             </ul>
 
             <h3>Recordkeeping - ACME & Objects</h3>

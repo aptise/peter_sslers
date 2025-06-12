@@ -4,6 +4,10 @@ URGENT
 ProductionServer - keeps ordering certs
     routine__automatic_orders is not detecting fulfillment
     trouble duplicating, was this fixed?
+    
+    
+AcmeServerError
+    should have headers
 
 
 urllib3 has a breaking change in 2.4.0

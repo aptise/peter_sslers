@@ -12,4 +12,18 @@ Applying Revisions
     
 See https://alembic.sqlalchemy.org/en/latest/autogenerate.html
 
-    alembic -c data_development/config.ini revision --autogenerate -m "sample"
+    alembic -c data_development/config.ini revision --autogenerate -m "stub"
+    
+    
+
+Example:
+
+
+1. Modify objects.py
+2. Run `alembic autogenerate`
+    
+    alembic -c data_development/config.ini revision --autogenerate -m "rate_limited"
+
+3. Run `alembic upgrade`
+
+    alembic -c data_development/config.ini upgrade head

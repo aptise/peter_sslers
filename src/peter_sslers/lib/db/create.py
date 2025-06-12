@@ -62,6 +62,7 @@ if TYPE_CHECKING:
     from ...model.objects import Notification
     from ...model.objects import SystemConfiguration
     from ...model.objects import PrivateKey
+    from ...model.objects import RateLimited
     from ...model.objects import RenewalConfiguration
     from ...model.objects import RoutineExecution
     from ...model.objects import UniqueFQDNSet
@@ -1479,6 +1480,29 @@ def create__PrivateKey(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def create__RateLimited(
+    ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+    # optionals
+    dbAcmeAccount: Optional["AcmeAccount"] = None,
+    dbAcmeOrder: Optional["AcmeOrder"] = None,
+    # misc
+    server_response: Optional[str] = None,
+) -> "RateLimited":
+    """
+    :returns :class:`model.objects.RateLimited`
+    """
+    dbRateLimited = model_objects.RateLimited()
+    dbRateLimited.timestamp_created = datetime.datetime.now(datetime.timezone.utc)
+    dbRateLimited.acme_server_id = dbAcmeServer.id
+    dbRateLimited.acme_account_id = dbAcmeAccount.id if dbAcmeAccount else None
+    dbRateLimited.acme_order_id = dbAcmeOrder.id if dbAcmeOrder else None
+    dbRateLimited.server_response = server_response
+    ctx.dbSession.add(dbRateLimited)
+    ctx.dbSession.flush(objects=[dbRateLimited])
+    return dbRateLimited
 
 
 def create__RenewalConfiguration(

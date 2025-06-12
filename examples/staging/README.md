@@ -164,6 +164,10 @@ Of particular interest is the `acme-public.conf` file.  An excerpt is below:
 This location block is specifying that our main server - the web interface - will be running on port 7201, and that OpenResty encounters a 502 HTTP error (Bad Gateway), to use `@fallback_7202` as our error block.  Also in that file we see::
 
     location @fallback_7202 {
+        proxy_set_header  X-Real-IP  $remote_addr;
+        proxy_set_header  X-Forwarded-For  $proxy_add_x_forwarded_for;
+        proxy_set_header  X-Forwarded-Proto  $scheme;
+        proxy_set_header  Host  $host;
         proxy_pass  http://127.0.0.1:7202;
     }
 
@@ -279,7 +283,7 @@ an initial Certificate and renewing it over time:
 * Which ACME profiles to use?
 * etc, etc, etc
 
-### Create a RenewalConfiguration
+### Create a RenewalConfiguration - Main Site
 
 We're going to create our first RenewalConfiguration for the Domain we will host
 the web tool on, `peter-sslers.testing.opensource.aptise.com` ::

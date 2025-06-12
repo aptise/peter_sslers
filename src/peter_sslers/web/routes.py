@@ -1168,6 +1168,20 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
 
+    # !!!: Rate Limiteds
+    config.add_route_7(
+        "admin:rate_limiteds",
+        "/rate-limiteds",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:rate_limited:focus",
+        "/rate-limited/{@id}",
+        jsonify=True,
+    )
+
+
     # !!!: Renewal Configurations
     config.add_route_7(
         "admin:renewal_configurations",

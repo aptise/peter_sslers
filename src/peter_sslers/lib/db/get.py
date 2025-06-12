@@ -55,6 +55,7 @@ from ...model.objects import Notification
 from ...model.objects import OperationsEvent
 from ...model.objects import OperationsObjectEvent
 from ...model.objects import PrivateKey
+from ...model.objects import RateLimited
 from ...model.objects import RenewalConfiguration
 from ...model.objects import RootStore
 from ...model.objects import RootStoreVersion
@@ -3511,6 +3512,34 @@ def get__PrivateKey__by_AcmeAccountIdOwner__paginated(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__RateLimited__by_id(
+    ctx: "ApiContext",
+    id_: int,
+) -> Optional[RateLimited]:
+    q = ctx.dbSession.query(RateLimited).filter(RateLimited.id == id_)
+    item = q.first()
+    return item
+
+
+def get__RateLimited__count(
+    ctx: "ApiContext",
+) -> int:
+    q = ctx.dbSession.query(RateLimited)
+    counted = q.count()
+    return counted
+
+
+def get__RateLimited__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[RateLimited]:
+    q = ctx.dbSession.query(RateLimited)
+    q = q.order_by(RateLimited.id.desc()).limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

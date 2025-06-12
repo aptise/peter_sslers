@@ -180,6 +180,11 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_account__owner",
     )
+    rate_limiteds = sa_orm_relationship(
+        "RateLimited",
+        primaryjoin="AcmeAccount.id==RateLimited.acme_account_id",
+        back_populates="acme_account",
+    )
     renewal_configurations__primary = sa_orm_relationship(
         "RenewalConfiguration",
         primaryjoin="AcmeAccount.id==RenewalConfiguration.acme_account_id__primary",
@@ -1786,6 +1791,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         back_populates="acme_orders",
         uselist=False,
     )
+    rate_limiteds = sa_orm_relationship(
+        "RateLimited",
+        primaryjoin="AcmeOrder.id==RateLimited.acme_order_id",
+        back_populates="acme_order",
+    )
     renewal_configuration = sa.orm.relationship(
         "RenewalConfiguration",
         primaryjoin="AcmeOrder.renewal_configuration_id==RenewalConfiguration.id",
@@ -2360,11 +2370,6 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_server",
     )
-    operations_object_events = sa_orm_relationship(
-        "OperationsObjectEvent",
-        primaryjoin="AcmeServer.id==OperationsObjectEvent.acme_server_id",
-        back_populates="acme_server",
-    )
     directory_latest = sa_orm_relationship(
         "AcmeServerConfiguration",
         primaryjoin=(
@@ -2375,6 +2380,16 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         ),
         uselist=False,
         viewonly=True,  # the `AcmeServerConfiguration.is_active` join complicates things
+    )
+    operations_object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="AcmeServer.id==OperationsObjectEvent.acme_server_id",
+        back_populates="acme_server",
+    )
+    rate_limiteds = sa_orm_relationship(
+        "RateLimited",
+        primaryjoin="AcmeServer.id==RateLimited.acme_server_id",
+        back_populates="acme_server",
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4904,6 +4919,62 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
 # ==============================================================================
 
+class RateLimited(Base, _Mixin_Timestamps_Pretty):
+
+    __tablename__ = "rate_limited"
+
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    acme_server_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_server.id"), nullable=False
+    )
+
+    # these are optional
+    acme_account_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
+    )
+    acme_order_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+
+    server_response: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True, unique=False
+    )
+
+    acme_account = sa_orm_relationship(
+        "AcmeAccount",
+        primaryjoin="RateLimited.acme_account_id==AcmeAccount.id",
+        back_populates="rate_limiteds",
+        uselist=False,
+    )
+    acme_order = sa.orm.relationship(
+        "AcmeOrder",
+        primaryjoin="RateLimited.acme_order_id==AcmeOrder.id",
+        back_populates="rate_limiteds",
+        uselist=False,
+    )
+    acme_server = sa.orm.relationship(
+        "AcmeServer",
+        primaryjoin="RateLimited.acme_server_id==AcmeServer.id",
+        back_populates="rate_limiteds",
+        uselist=False,
+    )
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "id": self.id,
+            # - -
+            "acme_account_id": self.acme_account_id,
+            "acme_server_id": self.acme_server_id,
+            "acme_order_id": self.acme_order_id,
+            # - -
+            "server_response": self.server_response,
+            "timestamp_created": self.timestamp_created__isoformat,
+    }
+
 
 # ==============================================================================
 
@@ -5862,6 +5933,7 @@ __all__ = (
     "OperationsEvent",
     "OperationsObjectEvent",
     "PrivateKey",
+    "RateLimited",
     "RemoteIpAddress",
     "RenewalConfiguration",
     "RootStore",

@@ -1425,6 +1425,73 @@
 
 
 
+<%def name="table_RateLimiteds(data, perspective=None)">
+    <%
+        cols = ("id",
+                "timestamp_created",
+                "acme_account_id",
+                "acme_server_id",
+                "acme_order_id",
+                "server_response"
+               )
+        if perspective == 'RateLimited':
+            cols = [c for c in cols]
+        else:
+            raise ValueError("invalid `perspective`")
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>
+                        ${c}
+                    </th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for rate_limited in data:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a href="${admin_prefix}/rate-limited/${rate_limited.id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    RateLimited-${rate_limited.id}
+                                </a>
+                            % elif c == 'acme_account_id':
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${rate_limited.acme_account_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAccount-${rate_limited.acme_account_id}
+                                </a>
+                            % elif c == 'acme_server':
+                                <a class="label label-info" href="${admin_prefix}/acme-server/${rate_limited.acme_server_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeServer-${rate_limited.acme_server_id}
+                                </a>
+                            % elif c == 'acme_order_id':
+                                % if rate_limited.acme_order_id:
+                                    <a class="label label-info" href="${admin_prefix}/acme-order/${rate_limited.acme_order_id}">
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        AcmeOrder-${rate_limited.acme_order_id}
+                                    </a>
+                                % endif
+                            % elif c == 'server_resposne':
+                                <code>${rate_limited.server_resposne}</code>
+                            % elif c == 'timestamp_created':
+                                <timestamp>${rate_limited.timestamp_created or ''}</timestamp>
+                            % else:
+                                ${getattr(rate_limited, c)}
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_RenewalConfigurations(data, perspective=None)">
     <%
         cols = ("id",

@@ -202,6 +202,7 @@ def url_request(
     if status_code not in [200, 201, 204]:
         if isinstance(resp_data, dict):
             # (status_code, resp_data, url) = exc
+            import pdb; pdb.set_trace()
             raise errors.AcmeServerError(status_code, resp_data, url)
         msg = "{0}:\nUrl: {1}\nData: {2}\nResponse Code: {3}\nResponse: {4}".format(
             err_msg, url, post_data, status_code, resp_data
@@ -1344,7 +1345,21 @@ class AuthenticatedUser(object):
             log.debug(") acme_order_new | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServerError as exc:
             log.debug(") acme_order_new | AcmeServerError: %s" % exc)
-
+            
+            # (status_code, resp_data, url) = exc
+            if exc.args[0] == 429:
+                log.debug("Ratelimited Error")
+                log.debug(exc.args)
+                dbRateLimited = db_create.create__RateLimited(  # noqa: F841
+                    ctx,
+                    dbAcmeAccount=self.acmeAccount,
+                    dbAcmeOrder=dbAcmeOrder,
+                    dbAcmeServer=self.acmeAccount.acme_server,
+                    server_response=exc.args[1],
+                )
+                ctx.pyramid_transaction_commit()
+                raise
+            
             # (status_code, resp_data, url) = exc
             _raise = True
             if isinstance(exc.args[1], dict):
@@ -2908,6 +2923,3 @@ def ari_check(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-__all__ = ()

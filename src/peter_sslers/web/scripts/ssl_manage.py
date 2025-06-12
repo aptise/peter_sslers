@@ -72,6 +72,9 @@ COMMANDS: Dict[str, List[str]] = {
         "list",
         "new",
     ],
+    "rate-limited": [
+        "list",
+    ],
     "renewal-configuration": [
         "focus",
         "list",
@@ -358,6 +361,16 @@ def main(argv=sys.argv):
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
                     exit(1)
+
+        # !!!: distpatch[rate-limited]
+        elif command == "rate-limited":
+            # !!!: - list
+            if subcommand == "list":
+                print("RateLimiteds:")
+                _list_items(
+                    None,
+                    lib_db.get.get__RateLimited__paginated,
+                )
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
