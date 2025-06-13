@@ -56,7 +56,7 @@ def create_mocked_RateLimited(ctx: "ApiContext") -> Literal[True]:
     dbUniqueFQDNSet, _created = (
         lib_db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(ctx, [dbDomain])
     )
-    
+
     if TYPE_CHECKING:
         assert dbAcmeAccount
         assert dbDomain

@@ -37,12 +37,26 @@ def delete__RateLimited__by_AcmeAccountId(
     executed = ctx.dbSession.execute(stmt)
     return 1
 
+
 def delete__RateLimited__by_AcmeServerId(
     ctx: "ApiContext",
     acme_server_id: int,
 ) -> int:
     stmt = delete(model_objects.RateLimited).where(
         model_objects.RateLimited.acme_server_id == acme_server_id
+    )
+    executed = ctx.dbSession.execute(stmt)
+    return 1
+
+
+def delete__RateLimited__by_AcmeServerId_UniqueFQDNSetId(
+    ctx: "ApiContext",
+    acme_server_id: int,
+    unique_fqdn_set_id: int,
+) -> int:
+    stmt = delete(model_objects.RateLimited).where(
+        model_objects.RateLimited.acme_server_id == acme_server_id,
+        model_objects.RateLimited.unique_fqdn_set_id == unique_fqdn_set_id,
     )
     executed = ctx.dbSession.execute(stmt)
     return 1

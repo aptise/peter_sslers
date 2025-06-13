@@ -109,8 +109,8 @@ def main(argv=sys.argv):
     config_uri = argv[1]
     command = argv[2]
     subcommand = argv[3]
-    
-    options:dict = {}
+
+    options: dict = {}
     try:
         if len(argv) == 5:
             if argv[4].lower() in ("help", "help=1"):
@@ -393,16 +393,30 @@ def main(argv=sys.argv):
                     exit(0)
                 acme_account_id = options.get("acme_account_id", None)
                 acme_server_id = options.get("acme_server_id", None)
+                unique_fqdn_set_id = options.get("unique_fqdn_set_id", None)
                 if acme_account_id is not None:
                     acme_account_id = int(acme_account_id)
-                    lib_db.delete.delete__RateLimited__by_AcmeAccountId(request.api_context, acme_account_id)
+                    lib_db.delete.delete__RateLimited__by_AcmeAccountId(
+                        request.api_context, acme_account_id
+                    )
                     print("delete__RateLimited__by_AcmeAccountId")
                 elif acme_server_id is not None:
                     acme_server_id = int(acme_server_id)
-                    lib_db.delete.delete__RateLimited__by_AcmeServerId(request.api_context, acme_server_id)
-                    print("delete__RateLimited__by_AcmeServerId")
+                    if unique_fqdn_set_id is not None:
+                        unique_fqdn_set_id = int(unique_fqdn_set_id)
+                        lib_db.delete.delete__RateLimited__by_AcmeServerId_UniqueFQDNSetId(
+                            request.api_context, acme_server_id, unique_fqdn_set_id
+                        )
+                        print("delete__RateLimited__by_AcmeServerId_UniqueFQDNSetId")
+                    else:
+                        lib_db.delete.delete__RateLimited__by_AcmeServerId(
+                            request.api_context, acme_server_id
+                        )
+                        print("delete__RateLimited__by_AcmeServerId")
                 else:
-                    raise ValueError("must supply acme_account_id or acme_server_id")
+                    raise ValueError(
+                        "must supply `acme_account_id` or `acme_server_id`; `unique_fqdn_set_id` can be submitted with `acme_server_id`"
+                    )
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
