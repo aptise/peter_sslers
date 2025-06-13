@@ -17,6 +17,7 @@ on:
 
 jobs:
   run-core-tests:
+    if: github.event.pull_request.draft == false # Skip if the pull request is a draft
     name: core-tests-${{ matrix.python-version }}-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
