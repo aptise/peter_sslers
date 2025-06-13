@@ -2701,9 +2701,11 @@ def get_CertificateSigneds_renew_now(
                 AriCheck.suggested_window_end <= timestamp_max_expiry,
                 sqlalchemy.and_(
                     AriCheck.suggested_window_end.is_(None),
-                    (
-                        CertificateSigned.timestamp_not_after
-                        - (CertificateSigned.duration_hours / 3)  # remove 1/3 the hours
+                    sqlalchemy.func.datetime(
+                        CertificateSigned.timestamp_not_after,
+                        "- " 
+                        (CertificateSigned.duration_hours / 3),  # remove 1/3 the hours
+                        " hours"
                     )
                     < timestamp_max_expiry,
                 ),
@@ -2713,8 +2715,8 @@ def get_CertificateSigneds_renew_now(
     if limit:
         q = q.order_by(CertificateSigned.id.asc())
         q = q.limit(limit)
-    print(q.statement.compile(ctx.dbSession.connection().engine))
-    print(q.statement.compile())
+    # print(q.statement.compile(ctx.dbSession.connection().engine))
+    # print(q.statement.compile())
     expiring_certs = q.all()
     return expiring_certs
 
