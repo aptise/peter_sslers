@@ -2713,8 +2713,8 @@ def get_CertificateSigneds_renew_now(
     if limit:
         q = q.order_by(CertificateSigned.id.asc())
         q = q.limit(limit)
-    # print(q.statement.compile(ctx.dbSession.connection().engine))
-    # print(q.statement.compile())
+    print(q.statement.compile(ctx.dbSession.connection().engine))
+    print(q.statement.compile())
     expiring_certs = q.all()
     return expiring_certs
 
