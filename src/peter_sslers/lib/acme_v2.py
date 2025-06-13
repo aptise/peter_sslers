@@ -1324,6 +1324,18 @@ class AuthenticatedUser(object):
                 "required for the `AcmeLogger`"
             )
 
+        # Check to see if we are ratelimited
+        if db_get.get__RateLimited__by__acmeAccountId(ctx, self.acmeAccount.id):
+            raise errors.AcmeServerErrorExistingRatelimit("ACME Account")
+        if db_get.get__RateLimited__by__acmeServerId(
+            ctx, self.acmeAccount.acme_server_id, exclude_accounts=False
+        ):
+            raise errors.AcmeServerErrorExistingRatelimit("ACME Server")
+        if db_get.get__RateLimited__by__acmeServerId_uniqueFqdnSetId(
+            ctx, self.acmeAccount.acme_server_id, dbUniqueFQDNSet.id
+        ):
+            raise errors.AcmeServerErrorExistingRatelimit("ACME Server + Domain(s)")
+
         # the payload can have a dict or strings
         payload_order: AcmeOrderPayload = {
             "identifiers": [{"type": "dns", "value": d} for d in domain_names]

@@ -65,7 +65,7 @@ from ...model.objects import UniqueFQDNSet
 from ...model.objects import UniqueFQDNSet2Domain
 from ...model.objects import UniquelyChallengedFQDNSet
 from ...model.objects import UniquelyChallengedFQDNSet2Domain
-
+from ...model.objects.aliases import UniqueFQDNSet2DomainAlt
 
 if TYPE_CHECKING:
     from ..context import ApiContext
@@ -3540,6 +3540,94 @@ def get__RateLimited__paginated(
     q = q.order_by(RateLimited.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged
+
+
+def get__RateLimited__by__acmeAccountId(
+    ctx: "ApiContext",
+    acme_account_id: int,
+    within_hours: int = 12,
+) -> int:
+    q = ctx.dbSession.query(RateLimited).filter(
+        RateLimited.acme_account_id == acme_account_id,
+        RateLimited.timestamp_created
+        >= (
+            RateLimited.timestamp_created
+            - sqlalchemy.text("'{:d} hours'".format(within_hours))
+        ),
+    )
+    counted = q.count()
+    return counted
+
+
+def get__RateLimited__by__acmeServerId(
+    ctx: "ApiContext",
+    acme_server_id: int,
+    within_hours: int = 12,
+    exclude_accounts: bool = True,
+) -> int:
+    """
+    If `exclude_accounts=True` (default), will not include account-based
+    ratelimits on this server.
+
+    For example:
+    *  ip-based ratelimits are not based on an account id;
+    *  authz and order based ratelimits are likley based on an account id;
+    *  some order ratelimits (per registered domain) are not account id based.
+    """
+    q = ctx.dbSession.query(RateLimited).filter(
+        RateLimited.acme_server_id == acme_server_id,
+        RateLimited.timestamp_created
+        >= (
+            RateLimited.timestamp_created
+            - sqlalchemy.text("'{:d} hours'".format(within_hours))
+        ),
+    )
+    if exclude_accounts:
+        q = q.filter(RateLimited.acme_account_id.is_(None))
+    counted = q.count()
+    return counted
+
+
+def get__RateLimited__by__acmeServerId_uniqueFqdnSetId(
+    ctx: "ApiContext",
+    acme_server_id: int,
+    unique_fqdn_set_id: int,
+    within_hours: int = 12,
+) -> int:
+    """
+    RateLimited.unique_fqdn_set_id
+    UniqueFQDNSet.id  # actually ratelimited:  1:Example.com
+        UniqueFQDNSet2Domain  # possibly ratelimited domain: 100:[1:Example.com]
+        UniqueFQDNSet2DomainAlt  # possibly ratelimited domain: 101:[1:Example.com, a.example.com]
+
+    """
+    q = (
+        ctx.dbSession.query(RateLimited)
+        .join(UniqueFQDNSet, RateLimited.unique_fqdn_set_id == UniqueFQDNSet.id)
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .join(
+            UniqueFQDNSet2DomainAlt,
+            UniqueFQDNSet2Domain.domain_id == UniqueFQDNSet2DomainAlt.domain_id,
+        )
+        .filter(
+            RateLimited.acme_server_id == acme_server_id,
+            RateLimited.timestamp_created
+            >= (
+                RateLimited.timestamp_created
+                - sqlalchemy.text("'{:d} hours'".format(within_hours))
+            ),
+            sqlalchemy.or_(
+                UniqueFQDNSet.id == unique_fqdn_set_id,
+                UniqueFQDNSet2DomainAlt.unique_fqdn_set_id == unique_fqdn_set_id,
+            ),
+        )
+        .distinct()
+    )
+    counted = q.count()
+    return counted
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

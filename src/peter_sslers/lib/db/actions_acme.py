@@ -3348,6 +3348,9 @@ def do__AcmeV2_AcmeOrder__new(
 
         return dbAcmeOrder
 
+    except errors.AcmeServerErrorExistingRatelimit as exc:
+        raise
+
     except (errors.AcmeOrderProcessing, errors.AcmeOrderValid) as exc:
         raise errors.AcmeOrderCreatedError(dbAcmeOrder, exc)
 

@@ -5,6 +5,7 @@ from typing import Optional
 
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.view import view_config
 
 # local
@@ -20,32 +21,50 @@ from ...model.objects import RateLimited
 
 class View_List(Handler):
 
-    @view_config(route_name="admin:rate_limiteds", renderer="/admin/rate_limiteds.mako")
     @view_config(
-        route_name="admin:rate_limiteds-paginated", renderer="/admin/rate_limiteds.mako"
+        route_name="admin:rate_limiteds",
     )
-    @view_config(route_name="admin:rate_limiteds-paginated|json", renderer="json")
-    @view_config(route_name="admin:rate_limiteds|json", renderer="json")
+    @view_config(
+        route_name="admin:rate_limiteds|json",
+    )
+    def list_redirect(self):
+        url_all = (
+            "%s/rate-limiteds/all"
+            % self.request.api_context.application_settings["admin_prefix"]
+        )
+        if self.request.wants_json:
+            url_all = "%s.json" % url_all
+        return HTTPSeeOther(url_all)
+
+    @view_config(
+        route_name="admin:rate_limiteds:all", renderer="/admin/rate_limiteds-all.mako"
+    )
+    @view_config(
+        route_name="admin:rate_limiteds:all-paginated",
+        renderer="/admin/rate_limiteds-all.mako",
+    )
+    @view_config(route_name="admin:rate_limiteds:all-paginated|json", renderer="json")
+    @view_config(route_name="admin:rate_limiteds:all|json", renderer="json")
     @docify(
         {
-            "endpoint": "/rate-limiteds.json",
+            "endpoint": "/rate-limiteds/all.json",
             "section": "rate-limited",
             "about": """list RenewalConfiguration(s)""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/rate-limiteds.json",
+            "example": "curl {ADMIN_PREFIX}/rate-limiteds/all.json",
         }
     )
     @docify(
         {
-            "endpoint": "/rate-limiteds/{PAGE}.json",
+            "endpoint": "/rate-limiteds/all/{PAGE}.json",
             "section": "rate-limited",
-            "example": "curl {ADMIN_PREFIX}/rate-limiteds/1.json",
-            "variant_of": "/rate-limiteds.json",
+            "example": "curl {ADMIN_PREFIX}/rate-limiteds/all/1.json",
+            "variant_of": "/rate-limiteds/all.json",
         }
     )
-    def list(self):
-        url_template = "%s/rate-limiteds/{0}" % (
+    def list_all(self):
+        url_template = "%s/rate-limiteds/all/{0}" % (
             self.request.api_context.application_settings["admin_prefix"],
         )
         if self.request.wants_json:

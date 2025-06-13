@@ -172,6 +172,10 @@ class AcmeServerError(AcmeError):
     pass
 
 
+class AcmeServerErrorExistingRatelimit(AcmeServerError):
+    pass
+
+
 class AcmePollingTooLong(AcmeServerError):
     pass
 

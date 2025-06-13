@@ -73,6 +73,7 @@ COMMANDS: Dict[str, List[str]] = {
         "new",
     ],
     "rate-limited": [
+        "clear",
         "list",
     ],
     "renewal-configuration": [
@@ -108,7 +109,16 @@ def main(argv=sys.argv):
     config_uri = argv[1]
     command = argv[2]
     subcommand = argv[3]
-    options = parse_vars(argv[4:])
+    
+    options:dict = {}
+    try:
+        if len(argv) == 5:
+            if argv[4].lower() in ("help", "help=1"):
+                options["help"] = "1"
+                raise GeneratorExit()
+        options = parse_vars(argv[4:])
+    except GeneratorExit:
+        pass
 
     if command not in COMMANDS:
         print("`%s` is not a valid command" % command)
@@ -237,6 +247,7 @@ def main(argv=sys.argv):
                 )
             # !!!: - new
             elif subcommand == "new":
+                # !!!: - new - help
                 if "help" in options:
                     pprint.pprint(Form_AcmeAccount_new__auth.fields)
                     exit(0)
@@ -250,11 +261,12 @@ def main(argv=sys.argv):
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
-            # !!!: - authenticate
+            # !!!: - authenticate/check
             elif subcommand in (
                 "authenticate",
                 "check",
             ):
+                # !!!: - authenticate/check - help
                 if "help" in options:
                     print('%s id="{INT}' % subcommand)
                     exit(0)
@@ -288,6 +300,7 @@ def main(argv=sys.argv):
                 )
             # !!!: - new
             elif subcommand == "new":
+                # !!!: - new - help
                 if "help" in options:
                     pprint.pprint(Form_AcmeDnsServer_new.fields)
                     exit(0)
@@ -304,6 +317,7 @@ def main(argv=sys.argv):
                     exit(1)
             # !!!: - check
             elif subcommand == "check":
+                # !!!: - check - help
                 if "help" in options:
                     print('check id="{INT}')
                     exit(0)
@@ -371,6 +385,24 @@ def main(argv=sys.argv):
                     None,
                     lib_db.get.get__RateLimited__paginated,
                 )
+            # !!!: - clear
+            elif subcommand == "clear":
+                # !!!: - clear - help
+                if "help" in options:
+                    print("submit either `acme_account_id=INT` or `acme_server_id=INT`")
+                    exit(0)
+                acme_account_id = options.get("acme_account_id", None)
+                acme_server_id = options.get("acme_server_id", None)
+                if acme_account_id is not None:
+                    acme_account_id = int(acme_account_id)
+                    lib_db.delete.delete__RateLimited__by_AcmeAccountId(request.api_context, acme_account_id)
+                    print("delete__RateLimited__by_AcmeAccountId")
+                elif acme_server_id is not None:
+                    acme_server_id = int(acme_server_id)
+                    lib_db.delete.delete__RateLimited__by_AcmeServerId(request.api_context, acme_server_id)
+                    print("delete__RateLimited__by_AcmeServerId")
+                else:
+                    raise ValueError("must supply acme_account_id or acme_server_id")
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
@@ -388,6 +420,7 @@ def main(argv=sys.argv):
                 )
             # !!!: - mark
             elif subcommand == "mark":
+                # !!!: - mark - help
                 if "help" in options:
                     pprint.pprint(Form_RenewalConfiguration_mark.fields)
                     exit(0)
@@ -408,6 +441,7 @@ def main(argv=sys.argv):
                     exit(1)
             # !!!: - new
             elif subcommand == "new":
+                # !!!: - new - help
                 if "help" in options:
                     pprint.pprint(Form_RenewalConfig_new.fields)
                     exit(0)
@@ -426,6 +460,7 @@ def main(argv=sys.argv):
                     exit(1)
             # !!!: - new-configuration
             elif subcommand == "new-configuration":
+                # !!!: - new-configuration - help
                 if "help" in options:
                     print("MUST submit `id`")
                     pprint.pprint(Form_RenewalConfig_new_configuration.fields)
@@ -446,6 +481,7 @@ def main(argv=sys.argv):
                     pprint.pprint(exc.formStash.errors)
             # !!!: - new-enrollment
             elif subcommand == "new-enrollment":
+                # !!!: - new-enrollment - help
                 if "help" in options:
                     print("MUST submit `enrollment_factory_id`")
                     pprint.pprint(Form_RenewalConfig_new_enrollment.fields)
@@ -468,6 +504,7 @@ def main(argv=sys.argv):
                     pprint.pprint(exc.formStash.errors)
             # !!!: - new-order
             elif subcommand == "new-order":
+                # !!!: - new-order - help
                 if "help" in options:
                     print("MUST submit `id`")
                     pprint.pprint(Form_RenewalConfig_new_order.fields)
@@ -502,6 +539,7 @@ def main(argv=sys.argv):
                 )
             # !!!: - edit
             elif subcommand == "edit":
+                # !!!: - edit - help
                 if "help" in options:
                     print("MUST submit `id`")
                     print("Global:")

@@ -4977,11 +4977,13 @@ class RateLimited(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def domains_as_list(self) -> List[str]:
-        return self.unique_fqdn_set.domains_as_list if self.unique_fqdn_set_id else None
+        return self.unique_fqdn_set.domains_as_list if self.unique_fqdn_set_id else []
 
     @property
-    def domains_as_string(self) -> List[str]:
-        return self.unique_fqdn_set.domains_as_string if self.unique_fqdn_set_id else None
+    def domains_as_string(self) -> Optional[str]:
+        return (
+            self.unique_fqdn_set.domains_as_string if self.unique_fqdn_set_id else None
+        )
 
     @property
     def as_json(self) -> Dict:

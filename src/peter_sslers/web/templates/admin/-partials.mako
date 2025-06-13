@@ -1466,7 +1466,7 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccount-${rate_limited.acme_account_id}
                                 </a>
-                            % elif c == 'acme_server':
+                            % elif c == 'acme_server_id':
                                 <a class="label label-info" href="${admin_prefix}/acme-server/${rate_limited.acme_server_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeServer-${rate_limited.acme_server_id}
@@ -1478,10 +1478,10 @@
                                         AcmeOrder-${rate_limited.acme_order_id}
                                     </a>
                                 % endif
-                            % elif c == 'server_resposne_body':
-                                <code>${rate_limited.server_resposne_body}</code>
-                            % elif c == 'server_resposne_headers':
-                                <code>${rate_limited.server_resposne_headers}</code>
+                            % elif c == 'server_response_body':
+                                <code>${rate_limited.server_response_body}</code>
+                            % elif c == 'server_response_headers':
+                                <code>${rate_limited.server_response_headers}</code>
                             % elif c == 'timestamp_created':
                                 <timestamp>${rate_limited.timestamp_created or ''}</timestamp>
                             % elif c == 'unique_fqdn_set_id':
