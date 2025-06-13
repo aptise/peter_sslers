@@ -2704,8 +2704,8 @@ def get_CertificateSigneds_renew_now(
                     sqlalchemy.func.datetime(
                         CertificateSigned.timestamp_not_after,
                         "- " 
-                        (CertificateSigned.duration_hours / 3),  # remove 1/3 the hours
-                        " hours"
+                        + (CertificateSigned.duration_hours / 3)  # remove 1/3 the hours
+                        + " hours"
                     )
                     < timestamp_max_expiry,
                 ),
