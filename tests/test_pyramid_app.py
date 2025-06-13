@@ -45,6 +45,7 @@ from ._utils import db_freeze
 from ._utils import db_unfreeze
 from ._utils import do__AcmeServers_sync__api
 from ._utils import ensure_AcmeAccount_auth
+from ._utils import ensure_RateLimited__database
 from ._utils import ensure_SystemConfiguration__database
 from ._utils import generate_random_domain
 from ._utils import generate_random_emailaddress
@@ -6906,6 +6907,104 @@ class FunctionalTests_PrivateKey(AppTest):
         assert "form_fields" in res.json
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
+
+
+class FunctionalTests_RateLimited(AppTest, _MixinEnrollmentFactory):
+
+    def _get_one(self) -> Tuple[model_objects.RateLimited, int]:
+        focusItem = (
+            self.ctx.dbSession.query(model_objects.RateLimited)
+            .order_by(model_objects.RateLimited.id.asc())
+            .first()
+        )
+        if not focusItem:
+            ensure_RateLimited__database(self)
+            focusItem = (
+                self.ctx.dbSession.query(model_objects.RateLimited)
+                .order_by(model_objects.RateLimited.id.asc())
+                .first()
+            )
+        assert focusItem is not None
+        return focusItem, focusItem.id
+
+    @routes_tested(
+        (
+            "admin:rate_limiteds",
+            "admin:rate_limiteds:all",
+            "admin:rate_limiteds:all-paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds", status=303
+        )
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/rate-limiteds/all"""
+        )
+        # all
+        res = self.testapp.get("/.well-known/peter_sslers/rate-limiteds/all", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/rate-limiteds/all/1", status=200)
+
+    @routes_tested(
+        (
+            "admin:rate_limiteds|json",
+            "admin:rate_limiteds:all|json",
+            "admin:rate_limiteds:all-paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds.json", status=303
+        )
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/rate-limiteds/all.json"""
+        )
+        # all
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds/all.json",
+            status=200,
+        )
+        assert "RateLimiteds" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds/all/1.json",
+            status=200,
+        )
+        assert "RateLimiteds" in res.json
+
+    @routes_tested(
+        (
+            "admin:rate_limited:focus",
+        )
+    )
+    def test_focus_html(self):
+        (focusItem, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limited/%s" % focus_id, status=200
+        )
+
+
+    @routes_tested(
+        (
+            "admin:rate_limited:focus|json",
+        )
+    )
+    def test_focus_json(self):
+        (focusItem, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limited/%s.json" % focus_id,
+            status=200,
+        )
+        assert "RateLimited" in res.json
+        assert res.json["RateLimited"]["id"] == focus_id
+
+
 
 
 class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):

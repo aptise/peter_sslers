@@ -104,15 +104,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>server_resposne_body</th>
+                        <th>server_response_body</th>
                         <td>
-                            <code>${RateLimited.server_resposne_body}</code>
+                            <code>${RateLimited.server_response_body}</code>
                         </td>
                     </tr>
                     <tr>
-                        <th>server_resposne_headers</th>
+                        <th>server_response_headers</th>
                         <td>
-                            <code>${RateLimited.server_resposne_headers}</code>
+                            <code>${RateLimited.server_response_headers}</code>
                         </td>
                     </tr>
                 </tbody>

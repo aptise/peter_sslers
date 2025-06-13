@@ -1173,13 +1173,6 @@ def _admin_views(config: "Configurator") -> None:
         "admin:rate_limiteds",
         "/rate-limiteds",
         jsonify=True,
-        paginate=True,
-    )
-    config.add_route_7(
-        "admin:rate_limiteds:active",
-        "/rate-limiteds/active",
-        jsonify=True,
-        paginate=True,
     )
     config.add_route_7(
         "admin:rate_limiteds:all",
