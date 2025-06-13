@@ -1786,14 +1786,16 @@ def routine__renew_expiring(
         print("Expiring Certs @ ", ctx.timestamp)
         for cert in expiring_certs:
             print(
-                cert.id,
-                cert.timestamp_not_after,
+                "cert:", cert.id,
+                "rc:", cert.acme_order.renewal_configuration_id if cert.acme_order else None,
+                "notAfter:", cert.timestamp_not_after,
+                "issuer:",
                 (
                     cert.cert_issuer.replace(" ", "_").replace("\n", ";")
                     if cert.cert_issuer
                     else ""
                 ),
-                cert.domains_as_string,
+                "domains:", cert.domains_as_string,
             )
         print("---")
 
