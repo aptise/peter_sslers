@@ -259,7 +259,7 @@ def main(argv=sys.argv):
             # !!!: focus
             if subcommand == "focus":
                 _dbAcmeAccount = _get_AcmeAccount()
-                print(_dbAcmeAccount.as_json)
+                pprint.pprint(_dbAcmeAccount.as_json)
             # !!!: - list
             elif subcommand == "list":
                 print("ACME Accounts:")
@@ -279,7 +279,7 @@ def main(argv=sys.argv):
                         acknowledge_transaction_commits=True,
                     )
                     print("success", "[CREATED]" if _is_created else "")
-                    print(_dbAcmeAccount.as_json)
+                    pprint.pprint(_dbAcmeAccount.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
@@ -332,7 +332,7 @@ def main(argv=sys.argv):
                         acknowledge_transaction_commits=True,
                     )
                     print("success", "[CREATED]" if _is_created else "")
-                    print(_dbAcmeDnsServer.as_json)
+                    pprint.pprint(_dbAcmeDnsServer.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
@@ -354,7 +354,7 @@ def main(argv=sys.argv):
             # !!!: - focus
             if command == "focus":
                 _dbAcmeOrder = _get_AcmeOrder()
-                print(_dbAcmeOrder.as_json)
+                pprint.pprint(_dbAcmeOrder.as_json)
             # !!!: - list
             elif subcommand == "list":
                 print("ACME Orders:")
@@ -387,7 +387,7 @@ def main(argv=sys.argv):
             # !!!: focus
             if subcommand == "focus":
                 _dbEnrollmentFactory = _get_EnrollmentFactory()
-                print(_dbEnrollmentFactory.as_json)
+                pprint.pprint(_dbEnrollmentFactory.as_json)
             # !!!: - list
             elif subcommand == "list":
                 print("Enrollment Factories:")
@@ -402,7 +402,7 @@ def main(argv=sys.argv):
                         request,
                         acknowledge_transaction_commits=True,
                     )
-                    print(_dbEnrollmentFactory.as_json_docs)
+                    pprint.pprint(_dbEnrollmentFactory.as_json_docs)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
@@ -456,7 +456,7 @@ def main(argv=sys.argv):
             # !!!: focus
             if subcommand == "focus":
                 _dbRenewalConfiguration = _get_RenewalConfiguration()
-                print(_dbRenewalConfiguration.as_json)
+                pprint.pprint(_dbRenewalConfiguration.as_json)
             # !!!: - list
             elif subcommand == "list":
                 print("Renewal Configurations:")
@@ -480,7 +480,7 @@ def main(argv=sys.argv):
                         )
                     )
                     print("success", _action)
-                    print(_dbRenewalConfiguration.as_json)
+                    pprint.pprint(_dbRenewalConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
@@ -499,7 +499,7 @@ def main(argv=sys.argv):
                         )
                     )
                     print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    print(_dbRenewalConfiguration.as_json)
+                    pprint.pprint(_dbRenewalConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
@@ -521,7 +521,7 @@ def main(argv=sys.argv):
                         )
                     )
                     print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    print(_dbRenewalConfigurationNew.as_json)
+                    pprint.pprint(_dbRenewalConfigurationNew.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
@@ -544,7 +544,7 @@ def main(argv=sys.argv):
                         )
                     )
                     print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    print(_dbRenewalConfiguration.as_json)
+                    pprint.pprint(_dbRenewalConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
@@ -568,7 +568,7 @@ def main(argv=sys.argv):
                         "success",
                         "[NonFatalError: %s]" % _excAcmeOrder if _excAcmeOrder else "",
                     )
-                    print(_dbAcmeOrder.as_json)
+                    pprint.pprint(_dbAcmeOrder.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
@@ -610,7 +610,7 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     print("success")
-                    print(_dbSystemConfiguration.as_json)
+                    pprint.pprint(_dbSystemConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
