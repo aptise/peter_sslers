@@ -1799,8 +1799,8 @@ def routine__renew_expiring(
                     if cert.cert_issuer
                     else ""
                 ),
-                "domains:", cert.domains_as_string,
             )
+            print("\t", cert.domains_as_string)
         print("---")
 
     if DEBUG_LOCAL or dry_run:
