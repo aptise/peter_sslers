@@ -49,10 +49,18 @@ RE_cert_dir = re.compile(
 certs_dir = "/etc/openresty/%s.opensource.testing.peter_sslers_/certificates" % ROOT_DOMAIN_REVERSED
 files = os.listdir(certs_dir)
 for file in files:
-    import pdb; pdb.set_trace()
+    m = RE_cert_dir.match(file)
+    if not m:
+        continue
+    letter = m.groups()[0]
+    LETTER_DATA[letter] = {}
+    f2s = os.listdir(os.path.join(certs_dir, file))
+    if "primary" in f2s:
+        LETTER_DATA[letter]["primary"] = True
+    if "backup" in f2s:
+        LETTER_DATA[letter]["backup"] = True
 
-print(files)
-
+import pprint; print.pprint(LETTER_DATA)
 
 
 
