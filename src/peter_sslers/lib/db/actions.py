@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING
 import cert_utils
 import requests
 import sqlalchemy
-from sqlalchemy import and_ as sqlalchemy_and
 from sqlalchemy import or_ as sqlalchemy_or
 from typing_extensions import Literal
 
@@ -1374,33 +1373,23 @@ def routine__order_missing(
 
     RENEWAL_RUN: str = "OrderMissing[%s]" % TIMESTAMP_routine_start
 
+    subq__backup = (
+        sqlalchemy.select(model_objects.AcmeOrder)
+        .filter(
+            model_objects.AcmeOrder.renewal_configuration_id
+            == model_objects.RenewalConfiguration.id,
+            model_objects.AcmeOrder.certificate_type_id
+            == model_utils.CertificateType.MANAGED_BACKUP,
+            model_objects.AcmeOrder.is_processing.is_not(True),
+        )
+        .exists()
+    )
     q__backup = (
         ctx.dbSession.query(model_objects.RenewalConfiguration)
-        .outerjoin(
-            model_objects.AcmeOrder,
-            sqlalchemy_and(
-                model_objects.RenewalConfiguration.id
-                == model_objects.AcmeOrder.renewal_configuration_id,
-                model_objects.AcmeOrder.certificate_type_id
-                == model_utils.CertificateType.MANAGED_BACKUP,
-                model_objects.AcmeOrder.is_processing.is_not(True),
-            ),
-        )
-        .outerjoin(
-            model_objects.CertificateSigned,
-            model_objects.AcmeOrder.certificate_signed_id
-            == model_objects.CertificateSigned.id,
-        )
+        .where(~subq__backup)
         .filter(
             model_objects.RenewalConfiguration.is_active.is_(True),
             model_objects.RenewalConfiguration.acme_account_id__backup.is_not(None),
-            sqlalchemy_or(
-                model_objects.AcmeOrder.id.is_(None),
-                sqlalchemy_and(
-                    model_objects.AcmeOrder.id.is_not(None),
-                    model_objects.AcmeOrder.certificate_signed_id.is_(None),
-                ),
-            ),
         )
     )
     if renewal_configuration_ids__only_process:
@@ -1414,33 +1403,23 @@ def routine__order_missing(
         q__backup = q__backup.limit(limit)
     dbRenewalConfigurations__backup = q__backup.all()
 
+    subq__primary = (
+        sqlalchemy.select(model_objects.AcmeOrder)
+        .filter(
+            model_objects.AcmeOrder.renewal_configuration_id
+            == model_objects.RenewalConfiguration.id,
+            model_objects.AcmeOrder.certificate_type_id
+            == model_utils.CertificateType.MANAGED_PRIMARY,
+            model_objects.AcmeOrder.is_processing.is_not(True),
+        )
+        .exists()
+    )
     q__primary = (
         ctx.dbSession.query(model_objects.RenewalConfiguration)
-        .outerjoin(
-            model_objects.AcmeOrder,
-            sqlalchemy_and(
-                model_objects.RenewalConfiguration.id
-                == model_objects.AcmeOrder.renewal_configuration_id,
-                model_objects.AcmeOrder.certificate_type_id
-                == model_utils.CertificateType.MANAGED_PRIMARY,
-                model_objects.AcmeOrder.is_processing.is_not(True),
-            ),
-        )
-        .outerjoin(
-            model_objects.CertificateSigned,
-            model_objects.AcmeOrder.certificate_signed_id
-            == model_objects.CertificateSigned.id,
-        )
+        .where(~subq__primary)
         .filter(
             model_objects.RenewalConfiguration.is_active.is_(True),
             model_objects.RenewalConfiguration.acme_account_id__primary.is_not(None),
-            sqlalchemy_or(
-                model_objects.AcmeOrder.id.is_(None),
-                sqlalchemy_and(
-                    model_objects.AcmeOrder.id.is_not(None),
-                    model_objects.AcmeOrder.certificate_signed_id.is_(None),
-                ),
-            ),
         )
     )
     if renewal_configuration_ids__only_process:
@@ -1471,6 +1450,8 @@ def routine__order_missing(
             )
             print("\t", r.acme_account__primary.acme_server.name)
             print("\t", r.domains_as_string)
+            print("-")
+            print(r.acme_account_id__primary)
 
     if DEBUG_LOCAL or dry_run:
         print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~")

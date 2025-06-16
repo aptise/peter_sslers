@@ -1,14 +1,8 @@
 # stdlib
-import json
 import logging
-from typing import Dict
-from typing import List
-from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 # pypi
-import sqlalchemy
 from sqlalchemy import delete
 
 # local
@@ -34,7 +28,7 @@ def delete__RateLimited__by_AcmeAccountId(
     stmt = delete(model_objects.RateLimited).where(
         model_objects.RateLimited.acme_account_id == acme_account_id
     )
-    executed = ctx.dbSession.execute(stmt)
+    executed = ctx.dbSession.execute(stmt)  # noqa: F841
     return 1
 
 
@@ -45,7 +39,7 @@ def delete__RateLimited__by_AcmeServerId(
     stmt = delete(model_objects.RateLimited).where(
         model_objects.RateLimited.acme_server_id == acme_server_id
     )
-    executed = ctx.dbSession.execute(stmt)
+    executed = ctx.dbSession.execute(stmt)  # noqa: F841
     return 1
 
 
@@ -58,5 +52,5 @@ def delete__RateLimited__by_AcmeServerId_UniqueFQDNSetId(
         model_objects.RateLimited.acme_server_id == acme_server_id,
         model_objects.RateLimited.unique_fqdn_set_id == unique_fqdn_set_id,
     )
-    executed = ctx.dbSession.execute(stmt)
+    executed = ctx.dbSession.execute(stmt)  # noqa: F841
     return 1
