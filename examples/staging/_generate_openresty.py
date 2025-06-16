@@ -140,7 +140,7 @@ with open(domain_conf__file, "w") as fh:
 
 # note: Microsite Configuration (challenge/letter; public)
 for letter in LETTER_DATA.keys():
-    if not LETTER_DATA["supported"]:
+    if not LETTER_DATA[letter]["supported"]:
         continue
     templating_args = {
         "letter": letter,
