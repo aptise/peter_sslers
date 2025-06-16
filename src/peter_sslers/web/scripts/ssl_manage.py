@@ -67,6 +67,9 @@ COMMANDS: Dict[str, List[str]] = {
     "acme-server": [
         "list",
     ],
+    "certificate-signed": [
+        "list",
+    ],
     "enrollment-factory": [
         "focus",
         "list",
@@ -138,7 +141,10 @@ def main(argv=sys.argv):
 
         # generic functions
         def _list_items(
-            f_count: Optional[Callable], f_paginated: Callable, is_extended=True
+            f_count: Optional[Callable],
+            f_paginated: Callable,
+            is_extended=True,
+            condensed=False,
         ):
             offset = 0
             limit = None
@@ -152,6 +158,22 @@ def main(argv=sys.argv):
             dbItems = f_paginated(request.api_context, offset=offset, limit=limit)
             for _dbItem in dbItems:
                 print("-----")
+                if condensed:
+                    if isinstance(_dbItem, model_objects.CertificateSigned):
+                        print("Certificate:", _dbItem.id)
+                        print("\tnotAfter:", _dbItem.timestamp_not_after)
+                        print("\tnotBefore:", _dbItem.timestamp_not_before)
+                        print("\tDomains:", _dbItem.domains_as_string)
+                        print(
+                            "\tACME Server:",
+                            (
+                                _dbItem.acme_order.acme_account.acme_server.name
+                                if _dbItem.acme_order
+                                else "{}"
+                            ),
+                        )
+                        continue
+
                 if is_extended:
                     if isinstance(_dbItem, model_objects.EnrollmentFactory):
                         pprint.pprint(_dbItem.as_json_docs)
@@ -348,6 +370,16 @@ def main(argv=sys.argv):
                 _list_items(
                     None,
                     lib_db.get.get__AcmeServer__paginated,
+                )
+        # !!!: distpatch[certificate-signed]
+        elif command == "certificate-signed":
+            _dbEnrollmentFactory: Optional["EnrollmentFactory"]
+            if subcommand == "list":
+                print("CertificateSigneds:")
+                _list_items(
+                    lib_db.get.get__CertificateSigned__count,
+                    lib_db.get.get__CertificateSigned__paginated,
+                    condensed=True,
                 )
         # !!!: distpatch[enrollment-factory]
         elif command == "enrollment-factory":

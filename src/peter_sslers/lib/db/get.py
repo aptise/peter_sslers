@@ -2705,10 +2705,9 @@ def get_CertificateSigneds_renew_now(
                         CertificateSigned.timestamp_not_after,
                         "- "
                         + sqlalchemy.type_coerce(  # remove 1/3 the hours
-                            (CertificateSigned.duration_hours / 3),
-                            sqlalchemy.String
-                          )
-                        + " hours"
+                            (CertificateSigned.duration_hours / 3), sqlalchemy.String
+                        )
+                        + " hours",
                     )
                     < timestamp_max_expiry,
                 ),
