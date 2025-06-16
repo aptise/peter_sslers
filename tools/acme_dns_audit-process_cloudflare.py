@@ -108,11 +108,13 @@ for result in audit_results:
                     print("Records match: (source, target);", _cname_source, ",", _cname_target)
                     _write = False
                 else:
+                    print("Deletng OLD record.")
                     _record_id = _api_result["result"][0]["id"]
                     _api_result2 = cf.zones.dns_records.delete(zone_id, _record_id)
                     assert len(_api_result2["result"].keys()) == 1
                     assert _api_result2["result"]["id"] == _record_id
             if _write is True:
+                print("Writing NEW record.")
                 _api_result3 = cf.zones.dns_records.post(zone_id, data=_record_target)
                 assert _api_result3["result"]
                 assert _api_result3["result"]["name"] == _cname_source

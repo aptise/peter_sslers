@@ -295,9 +295,9 @@ the web tool on, `peter-sslers.testing.opensource.aptise.com` ::
         is_export_filesystem="on" \
         label="peter-sslers.testing.opensource.aptise.com" \
         account_key_option=account_key_existing \
-        account_key_option_backup=account_key_existing \
+        account_key_option__backup=account_key_existing \
         account_key_existing="{{PEM MD5 of Primary Key}}" \
-        account_key_existing_backup="{{PEM MD5 OF Backup Key}}" \
+        account_key_existing__backup="{{PEM MD5 OF Backup Key}}" \
         private_key_cycle__primary="account_default" \
         private_key_cycle__backup="account_default" \
         private_key_technology__primary="account_default" \
@@ -487,7 +487,7 @@ Now that we have acme-dns set up, create the Enrollment factory, with acme_accou
         name="dns-http-example" \
         private_key_cycle__primary=account_weekly \
         private_key_technology__primary=EC_P256 \
-        acme_account_id_backup=2 \
+        acme_account_id__backup=2 \
         private_key_cycle__backup=account_weekly \
         private_key_technology__backup=EC_P256
 
@@ -695,9 +695,9 @@ According to the above, `acme_server_id = 5; buypass production`::
         is_export_filesystem="on" \
         label="peter-sslers.testing.opensource.aptise.com" \
         account_key_option=acme_account_id \
-        account_key_option_backup=acme_account_id \
+        account_key_option__backup=acme_account_id \
         acme_account_id=1 \
-        acme_account_id_backup=2 \
+        acme_account_id__backup=2 \
         private_key_cycle__primary="account_default" \
         private_key_cycle__backup="account_default" \
         private_key_technology__primary="account_default" \

@@ -2093,14 +2093,14 @@
     <%
         checked = {
             "none": "",
-            "account_key_reuse_backup": "",
-            "account_key_global_backup": "",
+            "account_key_reuse__backup": "",
+            "account_key_global__backup": "",
         }
         if dbAcmeAccountReuse:
-            checked["account_key_reuse_backup"] = 'checked="checked"'
+            checked["account_key_reuse__backup"] = 'checked="checked"'
         elif AcmeAccount_GlobalBackup:
             if request.api_context.application_settings["default_backup"] == "global":
-                checked["account_key_global_backup"] = 'checked="checked"'
+                checked["account_key_global__backup"] = 'checked="checked"'
             else:
                 checked["none"] = 'checked="checked"'
         else:
@@ -2116,15 +2116,15 @@
     <div class="form-horizontal">
         <div class="radio">
             <label>
-                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-none" value="none" ${checked["none"]|n}/>
+                <input type="radio" name="account_key_option__backup" id="account_key_option__backup-none" value="none" ${checked["none"]|n}/>
                 No Backup Certificate
             </label>
         </div>
         % if dbAcmeAccountReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse_backup"]|n}/>
-                    <input type="hidden" name="account_key_reuse_backup" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
+                    <input type="radio" name="account_key_option__backup" id="account_key_option__backup-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse__backup"]|n}/>
+                    <input type="hidden" name="account_key_reuse__backup" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
                     Select to renew with the same AcmeAccount
                 </label>
                 <p class="form-control-static">
@@ -2148,7 +2148,7 @@
         % if acmeAccount_GlobalBackup:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_global_backup" value="account_key_global_backup" ${checked["account_key_global_backup"]|n}/>
+                    <input type="radio" name="account_key_option__backup" id="account_key_option__backup-account_key_global__backup" value="account_key_global__backup" ${checked["account_key_global__backup"]|n}/>
                     The Global Backup AcmeAccount.
                 </label>
                 <p class="form-control-static">
@@ -2168,7 +2168,7 @@
                     <b>pem md5:</b> <code>${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${acmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code><br/>
                     <b>known profiles:</b> <code>${acmeAccount_GlobalBackup.acme_server.profiles}</code><br/>
-                    <input type="hidden" name="account_key_global_backup" value="${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
+                    <input type="hidden" name="account_key_global__backup" value="${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
                 </p>
             </div>
         % else:
@@ -2185,30 +2185,30 @@
             </div>
         % endif
         <div class="radio">
-            <label for="account_key_option_backup-account_key_existing">
-                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_existing" value="account_key_existing"/>
+            <label for="account_key_option__backup-account_key_existing">
+                <input type="radio" name="account_key_option__backup" id="account_key_option__backup-account_key_existing" value="account_key_existing"/>
                 The PEM MD5 of an AcmeAccountKey already enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="account_key_existing_backup" id="account_key_option_backup-account_key_existing" type="text"/>
+               <input class="form-control" name="account_key_existing__backup" id="account_key_option__backup-account_key_existing" type="text"/>
             </div>
         </div>
         <div class="radio">
-            <label for="account_key_option_backup-acme_account_id_backup">
-                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-acme_account_id_backup" value="acme_account_id_backup"/>
+            <label for="account_key_option__backup-acme_account_id__backup">
+                <input type="radio" name="account_key_option__backup" id="account_key_option__backup-acme_account_id__backup" value="acme_account_id__backup"/>
                 The internal ID of an ACME Account enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="acme_account_id_backup" id="account_key_option_backup-acme_account_id_backup" type="text"/>
+               <input class="form-control" name="acme_account_id__backup" id="account_key_option__backup-acme_account_id__backup" type="text"/>
             </div>
         </div>
         <div class="radio">
-            <label for="account_key_option_backup-acme_account_url_backup">
-                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-acme_account_url_backup" value="acme_account_url_backup"/>
+            <label for="account_key_option__backup-acme_account_url__backup">
+                <input type="radio" name="account_key_option__backup" id="account_key_option__backup-acme_account_url__backup" value="acme_account_url__backup"/>
                 The ACME Account URL (on the ACME Server).
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="acme_account_url_backup" id="account_key_option_backup-acme_account_url_backup" type="text"/>
+               <input class="form-control" name="acme_account_url__backup" id="account_key_option__backup-acme_account_url__backup" type="text"/>
             </div>
         </div>
         % if support_profiles:
