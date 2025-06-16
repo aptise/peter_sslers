@@ -64,17 +64,6 @@ for file in files:
     if "backup" in f2s:
         LETTER_DATA[letter]["backup"] = True
 
-import pprint; pprint.pprint(LETTER_DATA)
-
-
-
-exit(1)
-
-
-
-
-
-
 
 # ==============================================================================
 
@@ -150,7 +139,9 @@ with open(domain_conf__file, "w") as fh:
 
 
 # note: Microsite Configuration (challenge/letter; public)
-for letter in SUPPORTED_LETTERS:
+for letter in LETTER_DATA.keys():
+    if not LETTER_DATA["supported"]:
+        continue
     templating_args = {
         "letter": letter,
         "ssl_files_primary": "",
@@ -225,7 +216,9 @@ for letter in SUPPORTED_LETTERS:
             os.mkdir(domain_www__dirpath)
 
         _fragments = []
-        for _letter in SUPPORTED_LETTERS:
+        for _letter in LETTER_DATA.keys():
+            if not LETTER_DATA[_letter]["supported"]:
+                continue
             _letter_args = {
                 "letter": _letter,
                 "root_domain": ROOT_DOMAIN,
