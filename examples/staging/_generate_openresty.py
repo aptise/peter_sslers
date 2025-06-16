@@ -40,14 +40,17 @@ ROOT_DOMAIN_REVERSED = tldextract.extract(ROOT_DOMAIN).reverse_domain_name
 
 ALL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower()
 SUPPORTED_LETTERS = "ABCDEFG".lower()  # we're not using them all
-LETTER_DATA = {}
 
-certs_dir_template = re.compile(
-    "chall_prefix-(\w+).peter-sslers.testing.opensource.%s""" % ROOT_DOMAIN).replace(".", "\.")
+# 
+LETTER_DATA = {}
+RE_cert_dir = re.compile(
+    ("chall_prefix-(\w+).peter-sslers.testing.opensource.%s""" % ROOT_DOMAIN).replace(".", "\.")
 )
 certs_dir = "/etc/openresty/%s.opensource.testing.peter_sslers_/certificates" % ROOT_DOMAIN_REVERSED
-
 files = os.listdir(certs_dir)
+for file in files:
+    import pdb; pdb.set_trace()
+
 print(files)
 
 
