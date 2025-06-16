@@ -2703,8 +2703,11 @@ def get_CertificateSigneds_renew_now(
                     AriCheck.suggested_window_end.is_(None),
                     sqlalchemy.func.datetime(
                         CertificateSigned.timestamp_not_after,
-                        "- " 
-                        + (CertificateSigned.duration_hours / 3)  # remove 1/3 the hours
+                        "- "
+                        + sqlalchemy.type_coerce(  # remove 1/3 the hours
+                            (CertificateSigned.duration_hours / 3),
+                            sqlalchemy.String
+                          )
                         + " hours"
                     )
                     < timestamp_max_expiry,
