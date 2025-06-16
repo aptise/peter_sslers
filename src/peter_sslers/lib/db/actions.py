@@ -1456,9 +1456,11 @@ def routine__order_missing(
             )
 
     if DEBUG_LOCAL or dry_run:
+        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~")
+        print("routine__order_missing")
+        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~")
         _debug_results()
         # pdb.set_trace()
-        print("routine__order_missing")
 
     count_renewals = 0
     count_failures = 0
@@ -1800,9 +1802,11 @@ def routine__renew_expiring(
         print("---")
 
     if DEBUG_LOCAL or dry_run:
+        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~")
+        print("routine__renew_expiring")
+        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~")
         _debug_results()
         # pdb.set_trace()
-        print("routine__renew_expiring")
 
     count_renewals = 0
     count_failures = 0

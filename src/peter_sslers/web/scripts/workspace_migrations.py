@@ -158,6 +158,9 @@ def update_CertificateSigned_duration(ctx: "ApiContext") -> Literal[True]:
 
 
 def main(argv=sys.argv):
+    """
+    python -m peter_sslers.web.scripts.workspace_migrations data_development/config.ini
+    """
     if len(argv) < 2:
         usage(argv)
     config_uri = argv[1]
