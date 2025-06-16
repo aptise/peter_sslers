@@ -43,6 +43,11 @@ SUPPORTED_LETTERS = "ABCDEFG".lower()  # we're not using them all
 
 # 
 LETTER_DATA = {}
+for l in ALL_LETTERS:
+    LETTER_DATA[l] = {"supported": False}
+for l in SUPPORTED_LETTERS:
+    LETTER_DATA[l]["supported"] = True
+
 RE_cert_dir = re.compile(
     ("chall_prefix-(\w+).peter-sslers.testing.opensource.%s""" % ROOT_DOMAIN).replace(".", "\.")
 )
@@ -53,7 +58,6 @@ for file in files:
     if not m:
         continue
     letter = m.groups()[0]
-    LETTER_DATA[letter] = {}
     f2s = os.listdir(os.path.join(certs_dir, file))
     if "primary" in f2s:
         LETTER_DATA[letter]["primary"] = True
