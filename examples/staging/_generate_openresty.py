@@ -60,7 +60,7 @@ for file in files:
     if "backup" in f2s:
         LETTER_DATA[letter]["backup"] = True
 
-import pprint; print.pprint(LETTER_DATA)
+import pprint; pprint.pprint(LETTER_DATA)
 
 
 
