@@ -20,6 +20,7 @@ e.g.
 
 # stdlib
 import os
+import re
 from typing import Dict
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -34,10 +35,31 @@ if not all((ROOT_DOMAIN,)):
     raise ValueError("required ENV vars not found")
 
 assert ROOT_DOMAIN
+ROOT_DOMAIN = ROOT_DOMAIN.lower()
 ROOT_DOMAIN_REVERSED = tldextract.extract(ROOT_DOMAIN).reverse_domain_name
 
-# SUPPORTED_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower()
-SUPPORTED_LETTERS = "ABCDEFG".lower()
+ALL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower()
+SUPPORTED_LETTERS = "ABCDEFG".lower()  # we're not using them all
+LETTER_DATA = {}
+
+certs_dir_template = re.compile(
+    "chall_prefix-(\w+).peter-sslers.testing.opensource.%s""" % ROOT_DOMAIN).replace(".", "\.")
+)
+certs_dir = "/etc/openresty/%s.opensource.testing.peter_sslers_/certificates" % ROOT_DOMAIN_REVERSED
+
+files = os.listdir(certs_dir)
+print(files)
+
+
+
+
+exit(1)
+
+
+
+
+
+
 
 # ==============================================================================
 
