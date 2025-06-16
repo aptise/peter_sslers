@@ -55,10 +55,18 @@ def main(argv=sys.argv):
     ctx = new_scripts_setup(config_uri, options=options)
 
     # actually, we order the backups first
+
+    _order_missing = [
+        int(j)
+        for j in [i.strip() for i in options.get("order_missing-rcs", "").split(",")]
+        if j
+    ] or None
+
     dbRoutineExecution_1 = lib_db.actions.routine__order_missing(  # noqa: F841
         ctx,
         settings=settings,
         dry_run=dry_run,
+        renewal_configuration_ids__only_process=_order_missing,
         limit=limit,
         DEBUG_LOCAL=False,
     )

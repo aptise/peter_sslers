@@ -1358,6 +1358,7 @@ def routine__order_missing(
     ctx: "ApiContext",
     settings: Dict,
     create_public_server: Callable = _create_public_server,
+    renewal_configuration_ids__only_process: Optional[Tuple[int]] = None,
     dry_run: bool = False,
     limit: Optional[int] = None,
     DEBUG_LOCAL: Optional[bool] = False,
@@ -1402,6 +1403,12 @@ def routine__order_missing(
             ),
         )
     )
+    if renewal_configuration_ids__only_process:
+        q__backup = q__backup.filter(
+            model_objects.RenewalConfiguration.id.in_(
+                renewal_configuration_ids__only_process
+            )
+        )
     if limit:
         q__backup = q__backup.order_by(model_objects.RenewalConfiguration.id.asc())
         q__backup = q__backup.limit(limit)
@@ -1436,6 +1443,12 @@ def routine__order_missing(
             ),
         )
     )
+    if renewal_configuration_ids__only_process:
+        q__primary = q__primary.filter(
+            model_objects.RenewalConfiguration.id.in_(
+                renewal_configuration_ids__only_process
+            )
+        )
     if limit:
         q__primary = q__primary.order_by(model_objects.RenewalConfiguration.id.asc())
         q__primary = q__primary.limit(limit)
