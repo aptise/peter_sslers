@@ -1448,12 +1448,14 @@ def routine__order_missing(
             print(
                 "RC:%s %s" % (r.id, ("[%s]" % r.label if r.label else "")),
             )
+            print("\t", r.domains_as_string)
         print("----")
         print("dbRenewalConfigurations__primary:")
         for r in dbRenewalConfigurations__primary:
             print(
                 "RC:%s %s" % (r.id, ("[%s]" % r.label if r.label else "")),
             )
+            print("\t", r.domains_as_string)
 
     if DEBUG_LOCAL or dry_run:
         print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~")
