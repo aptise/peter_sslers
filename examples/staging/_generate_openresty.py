@@ -307,11 +307,11 @@ def process_letters():
                     ),
                 }
                 if letter == _letter:
-                    _letter_fragment = TEMPLATES["LETTER_FRAGMENT"] % _letter_args
-                else:
                     _letter_fragment = (
                         TEMPLATES["LETTER_FRAGMENT__ACTIVE"] % _letter_args
                     )
+                else:
+                    _letter_fragment = TEMPLATES["LETTER_FRAGMENT"] % _letter_args
                 _fragments.append(_letter_fragment)
             _templating_args__microsite["ALL_DOMAINS__HTML"] = "".join(_fragments)
 
