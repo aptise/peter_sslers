@@ -80,7 +80,7 @@ def main(argv=sys.argv):
             limit = limit - dbRoutineExecution_1.count_records_processed
 
     if limit == 0:
-        print("NOT RUNNIN (LIMIT) routine__renew_expiring()")
+        print("NOT RUNNING (LIMIT) routine__renew_expiring()")
 
     else:
 

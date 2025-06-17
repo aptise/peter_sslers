@@ -1538,6 +1538,56 @@ def routine__order_missing(
                         count_failures += 1
                         return False
 
+                except errors.AcmeServerErrorExistingRatelimit as exc:
+                    # raise errors.AcmeServerErrorExistingRatelimit("ACME Account")
+                    # raise errors.AcmeServerErrorExistingRatelimit("ACME Server")
+                    # raise errors.AcmeServerErrorExistingRatelimit("ACME Server + Domain(s)")
+                    log.critical(
+                        "Exception `AcmeServerErrorExistingRatelimit(%s)` when processing AcmeOrder for RenewalConfiguration[%s]"
+                        % (exc.args[0], _dbRenewalConfiguration.id)
+                    )
+                    if "ACME Account" in exc.args[0]:
+                        if (
+                            replaces_certificate_type
+                            == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                        ):
+                            print(
+                                "AcmeAccount.id=",
+                                _dbRenewalConfiguration.acme_account_id__primary,
+                            )
+                        if (
+                            replaces_certificate_type
+                            == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                        ):
+                            print(
+                                "AcmeAccount.id=",
+                                _dbRenewalConfiguration.acme_account_id__backup,
+                            )
+                    if "ACME Server" in exc.args[0]:
+                        if (
+                            replaces_certificate_type
+                            == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                        ):
+                            print(
+                                "AcmeServer.id=",
+                                _dbRenewalConfiguration.acme_account__primary.acme_server_id,
+                            )
+                        if (
+                            replaces_certificate_type
+                            == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                        ):
+                            print(
+                                "AcmeServer.id=",
+                                _dbRenewalConfiguration.acme_account__backup.acme_server_id,
+                            )
+                    if "Domain(s)" in exc.args[0]:
+                        print("Domain(s)=", _dbRenewalConfiguration.domains_as_string)
+
+                    # TODO: how should we handle this?
+                    # raise or catch and continue?
+                    count_failures += 1
+                    return False
+
                 except Exception as exc:
                     log.critical(
                         "Exception `%s` when processing AcmeOrder for RenewalConfiguration[%s]"
