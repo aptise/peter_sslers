@@ -149,7 +149,6 @@ def process_main() -> None:
 
     # use a list for confs, and join them together
     domain_admin_confs = []
-    domain_admin_confs.append(TEMPLATES["DOMAIN_ADMIN_80_CONF"] % templating_args__main)
 
     # figure out the ssl_certs for the admin page
     ssl_certs__main: Dict[str, Optional[str]] = {
@@ -175,6 +174,8 @@ def process_main() -> None:
             TEMPLATES["DOMAIN_ADMIN_443_CONF"] % templating_args__main
         )
 
+    # insert this at 0 so it's first; but render now to pull computed `redirect_80_main`
+    domain_admin_confs.insert(0, TEMPLATES["DOMAIN_ADMIN_80_CONF"] % templating_args__main)
     domain_conf__contents = "\n".join(domain_admin_confs)
     domain_conf__file = DOMAIN_ADMIN_CONF__FILEPATH % templating_args__main
 
