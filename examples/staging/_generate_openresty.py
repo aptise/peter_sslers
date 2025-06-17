@@ -281,3 +281,8 @@ def process_letters():
             with open(domain_index_file, "w") as fh:
                 print("writing html index:", domain_index_file)
                 fh.write(index_contents)
+
+
+if __name__ == "__main__":
+    process_main()
+    process_letters()
