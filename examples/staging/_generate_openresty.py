@@ -119,6 +119,7 @@ DOMAIN_WWW__DIRPATH = "www/%(root_domain_reversed)s.opensource.testing.peter_ssl
 
 
 def process_main() -> None:
+    print("Process Main:")
 
     # note: Main Configuration (control panel; protected)
     templating_args__main = {
@@ -167,6 +168,7 @@ def process_main() -> None:
 
 
 def process_letters():
+    print("Process Letters:")
 
     # note: Microsite Configuration (challenge/letter; public)
     for letter in LETTER_DATA.keys():
