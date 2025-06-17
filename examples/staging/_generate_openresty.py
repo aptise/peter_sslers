@@ -199,6 +199,8 @@ def process_letters():
             },
             "root_domain": ROOT_DOMAIN,
             "root_domain_reversed": ROOT_DOMAIN_REVERSED,
+            "protocol_dns01": "https" if LETTER_SUPPORT["primary_cert"] else "http",
+            "protocol_http01": "https" if LETTER_SUPPORT["backup_cert"] else "http",
         }
 
         def challenge_templating_args(challenge: Literal["dns-01", "http-01"]) -> Dict:
