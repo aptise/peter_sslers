@@ -260,7 +260,7 @@ def process_letters():
             templating_args__letter["redirect_80_dns01"] = REDIRECT_80_RULE
         if ssl_certs["backup_fullchain"] and ssl_certs["backup_key"]:
             templating_args__letter["ssl_files_backup"] = (
-                "ssl_certificate  %(ssl_files_backup)s;\n    ssl_certificate_key  %(backup_key)s;"
+                "ssl_certificate  %(backup_fullchain)s;\n    ssl_certificate_key  %(backup_key)s;"
                 % ssl_certs
             )
             templating_args__letter["redirect_80_http01"] = REDIRECT_80_RULE
