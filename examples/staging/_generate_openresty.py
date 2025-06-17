@@ -162,7 +162,7 @@ def process_main() -> None:
     if not os.path.exists(_dir):
         os.mkdir(_dir)
     with open(domain_conf__file, "w") as fh:
-        print("writing main configuration file:", domain_conf__file)
+        print("Writing main configuration file:", domain_conf__file)
         fh.write(domain_conf__contents)
 
 
@@ -252,7 +252,7 @@ def process_letters():
         domain_conf__contents = "\n".join(domain_public_confs)
         domain_conf__file = DOMAIN_PUBLIC_CONF__FILEPATH % templating_args
         with open(domain_conf__file, "w") as fh:
-            print("writing openresty config:", domain_conf__file)
+            print("\t", "writing openresty config:", domain_conf__file)
             fh.write(domain_conf__contents)
 
         for challenge in ("dns-01", "http-01"):
@@ -281,7 +281,7 @@ def process_letters():
             index_contents = TEMPLATES["DOMAIN_WWW__INDEX"] % _templating_args
             domain_index_file = "%s/index.html" % domain_www__dirpath
             with open(domain_index_file, "w") as fh:
-                print("writing html index:", domain_index_file)
+                print("\t", "writing html index:", domain_index_file)
                 fh.write(index_contents)
 
 
