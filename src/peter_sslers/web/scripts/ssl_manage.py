@@ -184,7 +184,7 @@ def main(argv=sys.argv):
                         pprint.pprint(_dbItem.as_json_docs)
                         continue
                 pprint.pprint(_dbItem.as_json)
-            print("Total Items: %s" % dbItemsCount)
+            print("Total Items: %s" % dbItemsCount if dbItemsCount is not None else "x")
             print("Showing: offset %s, limit %s" % (offset, limit))
 
         def _get_AcmeAccount(arg: str = "id", required: bool = True) -> "AcmeAccount":
@@ -423,7 +423,8 @@ def main(argv=sys.argv):
             elif subcommand == "clear":
                 # !!!: - clear - help
                 if "help" in options:
-                    print("submit either `acme_account_id=INT` or `acme_server_id=INT`")
+                    print("submit either `acme_account_id=INT` or `acme_server_id=INT`.")
+                    print("you may submit `unique_fqdn_set_id=INT` with `acme_server_id`.")
                     exit(0)
                 acme_account_id = options.get("acme_account_id", None)
                 acme_server_id = options.get("acme_server_id", None)
@@ -434,6 +435,7 @@ def main(argv=sys.argv):
                         request.api_context, acme_account_id
                     )
                     print("delete__RateLimited__by_AcmeAccountId")
+                    request.api_context.pyramid_transaction_commit()
                 elif acme_server_id is not None:
                     acme_server_id = int(acme_server_id)
                     if unique_fqdn_set_id is not None:
@@ -442,11 +444,13 @@ def main(argv=sys.argv):
                             request.api_context, acme_server_id, unique_fqdn_set_id
                         )
                         print("delete__RateLimited__by_AcmeServerId_UniqueFQDNSetId")
+                        request.api_context.pyramid_transaction_commit()
                     else:
                         lib_db.delete.delete__RateLimited__by_AcmeServerId(
                             request.api_context, acme_server_id
                         )
                         print("delete__RateLimited__by_AcmeServerId")
+                        request.api_context.pyramid_transaction_commit()
                 else:
                     raise ValueError(
                         "must supply `acme_account_id` or `acme_server_id`; `unique_fqdn_set_id` can be submitted with `acme_server_id`"
