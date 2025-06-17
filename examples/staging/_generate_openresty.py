@@ -127,6 +127,8 @@ DOMAIN_PUBLIC_CONF__FILEPATH = "nginx_conf/%(root_domain_reversed)s.opensource.t
 
 DOMAIN_WWW__DIRPATH = "www/%(root_domain_reversed)s.opensource.testing.peter_sslers.%(letter)s.%(challenge)s"
 
+REDIRECT_80_RULE = "location / { return 301 https://$host$request_uri; }"
+
 # ==============================================================================
 
 
@@ -142,6 +144,7 @@ def process_main() -> None:
         "root_domain": ROOT_DOMAIN,
         "root_domain_reversed": ROOT_DOMAIN_REVERSED,
         "ssl_files_main": "",
+        "redirect_80_main": "",
     }
 
     # use a list for confs, and join them together
@@ -167,6 +170,7 @@ def process_main() -> None:
             "\n    "
             "ssl_certificate_key  %(ssl_certificate_key)s;" % ssl_certs__main
         )
+        templating_args__main["redirect_80_main"] = REDIRECT_80_RULE
         domain_admin_confs.append(
             TEMPLATES["DOMAIN_ADMIN_443_CONF"] % templating_args__main
         )
@@ -199,18 +203,30 @@ def process_letters():
             },
             "root_domain": ROOT_DOMAIN,
             "root_domain_reversed": ROOT_DOMAIN_REVERSED,
-            "protocol_dns01": "https" if LETTER_SUPPORT[letter]["primary_cert"] else "http",
-            "protocol_http01": "https" if LETTER_SUPPORT[letter]["backup_cert"] else "http",
+            "protocol_dns01": (
+                "https" if LETTER_SUPPORT[letter]["primary_cert"] else "http"
+            ),
+            "protocol_http01": (
+                "https" if LETTER_SUPPORT[letter]["backup_cert"] else "http"
+            ),
+            "redirect_80_dns01": "",
+            "redirect_80_http01": "",
         }
 
-        def microsite_templating_args(challenge: Literal["dns-01", "http-01"]) -> Dict[str, str]:
+        def microsite_templating_args(
+            challenge: Literal["dns-01", "http-01"]
+        ) -> Dict[str, str]:
             _templating_args = {
                 "letter": letter,
                 "challenge": challenge,
                 "root_domain": ROOT_DOMAIN,
                 "root_domain_reversed": ROOT_DOMAIN_REVERSED,
-                "protocol_dns01": "https" if LETTER_SUPPORT[letter]["primary_cert"] else "http",
-                "protocol_http01": "https" if LETTER_SUPPORT[letter]["backup_cert"] else "http",
+                "protocol_dns01": (
+                    "https" if LETTER_SUPPORT[letter]["primary_cert"] else "http"
+                ),
+                "protocol_http01": (
+                    "https" if LETTER_SUPPORT[letter]["backup_cert"] else "http"
+                ),
             }
             return _templating_args
 
@@ -240,18 +256,25 @@ def process_letters():
                 "ssl_certificate  %(primary_fullchain)s;\n    ssl_certificate_key  %(primary_key)s;"
                 % ssl_certs
             )
+            templating_args__letter["redirect_80_dns01"] = REDIRECT_80_RULE
         if ssl_certs["backup_fullchain"] and ssl_certs["backup_key"]:
             templating_args__letter["ssl_files_backup"] = (
                 "ssl_certificate  %(ssl_files_backup)s;\n    ssl_certificate_key  %(backup_key)s;"
                 % ssl_certs
             )
+            templating_args__letter["redirect_80_http01"] = REDIRECT_80_RULE
 
         # we will have 1-2 configurations in this file:
         # * port 80
         # * port 443
         domain_public_confs = []
-        domain_public_confs.append(TEMPLATES["DOMAIN_PUBLIC_80_CONF"] % templating_args__letter)
-        if templating_args__letter["ssl_files_primary"] or templating_args__letter["ssl_files_backup"]:
+        domain_public_confs.append(
+            TEMPLATES["DOMAIN_PUBLIC_80_CONF"] % templating_args__letter
+        )
+        if (
+            templating_args__letter["ssl_files_primary"]
+            or templating_args__letter["ssl_files_backup"]
+        ):
             domain_public_confs.append(
                 TEMPLATES["DOMAIN_PUBLIC_443_CONF"] % templating_args__letter
             )
@@ -291,7 +314,9 @@ def process_letters():
                 _fragments.append(_letter_fragment)
             _templating_args__microsite["ALL_DOMAINS__HTML"] = "".join(_fragments)
 
-            index_contents = TEMPLATES["DOMAIN_WWW__INDEX"] % _templating_args__microsite
+            index_contents = (
+                TEMPLATES["DOMAIN_WWW__INDEX"] % _templating_args__microsite
+            )
             domain_index_file = "%s/index.html" % domain_www__dirpath
             with open(domain_index_file, "w") as fh:
                 print("\t", "writing html index:", domain_index_file)
