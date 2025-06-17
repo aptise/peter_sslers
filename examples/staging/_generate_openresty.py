@@ -194,7 +194,7 @@ def process_letters():
             return _templating_args
 
         if not LETTER_DATA[letter]["supported"]:
-            print("\t", "Letter %s Unsupported", letter)
+            print("\t", "Letter `%s` Unsupported" % letter)
             # unlink the
             domain_conf__file = DOMAIN_PUBLIC_CONF__FILEPATH % templating_args
             if os.path.exists(domain_conf__file):
@@ -208,7 +208,9 @@ def process_letters():
                 if os.path.exists(domain_index_file):
                     print("\t", "unlinking:", domain_index_file)
                     os.unlink(domain_index_file)
-                os.rmdir(domain_www__dirpath)
+                if os.path.exists(domain_www__dirpath):
+                    os.rmdir(domain_www__dirpath)
+                    print("\t", "unlinking:", domain_www__dirpath)
 
             # early exit
             continue
