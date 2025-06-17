@@ -4,17 +4,13 @@ URGENT
 ProductionServer - keeps ordering certs
     routine__automatic_orders is not detecting fulfillment
     trouble duplicating, was this fixed?
-    
-    
-AcmeServerError
-    arg[0] might be an int or exc
 
 getcreate__PrivateKey_for_AcmeAccount
     should return a tuple
     
-url_request
-    should return status_code first
-
+    
+AcmeServerError
+    arg[0] might be an int or exc
 
 urllib3 has a breaking change in 2.4.0
     # see https://github.com/urllib3/urllib3/issues/3571
@@ -27,13 +23,6 @@ Tests
     submit (hostname, ipv4, ipv6) to domain new
     view domain (html, json) for (hostname, ipv4, ipv6)
     submit (hostname, ipv4, ipv6) to acme_dns_server ensure domain
-
-
-
-
-DRY RUN
-
-    alter table routine_execution add is_dry_run bool default false not null;
 
 
 

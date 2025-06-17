@@ -116,6 +116,10 @@
     New commandline routines:
         periodic_tasks:
             taskrunner for others
+        create_domain_blocklisted
+            add a blocklist
+        deactivate_duplicate_certificates
+            finds and deactivates extra certs
         routine__clear_old_ari_checks
             low-cost cronjob to check ari as necessary
         routine__run_ari_checks
@@ -129,6 +133,10 @@
             this will order certs under the following conditions:
                 managed certs that are expiring, based on ARI or notAfter
                 active renewal configurations that have not ordered a primary or backup
+        routine__reconile_blocks
+            tries to sync orders/auths and complete outstanding orders
+        ssl_manage
+            a tool for manging installations
 
     new QuickStart guide
 
@@ -139,6 +147,8 @@
     Added:
         /acme-server/{id} - focus
         /acme-server/{id}/check-support - focus & check ari / profiles
+        /rate-limiteds/ - track rate limits
+
     Improved
         now handles polling an acme-order stuck in processing, 1x every 2 seconds for 20 seconds
         fixed testing docs and config to reflect active testing setup
@@ -281,7 +291,7 @@
     Initial framework to allow IP address on Domain object/table
     Add `create_domain_blocklisted` script
 
-    support Alembic
+    Support Alembic for database changes
 
     AcmeServerError
         tracks headers now
