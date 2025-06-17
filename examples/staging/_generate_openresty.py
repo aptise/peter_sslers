@@ -189,7 +189,7 @@ def process_letters():
     for letter in LETTER_SUPPORT.keys():
         print("Processing Letter:", letter)
 
-        templating_args = {
+        templating_args__letter = {
             "letter": letter,
             "ssl_files_primary": "",
             "ssl_files_backup": "",
@@ -203,7 +203,7 @@ def process_letters():
             "protocol_http01": "https" if LETTER_SUPPORT[letter]["backup_cert"] else "http",
         }
 
-        def challenge_templating_args(challenge: Literal["dns-01", "http-01"]) -> Dict:
+        def microsite_templating_args(challenge: Literal["dns-01", "http-01"]) -> Dict[str, str]:
             _templating_args = {
                 "letter": letter,
                 "challenge": challenge,
@@ -220,13 +220,13 @@ def process_letters():
         # ssl cert paths
         ssl_certs: Dict[str, Optional[str]] = {
             "primary_fullchain": "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/primary/fullchain.pem"
-            % templating_args,
+            % templating_args__letter,
             "primary_key": "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/primary/pkey.pem"
-            % templating_args,
+            % templating_args__letter,
             "backup_fullchain": "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/backup/fullchain.pem"
-            % templating_args,
+            % templating_args__letter,
             "backup_key": "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/backup/pkey.pem"
-            % templating_args,
+            % templating_args__letter,
         }
         # if the path doesn't exist, unset it
         for k, v in list(ssl_certs.items()):
@@ -236,12 +236,12 @@ def process_letters():
                 ssl_certs[k] = None
 
         if ssl_certs["primary_fullchain"] and ssl_certs["primary_key"]:
-            templating_args["ssl_files_primary"] = (
+            templating_args__letter["ssl_files_primary"] = (
                 "ssl_certificate  %(primary_fullchain)s;\n    ssl_certificate_key  %(primary_key)s;"
                 % ssl_certs
             )
         if ssl_certs["backup_fullchain"] and ssl_certs["backup_key"]:
-            templating_args["ssl_files_backup"] = (
+            templating_args__letter["ssl_files_backup"] = (
                 "ssl_certificate  %(ssl_files_backup)s;\n    ssl_certificate_key  %(backup_key)s;"
                 % ssl_certs
             )
@@ -250,21 +250,21 @@ def process_letters():
         # * port 80
         # * port 443
         domain_public_confs = []
-        domain_public_confs.append(TEMPLATES["DOMAIN_PUBLIC_80_CONF"] % templating_args)
-        if templating_args["ssl_files_primary"] and templating_args["ssl_files_backup"]:
+        domain_public_confs.append(TEMPLATES["DOMAIN_PUBLIC_80_CONF"] % templating_args__letter)
+        if templating_args__letter["ssl_files_primary"] or templating_args__letter["ssl_files_backup"]:
             domain_public_confs.append(
-                TEMPLATES["DOMAIN_PUBLIC_443_CONF"] % templating_args
+                TEMPLATES["DOMAIN_PUBLIC_443_CONF"] % templating_args__letter
             )
 
         domain_conf__contents = "\n".join(domain_public_confs)
-        domain_conf__file = DOMAIN_PUBLIC_CONF__FILEPATH % templating_args
+        domain_conf__file = DOMAIN_PUBLIC_CONF__FILEPATH % templating_args__letter
         with open(domain_conf__file, "w") as fh:
             print("\t", "writing openresty config:", domain_conf__file)
             fh.write(domain_conf__contents)
 
         for challenge in ("dns-01", "http-01"):
-            _templating_args = challenge_templating_args(challenge)
-            domain_www__dirpath = DOMAIN_WWW__DIRPATH % _templating_args
+            _templating_args__microsite = microsite_templating_args(challenge)
+            domain_www__dirpath = DOMAIN_WWW__DIRPATH % _templating_args__microsite
             if not os.path.exists(domain_www__dirpath):
                 os.mkdir(domain_www__dirpath)
 
@@ -289,9 +289,9 @@ def process_letters():
                         TEMPLATES["LETTER_FRAGMENT__ACTIVE"] % _letter_args
                     )
                 _fragments.append(_letter_fragment)
-            _templating_args["ALL_DOMAINS__HTML"] = "".join(_fragments)
+            _templating_args__microsite["ALL_DOMAINS__HTML"] = "".join(_fragments)
 
-            index_contents = TEMPLATES["DOMAIN_WWW__INDEX"] % _templating_args
+            index_contents = TEMPLATES["DOMAIN_WWW__INDEX"] % _templating_args__microsite
             domain_index_file = "%s/index.html" % domain_www__dirpath
             with open(domain_index_file, "w") as fh:
                 print("\t", "writing html index:", domain_index_file)
