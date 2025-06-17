@@ -23,8 +23,8 @@
                 <p>
                     This demo was created by an `EnrollmentFactory` in PeterSSLers:
                 </p>
-<code>
 <pre>
+<code>
 ssl_manage data_production enrollment-factory new \
         acme_account_id__primary=1 \
         domain_template_dns01="dns-01.{DOMAIN}" \
@@ -37,8 +37,8 @@ ssl_manage data_production enrollment-factory new \
         acme_account_id__backup=2 \
         private_key_cycle__backup=account_weekly \
         private_key_technology__backup=EC_P256
-</pre>
 </code>
+</pre>
                 <ul>
                     <li>`domain_template_dns01` means that domains with a `dns-01` prefix were configured to answer a DNS-01 challenge.</li>
                     <li>`domain_template_http01` means that domains with a `http-01` prefix were configured to answer a HTTP-01 challenge.</li>
