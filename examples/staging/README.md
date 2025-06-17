@@ -147,6 +147,9 @@ Create symlinks for the nginx configuration files::
     ls -alh com.aptise.opensource.testing.peter_sslers_
     ls -alh com.aptise.opensource.testing.peter_sslers_/
 
+    cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_
+    ln -s sites-available sites-enabled
+
 The templates for the generated files are in the `_templates/` directory.
 They will reference includes in the `nginx_conf/com.aptise.opensource.testing.peter_sslers_/_macros` directory.
 
@@ -181,7 +184,7 @@ The combination of the two location blocks means that OpenResty will proxy_pass 
 ### Ensure the following lines to the `http {}` section
 
     server_names_hash_bucket_size 128;
-    include /etc/openresty/com.aptise.opensource.testing.peter_sslers/sites-available/*;
+    include /etc/openresty/com.aptise.opensource.testing.peter_sslers/sites-enabled/*;
     
 If you have a `server_names_hash_bucket_size` directive already, it should be increased to at least this amount; it may need to be increased more depending on the number of domains you already host.
 
@@ -191,7 +194,7 @@ The `_generate_openresty.py` script should have detected this situation, and NOT
 
 You can ensure that with::
 
-    cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/sites-available
+    cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/sites-enabled
     more com.aptise.opensource.testing.peter_sslers
     
 ## test nginx
@@ -359,7 +362,7 @@ Now that there are Certificates procured, we want to regenerate the openresty fi
 
 Look at the generated files, and check to ensure there are HTTPS blocks::
 
-    cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/sites-available
+    cd /etc/openresty/com.aptise.opensource.testing.peter_sslers_/sites-enabled
     more com.aptise.opensource.testing.peter_sslers
     
 There should now be a second 443 sever block!

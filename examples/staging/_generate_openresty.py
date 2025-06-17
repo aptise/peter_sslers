@@ -24,6 +24,7 @@ import re
 from typing import Dict
 from typing import Literal
 from typing import Optional
+from typing import TYPE_CHECKING
 from typing import TypedDict
 
 # pypi
@@ -40,24 +41,29 @@ ROOT_DOMAIN_REVERSED = tldextract.extract(ROOT_DOMAIN).reverse_domain_name
 
 
 class LetterSupport(TypedDict):
-    supported: bool
-    primary: bool
-    backup: bool
+    ssl_supported: bool
+    primary_cert: bool
+    backup_cert: bool
+    targeted: bool
 
 
-def letter_data() -> Dict[str, LetterSupport]:
+def letter_support() -> Dict[str, LetterSupport]:
     """
-    compile a dict of letters
-    return value is Dict[Letter, LetterSupport]
+    Compiles a Dict of letters, structured as `Dict[Letter, LetterSupport]`.
+
+    The Letter Support is based on several factors:
+    1. Is there a `chall_prefix-{LETTER}.peter-sslers.testing.opensource.{DOMAIN}` directory
+    2. Does that directory have a primary cert?
+    3. Does that directory have a backup cert?
     """
     ALL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower()
     # we're not using them all
-    supported_letters = ALL_LETTERS[:5]
-    LETTER_DATA = {}
+    targeted_letters = ALL_LETTERS[:5]
+    LETTER_SUPPORT: Dict[str, LetterSupport] = {}
     for ltr in ALL_LETTERS:
-        LETTER_DATA[ltr] = LetterSupport(supported=False)
-    for ltr in supported_letters:
-        LETTER_DATA[ltr]["supported"] = True
+        LETTER_SUPPORT[ltr] = LetterSupport(
+            ssl_supported=False, primary_cert=False, backup_cert=False, targeted=False
+        )
 
     RE_cert_dir = re.compile(
         (
@@ -74,13 +80,19 @@ def letter_data() -> Dict[str, LetterSupport]:
         if not m:
             continue
         letter = m.groups()[0]
-        f2s = os.listdir(os.path.join(certs_dir, file))
-        if "primary" in f2s:
-            LETTER_DATA[letter]["primary"] = True
-        if "backup" in f2s:
-            LETTER_DATA[letter]["backup"] = True
+        LETTER_SUPPORT[letter]["ssl_supported"] = True
+        dir_contents = os.listdir(os.path.join(certs_dir, file))
+        if "primary" in dir_contents:
+            LETTER_SUPPORT[letter]["primary_cert"] = True
+        if "backup" in dir_contents:
+            LETTER_SUPPORT[letter]["backup_cert"] = True
 
-    return LETTER_DATA
+    for ltr in targeted_letters:
+        LETTER_SUPPORT[ltr]["targeted"] = True
+        if not LETTER_SUPPORT[ltr]["ssl_supported"]:
+            print("WARNING: letter %s is targeted for support, but no certs on disk")
+
+    return LETTER_SUPPORT
 
 
 def load_templates() -> Dict[str, str]:
@@ -105,7 +117,7 @@ def load_templates() -> Dict[str, str]:
     return TEMPLATES
 
 
-LETTER_DATA = letter_data()
+LETTER_SUPPORT = letter_support()
 TEMPLATES = load_templates()
 
 DOMAIN_ADMIN_CONF__FILEPATH = "nginx_conf/%(root_domain_reversed)s.opensource.testing.peter_sslers_/sites-available/%(root_domain_reversed)s.opensource.testing.peter_sslers"
@@ -138,9 +150,11 @@ def process_main() -> None:
 
     # figure out the ssl_certs for the admin page
     ssl_certs__main: Dict[str, Optional[str]] = {
-        "ssl_certificate": "/etc/openresty/%(root_domain_reversed)s.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.%(root_domain)s/primary/fullchain.pem"
+        "ssl_certificate": "/etc/openresty/%(root_domain_reversed)s.opensource.testing.peter_sslers_/"
+        "certificates/peter-sslers.testing.opensource.%(root_domain)s/primary/fullchain.pem"
         % templating_args__main,
-        "ssl_certificate_key": "/etc/openresty/%(root_domain_reversed)s.opensource.testing.peter_sslers_/certificates/peter-sslers.testing.opensource.%(root_domain)s/primary/pkey.pem"
+        "ssl_certificate_key": "/etc/openresty/%(root_domain_reversed)s.opensource.testing.peter_sslers_/"
+        "certificates/peter-sslers.testing.opensource.%(root_domain)s/primary/pkey.pem"
         % templating_args__main,
     }
     for k, v in list(ssl_certs__main.items()):
@@ -149,8 +163,9 @@ def process_main() -> None:
             ssl_certs__main[k] = None
     if ssl_certs__main["ssl_certificate"] and ssl_certs__main["ssl_certificate_key"]:
         templating_args__main["ssl_files_main"] = (
-            "ssl_certificate  %(ssl_certificate)s;\n    ssl_certificate_key  %(ssl_certificate_key)s;"
-            % ssl_certs__main
+            "ssl_certificate  %(ssl_certificate)s;"
+            "\n    "
+            "ssl_certificate_key  %(ssl_certificate_key)s;" % ssl_certs__main
         )
         domain_admin_confs.append(
             TEMPLATES["DOMAIN_ADMIN_443_CONF"] % templating_args__main
@@ -171,7 +186,7 @@ def process_letters():
     print("Process Letters:")
 
     # note: Microsite Configuration (challenge/letter; public)
-    for letter in LETTER_DATA.keys():
+    for letter in LETTER_SUPPORT.keys():
         print("Processing Letter:", letter)
 
         templating_args = {
@@ -195,55 +210,41 @@ def process_letters():
             }
             return _templating_args
 
-        if not LETTER_DATA[letter]["supported"]:
-            print("\t", "Letter `%s` Unsupported" % letter)
-            # unlink the
-            domain_conf__file = DOMAIN_PUBLIC_CONF__FILEPATH % templating_args
-            if os.path.exists(domain_conf__file):
-                print("\t", "unlinking:", domain_conf__file)
-                os.unlink(domain_conf__file)
-
-            for challenge in ("dns-01", "http-01"):
-                _templating_args = challenge_templating_args(challenge)
-                domain_www__dirpath = DOMAIN_WWW__DIRPATH % _templating_args
-                domain_index_file = "%s/index.html" % domain_www__dirpath
-                if os.path.exists(domain_index_file):
-                    print("\t", "unlinking:", domain_index_file)
-                    os.unlink(domain_index_file)
-                if os.path.exists(domain_www__dirpath):
-                    os.rmdir(domain_www__dirpath)
-                    print("\t", "unlinking:", domain_www__dirpath)
-
-            # early exit
-            continue
+        if not LETTER_SUPPORT[letter]["ssl_supported"]:
+            print("\t", "Letter `%s` SSL Unsupported" % letter)
 
         # ssl cert paths
         ssl_certs: Dict[str, Optional[str]] = {
-            "primary": "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/primary/fullchain.pem"
+            "primary_fullchain": "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/primary/fullchain.pem"
             % templating_args,
             "primary_key": "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/primary/pkey.pem"
             % templating_args,
-            "backup": "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/backup/fullchain.pem"
+            "backup_fullchain": "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/backup/fullchain.pem"
             % templating_args,
             "backup_key": "%(certs_dir)s/chall_prefix-%(letter)s.peter-sslers.testing.opensource.%(root_domain)s/backup/pkey.pem"
             % templating_args,
         }
         # if the path doesn't exist, unset it
         for k, v in list(ssl_certs.items()):
+            if TYPE_CHECKING:
+                assert v is not None
             if not os.path.exists(v):
                 ssl_certs[k] = None
 
-        if ssl_certs["primary"] and ssl_certs["primary_key"]:
+        if ssl_certs["primary_fullchain"] and ssl_certs["primary_key"]:
             templating_args["ssl_files_primary"] = (
-                "ssl_certificate  %(primary)s;\n    ssl_certificate_key  %(primary_key)s;"
+                "ssl_certificate  %(primary_fullchain)s;\n    ssl_certificate_key  %(primary_key)s;"
                 % ssl_certs
             )
-        if ssl_certs["backup"] and ssl_certs["backup_key"]:
+        if ssl_certs["backup_fullchain"] and ssl_certs["backup_key"]:
             templating_args["ssl_files_backup"] = (
-                "ssl_certificate  %(backup)s;\n    ssl_certificate_key  %(backup_key)s;"
+                "ssl_certificate  %(ssl_files_backup)s;\n    ssl_certificate_key  %(backup_key)s;"
                 % ssl_certs
             )
 
+        # we will have 1-2 configurations in this file:
+        # * port 80
+        # * port 443
         domain_public_confs = []
         domain_public_confs.append(TEMPLATES["DOMAIN_PUBLIC_80_CONF"] % templating_args)
         if templating_args["ssl_files_primary"] and templating_args["ssl_files_backup"]:
@@ -264,12 +265,18 @@ def process_letters():
                 os.mkdir(domain_www__dirpath)
 
             _fragments = []
-            for _letter in LETTER_DATA.keys():
-                if not LETTER_DATA[_letter]["supported"]:
+            for _letter in LETTER_SUPPORT.keys():
+                if not LETTER_SUPPORT[_letter]["targeted"]:
                     continue
                 _letter_args = {
                     "letter": _letter,
                     "root_domain": ROOT_DOMAIN,
+                    "protocol_dns01": (
+                        "https" if LETTER_SUPPORT[_letter]["primary_cert"] else "http"
+                    ),
+                    "protocol_http01": (
+                        "https" if LETTER_SUPPORT[_letter]["backup_cert"] else "http"
+                    ),
                 }
                 if letter == _letter:
                     _letter_fragment = TEMPLATES["LETTER_FRAGMENT"] % _letter_args
