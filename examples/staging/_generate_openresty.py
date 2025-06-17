@@ -134,7 +134,7 @@ _dir = os.path.dirname(domain_conf__file)
 if not os.path.exists(_dir):
     os.mkdir(_dir)
 with open(domain_conf__file, "w") as fh:
-    print("writing:", domain_conf__file)
+    print("writing main configuration file:", domain_conf__file)
     fh.write(domain_conf__contents)
 
 
@@ -142,6 +142,9 @@ with open(domain_conf__file, "w") as fh:
 for letter in LETTER_DATA.keys():
     if not LETTER_DATA[letter]["supported"]:
         continue
+
+    print("Processing Letter:", letter)
+
     templating_args = {
         "letter": letter,
         "ssl_files_primary": "",
@@ -201,7 +204,7 @@ for letter in LETTER_DATA.keys():
     domain_conf__contents = "\n".join(domain_public_confs)
     domain_conf__file = DOMAIN_PUBLIC_CONF__FILEPATH % templating_args
     with open(domain_conf__file, "w") as fh:
-        print("writing:", domain_conf__file)
+        print("writing openresty config:", domain_conf__file)
         fh.write(domain_conf__contents)
 
     for challenge in ("dns-01", "http-01"):
@@ -233,5 +236,5 @@ for letter in LETTER_DATA.keys():
         index_contents = DOMAIN_WWW__INDEX_CONTENTS % _templating_args
         domain_index_file = "%s/index.html" % domain_www__dirpath
         with open(domain_index_file, "w") as fh:
-            print("writing:", domain_conf__file)
+            print("writing html index:", domain_index_file)
             fh.write(index_contents)
