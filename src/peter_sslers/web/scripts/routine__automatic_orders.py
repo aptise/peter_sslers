@@ -38,7 +38,7 @@ def main(argv=sys.argv):
     if len(argv) < 2:
         usage(argv)
     config_uri = argv[1]
-    validate_config_uri(config_uri)
+    config_uri = validate_config_uri(config_uri)
 
     options = parse_vars(argv[2:])
     dry_run = asbool(options.get("dry-run", False))

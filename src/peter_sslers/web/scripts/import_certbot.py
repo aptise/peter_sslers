@@ -12,6 +12,7 @@ from pyramid.scripts.common import parse_vars
 from ...lib import db as lib_db
 from ...lib.compat import certbot as compat_certbot
 from ...lib.utils import new_scripts_setup
+from ...lib.utils import validate_config_uri
 
 # ==============================================================================
 
@@ -32,6 +33,7 @@ def main(argv=sys.argv):
     if len(argv) < 2:
         usage(argv)
     config_uri = argv[1]
+    config_uri = validate_config_uri(config_uri)
     options = parse_vars(argv[2:])
     certbot_dir = options.get("dir", "/etc/letsencrypt")
     compat_certbot.validate_certbot_dir(certbot_dir)

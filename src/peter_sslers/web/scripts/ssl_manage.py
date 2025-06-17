@@ -33,6 +33,7 @@ from ..views_admin import enrollment_factory as v_enrollment_factory
 from ..views_admin import renewal_configuration as v_renewal_configuration
 from ..views_admin import system_configuration as v_system_configuration
 from ...lib import db as lib_db  # noqa: F401
+from ...lib.utils import validate_config_uri
 from ...model import objects as model_objects
 
 
@@ -110,6 +111,7 @@ def main(argv=sys.argv):
     if len(argv) < 4:
         usage(argv)
     config_uri = argv[1]
+    config_uri = validate_config_uri(config_uri)
     command = argv[2]
     subcommand = argv[3]
 

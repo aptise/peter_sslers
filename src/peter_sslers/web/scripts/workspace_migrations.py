@@ -25,6 +25,7 @@ from typing_extensions import Literal
 # local
 from ...lib import db as lib_db  # noqa: F401
 from ...lib.utils import new_scripts_setup
+from ...lib.utils import validate_config_uri
 
 if TYPE_CHECKING:
     from ...lib.context import ApiContext
@@ -164,6 +165,7 @@ def main(argv=sys.argv):
     if len(argv) < 2:
         usage(argv)
     config_uri = argv[1]
+    config_uri = validate_config_uri(config_uri)
     options = parse_vars(argv[2:])
 
     settings = get_appsettings(config_uri, options=options)  # noqa: F841

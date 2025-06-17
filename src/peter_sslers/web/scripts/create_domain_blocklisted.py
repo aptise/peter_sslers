@@ -12,6 +12,7 @@ from pyramid.scripts.common import parse_vars
 # local
 from ...lib import db as lib_db
 from ...lib.utils import new_scripts_setup
+from ...lib.utils import validate_config_uri
 
 # ==============================================================================
 
@@ -29,6 +30,7 @@ def main(argv=sys.argv):
     if len(argv) < 3:
         usage(argv)
     config_uri = argv[1]
+    config_uri = validate_config_uri(config_uri)
     candidate = argv[2].strip()
     options = parse_vars(argv[3:])
 

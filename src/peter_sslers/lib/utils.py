@@ -353,9 +353,15 @@ class RequestCommandline(object):
         return load_CertificateCAPreferencePolicy_global(self)
 
 
-def validate_config_uri(config_uri: str) -> None:
+def validate_config_uri(config_uri: str) -> str:
     if not os.path.exists(config_uri):
-        raise ValueError("Not a valid `config_uri` :: `%s`" % config_uri)
+        raise ValueError("Not a valid `config_uri`; Does not exist :: `%s`" % config_uri)
+    if os.path.isdir(config_uri):
+        if "config.ini" not in os.listdir(config_uri)
+            raise ValueError("Not a valid `config_uri` :: `%s`" % config_uri)
+        config_uri = os.path.join(config_uri, "config.ini")
+    assert os.path.isfile(config_uri)
+    return config_uri
 
 
 def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiContext":
