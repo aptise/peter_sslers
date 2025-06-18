@@ -375,7 +375,6 @@ def main(argv=sys.argv):
                 )
         # !!!: distpatch[certificate-signed]
         elif command == "certificate-signed":
-            _dbEnrollmentFactory: Optional["EnrollmentFactory"]
             if subcommand == "list":
                 print("CertificateSigneds:")
                 _list_items(
