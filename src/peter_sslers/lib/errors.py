@@ -168,9 +168,20 @@ class AcmeDnsServerError(AcmeError):
     pass
 
 
-class AcmeServerError(AcmeError):
+class AcmeServerErrorPublic(AcmeError)
+    """
+    this happens from public connections
+    it wraps an exc
+    """
     pass
 
+class AcmeServerError(AcmeError):
+    """
+    this should have 4 items
+    AcmeServerError(status_code, url, resp_data, headers)
+    """
+    pass
+    
 
 class AcmeServerErrorExistingRatelimit(AcmeServerError):
     pass

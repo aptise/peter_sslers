@@ -299,8 +299,13 @@
     Standardiing Names; __backup
         acme_account_id_backup -> acme_account_id__backup
         acme_account_url_backup - > acme_account_url__backup
-    
 
+    getcreate__PrivateKey_for_AcmeAccount
+        returns a tuple
+
+    AcmeServerError
+        descoped to include AcmeServerErrorPublic
+    
 
 
 0.6.0

@@ -2747,7 +2747,7 @@ def check_endpoint(
             resp = sess.get(acme_directory, verify=cas.path(ctx, "CA_ACME"))
             return resp
         except Exception as exc:
-            raise errors.AcmeServerError(exc)
+            raise errors.AcmeServerErrorPublic(exc)
 
     alt_bundle = dbAcmeServer.local_ca_bundle(ctx) if dbAcmeServer else None
     if alt_bundle:
@@ -2856,7 +2856,7 @@ def _ari_query(
             )
             return ariCheckResult
         except Exception as exc:
-            raise errors.AcmeServerError(exc)
+            raise errors.AcmeServerErrorPublic(exc)
 
     alt_bundle = dbAcmeServer.local_ca_bundle(ctx) if dbAcmeServer else None
     if alt_bundle:

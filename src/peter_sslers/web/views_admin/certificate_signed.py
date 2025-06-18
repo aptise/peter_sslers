@@ -1363,16 +1363,22 @@ class View_Focus_Manipulate(View_Focus):
                 % (self._focus_url, utils.urlify(dbAriObject.as_json))
             )
 
-        except (errors.AcmeAriCheckDeclined, errors.AcmeServerError) as exc:
+        except (errors.AcmeAriCheckDeclined, errors.AcmeServerError, errors.AcmeServerErrorPublic) as exc:
+        
+            msg: str 
+            if isinstance(exc, errors.AcmeServerError):
+                msg = "%s|%s" % (exc.args[0], str(exc.args[2]))
+            else:
+                msg = str(exc.args[0])
 
             if self.request.wants_json:
                 return {
                     "result": "error",
-                    "error": str(exc.args[0]),
+                    "error": msg,
                 }
             raise HTTPSeeOther(
                 "%s?result=error&operation=ari-check&error-encoded=%s"
-                % (self._focus_url, str(exc.args[0]))
+                % (self._focus_url, msg)
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1993,7 +1993,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     "global_weekly",
                 ):
                     # look the `dbAcmeOrder.acme_account.private_key_cycle`
-                    dbPrivateKey_new = getcreate__PrivateKey_for_AcmeAccount(
+                    dbPrivateKey_new, _is_created = getcreate__PrivateKey_for_AcmeAccount(
                         ctx,
                         dbAcmeAccount=dbAcmeOrder.acme_account,
                         key_technology_id=key_technology_id,
@@ -2033,7 +2033,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                                 raise ReassignedPrivateKey("new PrivateKey")
                         break
                     # if not, we need to generate a new key...
-                    dbPrivateKey_new = getcreate__PrivateKey_for_AcmeAccount(
+                    dbPrivateKey_new, _is_created = getcreate__PrivateKey_for_AcmeAccount(
                         ctx,
                         dbAcmeAccount=dbAcmeOrder.acme_account,
                         key_technology_id=key_technology_id,

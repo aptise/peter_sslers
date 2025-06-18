@@ -1406,7 +1406,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
     key_technology_id: Optional[int] = None,
     private_key_cycle_id: Optional[int] = None,
     private_key_id__replaces: Optional[int] = None,
-) -> "PrivateKey":
+) -> Tuple["PrivateKey", bool]:
     """
     getcreate wrapping a dbPrivateKey, which is used by orders
 
@@ -1435,6 +1435,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
 
     # scoping
     dbPrivateKey_new: Optional["PrivateKey"]
+    is_created: bool = False
 
     if private_key_cycle == "single_use":
         # NOTE: AcmeAccountNeedsPrivateKey ; single_use
@@ -1446,7 +1447,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
             acme_account_id__owner=acme_account_id__owner,
             private_key_id__replaces=private_key_id__replaces,
         )
-        return dbPrivateKey_new
+        is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "single_use__reuse_1_year":
         # NOTE: AcmeAccountNeedsPrivateKey ; single_use
@@ -1460,7 +1462,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
             acme_account_id__owner=acme_account_id__owner,
             private_key_id__replaces=private_key_id__replaces,
         )
-        return dbPrivateKey_new
+        is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "account_daily":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_daily
@@ -1476,7 +1479,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
                 key_technology_id=key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
             )
-        return dbPrivateKey_new
+            is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "global_daily":
         # NOTE: AcmeAccountNeedsPrivateKey ; global_daily
@@ -1488,7 +1492,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
                 private_key_type_id=model_utils.PrivateKeyType.GLOBAL_DAILY,
                 key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
-        return dbPrivateKey_new
+            is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "account_weekly":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_weekly
@@ -1504,7 +1509,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
                 key_technology_id=dbAcmeAccount.private_key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
             )
-        return dbPrivateKey_new
+            is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "global_weekly":
         # NOTE: AcmeAccountNeedsPrivateKey ; global_weekly
@@ -1516,7 +1522,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
                 private_key_type_id=model_utils.PrivateKeyType.GLOBAL_WEEKLY,
                 key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
-        return dbPrivateKey_new
+            is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "account_default":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_default | INVALID
