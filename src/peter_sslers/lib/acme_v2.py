@@ -198,7 +198,7 @@ def url_request(
             isinstance(resp_data, dict)
             and resp_data["type"] == "urn:ietf:params:acme:error:badNonce"
         ):
-            raise IndexError(resp_data)  # allow 100 retrys for bad nonces
+            raise IndexError(resp_data)  # allow `MAX_DEPTH` retrys for bad nonces
     if status_code not in [200, 201, 204]:
         if isinstance(resp_data, dict):
             # (status_code, url, resp_data, headers) = exc.args
@@ -958,7 +958,7 @@ class AuthenticatedUser(object):
                     # OR (exc = exc.args[0])
                     if exc.args[0] == 400:
                         if (
-                            exc.args[1]["type"]
+                            exc.args[2]["type"]
                             == "urn:ietf:params:acme:error:accountDoesNotExist"
                         ):
                             log_api.debug(
@@ -1386,8 +1386,8 @@ class AuthenticatedUser(object):
                 Different ACME Servers will handle an invalid "replaces" field differently.
 
                     ACME Server
-                        exc.args[1]["type"]
-                        exc.args[1]["detail"]
+                        exc.args[2]["type"]
+                        exc.args[2]["detail"]
                     ------------------------------
                     LetsEncrypt - Boulder
                         "urn:ietf:params:acme:error:malformed"
@@ -1413,7 +1413,7 @@ class AuthenticatedUser(object):
                         },
                     }
                     for _server, _expects in _type_details.items():
-                        if (exc.args[1]["type"] == _expects["type"]) and exc.args[1][
+                        if (exc.args[2]["type"] == _expects["type"]) and exc.args[1][
                             "detail"
                         ].startswith(_expects["detail"]):
                             # just log this, we will retry regardless

@@ -11,6 +11,8 @@ getcreate__PrivateKey_for_AcmeAccount
     
 AcmeServerError
     arg[0] might be an int or exc
+    errors.AcmeServerError(exc) -> AcmeServerErrorPublic
+    
 
 urllib3 has a breaking change in 2.4.0
     # see https://github.com/urllib3/urllib3/issues/3571

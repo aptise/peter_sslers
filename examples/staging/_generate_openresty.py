@@ -282,6 +282,21 @@ def process_letters():
 
         domain_conf__contents = "\n".join(domain_public_confs)
         domain_conf__file = DOMAIN_PUBLIC_CONF__FILEPATH % templating_args__letter
+
+        # exit early here
+        if not LETTER_SUPPORT[letter]["targeted"]:
+            if os.path.exists(domain_conf__file):
+                os.unlink(domain_conf__file)
+            for challenge in ("dns-01", "http-01"):
+                _templating_args__microsite = microsite_templating_args(challenge)
+                domain_www__dirpath = DOMAIN_WWW__DIRPATH % _templating_args__microsite
+                domain_index_file = "%s/index.html" % domain_www__dirpath
+                if os.path.exists(domain_index_file):
+                    os.unlink(domain_index_file)
+                if os.path.exists(domain_www__dirpath):
+                    os.rmdir(domain_www__dirpath)
+            continue
+
         with open(domain_conf__file, "w") as fh:
             print("\t", "writing openresty config:", domain_conf__file)
             fh.write(domain_conf__contents)

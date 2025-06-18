@@ -60,13 +60,6 @@ def update_AcmeAccount__account_url(
     dbAcmeAccount: "AcmeAccount",
     account_url: Optional[str] = None,
 ) -> bool:
-    print("#" * 80)
-    print("#" * 80)
-    print("#" * 80)
-    print("#" * 80)
-    print("#" * 80)
-    print("update_AcmeAccount__account_url")
-    print("SETTING:", dbAcmeAccount.id, account_url)
     if account_url is None:
         dbAcmeAccount.account_url = None
         dbAcmeAccount.account_url_sha256 = None
