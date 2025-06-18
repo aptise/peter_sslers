@@ -129,13 +129,13 @@ According to the above, `acme_server_id = 2; PEBBLE TEST 2`::
         is_export_filesystem=enrollment_factory_default
 
 
-# Run the audit tools
+## Run the audit tools
 
     acme_dns_audit data_production format=json
     # jq . acme_dns_audit-accounts.json
     cat acme_dns_audit-accounts.json | jq  
     
-# if needed, update cloudflare
+## if needed, update cloudflare
 
     python tools/acme_dns_audit-process_cloudflare.py acme_dns_audit-accounts.json
 
@@ -147,7 +147,7 @@ According to the above, `acme_server_id = 2; PEBBLE TEST 2`::
     routine__automatic_orders data_production
 
 
-Now list the certs::
+## Now list the certs::
 
     ls -alh data_production/certificates
     ls -alh data_production/certificates/*
@@ -165,13 +165,13 @@ Now list the certs::
     sudo ln -s ~/peter_sslers/data_production/certificates/dns-http-example/chall_prefix-* .
     ls -alh .
 
-Generate OpenResty Files
+## Generate OpenResty Files
 
     cd ~/peter_sslers/examples/staging
     export ROOT_DOMAIN="aptise.com"
     python _generate_openresty.py
 
-Test and Restart OpenResty
+## Test and Restart OpenResty
 
     sudo /usr/local/openresty/nginx/sbin/nginx -t
     ps aux | grep openresty
