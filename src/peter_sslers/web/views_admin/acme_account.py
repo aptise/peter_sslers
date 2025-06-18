@@ -141,7 +141,7 @@ def submit__new_auth(
         else:
             formStash.set_error(
                 field=formStash.error_main_key,
-                message=str(exc.args[1]),
+                message=str(exc.args[2]),
             )
         raise formhandling.FormInvalid(formStash)
 
@@ -1264,12 +1264,14 @@ class View_Focus_Manipulate(View_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _handle_potentially_deactivated(self, exc):
+    def _handle_potentially_deactivated(self, exc:errors.AcmeServerError):
+        # exc:errors.AcmeServerError
+        # (status_code, url, resp_data, headers) = exc.args
         if TYPE_CHECKING:
             assert self.dbAcmeAccount is not None
         if exc.args[0] == 403:
-            if isinstance(exc.args[1], dict):
-                info = exc.args[1]
+            if isinstance(exc.args[2], dict):
+                info = exc.args[2]
                 # pebble and bounder use the same strings
                 if info.get("type") == "urn:ietf:params:acme:error:unauthorized":
                     if (

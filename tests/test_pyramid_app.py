@@ -11906,6 +11906,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
     def test_replaces(self):
         """
         python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer_AcmeOrder.test_replaces
+        pytest tests/test_pyramid_app.py::IntegratedTests_AcmeServer_AcmeOrder::test_replaces -s --durations=0
 
         Test to handle `replaces`:
           1 FAIL replace an unknown certificate

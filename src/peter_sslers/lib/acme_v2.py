@@ -1413,7 +1413,7 @@ class AuthenticatedUser(object):
                         },
                     }
                     for _server, _expects in _type_details.items():
-                        if (exc.args[2]["type"] == _expects["type"]) and exc.args[1][
+                        if (exc.args[2]["type"] == _expects["type"]) and exc.args[2][
                             "detail"
                         ].startswith(_expects["detail"]):
                             # just log this, we will retry regardless
