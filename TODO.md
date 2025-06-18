@@ -11,6 +11,11 @@ urllib3 has a breaking change in 2.4.0
 AcmePollingError
     bug on server; could have a dict;;  converting to json but ensure this is okay
 
+Test Needed
+
+    single_use_1_year
+        is this correctly locked for renewals to that cert?
+
 
 Tests
     submit (hostname, ipv4, ipv6) to domain new

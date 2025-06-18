@@ -168,7 +168,7 @@ class AcmeDnsServerError(AcmeError):
     pass
 
 
-class AcmeServerErrorPublic(AcmeError)
+class AcmeServerErrorPublic(AcmeError):
     """
     this happens from public connections
     it wraps an exc
