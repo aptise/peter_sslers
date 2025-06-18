@@ -49,8 +49,7 @@ if TYPE_CHECKING:
     from ...lib.context import ApiContext
 
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log = logging.getLogger("peter_sslers.model")
 
 # ==============================================================================
 

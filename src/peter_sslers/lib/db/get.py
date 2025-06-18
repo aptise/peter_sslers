@@ -76,7 +76,7 @@ AcmeOrder_Alt = aliased(AcmeOrder)
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("peter_sslers.lib.db")
 
 # ------------------------------------------------------------------------------
 

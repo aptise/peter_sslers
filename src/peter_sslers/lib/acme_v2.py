@@ -75,8 +75,8 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
-log_api = logging.getLogger("acme_api")
+log = logging.getLogger("peter_sslers.lib")
+log_api = logging.getLogger("peter_sslers.lib.acme_api")
 
 # ------------------------------------------------------------------------------
 

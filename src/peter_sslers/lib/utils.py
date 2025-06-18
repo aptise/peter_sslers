@@ -37,10 +37,7 @@ if TYPE_CHECKING:
 PLACEHOLDER_TEXT__KEY = "*placeholder-key*"
 PLACEHOLDER_TEXT__SHA1 = "*placeholder-sha1*"
 
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-
+log = logging.getLogger("peter_sslers.lib")
 
 # ------------------------------------------------------------------------------
 

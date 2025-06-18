@@ -24,8 +24,7 @@ from ...lib import errors
 from ...model import utils as model_utils
 from ...model.objects import AcmeOrder
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log = logging.getLogger("peter_sslers.web")
 
 # ==============================================================================
 

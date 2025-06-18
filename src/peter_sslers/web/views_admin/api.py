@@ -28,7 +28,7 @@ from ...model import utils as model_utils
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("peter_sslers.web")
 
 # ------------------------------------------------------------------------------
 

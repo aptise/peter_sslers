@@ -79,7 +79,7 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 log.setLevel(logging.INFO)
 
 """
