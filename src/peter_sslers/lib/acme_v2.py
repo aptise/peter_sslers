@@ -170,10 +170,6 @@ def url_request(
             verify_flags |= VERIFY_X509_PARTIAL_CHAIN
             verify_flags |= VERIFY_X509_STRICT
             context = create_urllib3_context(verify_flags=verify_flags)
-            print("CONTEXT.verify_flags")
-            print(context.verify_flags)
-            log.critical("CONTEXT.verify_flags")
-            log.critical(context.verify_flags)
             context.load_verify_locations(cafile=alt_bundle)
             log_api.info("Making a request with alt_bundle: %s", alt_bundle)
         resp = urlopen(
