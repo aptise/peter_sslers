@@ -8,6 +8,7 @@ import logging
 import os
 import pdb
 import re
+import sys
 import time
 from typing import Any
 from typing import Callable
@@ -164,10 +165,15 @@ def url_request(
             # see https://github.com/urllib3/urllib3/issues/3605
             # needed for `sys.version_info < (3, 13)`; however just specify it
             # remove this when py312 is EOL
+            #if sys.version_info < (3, 13):
             verify_flags = 0
             verify_flags |= VERIFY_X509_PARTIAL_CHAIN
             verify_flags |= VERIFY_X509_STRICT
             context = create_urllib3_context(verify_flags=verify_flags)
+            print("CONTEXT.verify_flags")
+            print(context.verify_flags)
+            log.critical("CONTEXT.verify_flags")
+            log.critical(context.verify_flags)
             context.load_verify_locations(cafile=alt_bundle)
             log_api.info("Making a request with alt_bundle: %s", alt_bundle)
         resp = urlopen(
