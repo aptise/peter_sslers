@@ -34,6 +34,8 @@ from typing_extensions import Literal
 from typing_extensions import NotRequired
 from typing_extensions import TypedDict
 from urllib3.util.ssl_ import create_urllib3_context
+from urllib3.util.ssl_ import VERIFY_X509_PARTIAL_CHAIN
+from urllib3.util.ssl_ import VERIFY_X509_STRICT
 
 # localapp
 from . import acmedns as lib_acmedns
@@ -159,7 +161,13 @@ def url_request(
         }
         if alt_bundle:
             # see https://github.com/urllib3/urllib3/issues/3571
-            context = create_urllib3_context()
+            # see https://github.com/urllib3/urllib3/issues/3605
+            # needed for `sys.version_info < (3, 13)`; however just specify it
+            # remove this when py312 is EOL
+            verify_flags = 0
+            verify_flags |= VERIFY_X509_PARTIAL_CHAIN
+            verify_flags |= VERIFY_X509_STRICT
+            context = create_urllib3_context(verify_flags=verify_flags)
             context.load_verify_locations(cafile=alt_bundle)
             log_api.info("Making a request with alt_bundle: %s", alt_bundle)
         resp = urlopen(
