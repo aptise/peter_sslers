@@ -43,7 +43,7 @@ requires = [
     "SQLAlchemy>2",
     "tldextract>=5.2.0",
     "typing_extensions",
-    "urllib3<2.4.0",
+    "urllib3>2.4.0",
     "waitress",
     "zope.sqlalchemy>=1.6",  # support for python2&3
 ]

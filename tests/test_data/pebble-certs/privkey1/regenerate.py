@@ -7,7 +7,7 @@ import cert_utils
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
 
 # from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
@@ -62,7 +62,8 @@ def _sign_csr(
             f.read(),
             password=None,
         )
-        assert isinstance(private_key, RSAPrivateKey)
+        print(type(private_key))
+        assert isinstance(private_key, EllipticCurvePrivateKey)
 
     # Create a builder for the signed certificate
     builder = (
