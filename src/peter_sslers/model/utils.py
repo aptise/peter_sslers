@@ -735,7 +735,7 @@ class AcmeAccountKeyOption(object):
 
     options_basic_backup = (
         "none",
-        "account_key_global_backup",
+        "account_key_global__backup",
         "account_key_existing",
         "acme_account_id",
         "acme_account_url",
@@ -761,7 +761,7 @@ class AcmeAccountKeyOption(object):
 
     options_basic_backup_reuse = (
         "none",
-        "account_key_global_backup",
+        "account_key_global__backup",
         "account_key_existing",
         "account_key_reuse",
         "acme_account_id",
@@ -798,6 +798,11 @@ class AcmeChallengeType(_mixin_mapping):
     }
 
     DEFAULT = "http-01"
+
+
+class AcmeChallengeType_Enum(Enum):
+    HTTP_01 = AcmeChallengeType.http_01
+    DNS_01 = AcmeChallengeType.dns_01
 
 
 class AcmeChallengeFailType(_mixin_mapping):
@@ -940,6 +945,20 @@ class AcmePollingErrorEndpoint(_mixin_mapping):
     _mapping = {
         1: "acme_challenge_trigger",
         2: "acme_order_finalize",
+    }
+
+
+class AddressType(_mixin_mapping):
+    """ """
+
+    HOSTNAME = 1
+    IP_ADDRESS_V4 = 2
+    IP_ADDRESS_V6 = 3
+
+    _mapping = {
+        1: "hostname",
+        2: "ipv4",
+        3: "ipv6",
     }
 
 

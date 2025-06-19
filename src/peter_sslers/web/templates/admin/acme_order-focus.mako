@@ -366,14 +366,6 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>replaces</th>
-                        <td>
-                            % if AcmeOrder.replaces:
-                                <code>${AcmeOrder.replaces or ''}</code>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>profile</th>
                         <td>
                             % if AcmeOrder.profile:
@@ -448,6 +440,14 @@
                         <td>
                             % if AcmeOrder.note:
                                 <code>${AcmeOrder.note or ''}</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>replaces (actual)</th>
+                        <td>
+                            % if AcmeOrder.replaces:
+                                <code>${AcmeOrder.replaces or ''}</code>
                             % endif
                         </td>
                     </tr>

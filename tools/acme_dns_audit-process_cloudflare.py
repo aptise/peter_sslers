@@ -31,7 +31,7 @@ from typing_extensions import Literal
 
 ROOT_DOMAIN = os.environ.get("ROOT_DOMAIN")
 if not all((ROOT_DOMAIN,)):
-    raise ValueError("required ENV vars not found")
+    raise ValueError("required ENV vars not found: `ROOT_DOMAIN`")
 
 
 # ==============================================================================
@@ -58,7 +58,7 @@ for result in audit_results:
     ]
 
     if not (_errors_cname_source or _errors_cname_target):
-        print("nothing to do for ")
+        print("Nothing to do. No errors for `cname_source` or `cname_target`.")
         continue
 
     if _errors_cname_source:
@@ -77,7 +77,7 @@ for result in audit_results:
             except Exception:
                 raise
         if zone_id == -1:
-            print("bypassing %s; not on Cloudflare" % registered_domain)
+            print("Bypassing `%s`; not on Cloudflare." % registered_domain)
             continue
 
         _cname_source = result["cname_source"]
@@ -105,14 +105,16 @@ for result in audit_results:
                 if (_api_result["result"][0]["type"] == "CNAME") and (
                     _api_result["result"][0]["content"] == _cname_target
                 ):
-                    print("records match?!?", _cname_source)
+                    print("Records match: (source, target);", _cname_source, ",", _cname_target)
                     _write = False
                 else:
+                    print("Deletng OLD record.")
                     _record_id = _api_result["result"][0]["id"]
                     _api_result2 = cf.zones.dns_records.delete(zone_id, _record_id)
                     assert len(_api_result2["result"].keys()) == 1
                     assert _api_result2["result"]["id"] == _record_id
             if _write is True:
+                print("Writing NEW record.")
                 _api_result3 = cf.zones.dns_records.post(zone_id, data=_record_target)
                 assert _api_result3["result"]
                 assert _api_result3["result"]["name"] == _cname_source

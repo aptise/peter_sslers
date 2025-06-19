@@ -44,8 +44,8 @@ CLOUDFLARE_TARGET_IP = os.environ.get("CLOUDFLARE_TARGET_IP")
 if not all((ROOT_DOMAIN, CLOUDFLARE_ZONE_ID, CLOUDFLARE_TARGET_IP)):
     raise ValueError("required ENV vars not found")
 
-# SUPPORTED_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower()
-SUPPORTED_LETTERS = "ABCDEFG".lower()
+ALL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".lower()
+targeted_letters = ALL_LETTERS[:5]
 
 # ==============================================================================
 
@@ -75,7 +75,7 @@ def ensure_test_zones(
         "testing.opensource.%s" % root_domain,
         "peter-sslers.testing.opensource.%s" % root_domain,
     ]
-    for letter in SUPPORTED_LETTERS:
+    for letter in targeted_letters:
         for chall in ("dns-01", "http-01"):
             _domain = "%s.%s.peter-sslers.testing.opensource.%s" % (
                 chall,

@@ -594,25 +594,25 @@ def parse_AcmeAccountSelection_backup(
     dbAcmeAccount: Optional["AcmeAccount"] = None
 
     # compute
-    account_key_option = formStash.results["account_key_option_backup"]
+    account_key_option = formStash.results["account_key_option__backup"]
 
     # handle the explicit-option
     acmeAccountSelection = _AcmeAccountSelection()
-    if account_key_option == "account_key_global_backup":
+    if account_key_option == "account_key_global__backup":
         acmeAccountSelection.selection = "global_backup"
-        account_key_pem_md5 = formStash.results["account_key_global_backup"]
+        account_key_pem_md5 = formStash.results["account_key_global__backup"]
     elif account_key_option == "account_key_existing":
         acmeAccountSelection.selection = "existing"
-        account_key_pem_md5 = formStash.results["account_key_existing_backup"]
+        account_key_pem_md5 = formStash.results["account_key_existing__backup"]
     elif account_key_option == "account_key_reuse":
         acmeAccountSelection.selection = "reuse"
-        account_key_pem_md5 = formStash.results["account_key_reuse_backup"]
+        account_key_pem_md5 = formStash.results["account_key_reuse__backup"]
     elif account_key_option == "acme_account_id":
         acmeAccountSelection.selection = "acme_account_id"
-        acme_account_id = formStash.results["acme_account_id_backup"]
+        acme_account_id = formStash.results["acme_account_id__backup"]
     elif account_key_option == "acme_account_url":
         acmeAccountSelection.selection = "acme_account_url"
-        acme_account_url = formStash.results["acme_account_url_backup"]
+        acme_account_url = formStash.results["acme_account_url__backup"]
     elif account_key_option in ("none", None):
         if not allow_none:
             formStash.fatal_form("This form requires a backup AcmeAccount selection.")
@@ -623,7 +623,7 @@ def parse_AcmeAccountSelection_backup(
         return acmeAccountSelection
     else:
         formStash.fatal_field(
-            field="account_key_option_backup",
+            field="account_key_option__backup",
             error_field="Invalid selection.",
         )
     if not any((account_key_pem_md5, acme_account_id, acme_account_url)):
@@ -649,7 +649,7 @@ def parse_AcmeAccountSelection_backup(
     if TYPE_CHECKING:
         assert dbAcmeAccount is not None
 
-    if account_key_option == "account_key_global_backup":
+    if account_key_option == "account_key_global__backup":
         # Ensure it is the Global Default
         if (
             not request.api_context.dbSystemConfiguration_global
@@ -1044,7 +1044,13 @@ def form_domains_challenge_typed(
                 # this function checks the domain names match a simple regex
                 # it will raise a `ValueError("invalid domain")` on the first invalid domain
                 # domains will also be lowercase+strip
-                submitted_ = cert_utils.utils.domains_from_string(submitted_)
+                submitted_ = cert_utils.utils.domains_from_string(
+                    submitted_,
+                    allow_hostname=True,
+                    allow_ipv4=True,
+                    allow_ipv6=True,
+                    ipv6_require_compressed=True,
+                )
                 if submitted_:
                     domain_names_all.extend(submitted_)
                     domains_challenged[target_] = submitted_
@@ -1109,7 +1115,11 @@ def form_single_domain_challenge_typed(
     # this function checks the domain names match a simple regex
     # domains will also be lowercase+strip
     domain_names = cert_utils.utils.domains_from_string(
-        formStash.results["domain_name"]
+        formStash.results["domain_name"],
+        allow_hostname=True,
+        allow_ipv4=True,
+        allow_ipv6=True,
+        ipv6_require_compressed=True,
     )
     if not domain_names:
         formStash.fatal_field(

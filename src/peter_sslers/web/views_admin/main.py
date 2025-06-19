@@ -46,6 +46,12 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin:debug", renderer="json")
     def debug(self):
+        """
+        this route is used to debug various scenarios
+
+        `tests.test_pyramid_app.FunctionalTests_Main.test_debug`
+            ensures this returns "{}"
+        """
         if False:
             database_url = (
                 self.request.api_context.dbSession.connection().engine.url.database
@@ -72,7 +78,7 @@ class ViewAdminMain(Handler):
             )
             print("routine__renew_expiring()")
             print(dbRoutineExecution_2.as_json)
-
+            return {"result": "success"}
         return {}
 
     @view_config(route_name="admin:help", renderer="/admin/help.mako")

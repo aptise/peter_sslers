@@ -31,6 +31,7 @@ from .get import get__CertificateCA__by_pem_text
 from .get import get__CertificateCAChain__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
+from .get import get__DomainBlocklisted__by_name
 from .get import get__PrivateKey_CurrentDay_AcmeAccount
 from .get import get__PrivateKey_CurrentDay_Global
 from .get import get__PrivateKey_CurrentWeek_AcmeAccount
@@ -47,7 +48,6 @@ from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
-# from .get import get__DomainBlocklisted__by_name
 
 if TYPE_CHECKING:
     from ..acme_v2 import AuthenticatedUser
@@ -62,6 +62,7 @@ if TYPE_CHECKING:
     from ...model.objects import CertificateRequest
     from ...model.objects import CertificateSigned
     from ...model.objects import Domain
+    from ...model.objects import DomainBlocklisted
     from ...model.objects import PrivateKey
     from ...model.objects import RemoteIpAddress
     from ...model.objects import UniqueFQDNSet
@@ -71,7 +72,7 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("peter_sslers.lib.db")
 
 # ------------------------------------------------------------------------------
 
@@ -1234,11 +1235,27 @@ def getcreate__Domain__by_domainName(
     :param discovery_type:
     """
     is_created = False
-    dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
     domain_name = lib_utils.normalize_unique_text(domain_name)
 
+    dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
+
     if not dbDomain:
-        _registered, _suffix = lib_utils.parse_domain_name(domain_name)
+
+        _address_type_id: int
+        _registered: Optional[str] = None
+        _suffix: Optional[str] = None
+
+        _san_type = cert_utils.utils.identify_san_type(domain_name)
+        if _san_type == "hostname":
+            _address_type_id = model_utils.AddressType.HOSTNAME
+            _registered, _suffix = lib_utils.parse_domain_name(domain_name)
+        elif _san_type == "ipv4":
+            _address_type_id = model_utils.AddressType.IP_ADDRESS_V4
+        elif _san_type == "ipv6":
+            _address_type_id = model_utils.AddressType.IP_ADDRESS_V6
+        else:
+            # this should not happen
+            raise ValueError("unsupported san type: %s" % _san_type)
 
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
@@ -1246,6 +1263,7 @@ def getcreate__Domain__by_domainName(
         )
         dbDomain = model_objects.Domain()
         dbDomain.domain_name = domain_name  # unique
+        dbDomain.address_type_id = _address_type_id
         dbDomain.registered = _registered
         dbDomain.suffix = _suffix
         dbDomain.timestamp_created = ctx.timestamp
@@ -1269,6 +1287,22 @@ def getcreate__Domain__by_domainName(
         )
 
     return (dbDomain, is_created)
+
+
+def getcreate__DomainBlocklisted__by_domainName(
+    ctx: "ApiContext",
+    domain_name: str,
+) -> Tuple["DomainBlocklisted", bool]:
+    is_created = False
+    domain_name = lib_utils.normalize_unique_text(domain_name)
+    dbDomainBlocklisted = get__DomainBlocklisted__by_name(ctx, domain_name)
+    if not dbDomainBlocklisted:
+        dbDomainBlocklisted = model_objects.DomainBlocklisted()
+        dbDomainBlocklisted.domain_name = domain_name
+        ctx.dbSession.add(dbDomainBlocklisted)
+        ctx.dbSession.flush(objects=[dbDomainBlocklisted])
+        is_created = True
+    return (dbDomainBlocklisted, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1372,7 +1406,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
     key_technology_id: Optional[int] = None,
     private_key_cycle_id: Optional[int] = None,
     private_key_id__replaces: Optional[int] = None,
-) -> "PrivateKey":
+) -> Tuple["PrivateKey", bool]:
     """
     getcreate wrapping a dbPrivateKey, which is used by orders
 
@@ -1401,6 +1435,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
 
     # scoping
     dbPrivateKey_new: Optional["PrivateKey"]
+    is_created: bool = False
 
     if private_key_cycle == "single_use":
         # NOTE: AcmeAccountNeedsPrivateKey ; single_use
@@ -1412,7 +1447,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
             acme_account_id__owner=acme_account_id__owner,
             private_key_id__replaces=private_key_id__replaces,
         )
-        return dbPrivateKey_new
+        is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "single_use__reuse_1_year":
         # NOTE: AcmeAccountNeedsPrivateKey ; single_use
@@ -1426,7 +1462,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
             acme_account_id__owner=acme_account_id__owner,
             private_key_id__replaces=private_key_id__replaces,
         )
-        return dbPrivateKey_new
+        is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "account_daily":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_daily
@@ -1442,7 +1479,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
                 key_technology_id=key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
             )
-        return dbPrivateKey_new
+            is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "global_daily":
         # NOTE: AcmeAccountNeedsPrivateKey ; global_daily
@@ -1454,7 +1492,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
                 private_key_type_id=model_utils.PrivateKeyType.GLOBAL_DAILY,
                 key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
-        return dbPrivateKey_new
+            is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "account_weekly":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_weekly
@@ -1470,7 +1509,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
                 key_technology_id=dbAcmeAccount.private_key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
             )
-        return dbPrivateKey_new
+            is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "global_weekly":
         # NOTE: AcmeAccountNeedsPrivateKey ; global_weekly
@@ -1482,7 +1522,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
                 private_key_type_id=model_utils.PrivateKeyType.GLOBAL_WEEKLY,
                 key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
-        return dbPrivateKey_new
+            is_created = True
+        return dbPrivateKey_new, is_created
 
     elif private_key_cycle == "account_default":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_default | INVALID
@@ -1733,18 +1774,3 @@ def getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged(
         )
 
     return (dbUniquelyChallengedFQDNSet, is_created)
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-__all__ = (
-    "getcreate__AcmeAccount",
-    "getcreate__CertificateCA__by_pem_text",
-    "getcreate__CertificateRequest__by_pem_text",
-    "getcreate__Domain__by_domainName",
-    "getcreate__PrivateKey__by_pem_text",
-    "getcreate__CertificateSigned",
-    "getcreate__UniqueFQDNSet__by_domainObjects",
-    "getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged",
-)

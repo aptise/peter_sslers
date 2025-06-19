@@ -54,9 +54,12 @@
 
     ${next.body()}
 
-    <ol class="breadcrumb">
-        <timestamp>${request.api_context.timestamp.isoformat()|n}</timestamp>
-    </ol>
+    <%block name="footer">
+        <ol class="breadcrumb" style="margin-top: 20px;">
+            <li><timestamp>${request.api_context.timestamp.isoformat()|n}</timestamp></li>
+        </ol>
+    </%block>
+
 </div>
 </body>
 </html>

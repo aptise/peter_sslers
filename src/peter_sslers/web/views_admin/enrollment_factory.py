@@ -23,8 +23,9 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
-from ...lib import utils as lib_utils
 from ...lib.utils import displayable_exception
+from ...lib.utils import validate_domains_template
+from ...lib.utils import validate_label_template
 from ...model import utils as model_utils
 from ...model.objects import EnrollmentFactory
 
@@ -37,46 +38,6 @@ if TYPE_CHECKING:
 # ==============================================================================
 
 
-def validate_label_template(template: str) -> Tuple[bool, Optional[str]]:
-    if ("{DOMAIN}" not in template) and ("{NIAMOD}" not in template):
-        return False, "Missing {DOMAIN} or {NIAMOD} marker"
-    _expanded = lib_utils.apply_domain_template(template, "example.com", "com.example")
-    _normalized = lib_utils.normalize_unique_text(_expanded)
-    if not lib_utils.validate_label(_normalized):
-        return False, "the `label_template` is not compliant"
-    return True, None
-
-
-def validate_domains_template(template: str) -> Tuple[Optional[str], Optional[str]]:
-    """
-    validates and normalizes the template
-    return value is a tuple:
-        Optional[NormalizedTemplate], Optional[ErrorMessage]
-    Success will return:
-        [String, None]
-    Failure will yield:
-        [None, String]
-    """
-    if not template:
-        return None, "Nothing submitted"
-    # remove any spaces
-    normalized = template.replace(" ", "")
-
-    if ("{DOMAIN}" not in normalized) and ("{NIAMOD}" not in normalized):
-        return None, "Missing {DOMAIN} or {NIAMOD} marker"
-
-    _templated = normalized.replace("{DOMAIN}", "example.com").replace(
-        "{NIAMOD}", "com.example"
-    )
-
-    ds = [i.strip() for i in _templated.split(",")]
-    try:
-        cert_utils.validate_domains(ds)
-    except Exception:
-        return None, "Invalid Domain(s) Detected"
-    return normalized, None
-
-
 def validate_formstash_domain_templates(
     formStash: "FormStash",
     dbAcmeDnsServer_GlobalDefault: Optional["AcmeDnsServer"] = None,
@@ -85,12 +46,16 @@ def validate_formstash_domain_templates(
 
     domain_template_http01 = formStash.results["domain_template_http01"]
     if domain_template_http01:
-        domain_template_http01, _err = validate_domains_template(domain_template_http01)
+        domain_template_http01, _err = validate_domains_template(
+            domain_template_http01, model_utils.AcmeChallengeType_Enum.HTTP_01
+        )
         if not domain_template_http01:
             formStash.fatal_field(field="domain_template_http01", error_field=_err)
     domain_template_dns01 = formStash.results["domain_template_dns01"]
     if domain_template_dns01:
-        domain_template_dns01, _err = validate_domains_template(domain_template_dns01)
+        domain_template_dns01, _err = validate_domains_template(
+            domain_template_dns01, model_utils.AcmeChallengeType_Enum.DNS_01
+        )
         if not domain_template_dns01:
             formStash.fatal_field(field="domain_template_dns01", error_field=_err)
     if not any((domain_template_http01, domain_template_dns01)):
@@ -106,7 +71,17 @@ def validate_formstash_domain_templates(
             "{NIAMOD}", "com.example"
         )
         # domains will also be lowercase+strip
-        domain_names = cert_utils.utils.domains_from_string(templated)
+        #
+        # IMPORTANT RFC 8738
+        #       https://www.rfc-editor.org/rfc/rfc8738#section-7
+        #       The existing "dns-01" challenge MUST NOT be used to validate IP identifiers.
+        #
+        domain_names = cert_utils.utils.domains_from_string(
+            templated,
+            allow_hostname=True,
+            allow_ipv4=False,
+            allow_ipv6=False,  # DNS-01 not allowed for IPs via RFC
+        )
         if domain_names:
             domain_names_all.extend(domain_names)
             domains_challenged["dns-01"] = domain_names
@@ -115,7 +90,13 @@ def validate_formstash_domain_templates(
             "{NIAMOD}", "com.example"
         )
         # domains will also be lowercase+strip
-        domain_names = cert_utils.utils.domains_from_string(templated)
+        domain_names = cert_utils.utils.domains_from_string(
+            templated,
+            allow_hostname=True,
+            allow_ipv4=True,
+            allow_ipv6=True,
+            ipv6_require_compressed=True,
+        )
         if domain_names:
             domain_names_all.extend(domain_names)
             domains_challenged["http-01"] = domain_names

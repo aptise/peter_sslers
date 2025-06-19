@@ -605,7 +605,17 @@ def submit__new_enrollment(
                 "{DOMAIN}", domain_name
             ).replace("{NIAMOD}", reverse_domain_name)
             # domains will also be lowercase+strip
-            submitted_ = cert_utils.utils.domains_from_string(templated_domains)
+            #
+            # IMPORTANT RFC 8738
+            #       https://www.rfc-editor.org/rfc/rfc8738#section-7
+            #       The existing "dns-01" challenge MUST NOT be used to validate IP identifiers.
+            #
+            submitted_ = cert_utils.utils.domains_from_string(
+                templated_domains,
+                allow_hostname=True,
+                allow_ipv4=False,
+                allow_ipv6=False,
+            )
             domain_names_all.extend(submitted_)
             domains_challenged["dns-01"] = submitted_
 
@@ -614,7 +624,13 @@ def submit__new_enrollment(
                 "{DOMAIN}", domain_name
             ).replace("{NIAMOD}", reverse_domain_name)
             # domains will also be lowercase+strip
-            submitted_ = cert_utils.utils.domains_from_string(templated_domains)
+            submitted_ = cert_utils.utils.domains_from_string(
+                templated_domains,
+                allow_hostname=True,
+                allow_ipv4=True,
+                allow_ipv6=True,
+                ipv6_require_compressed=True,
+            )
             domain_names_all.extend(submitted_)
             domains_challenged["http-01"] = submitted_
 
@@ -1357,7 +1373,7 @@ class View_Focus_New(View_Focus):
                 "%s/acme-order/%s?result=success&operation=renewal+configuration"
                 % (self.request.admin_url, dbAcmeOrderNew.id)
             )
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new_order__print)
@@ -1393,11 +1409,11 @@ class View_Focus_New(View_Focus):
                 "private_key_technology__primary": "what kind of keys to use?",
                 "acme_profile__primary": "The name of an ACME Profile on the ACME Server",
                 # backup cert
-                "account_key_option_backup": "How is the AcmeAccount specified? [Backup Cert]",
-                "account_key_global_backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option_backup==account_key_global_backup` [Backup Cert]",
-                "account_key_existing_backup": "pem_md5 of any key. Must/Only submit if `account_key_option_backup==account_key_existing_backup` [Backup Cert]",
-                "acme_account_id_backup": "local id of AcmeAccount. Must/Only submit if `account_key_option_backup==acme_account_id` [Backup Cert]",
-                "acme_account_url_backup": "AcmeAccount's URL. Must/Only submit if `account_key_option_backup==acme_account_url` [Backup Cert]",
+                "account_key_option__backup": "How is the AcmeAccount specified? [Backup Cert]",
+                "account_key_global__backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option__backup==account_key_global__backup` [Backup Cert]",
+                "account_key_existing__backup": "pem_md5 of any key. Must/Only submit if `account_key_option__backup==account_key_existing__backup` [Backup Cert]",
+                "acme_account_id__backup": "local id of AcmeAccount. Must/Only submit if `account_key_option__backup==acme_account_id` [Backup Cert]",
+                "acme_account_url__backup": "AcmeAccount's URL. Must/Only submit if `account_key_option__backup==acme_account_url` [Backup Cert]",
                 "private_key_cycle__backup": "how should the PrivateKey be cycled on renewals?",
                 "private_key_technology__backup": "what kind of keys to use?",
                 "acme_profile__backup": "The name of an ACME Profile on the ACME Server [Backup Cert]",
@@ -1412,11 +1428,11 @@ class View_Focus_New(View_Focus):
                     "acme_account_url",
                 ],
                 [
-                    "account_key_option_backup",
-                    "account_key_global_backup",
-                    "account_key_existing_backup",
-                    "acme_account_id_backup",
-                    "acme_account_url_backup",
+                    "account_key_option__backup",
+                    "account_key_global__backup",
+                    "account_key_existing__backup",
+                    "acme_account_id__backup",
+                    "acme_account_url__backup",
                 ],
             ],
             "valid_options": {
@@ -1424,8 +1440,8 @@ class View_Focus_New(View_Focus):
                 "account_key_option": Form_RenewalConfig_new_configuration.fields[
                     "account_key_option"
                 ].list,
-                "account_key_option_backup": Form_RenewalConfig_new.fields[
-                    "account_key_option_backup"
+                "account_key_option__backup": Form_RenewalConfig_new.fields[
+                    "account_key_option__backup"
                 ].list,
                 "private_key_cycle__primary": Form_RenewalConfig_new_configuration.fields[
                     "private_key_cycle__primary"
@@ -1498,7 +1514,7 @@ class View_Focus_New(View_Focus):
                     "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                 )
             )
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(
@@ -1578,7 +1594,7 @@ class View_Focus_Manipulate(View_Focus):
             )
             return HTTPSeeOther(url_success)
 
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": exc.formStash.errors}
             url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
@@ -1617,15 +1633,15 @@ class View_New(Handler):
                 "acme_account_url": "AcmeAccount's URL. Must/Only submit if `account_key_option==acme_account_url`",
                 "private_key_cycle__primary": "how should the PrivateKey be cycled on renewals?",
                 "private_key_technology__primary": "what kind of keys to use?",
-                "acme_profile_primary": """The name of an ACME Profile on the ACME Server.
+                "acme_profile__primary": """The name of an ACME Profile on the ACME Server.
 Leave this blank for no profile.
 If you want to defer to the AcmeAccount, use the special name `@`.""",
                 # backup cert
-                "account_key_option_backup": "How is the AcmeAccount specified? [Backup Cert]",
-                "account_key_global_backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option_backup==account_key_global_backup` [Backup Cert]",
-                "account_key_existing_backup": "pem_md5 of any key. Must/Only submit if `account_key_option_backup==account_key_existing_backup` [Backup Cert]",
-                "acme_account_id_backup": "local id of AcmeAccount. Must/Only submit if `account_key_option_backup==acme_account_id` [Backup Cert]",
-                "acme_account_url_backup": "AcmeAccount's URL. Must/Only submit if `account_key_option_backup==acme_account_url` [Backup Cert]",
+                "account_key_option__backup": "How is the AcmeAccount specified? [Backup Cert]",
+                "account_key_global__backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option__backup==account_key_global__backup` [Backup Cert]",
+                "account_key_existing__backup": "pem_md5 of any key. Must/Only submit if `account_key_option__backup==account_key_existing__backup` [Backup Cert]",
+                "acme_account_id__backup": "local id of AcmeAccount. Must/Only submit if `account_key_option__backup==acme_account_id` [Backup Cert]",
+                "acme_account_url__backup": "AcmeAccount's URL. Must/Only submit if `account_key_option__backup==acme_account_url` [Backup Cert]",
                 "private_key_cycle__backup": "how should the PrivateKey be cycled on renewals?",
                 "private_key_technology__backup": "what kind of keys to use?",
                 "acme_profile__backup": """The name of an ACME Profile on the ACME Server [Backup Cert].
@@ -1639,17 +1655,17 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                     "account_key_option",
                     "account_key_global_default",
                     "account_key_existing",
-                    "acme_profile_primary",
+                    "acme_profile__primary",
                     "acme_account_id",
                     "acme_account_url",
                 ],
                 [
-                    "account_key_option_backup",
-                    "account_key_global_backup",
-                    "account_key_existing_backup",
-                    "acme_profile_backup",
-                    "acme_account_id_backup",
-                    "acme_account_url_backup",
+                    "account_key_option__backup",
+                    "account_key_global__backup",
+                    "account_key_existing__backup",
+                    "acme_profile__backup",
+                    "acme_account_id__backup",
+                    "acme_account_url__backup",
                 ],
             ],
             "valid_options": {
@@ -1657,8 +1673,8 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 "account_key_option": Form_RenewalConfig_new.fields[
                     "account_key_option"
                 ].list,
-                "account_key_option_backup": Form_RenewalConfig_new.fields[
-                    "account_key_option_backup"
+                "account_key_option__backup": Form_RenewalConfig_new.fields[
+                    "account_key_option__backup"
                 ].list,
                 "private_key_cycle__primary": Form_RenewalConfig_new.fields[
                     "private_key_cycle__primary"
@@ -1844,7 +1860,7 @@ class View_New_Enrollment(Handler):
                     "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
                 )
             )
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new_enrollment__print)

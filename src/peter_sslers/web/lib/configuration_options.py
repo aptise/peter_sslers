@@ -39,9 +39,9 @@ documentation_grid = {
             "default": "`none`",
             "show_on_settings": True,
         },
-        "expiring_days": {
-            "docstring": "The number of days remaining on a certificate before it is due for renewal.",
-            "default": "`30`",
+        "expiring_days_ux": {
+            "docstring": "The number of days remaining on a certificate before ux alerts appear.",
+            "default": "`7`",
             "show_on_settings": True,
         },
         "cleanup_pending_authorizations": {

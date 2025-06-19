@@ -5,6 +5,8 @@ import datetime
 import hashlib
 import json
 import logging
+import os
+import pdb
 import re
 import time
 from typing import Any
@@ -69,12 +71,12 @@ if TYPE_CHECKING:
 
     # (resp_data, status_code, headers)
     # resp_data might be decoded from str into json
-    RESPONSE_TUPLE = Tuple[Union[Dict, str], Optional[int], "HTTPMessage"]
+    RESPONSE_TUPLE = Tuple[int, Union[Dict, str], "HTTPMessage"]
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
-log_api = logging.getLogger("acme_api")
+log = logging.getLogger("peter_sslers.lib")
+log_api = logging.getLogger("peter_sslers.lib.acme_api")
 
 # ------------------------------------------------------------------------------
 
@@ -82,6 +84,13 @@ log_api = logging.getLogger("acme_api")
 MAX_DEPTH = 10
 DEBUG_HEADERS = False
 SECONDS_POLLING_TIMEOUT = 45
+
+# TODO - should this be a config var?
+DEBUG_CHALLENGES_MANUAL = bool(int(os.getenv("DEBUG_CHALLENGES_MANUAL", "0")))
+if DEBUG_CHALLENGES_MANUAL:
+    print("ALERT!!!!")
+    print("ENV is set with `DEBUG_CHALLENGES_MANUAL=1`")
+    print("This will pause the application if a failure occurs during precheck")
 
 
 class AriCheckResult(TypedDict):
@@ -132,7 +141,7 @@ def url_request(
         with a function `local_ca_bundle(ctx)` that will return a CA Bundle filepath
         if a custom CA bundle is needed
 
-    returns (resp_data, status_code, headers)
+    returns (status_code, resp_data, headers)
     """
     log_api.info("acme_v2.url_request(")
     log_api.debug(" REQUEST-")
@@ -189,17 +198,19 @@ def url_request(
             isinstance(resp_data, dict)
             and resp_data["type"] == "urn:ietf:params:acme:error:badNonce"
         ):
-            raise IndexError(resp_data)  # allow 100 retrys for bad nonces
+            raise IndexError(resp_data)  # allow `MAX_DEPTH` retrys for bad nonces
     if status_code not in [200, 201, 204]:
         if isinstance(resp_data, dict):
-            # (status_code, resp_data, url) = exc
-            raise errors.AcmeServerError(status_code, resp_data, url)
+            # (status_code, url, resp_data, headers) = exc.args
+            raise errors.AcmeServerError(status_code, url, resp_data, headers)
+        # reformat the error for display
+        # this should probably be undone
         msg = "{0}:\nUrl: {1}\nData: {2}\nResponse Code: {3}\nResponse: {4}".format(
             err_msg, url, post_data, status_code, resp_data
         )
-        # (status_code, resp_data, url) = exc
-        raise errors.AcmeServerError(status_code, msg, url)
-    return resp_data, status_code, headers
+        # (status_code, url, resp_data, headers) = exc.args
+        raise errors.AcmeServerError(status_code, url, msg, headers)
+    return status_code, resp_data, headers
 
 
 # ------------------------------------------------------------------------------
@@ -297,7 +308,7 @@ def acme_directory_get(ctx: "ApiContext", acmeAccount: "AcmeAccount") -> Dict:
     directory_url = acmeAccount.acme_server.directory_url
     if not directory_url:
         raise ValueError("no directory for the CERTIFICATE_AUTHORITY!")
-    directory_payload, _status_code, _headers = url_request(
+    _status_code, directory_payload, _headers = url_request(
         ctx,
         directory_url,
         err_msg="Error getting directory",
@@ -641,7 +652,7 @@ class AuthenticatedUser(object):
         :param depth: (optional) An integer nothing the depth of this function being called
 
         This proxies `url_request` with a signed payload
-        returns (resp_data, status_code, headers)
+        returns (status_code, resp_data, headers)
         """
         log.debug("_send_signed_request")
         log.debug("_send_signed_request | depth=%s" % depth)
@@ -653,6 +664,7 @@ class AuthenticatedUser(object):
         else:
             log.debug("_send_signed_request > newNonce")
             # TODO: store/retrieve a nonce from the db
+            # this pulls it off the headers
             self._next_nonce = nonce = url_request(
                 self.ctx,
                 self.acme_directory["newNonce"],
@@ -743,7 +755,7 @@ class AuthenticatedUser(object):
         ):
             log.debug(") polling...")
             time.sleep(1 if _result is None else 2)
-            _result, _status_code, _headers = self._send_signed_request(
+            _status_code, _result, _headers = self._send_signed_request(
                 _endpoint_type,
                 _url,
                 payload=None,
@@ -772,8 +784,8 @@ class AuthenticatedUser(object):
         payload_contact = {"contact": contact}
         assert self._api_account_headers
         (
-            acme_account_object,
             _status_code,
+            acme_account_object,
             _acme_account_headers,
         ) = self._send_signed_request(
             "AccountUrl",
@@ -929,8 +941,8 @@ class AuthenticatedUser(object):
 
             try:
                 (
-                    acme_account_object,
                     status_code,
+                    acme_account_object,
                     acme_account_headers,
                 ) = self._send_signed_request(
                     "newAccount",
@@ -942,10 +954,11 @@ class AuthenticatedUser(object):
             except errors.AcmeServerError as exc:
                 # only catch this if `onlyReturnExisting` and there is an DNE error
                 if onlyReturnExisting:
-                    # (status_code, resp_data, url) = exc
+                    # (status_code, url, resp_data, headers) = exc.args
+                    # OR (exc = exc.args[0])
                     if exc.args[0] == 400:
                         if (
-                            exc.args[1]["type"]
+                            exc.args[2]["type"]
                             == "urn:ietf:params:acme:error:accountDoesNotExist"
                         ):
                             log_api.debug(
@@ -1053,8 +1066,8 @@ class AuthenticatedUser(object):
         try:
             _payload_deactivate = {"status": "deactivated"}
             (
-                acme_account_object,
                 status_code,
+                acme_account_object,
                 acme_account_headers,
             ) = self._send_signed_request(
                 "AccountUrl",
@@ -1177,8 +1190,8 @@ class AuthenticatedUser(object):
             )
 
             (
-                acme_response,
                 status_code,
+                acme_response,
                 acme_headers,
             ) = self._send_signed_request(
                 "keyChange",
@@ -1243,7 +1256,9 @@ class AuthenticatedUser(object):
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeOrder: (required) a :class:`model.objects.AcmeOrder` instance
         """
-        log.info("acme_v2.AuthenticatedUser.acme_order_load(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_order_load(AcmeOrder[%s]" % dbAcmeOrder.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -1254,8 +1269,8 @@ class AuthenticatedUser(object):
 
         try:
             (
-                acme_order_object,
                 _status_code,
+                acme_order_object,
                 acme_order_headers,
             ) = self._send_signed_request("OrderUrl", dbAcmeOrder.order_url, None)
             if not isinstance(acme_order_object, dict):
@@ -1309,6 +1324,18 @@ class AuthenticatedUser(object):
                 "required for the `AcmeLogger`"
             )
 
+        # Check to see if we are ratelimited
+        if db_get.get__RateLimited__by__acmeAccountId(ctx, self.acmeAccount.id):
+            raise errors.AcmeServerErrorExistingRatelimit("ACME Account")
+        if db_get.get__RateLimited__by__acmeServerId(
+            ctx, self.acmeAccount.acme_server_id, exclude_accounts=False
+        ):
+            raise errors.AcmeServerErrorExistingRatelimit("ACME Server")
+        if db_get.get__RateLimited__by__acmeServerId_uniqueFqdnSetId(
+            ctx, self.acmeAccount.acme_server_id, dbUniqueFQDNSet.id
+        ):
+            raise errors.AcmeServerErrorExistingRatelimit("ACME Server + Domain(s)")
+
         # the payload can have a dict or strings
         payload_order: AcmeOrderPayload = {
             "identifiers": [{"type": "dns", "value": d} for d in domain_names]
@@ -1319,8 +1346,8 @@ class AuthenticatedUser(object):
             payload_order["replaces"] = replaces
         try:
             (
-                acme_order_object,
                 _status_code,
+                acme_order_object,
                 acme_order_headers,
             ) = self._send_signed_request(
                 "newOrder",
@@ -1334,16 +1361,33 @@ class AuthenticatedUser(object):
         except errors.AcmeServerError as exc:
             log.debug(") acme_order_new | AcmeServerError: %s" % exc)
 
-            # (status_code, resp_data, url) = exc
+            # (status_code, url, resp_data, headers) = exc.args
+            # OR (exc = exc.args[0])
+            if exc.args[0] == 429:
+                log.debug("Ratelimited Error")
+                log.debug(exc.args)
+                dbRateLimited = db_create.create__RateLimited(  # noqa: F841
+                    ctx,
+                    dbAcmeAccount=self.acmeAccount,
+                    dbAcmeOrder=None,
+                    dbAcmeServer=self.acmeAccount.acme_server,
+                    dbUniqueFQDNSet=dbUniqueFQDNSet,
+                    server_response_body=exc.args[2],
+                    server_response_headers=exc.args[3],
+                )
+                ctx.pyramid_transaction_commit()
+                raise
+
+            # (status_code, url, resp_data, resp_headers) = exc
             _raise = True
-            if isinstance(exc.args[1], dict):
+            if isinstance(exc.args[2], dict):
                 """
                 Neither the ACME RFC, nor any extensions, standardize an invalid `replaces` field.
                 Different ACME Servers will handle an invalid "replaces" field differently.
 
                     ACME Server
-                        exc.args[1]["type"]
-                        exc.args[1]["detail"]
+                        exc.args[2]["type"]
+                        exc.args[2]["detail"]
                     ------------------------------
                     LetsEncrypt - Boulder
                         "urn:ietf:params:acme:error:malformed"
@@ -1369,7 +1413,7 @@ class AuthenticatedUser(object):
                         },
                     }
                     for _server, _expects in _type_details.items():
-                        if (exc.args[1]["type"] == _expects["type"]) and exc.args[1][
+                        if (exc.args[2]["type"] == _expects["type"]) and exc.args[2][
                             "detail"
                         ].startswith(_expects["detail"]):
                             # just log this, we will retry regardless
@@ -1380,8 +1424,8 @@ class AuthenticatedUser(object):
                     log.debug(") acme_order_new | retrying without `replaces`:")
                     del payload_order["replaces"]
                     (
-                        acme_order_object,
                         _status_code,
+                        acme_order_object,
                         acme_order_headers,
                     ) = self._send_signed_request(
                         "newOrder",
@@ -1437,6 +1481,14 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
+        log.info(
+            "acme_v2.AuthenticatedUser.prepare_acme_challenge("
+            "AcmeAuthorization[%s], AcmeChallenge[%s]"
+            % (
+                dbAcmeAuthorization.id if dbAcmeAuthorization else "",
+                dbAcmeChallenge.id if dbAcmeChallenge else "",
+            )
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "MUST persist external system data."
@@ -1485,6 +1537,14 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
+        log.info(
+            "acme_v2.AuthenticatedUser._prepare_acme_challenge__http01("
+            "AcmeAuthorization[%s], AcmeChallenge[%s]"
+            % (
+                dbAcmeAuthorization.id if dbAcmeAuthorization else "",
+                dbAcmeChallenge.id if dbAcmeChallenge else "",
+            )
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "MUST persist external system data."
@@ -1527,8 +1587,12 @@ class AuthenticatedUser(object):
                             "precheck-1",
                             transaction_commit=True,
                         )
+                    if DEBUG_CHALLENGES_MANUAL:
+                        print("DEBUG_CHALLENGES_MANUAL=True")
+                        print("precheck failure, HTTP-01", wellknown_url)
+                        pdb.set_trace()
                     raise errors.DomainVerificationError(
-                        "Precheck Failure: Wrote keyauth challenge, but couldn't download {0}".format(
+                        "Precheck Failure: Hosting keyauth challenge, but couldn't download {0}".format(
                             wellknown_url
                         )
                     )
@@ -1566,6 +1630,14 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
+        log.info(
+            "acme_v2.AuthenticatedUser._prepare_acme_challenge__dns01("
+            "AcmeAuthorization[%s], AcmeChallenge[%s]"
+            % (
+                dbAcmeAuthorization.id if dbAcmeAuthorization else "",
+                dbAcmeChallenge.id if dbAcmeChallenge else "",
+            )
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "MUST persist external system data."
@@ -1673,8 +1745,25 @@ class AuthenticatedUser(object):
                                 expected_record_name
                             )
                         )
-                except Exception:
-                    raise
+
+                except errors.DomainVerificationError as exc:
+                    if ctx.application_settings["log.acme"]:
+                        self.acmeLogger.log_challenge_error(
+                            "v2",
+                            dbAcmeChallenge,
+                            "precheck-1",
+                            transaction_commit=True,
+                        )
+                    if DEBUG_CHALLENGES_MANUAL:
+                        print("DEBUG_CHALLENGES_MANUAL=True")
+                        print(
+                            "precheck failure, DNS-01",
+                            dns_record_prime,
+                            expected_record_name,
+                        )
+                        print(exc.args)
+                        pdb.set_trace()
+                    raise exc
             else:
                 log.debug("no precheck configured for dns-01")
         except (AssertionError, ValueError) as exc:
@@ -1718,7 +1807,10 @@ class AuthenticatedUser(object):
         :param updated_AcmeOrder_ProcessingStatus: callable. expects (ctx, dbAcmeChallenge, acme_order_processing_status_id, transaction_commit)
 
         """
-        log.info("acme_v2.AuthenticatedUser.acme_order_process_authorizations(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_order_process_authorizations(AcmeOrder[%s]"
+            % dbAcmeOrder.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "MUST persist external system data."
@@ -1795,7 +1887,10 @@ class AuthenticatedUser(object):
 
         # get the new certificate
         """
-        log.info("acme_v2.AuthenticatedUser.acme_order_finalize(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_order_finalize(AcmeOrder[%s]"
+            % dbAcmeOrder.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `update_order_status` callable"
@@ -1822,8 +1917,8 @@ class AuthenticatedUser(object):
         payload_finalize = {"csr": cert_utils.jose_b64(csr_der)}
         try:
             (
-                finalize_response,
                 _status_code,
+                finalize_response,
                 _finalize_headers,
             ) = self._send_signed_request(
                 "OrderUrl",
@@ -1851,7 +1946,7 @@ class AuthenticatedUser(object):
                 "OrderUrl",
                 url_order_status,
                 ["pending", "processing"],
-                "Error checking order status",
+                "via acme_v2.AuthenticatedUser.acme_order_finalize()",
             )
         except errors.AcmePollingTooLong as exc:
             log.debug(exc)
@@ -1903,7 +1998,7 @@ class AuthenticatedUser(object):
 
         # download the certificate
         # ACME-V2 furnishes a FULLCHAIN (certificate_pem + chain_pem)
-        (_fullchain_pem, _status_code, _certificate_headers) = (
+        (_status_code, _fullchain_pem, _certificate_headers) = (
             self._send_signed_request("CertificateUrl", url_certificate, None)
         )
         if not isinstance(_fullchain_pem, str):
@@ -1921,7 +2016,7 @@ class AuthenticatedUser(object):
             for url in alt_chains_urls:
                 # wrap these in a try/except so a single failure doesn't kill the download
                 try:
-                    _pem = self._send_signed_request("CertificateUrl", url)[0]
+                    _pem = self._send_signed_request("CertificateUrl", url)[1]
                     if not isinstance(_pem, str):
                         raise ValueError("expected `str` response")
                     if TYPE_CHECKING:
@@ -2009,8 +2104,8 @@ class AuthenticatedUser(object):
         # in v1, we know the domain before the authorization request
         # in v2, we must query an order's authorization url to get the domain
         (
-            authorization_response,
             _status_code,
+            authorization_response,
             _authorization_headers,
         ) = self._send_signed_request(
             "AuthzUrl",
@@ -2027,7 +2122,10 @@ class AuthenticatedUser(object):
             ") acme_authorization_process_url | _authorization_headers: %s"
             % _authorization_headers
         )
-        log.info(") .acme_authorization_process_url | handle_authorization_payload(")
+        log.info(
+            ") .acme_authorization_process_url | handle_authorization_payload(AcmeAuthorization[%s]"
+            % (dbAcmeAuthorization.id if dbAcmeAuthorization else "")
+        )
 
         _dbAcmeAuthorization = handle_authorization_payload(
             authorization_url,
@@ -2171,7 +2269,10 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) a
             :class:`model.objects.AcmeAuthorization` instance
         """
-        log.info("acme_v2.AuthenticatedUser.acme_authorization_load(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_authorization_load(AcmeAuthorization[%s]"
+            % dbAcmeAuthorization.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -2184,8 +2285,8 @@ class AuthenticatedUser(object):
 
         try:
             (
-                authorization_response,
                 _status_code,
+                authorization_response,
                 _authorization_headers,
             ) = self._send_signed_request(
                 "AuthzUrl", dbAcmeAuthorization.authorization_url, None
@@ -2240,7 +2341,10 @@ class AuthenticatedUser(object):
                authorization URL.
 
         """
-        log.info("acme_v2.AuthenticatedUser.acme_authorization_deactivate(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_authorization_deactivate(AcmeAuthorization[%s]"
+            % dbAcmeAuthorization.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -2253,8 +2357,8 @@ class AuthenticatedUser(object):
 
         try:
             (
-                authorization_response,
                 _status_code,
+                authorization_response,
                 _authorization_headers,
             ) = self._send_signed_request(
                 "AuthzUrl",
@@ -2299,7 +2403,10 @@ class AuthenticatedUser(object):
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeChallenge: (required) a :class:`model.objects.AcmeChallenge` instance
         """
-        log.info("acme_v2.AuthenticatedUser.acme_challenge_load(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_challenge_load(AcmeChallenge[%s]"
+            % dbAcmeChallenge.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -2310,8 +2417,8 @@ class AuthenticatedUser(object):
 
         try:
             (
-                challenge_response,
                 _status_code,
+                challenge_response,
                 _challenge_headers,
             ) = self._send_signed_request(
                 "ChallengeUrl", dbAcmeChallenge.challenge_url, None
@@ -2362,7 +2469,10 @@ class AuthenticatedUser(object):
 
         returns `challenge_response` the ACME paylaod for the specific challenge
         """
-        log.info("acme_v2.AuthenticatedUser.acme_challenge_trigger(")
+        log.info(
+            "acme_v2.AuthenticatedUser.acme_challenge_trigger(AcmeChallenge[%s]"
+            % dbAcmeChallenge.id
+        )
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -2391,8 +2501,8 @@ class AuthenticatedUser(object):
             )
         try:
             (
-                challenge_response,
                 _status_code,
+                challenge_response,
                 _challenge_headers,
             ) = self._send_signed_request(
                 "ChallengeUrl",
@@ -2412,8 +2522,8 @@ class AuthenticatedUser(object):
             raise
 
         except errors.AcmeServerError as exc:
-            # (status_code, resp_data, url) = exc
-            (_status_code, _resp, _url) = exc.args
+            # (status_code, url, resp_data, headers) = exc.args
+            (_status_code, _url, _resp, _headers) = exc.args
             """
             if isinstance(_resp, dict):
                 if _resp["type"].startswith("urn:ietf:params:acme:error:"):
@@ -2491,6 +2601,7 @@ class AuthenticatedUser(object):
                 "AuthzUrl",
                 dbAcmeChallenge.acme_authorization.authorization_url,
                 ["pending", "processing"],
+                "via acme_v2.AuthenticatedUser.acme_challenge_trigger();"
                 "checking challenge status for {0}".format(
                     dbAcmeChallenge.acme_authorization.domain.domain_name
                 ),
@@ -2636,7 +2747,7 @@ def check_endpoint(
             resp = sess.get(acme_directory, verify=cas.path(ctx, "CA_ACME"))
             return resp
         except Exception as exc:
-            raise errors.AcmeServerError(exc)
+            raise errors.AcmeServerErrorPublic(exc)
 
     alt_bundle = dbAcmeServer.local_ca_bundle(ctx) if dbAcmeServer else None
     if alt_bundle:
@@ -2745,7 +2856,7 @@ def _ari_query(
             )
             return ariCheckResult
         except Exception as exc:
-            raise errors.AcmeServerError(exc)
+            raise errors.AcmeServerErrorPublic(exc)
 
     alt_bundle = dbAcmeServer.local_ca_bundle(ctx) if dbAcmeServer else None
     if alt_bundle:
@@ -2780,7 +2891,9 @@ def ari_check(
     if not dbCertificateSigned.is_ari_checking_timely(ctx, datetime_now=datetime_now):
         if not force_check:
             # the expiry is a padded limit of the max time to rely on ARI checks
-            timely_expiry = datetime_ari_timely(ctx, datetime_now=datetime_now)
+            timely_expiry = datetime_ari_timely(
+                ctx, datetime_now=datetime_now, context="ari_check"
+            )
             raise errors.AcmeAriCheckDeclined(
                 "ARI Check Declined; Not Timely: %s<%s"
                 % (
@@ -2828,6 +2941,3 @@ def ari_check(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-__all__ = ()

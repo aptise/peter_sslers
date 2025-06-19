@@ -7,7 +7,7 @@ from pyramid.view import view_config
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("peter_sslers.web")
 
 # ------------------------------------------------------------------------------
 

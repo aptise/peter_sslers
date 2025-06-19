@@ -36,8 +36,7 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
-# logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+log = logging.getLogger("peter_sslers.lib.db")
 
 # ------------------------------------------------------------------------------
 

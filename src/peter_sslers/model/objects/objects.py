@@ -21,6 +21,7 @@ import pprint
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import overload
 from typing import TYPE_CHECKING
 from typing import Union
 
@@ -48,8 +49,7 @@ if TYPE_CHECKING:
     from ...lib.context import ApiContext
 
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log = logging.getLogger("peter_sslers.model")
 
 # ==============================================================================
 
@@ -178,6 +178,11 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="AcmeAccount.id==PrivateKey.acme_account_id__owner",
         uselist=True,
         back_populates="acme_account__owner",
+    )
+    rate_limiteds = sa_orm_relationship(
+        "RateLimited",
+        primaryjoin="AcmeAccount.id==RateLimited.acme_account_id",
+        back_populates="acme_account",
     )
     renewal_configurations__primary = sa_orm_relationship(
         "RenewalConfiguration",
@@ -1785,6 +1790,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         back_populates="acme_orders",
         uselist=False,
     )
+    rate_limiteds = sa_orm_relationship(
+        "RateLimited",
+        primaryjoin="AcmeOrder.id==RateLimited.acme_order_id",
+        back_populates="acme_order",
+    )
     renewal_configuration = sa.orm.relationship(
         "RenewalConfiguration",
         primaryjoin="AcmeOrder.renewal_configuration_id==RenewalConfiguration.id",
@@ -1917,12 +1927,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def domains_as_list(self) -> List[str]:
-        domain_names = [
-            to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains
-        ]
-        domain_names = list(set(domain_names))
-        domain_names = sorted(domain_names)
-        return domain_names
+        return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def domains_as_string(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_string
 
     @property
     def domains_challenged(self) -> model_utils.DomainsChallenged:
@@ -2360,11 +2369,6 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_server",
     )
-    operations_object_events = sa_orm_relationship(
-        "OperationsObjectEvent",
-        primaryjoin="AcmeServer.id==OperationsObjectEvent.acme_server_id",
-        back_populates="acme_server",
-    )
     directory_latest = sa_orm_relationship(
         "AcmeServerConfiguration",
         primaryjoin=(
@@ -2375,6 +2379,16 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         ),
         uselist=False,
         viewonly=True,  # the `AcmeServerConfiguration.is_active` join complicates things
+    )
+    operations_object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="AcmeServer.id==OperationsObjectEvent.acme_server_id",
+        back_populates="acme_server",
+    )
+    rate_limiteds = sa_orm_relationship(
+        "RateLimited",
+        primaryjoin="AcmeServer.id==RateLimited.acme_server_id",
+        back_populates="acme_server",
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3142,20 +3156,12 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         )
 
     @property
-    def domains_as_string(self) -> str:
-        domains = sorted(
-            [to_d.domain.domain_name for to_d in self.unique_fqdn_set.to_domains]
-        )
-        return ", ".join(domains)
+    def domains_as_list(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_list
 
     @property
-    def domains_as_list(self) -> List[str]:
-        domain_names = [
-            to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains
-        ]
-        domain_names = list(set(domain_names))
-        domain_names = sorted(domain_names)
-        return domain_names
+    def domains_as_string(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_string
 
     @property
     def key_technology(self) -> Optional[str]:
@@ -3546,26 +3552,26 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return model_utils.CertificateType.as_string(self.certificate_type_id)
 
     @property
-    def domains_as_string(self) -> str:
-        return self.unique_fqdn_set.domains_as_string
-
-    @property
     def domains_as_list(self) -> List[str]:
         return self.unique_fqdn_set.domains_as_list
 
+    @property
+    def domains_as_string(self) -> str:
+        return self.unique_fqdn_set.domains_as_string
+
     @reify
-    def expiring_days(self) -> Optional[int]:
+    def days_to_expiry(self) -> Optional[int]:
         return (
             self.timestamp_not_after - datetime.datetime.now(datetime.timezone.utc)
         ).days
 
     @reify
-    def expiring_days_label(self) -> str:
-        if self.expiring_days <= 0:
+    def days_to_expiry__label(self) -> str:
+        if self.days_to_expiry <= 2:
             return "danger"
-        elif self.expiring_days <= 30:
+        elif self.days_to_expiry <= 7:
             return "warning"
-        elif self.expiring_days > 30:
+        elif self.days_to_expiry > 7:
             return "success"
         return "danger"
 
@@ -3611,6 +3617,49 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             return None
         return model_utils.KeyTechnology.as_string(self.key_technology_id)
 
+    @overload
+    def remaining_hours(  # noqa: E704
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+        as_float: Literal[True] = True,
+    ) -> int: ...
+
+    @overload
+    def remaining_hours(  # noqa: E704
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+        as_float: Literal[False] = False,
+    ) -> float: ...
+
+    def remaining_hours(
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+        as_float: Literal[True, False] = False,
+    ) -> Union[float, int]:
+        if not self.duration_hours:
+            return 0
+        if timestamp is None:
+            timestamp = ctx.timestamp
+        if self.timestamp_not_after <= timestamp:
+            return 0
+        computed = (self.timestamp_not_after - timestamp).total_seconds() / 60 / 60
+        return int(computed) if not as_float else computed
+
+    def remaining_percent(
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+    ) -> float:
+        remaining_hours = self.remaining_hours(
+            ctx=ctx, timestamp=timestamp, as_float=True
+        )
+        if not remaining_hours:
+            return 0.0
+        return round((remaining_hours / self.duration_hours) * 100, 2)
+
     @property
     def renewal__private_key_strategy_id(self) -> int:
         if self.acme_order:
@@ -3655,9 +3704,17 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def as_json(self) -> Dict:
-        return {
+        _dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert _dbSession
+        _request = _dbSession.info.get("request")
+        if TYPE_CHECKING:
+            assert _request is not None
+
+        rval = {
             "id": self.id,
             # - -
+            # cert.acme_order.renewal_configuration.is_active
             # "acme_account_id": self.acme_account_id,
             "ari_check_latest_id": (
                 self.ari_check__latest.id if self.ari_check__latest else None
@@ -3688,16 +3745,28 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             ),
             "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
+            "remaining_hours": self.remaining_hours(_request.api_context),
+            "remaining_percent": self.remaining_percent(_request.api_context),
             "spki_sha256": self.spki_sha256,
             "timestamp_not_after": self.timestamp_not_after_isoformat,
             "timestamp_not_before": self.timestamp_not_before_isoformat,
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
+        if self.acme_order:
+            rval["AcmeOrder"] = {
+                "id": self.acme_order.id,
+            }
+            if self.acme_order.renewal_configuration_id:
+                rval["AcmeOrder"]["RenewalConfiguration"] = {
+                    "id": self.acme_order.renewal_configuration_id,
+                    "is_active": self.acme_order.renewal_configuration.is_active,
+                }
+        return rval
 
     @property
     def as_json_replaces_candidate(self) -> Dict:
-        return {
+        rval = {
             "id": self.id,
             "ari_identifier": self.ari_identifier,
             "cert_pem_md5": self.cert_pem_md5,
@@ -3705,6 +3774,7 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "timestamp_not_after": self.timestamp_not_after_isoformat,
             "timestamp_not_before": self.timestamp_not_before_isoformat,
         }
+        return rval
 
 
 # ==============================================================================
@@ -3863,17 +3933,32 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             model_utils.indexable_lower(sa.text("domain_name")),
             unique=True,
         ),
+        sa.CheckConstraint(
+            "( "
+            "  address_type_id IN (1, 2) "
+            "  and "
+            "  ( "
+            "    (address_type_id = 1 AND registered IS NOT NULL AND suffix IS NOT NULL) "
+            "    OR "
+            "    (address_type_id = 2 AND registered IS NULL AND suffix IS NULL) "
+            "  ) "
+            ") ",
+            name="_domain_type_check",
+        ),
     )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    registered: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    suffix: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-
+    address_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    registered: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255)
+    )  # nullable via `_domain_type_check`
+    suffix: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255)
+    )  # nullable via `_domain_type_check`
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
-
     certificate_signed_id__latest_single: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
@@ -3883,14 +3968,22 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-
     discovery_type: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, default=None
     )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def address_type(self):
+        return model_utils.AddressType.as_string(self.address_type_id)
+
+    @property
     def registered_domain(self):
+        if self.address_type_id in (
+            model_utils.AddressType.IP_ADDRESS_V4,
+            model_utils.AddressType.IP_ADDRESS_V6,
+        ):
+            return self.domain_name
         return "%s.%s" % (self.registered, self.suffix)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3989,24 +4082,28 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             # - -
             "acme_challenge_domain_name": self.acme_challenge_domain_name,
+            "address_type": self.address_type,
             "certificate__latest_multi": {},
             "certificate__latest_single": {},
             "certificate_signeds__single_primary_5": [],
             "certificate_signeds__single_backup_5": [],
             "domain_name": self.domain_name,
         }
+        if self.address_type == "hostname":
+            payload["registered"] = self.registered
+            payload["suffix"] = self.suffix
         if self.certificate_signed_id__latest_multi:
             payload["certificate__latest_multi"] = {
                 "id": self.certificate_signed_id__latest_multi,
                 "timestamp_not_after": self.certificate_signed__latest_multi.timestamp_not_after_isoformat,
-                "expiring_days": self.certificate_signed__latest_multi.expiring_days,
+                "days_to_expiry": self.certificate_signed__latest_multi.days_to_expiry,
                 "is_active": self.certificate_signed__latest_multi.is_active,
             }
         if self.certificate_signed_id__latest_single:
             payload["certificate__latest_single"] = {
                 "id": self.certificate_signed_id__latest_single,
                 "timestamp_not_after": self.certificate_signed__latest_single.timestamp_not_after_isoformat,
-                "expiring_days": self.certificate_signed__latest_single.expiring_days,
+                "days_to_expiry": self.certificate_signed__latest_single.days_to_expiry,
                 "is_active": self.certificate_signed__latest_single.is_active,
             }
 
@@ -4015,7 +4112,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 {
                     "id": i.id,
                     "timestamp_not_after": i.timestamp_not_after_isoformat,
-                    "expiring_days": i.expiring_days,
+                    "days_to_expiry": i.days_to_expiry,
                     "is_active": i.is_active,
                 }
                 for i in self.certificate_signeds__single_primary_5
@@ -4025,7 +4122,7 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 {
                     "id": i.id,
                     "timestamp_not_after": i.timestamp_not_after_isoformat,
-                    "expiring_days": i.expiring_days,
+                    "days_to_expiry": i.days_to_expiry,
                     "is_active": i.is_active,
                 }
                 for i in self.certificate_signeds__single_backup_5
@@ -4106,6 +4203,9 @@ class DomainAutocert(Base, _Mixin_Timestamps_Pretty):
     )
     acme_order_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+    renewal_configuration_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("renewal_configuration.id"), nullable=True
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4453,7 +4553,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN uniquely_challenged_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END "
             " ) = 1",
-            name="check1",
+            name="ooe_check1",
         ),
     )
 
@@ -4819,6 +4919,89 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 # ==============================================================================
 
 
+class RateLimited(Base, _Mixin_Timestamps_Pretty):
+
+    __tablename__ = "rate_limited"
+
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    acme_server_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_server.id"), nullable=False
+    )
+
+    # these are optional
+    acme_account_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
+    )
+    acme_order_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+    unique_fqdn_set_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
+    )
+
+    server_response_body: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True, unique=False
+    )
+    server_response_headers: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True, unique=False
+    )
+
+    acme_account = sa_orm_relationship(
+        "AcmeAccount",
+        primaryjoin="RateLimited.acme_account_id==AcmeAccount.id",
+        back_populates="rate_limiteds",
+        uselist=False,
+    )
+    acme_order = sa.orm.relationship(
+        "AcmeOrder",
+        primaryjoin="RateLimited.acme_order_id==AcmeOrder.id",
+        back_populates="rate_limiteds",
+        uselist=False,
+    )
+    acme_server = sa.orm.relationship(
+        "AcmeServer",
+        primaryjoin="RateLimited.acme_server_id==AcmeServer.id",
+        back_populates="rate_limiteds",
+        uselist=False,
+    )
+    unique_fqdn_set = sa.orm.relationship(
+        "UniqueFQDNSet",
+        primaryjoin="RateLimited.unique_fqdn_set_id==UniqueFQDNSet.id",
+        back_populates="rate_limiteds",
+        uselist=False,
+    )
+
+    @property
+    def domains_as_list(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_list if self.unique_fqdn_set_id else []
+
+    @property
+    def domains_as_string(self) -> Optional[str]:
+        return (
+            self.unique_fqdn_set.domains_as_string if self.unique_fqdn_set_id else None
+        )
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "id": self.id,
+            # - -
+            "acme_account_id": self.acme_account_id,
+            "acme_server_id": self.acme_server_id,
+            "acme_order_id": self.acme_order_id,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
+            # - -
+            "server_response_body": self.server_response_body,
+            "server_response_headers": self.server_response_headers,
+            "timestamp_created": self.timestamp_created_isoformat,
+            # - -
+            "domains_as_list": self.domains_as_list,
+        }
+
+
 # ==============================================================================
 
 
@@ -4993,12 +5176,11 @@ class RenewalConfiguration(
 
     @property
     def domains_as_list(self) -> List[str]:
-        domain_names = [
-            to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains
-        ]
-        domain_names = list(set(domain_names))
-        domain_names = sorted(domain_names)
-        return domain_names
+        return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def domains_as_string(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_string
 
     def domains_challenged_liststr(self, acme_challenge_type: str) -> str:
         domain_names = self.domains_challenged[acme_challenge_type] or []
@@ -5366,6 +5548,7 @@ class RoutineExecution(Base, _Mixin_Timestamps_Pretty):
     count_records_fail: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     duration_seconds: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     average_speed: Mapped[float] = mapped_column(sa.Float, nullable=False)
+    is_dry_run: Mapped[bool] = mapped_column(sa.Boolean, nullable=False)
     routine_execution_id__via: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("routine_execution.id"), nullable=True
     )
@@ -5386,6 +5569,7 @@ class RoutineExecution(Base, _Mixin_Timestamps_Pretty):
             "duration_seconds": self.duration_seconds,
             "average_speed": self.average_speed,
             "routine_execution_id__via": self.routine_execution_id__via,
+            "dry_run": self.is_dry_run,
         }
 
 
@@ -5448,6 +5632,11 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="UniqueFQDNSet.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
+    rate_limiteds = sa.orm.relationship(
+        "RateLimited",
+        primaryjoin="UniqueFQDNSet.id==RateLimited.unique_fqdn_set_id",
+        back_populates="unique_fqdn_set",
+    )
     renewal_configurations = sa_orm_relationship(
         "RenewalConfiguration",
         primaryjoin="UniqueFQDNSet.id==RenewalConfiguration.unique_fqdn_set_id",
@@ -5471,16 +5660,16 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         return [to_d.domain for to_d in self.to_domains]
 
     @property
-    def domains_as_string(self) -> str:
-        domains = sorted([to_d.domain.domain_name for to_d in self.to_domains])
-        return ", ".join(domains)
-
-    @property
     def domains_as_list(self) -> List[str]:
         domain_names = [to_d.domain.domain_name.lower() for to_d in self.to_domains]
         domain_names = list(set(domain_names))
         domain_names = sorted(domain_names)
         return domain_names
+
+    @property
+    def domains_as_string(self) -> str:
+        domains = sorted([to_d.domain.domain_name for to_d in self.to_domains])
+        return ", ".join(domains)
 
     @property
     def domain_objects(self) -> Dict[str, "Domain"]:
@@ -5775,6 +5964,7 @@ __all__ = (
     "OperationsEvent",
     "OperationsObjectEvent",
     "PrivateKey",
+    "RateLimited",
     "RemoteIpAddress",
     "RenewalConfiguration",
     "RootStore",

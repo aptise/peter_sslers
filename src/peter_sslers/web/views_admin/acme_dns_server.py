@@ -530,8 +530,16 @@ class View_Focus(Handler):
             try:
                 # this function checks the domain names match a simple regex
                 # domains will also be lowercase+strip
+                #
+                # IMPORTANT RFC 8738
+                #       https://www.rfc-editor.org/rfc/rfc8738#section-7
+                #       The existing "dns-01" challenge MUST NOT be used to validate IP identifiers.
+                #
                 domain_names = cert_utils.utils.domains_from_string(
-                    formStash.results["domain_names"]
+                    formStash.results["domain_names"],
+                    allow_hostname=True,
+                    allow_ipv4=False,
+                    allow_ipv6=False,  # DNS-01 not allowed for IPs via RFC
                 )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
@@ -715,8 +723,16 @@ class View_Focus(Handler):
                 try:
                     # this function checks the domain names match a simple regex
                     # domains will also be lowercase+strip
+                    #
+                    # IMPORTANT RFC 8738
+                    #       https://www.rfc-editor.org/rfc/rfc8738#section-7
+                    #       The existing "dns-01" challenge MUST NOT be used to validate IP identifiers.
+                    #
                     _domain_names = cert_utils.utils.domains_from_string(
-                        formStash.results[test_domain]
+                        formStash.results[test_domain],
+                        allow_hostname=True,
+                        allow_ipv4=False,
+                        allow_ipv6=False,  # DNS-01 not allowed for IPs via RFC
                     )
                 except ValueError as exc:  # noqa: F841
                     formStash.fatal_field(

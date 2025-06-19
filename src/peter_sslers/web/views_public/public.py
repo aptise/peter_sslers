@@ -11,7 +11,7 @@ from ...lib import db as lib_db
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("peter_sslers.web")
 
 # ------------------------------------------------------------------------------
 
@@ -35,7 +35,12 @@ class ViewPublic(Handler):
         dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
             self.request.api_context, self.request.active_domain_name
         )
-        if not dbDomainBlocklisted:
+        if dbDomainBlocklisted:
+            log.info(
+                "DomainBlocklisted [%s]",
+                self.request.active_domain_name,
+            )
+        else:
             dbAcmeChallenge = lib_db.get.get__AcmeChallenge__challenged(
                 self.request.api_context,
                 self.request.active_domain_name,

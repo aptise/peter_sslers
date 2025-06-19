@@ -3,6 +3,7 @@ import logging
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # pypi
@@ -10,6 +11,7 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
+from typing_extensions import Literal
 
 # local
 from ..lib import form_utils as form_utils
@@ -27,17 +29,136 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils_nginx
 from ...lib import utils_redis
+from ...model.objects import AcmeDnsServerAccount
 from ...model.objects import Domain
 
 if TYPE_CHECKING:
+    from pyramid.request import Request
     from ...model.objects import AcmeDnsServer
 
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("peter_sslers.web")
 
 # ------------------------------------------------------------------------------
+
+
+def submit__Domain__new(
+    request: "Request",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[Domain, bool]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    (result, formStash) = formhandling.form_validate(
+        request, schema=Form_Domain_new, validate_get=False
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+
+    try:
+        domains_challenged = form_utils.form_single_domain_challenge_typed(
+            request, formStash, challenge_type="http-01"
+        )
+        domain_name = domains_challenged["http-01"][0]
+
+        (
+            dbDomain,
+            _is_created,
+        ) = lib_db.getcreate.getcreate__Domain__by_domainName(
+            request.api_context,
+            domain_name=domain_name,
+            discovery_type="upload",
+        )
+
+        return dbDomain, _is_created
+
+    except Exception as exc:
+        raise formStash.fatal_form(exc.args[0])
+
+
+def submit__Domain_AcmeDnsServer__new(
+    request: "Request",
+    dbDomain: Domain,
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> AcmeDnsServerAccount:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    (result, formStash) = formhandling.form_validate(
+        request, schema=Form_Domain_AcmeDnsServer_new, validate_get=False
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+
+    # validate the AcmeDnsServer
+    dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
+        request.api_context, formStash.results["acme_dns_server_id"]
+    )
+    if not dbAcmeDnsServer:
+        formStash.fatal_field(
+            field="acme_dns_server_id",
+            error_field="Invalid AcmeDnsServer.",
+        )
+    if TYPE_CHECKING:
+        assert dbAcmeDnsServer is not None
+    if not dbAcmeDnsServer.is_active:
+        formStash.fatal_field(
+            field="acme_dns_server_id",
+            error_field="Inactive AcmeDnsServer.",
+        )
+
+    # In order to keep things simple, enforce two restrictions:
+    # Restriction A: Any given `AcmeDnsServer` can have one set of credentials for a given `Domain`
+    # Restriction B: Any given `Domain` can have one `AcmeDnsServerAccount`
+    # These restrictions are only required to simplify UX.
+    # In practice, there can be an infinite number AcmeDnsServerAccounts per Domain;
+    #    This applies to accounts on the same AcmeDnsServer or different AcmeDnsServers.
+
+    # Restriction A: Any given `AcmeDnsServer` can have one set of credentials for a given `Domain`
+    dbAcmeDnsServerAccount = (
+        lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
+            request.api_context, dbAcmeDnsServer.id, dbDomain.id
+        )
+    )
+    if dbAcmeDnsServerAccount:
+        formStash.fatal_field(
+            field="acme_dns_server_id",
+            error_field="Existing record for this AcmeDnsServer.",
+        )
+
+    # Restriction B: Any given `Domain` can have one `AcmeDnsServerAccount`
+    dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_DomainId(
+        request.api_context, dbDomain.id
+    )
+    if dbAcmeDnsServerAccount:
+        formStash.fatal_field(
+            field="acme_dns_server_id",
+            error_field="Existing record for this Domain on another AcmeDnsServer.",
+        )
+
+    # wonderful! now we need to "register" against acme-dns
+    try:
+        # initialize a client
+        acmeDnsClient = lib_acmedns.new_client(dbAcmeDnsServer.api_url)
+        account = acmeDnsClient.register_account(None)  # arg = allowlist ips
+    except Exception as exc:  # noqa: F841
+        # raise errors.AcmeDnsServerError("error registering an account with AcmeDns", exc)
+        formStash.fatal_form(error_main="Error communicating with the acme-dns server.")
+
+    dbAcmeDnsServerAccount = lib_db.create.create__AcmeDnsServerAccount(
+        request.api_context,
+        dbAcmeDnsServer=dbAcmeDnsServer,
+        dbDomain=dbDomain,
+        username=account["username"],
+        password=account["password"],
+        fulldomain=account["fulldomain"],
+        subdomain=account["subdomain"],
+        allowfrom=account["allowfrom"],
+    )
+
+    return dbAcmeDnsServerAccount
 
 
 class View_List(Handler):
@@ -143,7 +264,9 @@ class View_List(Handler):
         }
     )
     def list(self):
-        expiring_days = self.request.api_context.application_settings["expiring_days"]
+        expiring_days_ux = self.request.api_context.application_settings[
+            "expiring_days_ux"
+        ]
         if self.request.matched_route.name in (
             "admin:domains:expiring",
             "admin:domains:expiring-paginated",
@@ -159,12 +282,12 @@ class View_List(Handler):
                 url_template = "%s.json" % url_template
 
             items_count = lib_db.get.get__Domain__count(
-                self.request.api_context, expiring_days=expiring_days
+                self.request.api_context, days_to_expiry=expiring_days_ux
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__Domain__paginated(
                 self.request.api_context,
-                expiring_days=expiring_days,
+                days_to_expiry=expiring_days_ux,
                 limit=items_per_page,
                 offset=offset,
             )
@@ -239,7 +362,7 @@ class View_List(Handler):
             "Domains_count": items_count,
             "Domains": items_paged,
             "sidenav_option": sidenav_option,
-            "expiring_days": expiring_days,
+            "expiring_days_ux": expiring_days_ux,
             "pager": pager,
         }
 
@@ -351,26 +474,10 @@ class View_New(Handler):
 
     def _new__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_Domain_new, validate_get=False
+            (dbDomain, _is_created) = submit__Domain__new(
+                self.request,
+                acknowledge_transaction_commits=True,
             )
-            if not result:
-                raise formhandling.FormInvalid(formStash)
-
-            domains_challenged = form_utils.form_single_domain_challenge_typed(
-                self.request, formStash, challenge_type="http-01"
-            )
-            domain_name = domains_challenged["http-01"][0]
-
-            (
-                dbDomain,
-                _is_created,
-            ) = lib_db.getcreate.getcreate__Domain__by_domainName(
-                self.request.api_context,
-                domain_name=domain_name,
-                discovery_type="upload",
-            )
-
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -385,10 +492,9 @@ class View_New(Handler):
                     ("&is_created=1" if _is_created else "&is_existing=1"),
                 )
             )
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new__print)
 
 
@@ -1349,78 +1455,10 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
         if TYPE_CHECKING:
             assert self.dbDomain is not None
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_Domain_AcmeDnsServer_new, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid(formStash)
-
-            # validate the AcmeDnsServer
-            dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
-                self.request.api_context, formStash.results["acme_dns_server_id"]
-            )
-            if not dbAcmeDnsServer:
-                formStash.fatal_field(
-                    field="acme_dns_server_id",
-                    error_field="Invalid AcmeDnsServer.",
-                )
-            if TYPE_CHECKING:
-                assert dbAcmeDnsServer is not None
-            if not dbAcmeDnsServer.is_active:
-                formStash.fatal_field(
-                    field="acme_dns_server_id",
-                    error_field="Inactive AcmeDnsServer.",
-                )
-
-            # In order to keep things simple, enforce two restrictions:
-            # Restriction A: Any given `AcmeDnsServer` can have one set of credentials for a given `Domain`
-            # Restriction B: Any given `Domain` can have one `AcmeDnsServerAccount`
-            # These restrictions are only required to simplify UX.
-            # In practice, there can be an infinite number AcmeDnsServerAccounts per Domain;
-            #    This applies to accounts on the same AcmeDnsServer or different AcmeDnsServers.
-
-            # Restriction A: Any given `AcmeDnsServer` can have one set of credentials for a given `Domain`
-            dbAcmeDnsServerAccount = (
-                lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
-                    self.request.api_context, dbAcmeDnsServer.id, self.dbDomain.id
-                )
-            )
-            if dbAcmeDnsServerAccount:
-                formStash.fatal_field(
-                    field="acme_dns_server_id",
-                    error_field="Existing record for this AcmeDnsServer.",
-                )
-
-            # Restriction B: Any given `Domain` can have one `AcmeDnsServerAccount`
-            dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_DomainId(
-                self.request.api_context, self.dbDomain.id
-            )
-            if dbAcmeDnsServerAccount:
-                formStash.fatal_field(
-                    field="acme_dns_server_id",
-                    error_field="Existing record for this Domain on another AcmeDnsServer.",
-                )
-
-            # wonderful! now we need to "register" against acme-dns
-            try:
-                # initialize a client
-                acmeDnsClient = lib_acmedns.new_client(dbAcmeDnsServer.api_url)
-                account = acmeDnsClient.register_account(None)  # arg = allowlist ips
-            except Exception as exc:  # noqa: F841
-                # raise errors.AcmeDnsServerError("error registering an account with AcmeDns", exc)
-                formStash.fatal_form(
-                    error_main="Error communicating with the acme-dns server."
-                )
-
-            dbAcmeDnsServerAccount = lib_db.create.create__AcmeDnsServerAccount(
-                self.request.api_context,
-                dbAcmeDnsServer=dbAcmeDnsServer,
+            dbAcmeDnsServerAccount = submit__Domain_AcmeDnsServer__new(
+                self.request,
                 dbDomain=self.dbDomain,
-                username=account["username"],
-                password=account["password"],
-                fulldomain=account["fulldomain"],
-                subdomain=account["subdomain"],
-                allowfrom=account["allowfrom"],
+                acknowledge_transaction_commits=True,
             )
 
             if self.request.wants_json:
@@ -1436,5 +1474,5 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
 
         except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._new_print)

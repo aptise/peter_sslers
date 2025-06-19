@@ -400,7 +400,11 @@ class View_Focus(Handler):
                 # this function checks the domain names match a simple regex
                 # domains will also be lowercase+strip
                 domain_names_add = cert_utils.utils.domains_from_string(
-                    domain_names_add
+                    domain_names_add,
+                    allow_hostname=True,
+                    allow_ipv4=True,
+                    allow_ipv6=True,
+                    ipv6_require_compressed=True,
                 )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
@@ -412,7 +416,11 @@ class View_Focus(Handler):
                 # this function checks the domain names match a simple regex
                 # domains will also be lowercase+strip
                 domain_names_del = cert_utils.utils.domains_from_string(
-                    domain_names_del
+                    domain_names_del,
+                    allow_hostname=True,
+                    allow_ipv4=True,
+                    allow_ipv6=True,
+                    ipv6_require_compressed=True,
                 )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
@@ -541,7 +549,13 @@ class ViewNew(Handler):
             try:
                 # this function checks the domain names match a simple regex
                 # domains will also be lowercase+strip
-                domain_names = cert_utils.utils.domains_from_string(domain_names)
+                domain_names = cert_utils.utils.domains_from_string(
+                    domain_names,
+                    allow_hostname=True,
+                    allow_ipv4=True,
+                    allow_ipv6=True,
+                    ipv6_require_compressed=True,
+                )
             except ValueError as exc:  # noqa: F841
                 formStash.fatal_field(
                     field="domain_names",

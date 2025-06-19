@@ -4,6 +4,7 @@ import datetime
 import functools
 import json
 import logging
+import os.path
 import re
 from typing import Dict
 from typing import Optional
@@ -17,11 +18,13 @@ import pyramid_tm
 import requests
 import tldextract
 import transaction
+from typing_extensions import Literal
 import zope.sqlalchemy
 
 # local
 from . import config_utils
 from .. import USER_AGENT
+from ..model import utils as model_utils
 
 if TYPE_CHECKING:
     from sqlalchemy.orm.session import Session
@@ -34,10 +37,7 @@ if TYPE_CHECKING:
 PLACEHOLDER_TEXT__KEY = "*placeholder-key*"
 PLACEHOLDER_TEXT__SHA1 = "*placeholder-sha1*"
 
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-
+log = logging.getLogger("peter_sslers.lib")
 
 # ------------------------------------------------------------------------------
 
@@ -179,7 +179,10 @@ def validate_label_template(template: str) -> Tuple[bool, Optional[str]]:
 
 def validate_domains_template(
     template: str,
-    require_markers: bool = False,
+    acme_challenge_type_id: Literal[
+        model_utils.AcmeChallengeType_Enum.DNS_01,
+        model_utils.AcmeChallengeType_Enum.HTTP_01,
+    ],
 ) -> Tuple[Optional[str], Optional[str]]:
     """
     validates and normalizes the template
@@ -193,20 +196,42 @@ def validate_domains_template(
     if not template:
         return None, "Nothing submitted"
     # remove any spaces
-    template = template.replace(" ", "")
+    normalized = template.replace(" ", "")
 
-    if require_markers:
-        if ("{DOMAIN}" not in template) and ("{NIAMOD}" not in template):
-            return None, "Missing {DOMAIN} or {NIAMOD} marker"
+    if ("{DOMAIN}" not in normalized) and ("{NIAMOD}" not in normalized):
+        return None, "Missing {DOMAIN} or {NIAMOD} marker"
 
-    templated = apply_domain_template(template, "example.com", "com.example")
+    _templated = normalized.replace("{DOMAIN}", "example.com").replace(
+        "{NIAMOD}", "com.example"
+    )
 
-    ds = [i.strip() for i in templated.split(",")]
+    ds = [i.strip() for i in _templated.split(",")]
     try:
-        cert_utils.validate_domains(ds)
+        if acme_challenge_type_id == model_utils.AcmeChallengeType_Enum.DNS_01:
+            # IMPORTANT RFC 8738
+            #       https://www.rfc-editor.org/rfc/rfc8738#section-7
+            #       The existing "dns-01" challenge MUST NOT be used to validate IP identifiers.
+            #
+            cert_utils.validate_domains(
+                ds,
+                allow_hostname=True,
+                allow_ipv4=False,
+                allow_ipv6=False,  # DNS-01 not allowed for IPs via RFC
+            )
+        elif acme_challenge_type_id == model_utils.AcmeChallengeType_Enum.HTTP_01:
+            cert_utils.validate_domains(
+                ds,
+                allow_hostname=True,
+                allow_ipv4=True,
+                allow_ipv6=True,
+                ipv6_require_compressed=True,
+            )
+        else:
+            raise ValueError(
+                "unsupported acme_challenge_type_id: %s" % acme_challenge_type_id
+            )
     except Exception:
         return None, "Invalid Domain(s) Detected"
-    normalized = templated
     return normalized, None
 
 
@@ -323,6 +348,17 @@ class RequestCommandline(object):
         from ..web.lib.handler import load_CertificateCAPreferencePolicy_global
 
         return load_CertificateCAPreferencePolicy_global(self)
+
+
+def validate_config_uri(config_uri: str) -> str:
+    if not os.path.exists(config_uri):
+        raise ValueError("Not a valid `config_uri`; Does not exist :: `%s`" % config_uri)
+    if os.path.isdir(config_uri):
+        if "config.ini" not in os.listdir(config_uri):
+            raise ValueError("Not a valid `config_uri` :: `%s`" % config_uri)
+        config_uri = os.path.join(config_uri, "config.ini")
+    assert os.path.isfile(config_uri)
+    return config_uri
 
 
 def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiContext":

@@ -80,7 +80,7 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("peter_sslers.lib.db")
 
 # ------------------------------------------------------------------------------
 
@@ -142,9 +142,10 @@ def new_Authenticated_user(
             # this is expected to happen on testing
             # this should not happen on production
             _raise = True
+            # (status_code, url, resp_data, headers) = exc.args
             if isinstance(exc, errors.AcmeServerError):
                 if (exc.args[0] == 400) and (
-                    exc.args[1]["type"]
+                    exc.args[2]["type"]
                     == "urn:ietf:params:acme:error:accountDoesNotExist"
                 ):
                     authenticatedUser = do__AcmeV2_AcmeAccount__authenticate(
@@ -1992,7 +1993,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     "global_weekly",
                 ):
                     # look the `dbAcmeOrder.acme_account.private_key_cycle`
-                    dbPrivateKey_new = getcreate__PrivateKey_for_AcmeAccount(
+                    dbPrivateKey_new, _is_created = getcreate__PrivateKey_for_AcmeAccount(
                         ctx,
                         dbAcmeAccount=dbAcmeOrder.acme_account,
                         key_technology_id=key_technology_id,
@@ -2032,7 +2033,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                                 raise ReassignedPrivateKey("new PrivateKey")
                         break
                     # if not, we need to generate a new key...
-                    dbPrivateKey_new = getcreate__PrivateKey_for_AcmeAccount(
+                    dbPrivateKey_new, _is_created = getcreate__PrivateKey_for_AcmeAccount(
                         ctx,
                         dbAcmeAccount=dbAcmeOrder.acme_account,
                         key_technology_id=key_technology_id,
@@ -3346,6 +3347,9 @@ def do__AcmeV2_AcmeOrder__new(
             return dbAcmeOrder
 
         return dbAcmeOrder
+
+    except errors.AcmeServerErrorExistingRatelimit as exc:
+        raise
 
     except (errors.AcmeOrderProcessing, errors.AcmeOrderValid) as exc:
         raise errors.AcmeOrderCreatedError(dbAcmeOrder, exc)

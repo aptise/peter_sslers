@@ -33,6 +33,7 @@ from ..views_admin import enrollment_factory as v_enrollment_factory
 from ..views_admin import renewal_configuration as v_renewal_configuration
 from ..views_admin import system_configuration as v_system_configuration
 from ...lib import db as lib_db  # noqa: F401
+from ...lib.utils import validate_config_uri
 from ...model import objects as model_objects
 
 
@@ -67,10 +68,17 @@ COMMANDS: Dict[str, List[str]] = {
     "acme-server": [
         "list",
     ],
+    "certificate-signed": [
+        "list",
+    ],
     "enrollment-factory": [
         "focus",
         "list",
         "new",
+    ],
+    "rate-limited": [
+        "clear",
+        "list",
     ],
     "renewal-configuration": [
         "focus",
@@ -103,9 +111,19 @@ def main(argv=sys.argv):
     if len(argv) < 4:
         usage(argv)
     config_uri = argv[1]
+    config_uri = validate_config_uri(config_uri)
     command = argv[2]
     subcommand = argv[3]
-    options = parse_vars(argv[4:])
+
+    options: dict = {}
+    try:
+        if len(argv) == 5:
+            if argv[4].lower() in ("help", "help=1"):
+                options["help"] = "1"
+                raise GeneratorExit()
+        options = parse_vars(argv[4:])
+    except GeneratorExit:
+        pass
 
     if command not in COMMANDS:
         print("`%s` is not a valid command" % command)
@@ -125,7 +143,10 @@ def main(argv=sys.argv):
 
         # generic functions
         def _list_items(
-            f_count: Optional[Callable], f_paginated: Callable, is_extended=True
+            f_count: Optional[Callable],
+            f_paginated: Callable,
+            is_extended=True,
+            condensed=False,
         ):
             offset = 0
             limit = None
@@ -139,6 +160,22 @@ def main(argv=sys.argv):
             dbItems = f_paginated(request.api_context, offset=offset, limit=limit)
             for _dbItem in dbItems:
                 print("-----")
+                if condensed:
+                    if isinstance(_dbItem, model_objects.CertificateSigned):
+                        print("Certificate:", _dbItem.id)
+                        print("\tnotAfter:", _dbItem.timestamp_not_after)
+                        print("\tnotBefore:", _dbItem.timestamp_not_before)
+                        print("\tDomains:", _dbItem.domains_as_string)
+                        print(
+                            "\tACME Server:",
+                            (
+                                _dbItem.acme_order.acme_account.acme_server.name
+                                if _dbItem.acme_order
+                                else "{}"
+                            ),
+                        )
+                        continue
+
                 if is_extended:
                     if isinstance(_dbItem, model_objects.EnrollmentFactory):
                         pprint.pprint(_dbItem.as_json_docs)
@@ -147,7 +184,7 @@ def main(argv=sys.argv):
                         pprint.pprint(_dbItem.as_json_docs)
                         continue
                 pprint.pprint(_dbItem.as_json)
-            print("Total Items: %s" % dbItemsCount)
+            print("Total Items: %s" % dbItemsCount if dbItemsCount is not None else "x")
             print("Showing: offset %s, limit %s" % (offset, limit))
 
         def _get_AcmeAccount(arg: str = "id", required: bool = True) -> "AcmeAccount":
@@ -224,7 +261,7 @@ def main(argv=sys.argv):
             # !!!: focus
             if subcommand == "focus":
                 _dbAcmeAccount = _get_AcmeAccount()
-                print(_dbAcmeAccount.as_json)
+                pprint.pprint(_dbAcmeAccount.as_json)
             # !!!: - list
             elif subcommand == "list":
                 print("ACME Accounts:")
@@ -234,6 +271,7 @@ def main(argv=sys.argv):
                 )
             # !!!: - new
             elif subcommand == "new":
+                # !!!: - new - help
                 if "help" in options:
                     pprint.pprint(Form_AcmeAccount_new__auth.fields)
                     exit(0)
@@ -243,15 +281,16 @@ def main(argv=sys.argv):
                         acknowledge_transaction_commits=True,
                     )
                     print("success", "[CREATED]" if _is_created else "")
-                    print(_dbAcmeAccount.as_json)
+                    pprint.pprint(_dbAcmeAccount.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
-            # !!!: - authenticate
+            # !!!: - authenticate/check
             elif subcommand in (
                 "authenticate",
                 "check",
             ):
+                # !!!: - authenticate/check - help
                 if "help" in options:
                     print('%s id="{INT}' % subcommand)
                     exit(0)
@@ -285,6 +324,7 @@ def main(argv=sys.argv):
                 )
             # !!!: - new
             elif subcommand == "new":
+                # !!!: - new - help
                 if "help" in options:
                     pprint.pprint(Form_AcmeDnsServer_new.fields)
                     exit(0)
@@ -294,13 +334,14 @@ def main(argv=sys.argv):
                         acknowledge_transaction_commits=True,
                     )
                     print("success", "[CREATED]" if _is_created else "")
-                    print(_dbAcmeDnsServer.as_json)
+                    pprint.pprint(_dbAcmeDnsServer.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
                     exit(1)
             # !!!: - check
             elif subcommand == "check":
+                # !!!: - check - help
                 if "help" in options:
                     print('check id="{INT}')
                     exit(0)
@@ -315,7 +356,7 @@ def main(argv=sys.argv):
             # !!!: - focus
             if command == "focus":
                 _dbAcmeOrder = _get_AcmeOrder()
-                print(_dbAcmeOrder.as_json)
+                pprint.pprint(_dbAcmeOrder.as_json)
             # !!!: - list
             elif subcommand == "list":
                 print("ACME Orders:")
@@ -332,13 +373,22 @@ def main(argv=sys.argv):
                     None,
                     lib_db.get.get__AcmeServer__paginated,
                 )
+        # !!!: distpatch[certificate-signed]
+        elif command == "certificate-signed":
+            if subcommand == "list":
+                print("CertificateSigneds:")
+                _list_items(
+                    lib_db.get.get__CertificateSigned__count,
+                    lib_db.get.get__CertificateSigned__paginated,
+                    condensed=True,
+                )
         # !!!: distpatch[enrollment-factory]
         elif command == "enrollment-factory":
             _dbEnrollmentFactory: Optional["EnrollmentFactory"]
             # !!!: focus
             if subcommand == "focus":
                 _dbEnrollmentFactory = _get_EnrollmentFactory()
-                print(_dbEnrollmentFactory.as_json)
+                pprint.pprint(_dbEnrollmentFactory.as_json)
             # !!!: - list
             elif subcommand == "list":
                 print("Enrollment Factories:")
@@ -353,11 +403,57 @@ def main(argv=sys.argv):
                         request,
                         acknowledge_transaction_commits=True,
                     )
-                    print(_dbEnrollmentFactory.as_json_docs)
+                    pprint.pprint(_dbEnrollmentFactory.as_json_docs)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
                     exit(1)
+
+        # !!!: distpatch[rate-limited]
+        elif command == "rate-limited":
+            # !!!: - list
+            if subcommand == "list":
+                print("RateLimiteds:")
+                _list_items(
+                    None,
+                    lib_db.get.get__RateLimited__paginated,
+                )
+            # !!!: - clear
+            elif subcommand == "clear":
+                # !!!: - clear - help
+                if "help" in options:
+                    print("submit either `acme_account_id=INT` or `acme_server_id=INT`.")
+                    print("you may submit `unique_fqdn_set_id=INT` with `acme_server_id`.")
+                    exit(0)
+                acme_account_id = options.get("acme_account_id", None)
+                acme_server_id = options.get("acme_server_id", None)
+                unique_fqdn_set_id = options.get("unique_fqdn_set_id", None)
+                if acme_account_id is not None:
+                    acme_account_id = int(acme_account_id)
+                    lib_db.delete.delete__RateLimited__by_AcmeAccountId(
+                        request.api_context, acme_account_id
+                    )
+                    print("delete__RateLimited__by_AcmeAccountId")
+                    request.api_context.pyramid_transaction_commit()
+                elif acme_server_id is not None:
+                    acme_server_id = int(acme_server_id)
+                    if unique_fqdn_set_id is not None:
+                        unique_fqdn_set_id = int(unique_fqdn_set_id)
+                        lib_db.delete.delete__RateLimited__by_AcmeServerId_UniqueFQDNSetId(
+                            request.api_context, acme_server_id, unique_fqdn_set_id
+                        )
+                        print("delete__RateLimited__by_AcmeServerId_UniqueFQDNSetId")
+                        request.api_context.pyramid_transaction_commit()
+                    else:
+                        lib_db.delete.delete__RateLimited__by_AcmeServerId(
+                            request.api_context, acme_server_id
+                        )
+                        print("delete__RateLimited__by_AcmeServerId")
+                        request.api_context.pyramid_transaction_commit()
+                else:
+                    raise ValueError(
+                        "must supply `acme_account_id` or `acme_server_id`; `unique_fqdn_set_id` can be submitted with `acme_server_id`"
+                    )
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
@@ -365,7 +461,7 @@ def main(argv=sys.argv):
             # !!!: focus
             if subcommand == "focus":
                 _dbRenewalConfiguration = _get_RenewalConfiguration()
-                print(_dbRenewalConfiguration.as_json)
+                pprint.pprint(_dbRenewalConfiguration.as_json)
             # !!!: - list
             elif subcommand == "list":
                 print("Renewal Configurations:")
@@ -375,6 +471,7 @@ def main(argv=sys.argv):
                 )
             # !!!: - mark
             elif subcommand == "mark":
+                # !!!: - mark - help
                 if "help" in options:
                     pprint.pprint(Form_RenewalConfiguration_mark.fields)
                     exit(0)
@@ -388,13 +485,14 @@ def main(argv=sys.argv):
                         )
                     )
                     print("success", _action)
-                    print(_dbRenewalConfiguration.as_json)
+                    pprint.pprint(_dbRenewalConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
                     exit(1)
             # !!!: - new
             elif subcommand == "new":
+                # !!!: - new - help
                 if "help" in options:
                     pprint.pprint(Form_RenewalConfig_new.fields)
                     exit(0)
@@ -406,13 +504,14 @@ def main(argv=sys.argv):
                         )
                     )
                     print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    print(_dbRenewalConfiguration.as_json)
+                    pprint.pprint(_dbRenewalConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
                     exit(1)
             # !!!: - new-configuration
             elif subcommand == "new-configuration":
+                # !!!: - new-configuration - help
                 if "help" in options:
                     print("MUST submit `id`")
                     pprint.pprint(Form_RenewalConfig_new_configuration.fields)
@@ -427,12 +526,13 @@ def main(argv=sys.argv):
                         )
                     )
                     print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    print(_dbRenewalConfigurationNew.as_json)
+                    pprint.pprint(_dbRenewalConfigurationNew.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
             # !!!: - new-enrollment
             elif subcommand == "new-enrollment":
+                # !!!: - new-enrollment - help
                 if "help" in options:
                     print("MUST submit `enrollment_factory_id`")
                     pprint.pprint(Form_RenewalConfig_new_enrollment.fields)
@@ -449,12 +549,13 @@ def main(argv=sys.argv):
                         )
                     )
                     print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    print(_dbRenewalConfiguration.as_json)
+                    pprint.pprint(_dbRenewalConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
             # !!!: - new-order
             elif subcommand == "new-order":
+                # !!!: - new-order - help
                 if "help" in options:
                     print("MUST submit `id`")
                     pprint.pprint(Form_RenewalConfig_new_order.fields)
@@ -472,7 +573,7 @@ def main(argv=sys.argv):
                         "success",
                         "[NonFatalError: %s]" % _excAcmeOrder if _excAcmeOrder else "",
                     )
-                    print(_dbAcmeOrder.as_json)
+                    pprint.pprint(_dbAcmeOrder.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)
@@ -489,6 +590,7 @@ def main(argv=sys.argv):
                 )
             # !!!: - edit
             elif subcommand == "edit":
+                # !!!: - edit - help
                 if "help" in options:
                     print("MUST submit `id`")
                     print("Global:")
@@ -513,7 +615,7 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     print("success")
-                    print(_dbSystemConfiguration.as_json)
+                    pprint.pprint(_dbSystemConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     pprint.pprint(exc.formStash.errors)

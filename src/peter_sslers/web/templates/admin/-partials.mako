@@ -990,7 +990,7 @@
 </%def>
 
 
-<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_expiring_days=False, show_replace=False)">
+<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_days_to_expiry=False, show_replace=False)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
@@ -1004,8 +1004,8 @@
                 % endif
                 <th>timestamp_not_before</th>
                 <th>timestamp_not_after</th>
-                % if show_expiring_days:
-                    <th>expiring days</th>
+                % if show_days_to_expiry:
+                    <th>days to expiry</th>
                 % endif
                 % if show_domains:
                     <th>domains</th>
@@ -1039,10 +1039,16 @@
                 </td>
                 % if perspective != "RenewalConfiguration":
                 <td>
-                    % if cert.acme_order:
+                    % if cert.acme_order and cert.acme_order.renewal_configuration:
                         <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.acme_order.renewal_configuration_id}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             RenewalConfiguration-${cert.acme_order.renewal_configuration_id}</a>
+                            
+                            % if cert.acme_order.renewal_configuration.is_active:
+                                <span class="label label-success">Active</span>
+                            % else:
+                                <span class="label label-warning">Inactive</span>
+                            % endif
                             
                             % if cert.certificate_signed_id__replaces:
                                 <span class="label label-default">replaces ${cert.certificate_signed_id__replaces}</span>
@@ -1050,8 +1056,6 @@
                             % if cert.certificate_signed_id__replaced_by:
                                 <span class="label label-default">replaced by ${cert.certificate_signed_id__replaced_by}</span>
                             % endif
-                            
-                            
                     % else:
                         <span class="label label-warning">
                             unavailable
@@ -1073,10 +1077,10 @@
                 % endif
                 <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
                 <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
-                % if show_expiring_days:
+                % if show_days_to_expiry:
                     <td>
-                        <span class="label label-${cert.expiring_days_label}">
-                            ${cert.expiring_days} days
+                        <span class="label label-${cert.days_to_expiry__label}">
+                            ${cert.days_to_expiry} days
                         </span>
                     </td>
                 % endif
@@ -1421,6 +1425,84 @@
 
 
 
+<%def name="table_RateLimiteds(data, perspective=None)">
+    <%
+        cols = ("id",
+                "timestamp_created",
+                "acme_account_id",
+                "acme_server_id",
+                "acme_order_id",
+                "unique_fqdn_set_id",
+                "server_response_body",
+                "server_response_headers",
+               )
+        if perspective == 'RateLimited':
+            cols = [c for c in cols]
+        else:
+            raise ValueError("invalid `perspective`")
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>
+                        ${c}
+                    </th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for rate_limited in data:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a href="${admin_prefix}/rate-limited/${rate_limited.id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    RateLimited-${rate_limited.id}
+                                </a>
+                            % elif c == 'acme_account_id':
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${rate_limited.acme_account_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAccount-${rate_limited.acme_account_id}
+                                </a>
+                            % elif c == 'acme_server_id':
+                                <a class="label label-info" href="${admin_prefix}/acme-server/${rate_limited.acme_server_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeServer-${rate_limited.acme_server_id}
+                                </a>
+                            % elif c == 'acme_order_id':
+                                % if rate_limited.acme_order_id:
+                                    <a class="label label-info" href="${admin_prefix}/acme-order/${rate_limited.acme_order_id}">
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        AcmeOrder-${rate_limited.acme_order_id}
+                                    </a>
+                                % endif
+                            % elif c == 'server_response_body':
+                                <code>${rate_limited.server_response_body}</code>
+                            % elif c == 'server_response_headers':
+                                <code>${rate_limited.server_response_headers}</code>
+                            % elif c == 'timestamp_created':
+                                <timestamp>${rate_limited.timestamp_created or ''}</timestamp>
+                            % elif c == 'unique_fqdn_set_id':
+                                % if rate_limited.unique_fqdn_set_id:
+                                    <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${rate_limited.unique_fqdn_set_id}">
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        UniqueFQDNSet-${rate_limited.unique_fqdn_set_id}
+                                    </a>
+                                % endif
+                            % else:
+                                ${getattr(rate_limited, c)}
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_RenewalConfigurations(data, perspective=None)">
     <%
         cols = ("id",
@@ -1537,6 +1619,7 @@
                 <th>count_records_fail</th>
                 <th>duration_seconds</th>
                 <th>average_speed</th>
+                <th>is_dry_run</th>
                 <th>routine_execution_id__via</th>
             </tr>
         </thead>
@@ -1557,6 +1640,11 @@
                 <td><code>${i.duration_seconds}</code></td>
                 <td><code>${i.average_speed}</code></td>
                 <td>
+                    % if is_dry_run:
+                        <span class="label label-warning">dry-run</span>
+                    % endif
+                </td>
+                <td>
                     % if routine_execution_id__via:
                         <span class="label label-default">${i.id}</span>
                     % endif
@@ -1566,10 +1654,6 @@
         </tbody>
     </table>
 </%def>
-
-
-    
-    
 
 
 <%def name="table_SystemConfigurations(data, perspective=None)">
@@ -2009,14 +2093,14 @@
     <%
         checked = {
             "none": "",
-            "account_key_reuse_backup": "",
-            "account_key_global_backup": "",
+            "account_key_reuse__backup": "",
+            "account_key_global__backup": "",
         }
         if dbAcmeAccountReuse:
-            checked["account_key_reuse_backup"] = 'checked="checked"'
+            checked["account_key_reuse__backup"] = 'checked="checked"'
         elif AcmeAccount_GlobalBackup:
             if request.api_context.application_settings["default_backup"] == "global":
-                checked["account_key_global_backup"] = 'checked="checked"'
+                checked["account_key_global__backup"] = 'checked="checked"'
             else:
                 checked["none"] = 'checked="checked"'
         else:
@@ -2032,15 +2116,15 @@
     <div class="form-horizontal">
         <div class="radio">
             <label>
-                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-none" value="none" ${checked["none"]|n}/>
+                <input type="radio" name="account_key_option__backup" id="account_key_option__backup-none" value="none" ${checked["none"]|n}/>
                 No Backup Certificate
             </label>
         </div>
         % if dbAcmeAccountReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse_backup"]|n}/>
-                    <input type="hidden" name="account_key_reuse_backup" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
+                    <input type="radio" name="account_key_option__backup" id="account_key_option__backup-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse__backup"]|n}/>
+                    <input type="hidden" name="account_key_reuse__backup" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
                     Select to renew with the same AcmeAccount
                 </label>
                 <p class="form-control-static">
@@ -2064,7 +2148,7 @@
         % if acmeAccount_GlobalBackup:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_global_backup" value="account_key_global_backup" ${checked["account_key_global_backup"]|n}/>
+                    <input type="radio" name="account_key_option__backup" id="account_key_option__backup-account_key_global__backup" value="account_key_global__backup" ${checked["account_key_global__backup"]|n}/>
                     The Global Backup AcmeAccount.
                 </label>
                 <p class="form-control-static">
@@ -2084,7 +2168,7 @@
                     <b>pem md5:</b> <code>${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${acmeAccount_GlobalBackup.acme_account_key.key_pem_sample}</code><br/>
                     <b>known profiles:</b> <code>${acmeAccount_GlobalBackup.acme_server.profiles}</code><br/>
-                    <input type="hidden" name="account_key_global_backup" value="${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
+                    <input type="hidden" name="account_key_global__backup" value="${acmeAccount_GlobalBackup.acme_account_key.key_pem_md5}"/>
                 </p>
             </div>
         % else:
@@ -2101,30 +2185,30 @@
             </div>
         % endif
         <div class="radio">
-            <label for="account_key_option_backup-account_key_existing">
-                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-account_key_existing" value="account_key_existing"/>
+            <label for="account_key_option__backup-account_key_existing">
+                <input type="radio" name="account_key_option__backup" id="account_key_option__backup-account_key_existing" value="account_key_existing"/>
                 The PEM MD5 of an AcmeAccountKey already enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="account_key_existing_backup" id="account_key_option_backup-account_key_existing" type="text"/>
+               <input class="form-control" name="account_key_existing__backup" id="account_key_option__backup-account_key_existing" type="text"/>
             </div>
         </div>
         <div class="radio">
-            <label for="account_key_option_backup-acme_account_id_backup">
-                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-acme_account_id_backup" value="acme_account_id_backup"/>
+            <label for="account_key_option__backup-acme_account_id__backup">
+                <input type="radio" name="account_key_option__backup" id="account_key_option__backup-acme_account_id__backup" value="acme_account_id__backup"/>
                 The internal ID of an ACME Account enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="acme_account_id_backup" id="account_key_option_backup-acme_account_id_backup" type="text"/>
+               <input class="form-control" name="acme_account_id__backup" id="account_key_option__backup-acme_account_id__backup" type="text"/>
             </div>
         </div>
         <div class="radio">
-            <label for="account_key_option_backup-acme_account_url_backup">
-                <input type="radio" name="account_key_option_backup" id="account_key_option_backup-acme_account_url_backup" value="acme_account_url_backup"/>
+            <label for="account_key_option__backup-acme_account_url__backup">
+                <input type="radio" name="account_key_option__backup" id="account_key_option__backup-acme_account_url__backup" value="acme_account_url__backup"/>
                 The ACME Account URL (on the ACME Server).
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="acme_account_url_backup" id="account_key_option_backup-acme_account_url_backup" type="text"/>
+               <input class="form-control" name="acme_account_url__backup" id="account_key_option__backup-acme_account_url__backup" type="text"/>
             </div>
         </div>
         % if support_profiles:
@@ -2878,56 +2962,58 @@
         import pprint
         result = request.params.get('result', '')
     %>
-    % if result == 'success':
-        <div class="alert alert-success">
-    % elif result == 'error':
-        <div class="alert alert-danger">
-    % endif
+    % if result in ("success", "error"):
         % if result == 'success':
-            <p>
-                The operation `${request.params.get('operation')}` was successful.
-            </p>
+            <div class="alert alert-success">
+        % elif result == 'error':
+            <div class="alert alert-danger">
+        % endif
+            % if result == 'success':
+                <p>
+                    The operation `${request.params.get('operation')}` was successful.
+                </p>
+                % if request.params.get('message'):
+                    <p>
+                        Message: `${request.params.get('message')}`
+                    </p>
+                % endif
+                % if _AriCheck:
+                    ${pprint.pformat(_AriCheck)|n}
+                % endif
+            % elif result == 'error':
+                % if request.params.get('operation'):
+                    <p>
+                        The operation `${request.params.get('operation')}` was not successful.
+                    </p>
+                % endif
+                % if request.params.get('error'):
+                    <p>
+                        Error: `${request.params.get('error')}`
+                    </p>
+                % endif
+                % if request.params.get('error-encoded'):
+                    <p>
+                        Error: `${unurlify(request.params.get('error-encoded'))}`
+                    </p>
+                % endif
+            % endif
             % if request.params.get('message'):
                 <p>
                     Message: `${request.params.get('message')}`
                 </p>
             % endif
-            % if _AriCheck:
-                ${pprint.pformat(_AriCheck)|n}
-            % endif
-        % elif result == 'error':
-            % if request.params.get('operation'):
+            % if request.params.get('check-ari'):
                 <p>
-                    The operation `${request.params.get('operation')}` was not successful.
+                    Check-Ari Result: `${request.params.get('check-ari')}`
                 </p>
             % endif
-            % if request.params.get('error'):
+            % if request.params.get('check-support'):
                 <p>
-                    Error: `${request.params.get('error')}`
+                    Check-Support Result: `${request.params.get('check-support')}`
                 </p>
             % endif
-            % if request.params.get('error-encoded'):
-                <p>
-                    Error: `${unurlify(request.params.get('error-encoded'))}`
-                </p>
-            % endif
-        % endif
-        % if request.params.get('message'):
-            <p>
-                Message: `${request.params.get('message')}`
-            </p>
-        % endif
-        % if request.params.get('check-ari'):
-            <p>
-                Check-Ari Result: `${request.params.get('check-ari')}`
-            </p>
-        % endif
-        % if request.params.get('check-support'):
-            <p>
-                Check-Support Result: `${request.params.get('check-support')}`
-            </p>
-        % endif
         </div>
+    % endif
 </%def>
 
 

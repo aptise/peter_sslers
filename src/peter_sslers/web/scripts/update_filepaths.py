@@ -13,6 +13,7 @@ from pyramid.scripts.common import parse_vars
 # local
 from ...lib import exports
 from ...lib.utils import new_scripts_setup
+from ...lib.utils import validate_config_uri
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
@@ -34,6 +35,7 @@ def main(argv=sys.argv):
     if len(argv) < 2:
         usage(argv)
     config_uri = argv[1]
+    config_uri = validate_config_uri(config_uri)
     options = parse_vars(argv[2:])
 
     ctx = new_scripts_setup(config_uri, options=options)

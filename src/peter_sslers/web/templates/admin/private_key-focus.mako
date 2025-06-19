@@ -241,7 +241,7 @@
                     <tr>
                         <th>CertificateSigneds</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(PrivateKey.certificate_signeds__5, show_domains=True, show_expiring_days=True)}
+                            ${admin_partials.table_CertificateSigneds(PrivateKey.certificate_signeds__5, show_domains=True, show_days_to_expiry=True)}
                             % if PrivateKey.certificate_signeds__5:
                                 ${admin_partials.nav_pager("%s/private-key/%s/certificate-signeds" % (admin_prefix, PrivateKey.id))}
                             % endif

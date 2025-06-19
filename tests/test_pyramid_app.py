@@ -45,6 +45,7 @@ from ._utils import db_freeze
 from ._utils import db_unfreeze
 from ._utils import do__AcmeServers_sync__api
 from ._utils import ensure_AcmeAccount_auth
+from ._utils import ensure_RateLimited__database
 from ._utils import ensure_SystemConfiguration__database
 from ._utils import generate_random_domain
 from ._utils import generate_random_emailaddress
@@ -408,6 +409,7 @@ class FunctionalTests_Main(AppTest):
     @routes_tested("admin:debug")
     def test_debug(self):
         res = self.testapp.get("/.well-known/peter_sslers/debug", status=200)
+        assert res.text == "{}"
 
     @routes_tested("admin:settings")
     def test_settings(self):
@@ -2878,25 +2880,25 @@ class FunctionalTests_AcmeOrder(AppTest):
             domain_names_http01: str,
             account_key_option: str,
             account_key_option_value: str,
-            account_key_option_backup: str,
-            account_key_option_backup_value: str,
+            account_key_option__backup: str,
+            account_key_option__backup_value: str,
             processing_strategy: Literal["create_order"],
         ) -> model_objects.AcmeOrder:
             """use the json api!"""
 
             _backup_translate = {
-                "account_key_global_backup": "account_key_global_backup",
-                "account_key_existing": "account_key_existing_backup",
-                "acme_account_id": "acme_account_id_backup",
-                "acme_account_url": "acme_account_url_backup",
+                "account_key_global__backup": "account_key_global__backup",
+                "account_key_existing": "account_key_existing__backup",
+                "acme_account_id": "acme_account_id__backup",
+                "acme_account_url": "acme_account_url__backup",
             }
-            _backup_field = _backup_translate[account_key_option_backup]
+            _backup_field = _backup_translate[account_key_option__backup]
 
             form = {}
             form["account_key_option"] = account_key_option
             form[account_key_option] = account_key_option_value
-            form["account_key_option_backup"] = account_key_option_backup
-            form[_backup_field] = account_key_option_backup_value
+            form["account_key_option__backup"] = account_key_option__backup
+            form[_backup_field] = account_key_option__backup_value
 
             form["private_key_option"] = "account_default"
             form["private_key_cycle__primary"] = "account_default"
@@ -2950,8 +2952,8 @@ class FunctionalTests_AcmeOrder(AppTest):
             domain_names_http01=domain_names_1,
             account_key_option="account_key_global_default",
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
-            account_key_option_backup="account_key_global_backup",
-            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
+            account_key_option__backup="account_key_global__backup",
+            account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
             processing_strategy="create_order",
         )
 
@@ -2961,8 +2963,8 @@ class FunctionalTests_AcmeOrder(AppTest):
             domain_names_http01=domain_names_2,
             account_key_option="account_key_existing",
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
-            account_key_option_backup="account_key_existing",
-            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
+            account_key_option__backup="account_key_existing",
+            account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
             processing_strategy="create_order",
         )
 
@@ -2972,8 +2974,8 @@ class FunctionalTests_AcmeOrder(AppTest):
             domain_names_http01=domain_names_3,
             account_key_option="acme_account_id",
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.id,
-            account_key_option_backup="acme_account_id",
-            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.id,
+            account_key_option__backup="acme_account_id",
+            account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.id,
             processing_strategy="create_order",
         )
 
@@ -2983,8 +2985,8 @@ class FunctionalTests_AcmeOrder(AppTest):
             domain_names_http01=domain_names_4,
             account_key_option="acme_account_url",
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url,
-            account_key_option_backup="acme_account_url",
-            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.account_url,
+            account_key_option__backup="acme_account_url",
+            account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.account_url,
             processing_strategy="create_order",
         )
 
@@ -3003,8 +3005,8 @@ class FunctionalTests_AcmeOrder(AppTest):
             domain_names_http01: str,
             account_key_option: str,
             account_key_option_value: str,
-            account_key_option_backup: str,
-            account_key_option_backup_value: str,
+            account_key_option__backup: str,
+            account_key_option__backup_value: str,
             processing_strategy: Literal["create_order"],
         ) -> model_objects.AcmeOrder:
             """use the json api!"""
@@ -3013,19 +3015,19 @@ class FunctionalTests_AcmeOrder(AppTest):
             )
 
             _backup_translate = {
-                "account_key_global_backup": "account_key_global_backup",
-                "account_key_existing": "account_key_existing_backup",
-                "acme_account_id": "acme_account_id_backup",
-                "acme_account_url": "acme_account_url_backup",
+                "account_key_global__backup": "account_key_global__backup",
+                "account_key_existing": "account_key_existing__backup",
+                "acme_account_id": "acme_account_id__backup",
+                "acme_account_url": "acme_account_url__backup",
             }
-            _backup_field = _backup_translate[account_key_option_backup]
+            _backup_field = _backup_translate[account_key_option__backup]
 
             form = res.form
             _form_fields = form.fields.keys()
             form["account_key_option"].force_value(account_key_option)
             form[account_key_option].force_value(account_key_option_value)
-            form["account_key_option_backup"].force_value(account_key_option_backup)
-            form[_backup_field].force_value(account_key_option_backup_value)
+            form["account_key_option__backup"].force_value(account_key_option__backup)
+            form[_backup_field].force_value(account_key_option__backup_value)
             form["private_key_option"].force_value("account_default")
             form["private_key_cycle__primary"].force_value("account_default")
             form["domain_names_http01"] = domain_names_http01
@@ -3074,8 +3076,8 @@ class FunctionalTests_AcmeOrder(AppTest):
             domain_names_http01=domain_names_1,
             account_key_option="account_key_global_default",
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
-            account_key_option_backup="account_key_global_backup",
-            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
+            account_key_option__backup="account_key_global__backup",
+            account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
             processing_strategy="create_order",
         )
 
@@ -3085,8 +3087,8 @@ class FunctionalTests_AcmeOrder(AppTest):
             domain_names_http01=domain_names_2,
             account_key_option="account_key_existing",
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
-            account_key_option_backup="account_key_existing",
-            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
+            account_key_option__backup="account_key_existing",
+            account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
             processing_strategy="create_order",
         )
 
@@ -3096,8 +3098,8 @@ class FunctionalTests_AcmeOrder(AppTest):
             domain_names_http01=domain_names_3,
             account_key_option="acme_account_id",
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.id,
-            account_key_option_backup="acme_account_id",
-            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.id,
+            account_key_option__backup="acme_account_id",
+            account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.id,
             processing_strategy="create_order",
         )
 
@@ -3107,8 +3109,8 @@ class FunctionalTests_AcmeOrder(AppTest):
             domain_names_http01=domain_names_4,
             account_key_option="acme_account_url",
             account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url,
-            account_key_option_backup="acme_account_url",
-            account_key_option_backup_value=dbSystemConfiguration_global.acme_account__backup.account_url,
+            account_key_option__backup="acme_account_url",
+            account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.account_url,
             processing_strategy="create_order",
         )
 
@@ -6905,6 +6907,104 @@ class FunctionalTests_PrivateKey(AppTest):
         assert "form_fields" in res.json
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
+
+
+class FunctionalTests_RateLimited(AppTest, _MixinEnrollmentFactory):
+
+    def _get_one(self) -> Tuple[model_objects.RateLimited, int]:
+        focusItem = (
+            self.ctx.dbSession.query(model_objects.RateLimited)
+            .order_by(model_objects.RateLimited.id.asc())
+            .first()
+        )
+        if not focusItem:
+            ensure_RateLimited__database(self)
+            focusItem = (
+                self.ctx.dbSession.query(model_objects.RateLimited)
+                .order_by(model_objects.RateLimited.id.asc())
+                .first()
+            )
+        assert focusItem is not None
+        return focusItem, focusItem.id
+
+    @routes_tested(
+        (
+            "admin:rate_limiteds",
+            "admin:rate_limiteds:all",
+            "admin:rate_limiteds:all-paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds", status=303
+        )
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/rate-limiteds/all"""
+        )
+        # all
+        res = self.testapp.get("/.well-known/peter_sslers/rate-limiteds/all", status=200)
+        res = self.testapp.get("/.well-known/peter_sslers/rate-limiteds/all/1", status=200)
+
+    @routes_tested(
+        (
+            "admin:rate_limiteds|json",
+            "admin:rate_limiteds:all|json",
+            "admin:rate_limiteds:all-paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds.json", status=303
+        )
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/peter_sslers/rate-limiteds/all.json"""
+        )
+        # all
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds/all.json",
+            status=200,
+        )
+        assert "RateLimiteds" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds/all/1.json",
+            status=200,
+        )
+        assert "RateLimiteds" in res.json
+
+    @routes_tested(
+        (
+            "admin:rate_limited:focus",
+        )
+    )
+    def test_focus_html(self):
+        (focusItem, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limited/%s" % focus_id, status=200
+        )
+
+
+    @routes_tested(
+        (
+            "admin:rate_limited:focus|json",
+        )
+    )
+    def test_focus_json(self):
+        (focusItem, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limited/%s.json" % focus_id,
+            status=200,
+        )
+        assert "RateLimited" in res.json
+        assert res.json["RateLimited"]["id"] == focus_id
+
+
 
 
 class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
@@ -11806,6 +11906,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
     def test_replaces(self):
         """
         python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeServer_AcmeOrder.test_replaces
+        pytest tests/test_pyramid_app.py::IntegratedTests_AcmeServer_AcmeOrder::test_replaces -s --durations=0
 
         Test to handle `replaces`:
           1 FAIL replace an unknown certificate
@@ -12028,7 +12129,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             self,
             domain_names_http01="test-multi-pebble-renewal-simple.example.com",
             processing_strategy="process_single",
-            account_key_option_backup="account_key_global_backup",
+            account_key_option__backup="account_key_global__backup",
             acme_profile__primary="shortlived",
             acme_profile__backup="shortlived",
         )
@@ -12087,7 +12188,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             self,
             domain_names_http01="test-multi-pebble-renewal-realistic.example.com",
             processing_strategy="process_single",
-            account_key_option_backup="account_key_global_backup",
+            account_key_option__backup="account_key_global__backup",
             acme_profile__primary="shortlived",
             acme_profile__backup="shortlived",
         )
@@ -12157,7 +12258,7 @@ class IntegratedTests_Renewals(AppTestWSGI):
             self,
             domain_names_http01="test-multi-pebble-renewal-problematic.example.com",
             processing_strategy="process_single",
-            account_key_option_backup="account_key_global_backup",
+            account_key_option__backup="account_key_global__backup",
             acme_profile__primary="shortlived",
             acme_profile__backup="shortlived",
         )

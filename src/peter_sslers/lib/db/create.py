@@ -62,6 +62,7 @@ if TYPE_CHECKING:
     from ...model.objects import Notification
     from ...model.objects import SystemConfiguration
     from ...model.objects import PrivateKey
+    from ...model.objects import RateLimited
     from ...model.objects import RenewalConfiguration
     from ...model.objects import RoutineExecution
     from ...model.objects import UniqueFQDNSet
@@ -75,7 +76,7 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("peter_sslers.lib.db")
 
 # ------------------------------------------------------------------------------
 
@@ -850,7 +851,13 @@ def create__CertificateRequest(
         submitted_domain_names=domain_names,
     )
     # this function checks the domain names match a simple regex
-    csr_domain_names = cert_utils.utils.domains_from_list(_csr_domain_names)
+    csr_domain_names = cert_utils.utils.domains_from_list(
+        _csr_domain_names,
+        allow_hostname=True,
+        allow_ipv4=True,
+        allow_ipv6=True,
+        ipv6_require_compressed=True,
+    )
     if len(csr_domain_names) != len(_csr_domain_names):
         raise ValueError(
             "One or more of the domain names in the CSR are not allowed (%s)"
@@ -1303,7 +1310,9 @@ def create__DomainAutocert(
     dbDomain: "Domain",
 ) -> "DomainAutocert":
     """
-    Generates a new :class:`model.objects.DomainAutocert` for the datastore
+    Generates a new :class:`model.objects.DomainAutocert` for the datastore.
+
+    This just tracks which domains we autocert on via `certificate_if_needed`
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbDomain: (required) an instance of :class:`model.objects.Domain`
@@ -1471,6 +1480,39 @@ def create__PrivateKey(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def create__RateLimited(
+    ctx: "ApiContext",
+    dbAcmeServer: "AcmeServer",
+    # optionals
+    dbAcmeAccount: Optional["AcmeAccount"] = None,
+    dbAcmeOrder: Optional["AcmeOrder"] = None,
+    dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
+    # misc
+    server_response_body: Optional[Union[str, Dict]] = None,
+    server_response_headers: Optional[Dict] = None,
+) -> "RateLimited":
+    """
+    :returns :class:`model.objects.RateLimited`
+    """
+    dbRateLimited = model_objects.RateLimited()
+    dbRateLimited.timestamp_created = datetime.datetime.now(datetime.timezone.utc)
+    dbRateLimited.acme_server_id = dbAcmeServer.id
+    dbRateLimited.acme_account_id = dbAcmeAccount.id if dbAcmeAccount else None
+    dbRateLimited.acme_order_id = dbAcmeOrder.id if dbAcmeOrder else None
+    if isinstance(server_response_body, dict):
+        dbRateLimited.server_response_body = json.dumps(server_response_body)
+    elif isinstance(server_response_body, str):
+        dbRateLimited.server_response_body = server_response_body
+    dbRateLimited.server_response_headers = (
+        json.dumps(server_response_headers) if server_response_headers else None
+    )
+    if dbUniqueFQDNSet:
+        dbRateLimited.unique_fqdn_set_id = dbUniqueFQDNSet.id
+    ctx.dbSession.add(dbRateLimited)
+    ctx.dbSession.flush(objects=[dbRateLimited])
+    return dbRateLimited
 
 
 def create__RenewalConfiguration(
@@ -1747,6 +1789,7 @@ def create__RoutineExecution(
     timestamp_end: datetime.datetime,
     count_records_success: int = 0,
     count_records_fail: int = 0,
+    is_dry_run: bool = False,
     routine_execution_id__via: Optional[int] = None,
 ) -> "RoutineExecution":
     """
@@ -1760,6 +1803,7 @@ def create__RoutineExecution(
     :param timestamp_end: (required)
     :param count_records_success: (required)
     :param count_records_fail: (required)
+    :param is_dry_run: (optional) bool
     :paran routine_execution_id__via: (optional) int
 
     :returns :class:`model.objects.RoutineExecution`
@@ -1775,6 +1819,7 @@ def create__RoutineExecution(
     dbRoutine.count_records_success = count_records_success
     dbRoutine.count_records_fail = count_records_fail
     dbRoutine.routine_execution_id__via = routine_execution_id__via
+    dbRoutine.is_dry_run = is_dry_run
 
     # maths!
     count_records_processed = count_records_success + count_records_fail

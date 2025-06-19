@@ -16,6 +16,7 @@ from typing_extensions import TypedDict
 from ...lib import db as lib_db
 from ...lib import utils_dns
 from ...lib.utils import new_scripts_setup
+from ...lib.utils import validate_config_uri
 
 # from ...lib import acmedns as lib_acmedns
 
@@ -44,6 +45,7 @@ def main(argv=sys.argv):
     if len(argv) < 2:
         usage(argv)
     config_uri = argv[1]
+    config_uri = validate_config_uri(config_uri)
     options = parse_vars(argv[2:])
 
     ctx = new_scripts_setup(config_uri, options=options)

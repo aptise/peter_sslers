@@ -13,8 +13,7 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log = logging.getLogger("peter_sslers.lib")
 
 # ==============================================================================
 
@@ -22,7 +21,14 @@ log.setLevel(logging.INFO)
 def datetime_ari_timely(
     ctx: "ApiContext",
     datetime_now: Optional[datetime.datetime] = None,
-    context: Optional[Literal["dashboard"]] = None,
+    context: Optional[
+        Literal[
+            "ari_check",
+            "dashboard",
+            "get_CertificateSigneds_renew_now",
+            "routine__run_ari_checks",
+        ]
+    ] = None,
 ) -> datetime.datetime:
     """Returns a max datetime used to determine if ARI checking is timely when
     compared to the certificate's `notAfter`.

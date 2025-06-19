@@ -21,14 +21,14 @@ with open(os.path.join(HERE, "src", "peter_sslers", "__init__.py")) as v_file:
     VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
 requires = [
-    "alembic",
-    "cert_utils>=1.0.0",  # formerly in this package, but migrated out
+    "alembic>=1.16.0",
+    "cert_utils>=1.0.6",
     "configobj",  # used to read Certbot files
     "cryptography>42.0.0",
     "dnspython",
     "formencode>=2.0.0",
     "josepy>=2.0.0",
-    "psutil>=4.4.0",  # for Python2/3 compat
+    "psutil>=4.4.0",
     "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
@@ -51,7 +51,6 @@ tests_require = [
     "certbot",
     "cloudflare<3",
     "pre-commit",
-    # "pycryptodome",  # installs into pycrypto's space
     "pyramid_debugtoolbar>=4.4",
     "pyramid-debugtoolbar-ajax",
     "pytest",
@@ -102,19 +101,20 @@ setup(
       [paste.app_factory]
       main = peter_sslers.web:main
       [console_scripts]
+      acme_dns_audit = peter_sslers.web.scripts.acme_dns_audit:main
+      create_domain_blocklisted = peter_sslers.web.scripts.create_domain_blocklisted:main
+      deactivate_duplicate_certificates = peter_sslers.web.scripts.deactivate_duplicate_certificates:main
       import_certbot = peter_sslers.web.scripts.import_certbot:main
       initialize_peter_sslers_db = peter_sslers.web.scripts.initializedb:main
+      periodic_tasks = peter_sslers.web.scripts.periodic_tasks:main
       refresh_pebble_ca_certs = peter_sslers.web.scripts.refresh_pebble_ca_certs:main
       register_acme_servers = peter_sslers.web.scripts.register_acme_servers:main
-      routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main
       routine__automatic_orders = peter_sslers.web.scripts.routine__automatic_orders:main
-      routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
+      routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main
       routine__reconcile_blocks = peter_sslers.web.scripts.routine__reconcile_blocks:main
-      update_filepaths = peter_sslers.web.scripts.update_filepaths:main
-      deactivate_duplicate_certificates = peter_sslers.web.scripts.deactivate_duplicate_certificates:main
-      acme_dns_audit = peter_sslers.web.scripts.acme_dns_audit:main
-      periodic_tasks = peter_sslers.web.scripts.periodic_tasks:main
+      routine__run_ari_checks = peter_sslers.web.scripts.routine__run_ari_checks:main
       ssl_manage = peter_sslers.web.scripts.ssl_manage:main
       unset_acme_server_caches = peter_sslers.web.scripts.unset_acme_server_caches:main
+      update_filepaths = peter_sslers.web.scripts.update_filepaths:main
       """,
 )

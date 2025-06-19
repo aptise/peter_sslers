@@ -19,8 +19,7 @@ if TYPE_CHECKING:
 # ==============================================================================
 
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log = logging.getLogger("peter_sslers.lib")
 
 
 # ------------------------------------------------------------------------------

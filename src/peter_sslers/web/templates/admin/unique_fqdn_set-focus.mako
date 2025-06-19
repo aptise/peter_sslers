@@ -198,7 +198,7 @@
                     <tr>
                         <th>CertificateSigneds</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(UniqueFQDNSet.certificate_signeds__5, show_domains=False, show_expiring_days=True)}
+                            ${admin_partials.table_CertificateSigneds(UniqueFQDNSet.certificate_signeds__5, show_domains=False, show_days_to_expiry=True)}
                             % if UniqueFQDNSet.certificate_signeds__5:
                                 ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-signeds" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif

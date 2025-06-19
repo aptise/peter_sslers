@@ -52,7 +52,9 @@ from peter_sslers.lib import utils
 from peter_sslers.lib.config_utils import ApplicationSettings
 from peter_sslers.lib.context import ApiContext
 from peter_sslers.lib.db import actions as lib_db_actions
+from peter_sslers.lib.db import create as lib_db_create
 from peter_sslers.lib.db import get as lib_db_get
+from peter_sslers.lib.db import getcreate as lib_db_getcreate
 from peter_sslers.lib.db import update as lib_db_update
 from peter_sslers.lib.db.update import (
     update_AcmeAccount__account_url,
@@ -77,7 +79,7 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 log.setLevel(logging.INFO)
 
 """
@@ -1676,7 +1678,7 @@ def make_one__AcmeOrder__api(
     testCase: CustomizedTestCase,
     domain_names_http01: Optional[str] = None,
     domain_names_dns01: Optional[str] = None,
-    account_key_option_backup: Optional[str] = None,
+    account_key_option__backup: Optional[str] = None,
     acme_profile__primary: Optional[str] = None,
     acme_profile__backup: Optional[str] = None,
     processing_strategy: Literal["create_order", "process_single"] = "create_order",
@@ -1706,8 +1708,8 @@ def make_one__AcmeOrder__api(
         form["acme_profile__primary"] = acme_profile__primary
     if acme_profile__backup:
         form["acme_profile__backup"] = acme_profile__backup
-    if account_key_option_backup:
-        form["account_key_option_backup"].force_value(account_key_option_backup)
+    if account_key_option__backup:
+        form["account_key_option__backup"].force_value(account_key_option__backup)
     form["processing_strategy"].force_value(processing_strategy)
     res2 = form.submit()
 
@@ -1997,6 +1999,42 @@ def auth_SystemConfiguration_accounts__api(
     return _did_authenticate
 
 
+def ensure_RateLimited__database(
+    testCase: CustomizedTestCase,
+    acme_account_id: int = 1,
+    domain_name: str = "example.com",
+) -> Literal[True]:
+    dbAcmeAccount = lib_db_get.get__AcmeAccount__by_id(testCase.ctx, acme_account_id)
+    dbDomain, _created = lib_db_getcreate.getcreate__Domain__by_domainName(
+        testCase.ctx, domain_name
+    )
+    dbUniqueFQDNSet, _created = (
+        lib_db_getcreate.getcreate__UniqueFQDNSet__by_domainObjects(testCase.ctx, [dbDomain])
+    )
+    if TYPE_CHECKING:
+        assert dbAcmeAccount
+        assert dbDomain
+        assert dbUniqueFQDNSet
+    # this mocks BuyPass
+    for i in range(0, 5):
+        rl = lib_db_create.create__RateLimited(  # noqa: F841
+            ctx=testCase.ctx,
+            dbAcmeServer=dbAcmeAccount.acme_server,
+            dbAcmeAccount=dbAcmeAccount,
+            dbUniqueFQDNSet=dbUniqueFQDNSet,
+            server_response_body={
+                "type": "urn:ietf:params:acme:error:rateLimited",
+                "title": "Too Many Requests",
+                "status": 429,
+                "detail": "Too many certificates issued already for requested domains",
+                "instance": "/acme/new-order",
+            },
+            server_response_headers={},
+        )
+    testCase.ctx.pyramid_transaction_commit()
+    return True
+
+
 def ensure_SystemConfiguration__database(
     testCase: CustomizedTestCase,
     policy_name: Literal["autocert", "certificate-if-needed"],
@@ -2091,6 +2129,11 @@ def unset_testing_data__AppTest(testCase: CustomizedTestCase) -> Literal[True]:
     )
     for _dbAcmeOrder in dbAcmeOrders:
         result = lib_db_update.update_AcmeOrder_deactivate(testCase.ctx, _dbAcmeOrder)
+
+    # note: delete RateLimited
+    stmt = sqlalchemy.delete(model_objects.RateLimited)
+    executed = testCase.ctx.dbSession.execute(stmt)
+
     # note: deactivate RenewalConfigurations
     dbRenewalConfigurations = (
         testCase.ctx.dbSession.query(model_objects.RenewalConfiguration)

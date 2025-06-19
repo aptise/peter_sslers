@@ -1,8 +1,7 @@
 <html>
 <head>
     <title>%(letter)s - %(challenge)s</title>
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
-    <link href="https://netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
 </head>
 <body>
     <!--
@@ -17,15 +16,57 @@
                 <h1>Current Domain</h1>
                 <h2>%(letter)s - %(challenge)s</h2>
                 <ul>
-                    <li><a href="https://dns-01.%(letter)s.peter-sslers.testing.opensource.%(root_domain)s">dns-01.%(letter)s</a></li>
-                    <li><a href="https://http-01.%(letter)s.peter-sslers.testing.opensource.%(root_domain)s">http-01.%(letter)s</a></li>
+                    <li><a href="%(protocol_dns01)s://dns-01.%(letter)s.peter-sslers.testing.opensource.%(root_domain)s">dns-01.%(letter)s</a></li>
+                    <li><a href="%(protocol_http01)s://http-01.%(letter)s.peter-sslers.testing.opensource.%(root_domain)s">http-01.%(letter)s</a></li>
+                </ul>
+                <h3>Info</h3>
+                <p>
+                    This demo was created by an `EnrollmentFactory` in PeterSSLers. 
+                    For full details, <a href="https://github.com/aptise/peter_sslers/tree/main/examples/staging">click here</a>.
+                </p>
+<pre>
+<code>
+ssl_manage data_production enrollment-factory new \
+        acme_account_id__primary=1 \
+        domain_template_dns01="dns-01.{DOMAIN}" \
+        domain_template_http01="http-01.{DOMAIN}" \
+        is_export_filesystem=on \
+        label_template="chall_prefix-{DOMAIN}" \
+        name="dns-http-example" \
+        private_key_cycle__primary=account_weekly \
+        private_key_technology__primary=EC_P256 \
+        acme_account_id__backup=2 \
+        private_key_cycle__backup=account_weekly \
+        private_key_technology__backup=EC_P256
+</code>
+</pre>
+                <ul>
+                    <li>`domain_template_dns01` means that domains with a `dns-01` prefix were configured to answer a DNS-01 challenge.</li>
+                    <li>`domain_template_http01` means that domains with a `http-01` prefix were configured to answer a HTTP-01 challenge.</li>
+                </ul>
+                <ul>
+                    <li>`acme_account_id__primary=1` set the primary certificate to be from AcmeServer[1] - LetsEncrypt.</li>
+                    <li>`acme_account_id__backup=2` set the backup certificate to be from AcmeServer[2] - BuyPass.</li>
+                    <li>The `dns-01` FQDNs are serving the primary certificate; the `http-01` FQDNs are serving the backup certificate.
+                    </li>
                 </ul>
             </div>
         </div>
         <div class="row">
             <div class="col-md-12">
                 <h1>All Domains</h1>
-                %(ALL_DOMAINS__HTML)s
+                <table class="table table-condensed">
+                    <thead>
+                        <tr class="table-info">
+                            <td>Letter</td>
+                            <td>DNS-01 Challenge & Primary Certificate</td>
+                            <td>HTTP-01 Challenge & Backup Certificate</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                         %(ALL_DOMAINS__HTML)s
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

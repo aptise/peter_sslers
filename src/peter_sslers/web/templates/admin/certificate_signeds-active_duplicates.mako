@@ -32,7 +32,7 @@
         <div class="col-sm-12">
             % for pair in CertificateSignedsPairs:
             
-                ${admin_partials.table_CertificateSigneds(pair, show_domains=True, show_expiring_days=True)}
+                ${admin_partials.table_CertificateSigneds(pair, show_domains=True, show_days_to_expiry=True)}
 
             % endfor
         </div>
