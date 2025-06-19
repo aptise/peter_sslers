@@ -8,7 +8,6 @@ import logging
 import os
 import pdb
 import re
-import sys
 import time
 from typing import Any
 from typing import Callable
@@ -24,6 +23,7 @@ from urllib.request import urlopen
 # import pdb
 # import pprint
 # import subprocess
+# import sys
 
 # pypi
 import cert_utils
@@ -165,7 +165,7 @@ def url_request(
             # see https://github.com/urllib3/urllib3/issues/3605
             # needed for `sys.version_info < (3, 13)`; however just specify it
             # remove this when py312 is EOL
-            #if sys.version_info < (3, 13):
+            # if sys.version_info < (3, 13):
             verify_flags = 0
             verify_flags |= VERIFY_X509_PARTIAL_CHAIN
             verify_flags |= VERIFY_X509_STRICT
