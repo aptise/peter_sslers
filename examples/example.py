@@ -1,3 +1,9 @@
+"""
+This is an example script with narrative comments and print statements.
+
+A streamlined version is available as `example-streamlined.py`
+"""
+
 # stdlib
 import pprint
 
@@ -63,6 +69,9 @@ if not domain_primary_certs:
     # BUT The globals are also inserted into the GET view of forms
     r = requests.get(URL_BASE + "/acme-accounts.json")
     _rjson = r.json()
+    import pprint
+
+    pprint.pprint(_rjson)
     _default = _rjson["globals"]["default"]
     _backup = _rjson["globals"]["backup"]
     # the example would be too complex without these

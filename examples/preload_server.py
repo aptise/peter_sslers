@@ -11,6 +11,10 @@ After running this script, run
     routine__automatic_orders data_staging/config.ini
 
 the above command should order the backup certificates
+
+This file is expected to run against 2 pebble accounts
+
+Do not run this against production servers.
 """
 
 # stdlib

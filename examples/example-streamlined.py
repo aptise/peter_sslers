@@ -1,3 +1,10 @@
+"""
+This is a streamlined example script.
+
+An expanded version with narrative comments and print statements is available
+as `example-streamlined.py`
+"""
+
 # stdlib
 import pprint
 

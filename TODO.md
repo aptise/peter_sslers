@@ -11,10 +11,20 @@ urllib3 has a breaking change in 2.4.0
 AcmePollingError
     bug on server; could have a dict;;  converting to json but ensure this is okay
 
+Staging Example
+    needs to be updated as json has changed on system data
+
 Test Needed
 
-    single_use_1_year
+    single_use__reuse_1_year
         is this correctly locked for renewals to that cert?
+
+    certs without akid ?
+        this messes up newer pythons
+        our system now handles it, is there a chance this could happen in the wild?
+        is it worth improving the errors?
+
+
 
 
 Tests
