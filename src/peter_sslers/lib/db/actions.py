@@ -1091,7 +1091,7 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
 def register_acme_servers(
     ctx: "ApiContext",
     acme_servers: List[AcmeServerInput],
-    source: Literal["initial", "user"],
+    source: Literal["initial", "user", "reset"],
 ):
     for item in acme_servers:
 
@@ -1140,7 +1140,7 @@ def register_acme_servers(
         if source == "initial":
             log.debug("Adding New ACME Server: %s", server)
             _new_AcmeServer()
-        else:
+        elif source == "user":
             existingDbServer = get.get__AcmeServer__by_server(ctx, server)
             if not existingDbServer:
                 log.debug("Adding New ACME Server: %s", server)
@@ -1150,6 +1150,18 @@ def register_acme_servers(
                 if existingDbServer.server_ca_cert_bundle != server_ca_cert_bundle:
                     log.debug("Updating: %s", server)
                     existingDbServer.server_ca_cert_bundle = server_ca_cert_bundle
+                    existingDbServer.local_ca_bundle(ctx, force_refresh=True)
+        elif source == "reset":
+            existingDbServer = get.get__AcmeServer__by_server(ctx, server)
+            if not existingDbServer:
+                raise ValueError("Expected server in db: `%s`" % server)
+            log.debug("Existing ACME Server: %s", server)
+            if existingDbServer.server_ca_cert_bundle != server_ca_cert_bundle:
+                log.debug("Updating: %s", server)
+                existingDbServer.server_ca_cert_bundle = server_ca_cert_bundle
+                existingDbServer.local_ca_bundle(ctx, force_refresh=True)
+        else:
+            raise ValueError("unknown")
     ctx.pyramid_transaction_commit()
     return True
 
