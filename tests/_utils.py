@@ -1551,6 +1551,8 @@ def routes_tested(*args) -> Callable:
 
 def do__AcmeServers_sync__api(
     testCase: CustomizedTestCase,
+    sync_primary: bool = True,
+    sync_backup: bool = True,
 ) -> Literal[True]:
     """
     Hits the `/acme-server/%s/check` endpoint for all configured policies
@@ -1572,18 +1574,20 @@ def do__AcmeServers_sync__api(
                 dbSystemConfiguration.acme_account__primary.acme_server_id
                 not in acme_server_ids
             ):
-                acme_server_ids.append(
-                    dbSystemConfiguration.acme_account__primary.acme_server_id
-                )
+                if sync_primary:
+                    acme_server_ids.append(
+                        dbSystemConfiguration.acme_account__primary.acme_server_id
+                    )
             if dbSystemConfiguration.acme_account__backup:
                 assert dbSystemConfiguration.acme_account__backup.acme_server
                 if (
                     dbSystemConfiguration.acme_account__backup.acme_server_id
                     not in acme_server_ids
                 ):
-                    acme_server_ids.append(
-                        dbSystemConfiguration.acme_account__backup.acme_server_id
-                    )
+                    if sync_backup:
+                        acme_server_ids.append(
+                            dbSystemConfiguration.acme_account__backup.acme_server_id
+                        )
         else:
             if _pname == "global":
                 raise ValueError("SystemConfiguration[global] not configured")
@@ -1681,6 +1685,12 @@ def make_one__AcmeOrder__api(
     account_key_option__backup: Optional[str] = None,
     acme_profile__primary: Optional[str] = None,
     acme_profile__backup: Optional[str] = None,
+    private_key_option: Literal[
+        "account_default", "private_key_generate"
+    ] = "account_default",
+    private_key_cycle__primary: Literal[
+        "account_default", "single_use__reuse_1_year"
+    ] = "account_default",
     processing_strategy: Literal["create_order", "process_single"] = "create_order",
 ) -> model_objects.AcmeOrder:
     """
@@ -1698,8 +1708,8 @@ def make_one__AcmeOrder__api(
     _form_fields = form.fields.keys()
     assert "account_key_option" in _form_fields
     form["account_key_option"].force_value("account_key_global_default")
-    form["private_key_option"].force_value("account_default")
-    form["private_key_cycle__primary"].force_value("account_default")
+    form["private_key_cycle__primary"] = private_key_cycle__primary
+    form["private_key_option"] = private_key_option
     if domain_names_http01:
         form["domain_names_http01"] = domain_names_http01
     if domain_names_dns01:
@@ -2009,7 +2019,9 @@ def ensure_RateLimited__database(
         testCase.ctx, domain_name
     )
     dbUniqueFQDNSet, _created = (
-        lib_db_getcreate.getcreate__UniqueFQDNSet__by_domainObjects(testCase.ctx, [dbDomain])
+        lib_db_getcreate.getcreate__UniqueFQDNSet__by_domainObjects(
+            testCase.ctx, [dbDomain]
+        )
     )
     if TYPE_CHECKING:
         assert dbAcmeAccount

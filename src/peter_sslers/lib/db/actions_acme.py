@@ -1993,12 +1993,14 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     "global_weekly",
                 ):
                     # look the `dbAcmeOrder.acme_account.private_key_cycle`
-                    dbPrivateKey_new, _is_created = getcreate__PrivateKey_for_AcmeAccount(
-                        ctx,
-                        dbAcmeAccount=dbAcmeOrder.acme_account,
-                        key_technology_id=key_technology_id,
-                        private_key_cycle_id=dbAcmeOrder.private_key_cycle_id,
-                        private_key_id__replaces=private_key_id__replaces,
+                    dbPrivateKey_new, _is_created = (
+                        getcreate__PrivateKey_for_AcmeAccount(
+                            ctx,
+                            dbAcmeAccount=dbAcmeOrder.acme_account,
+                            key_technology_id=key_technology_id,
+                            private_key_cycle_id=dbAcmeOrder.private_key_cycle_id,
+                            private_key_id__replaces=private_key_id__replaces,
+                        )
                     )
                     private_key_strategy__final = "deferred-associate"
                     raise ReassignedPrivateKey("new PrivateKey")
@@ -2021,11 +2023,11 @@ def _do__AcmeV2_AcmeOrder__finalize(
                                     == "single_use__reuse_1_year"
                                 )
                                 and (
-                                    (
-                                        _dbPrivateKey.timestamp_created
-                                        + datetime.timedelta(days=365)
+                                    _dbPrivateKey.timestamp_created
+                                    > (
+                                        datetime.datetime.now(datetime.timezone.utc)
+                                        - datetime.timedelta(days=365)
                                     )
-                                    < datetime.datetime.now(datetime.timezone.utc)
                                 )
                             ):
                                 dbPrivateKey_new = _dbPrivateKey
@@ -2033,12 +2035,14 @@ def _do__AcmeV2_AcmeOrder__finalize(
                                 raise ReassignedPrivateKey("new PrivateKey")
                         break
                     # if not, we need to generate a new key...
-                    dbPrivateKey_new, _is_created = getcreate__PrivateKey_for_AcmeAccount(
-                        ctx,
-                        dbAcmeAccount=dbAcmeOrder.acme_account,
-                        key_technology_id=key_technology_id,
-                        private_key_cycle_id=dbAcmeOrder.private_key_cycle_id,
-                        private_key_id__replaces=private_key_id__replaces,
+                    dbPrivateKey_new, _is_created = (
+                        getcreate__PrivateKey_for_AcmeAccount(
+                            ctx,
+                            dbAcmeAccount=dbAcmeOrder.acme_account,
+                            key_technology_id=key_technology_id,
+                            private_key_cycle_id=dbAcmeOrder.private_key_cycle_id,
+                            private_key_id__replaces=private_key_id__replaces,
+                        )
                     )
                     private_key_strategy__final = "backup"
                     raise ReassignedPrivateKey("new PrivateKey")

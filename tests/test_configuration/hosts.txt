@@ -75,3 +75,4 @@
 127.0.0.1 test-domain-certificate-if-needed-1.example.com
 127.0.0.1 test-domain-certificate-if-needed-2.example.com
 127.0.0.1 test-redis-1.example.com
+127.0.0.1 test-single-use-reuse-1-year.example.com

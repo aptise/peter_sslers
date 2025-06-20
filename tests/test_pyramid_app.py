@@ -6936,16 +6936,18 @@ class FunctionalTests_RateLimited(AppTest, _MixinEnrollmentFactory):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/rate-limiteds", status=303
-        )
+        res = self.testapp.get("/.well-known/peter_sslers/rate-limiteds", status=303)
         assert (
             res.location
             == """http://peter-sslers.example.com/.well-known/peter_sslers/rate-limiteds/all"""
         )
         # all
-        res = self.testapp.get("/.well-known/peter_sslers/rate-limiteds/all", status=200)
-        res = self.testapp.get("/.well-known/peter_sslers/rate-limiteds/all/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds/all", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds/all/1", status=200
+        )
 
     @routes_tested(
         (
@@ -6976,11 +6978,7 @@ class FunctionalTests_RateLimited(AppTest, _MixinEnrollmentFactory):
         )
         assert "RateLimiteds" in res.json
 
-    @routes_tested(
-        (
-            "admin:rate_limited:focus",
-        )
-    )
+    @routes_tested(("admin:rate_limited:focus",))
     def test_focus_html(self):
         (focusItem, focus_id) = self._get_one()
 
@@ -6988,12 +6986,7 @@ class FunctionalTests_RateLimited(AppTest, _MixinEnrollmentFactory):
             "/.well-known/peter_sslers/rate-limited/%s" % focus_id, status=200
         )
 
-
-    @routes_tested(
-        (
-            "admin:rate_limited:focus|json",
-        )
-    )
+    @routes_tested(("admin:rate_limited:focus|json",))
     def test_focus_json(self):
         (focusItem, focus_id) = self._get_one()
 
@@ -7003,8 +6996,6 @@ class FunctionalTests_RateLimited(AppTest, _MixinEnrollmentFactory):
         )
         assert "RateLimited" in res.json
         assert res.json["RateLimited"]["id"] == focus_id
-
-
 
 
 class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
@@ -12102,6 +12093,86 @@ class IntegratedTests_Renewals(AppTestWSGI):
     """
     python -m unittest tests.test_pyramid_app.IntegratedTests_Renewals
     """
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    def test__single_use__reuse_1_year(self):
+        """
+        python -m unittest tests.test_pyramid_app.IntegratedTests_Renewals.test__single_use__reuse_1_year
+
+        This tests a SIMPLE renewal situation:
+
+            generate a cert with a key specified to `single_use__reuse_1_year`
+            renew cert, check same key was used
+        """
+        do__AcmeServers_sync__api(self, sync_backup=False)
+
+        # pebble loses state across test runs
+        ensure_AcmeAccount_auth(testCase=self)
+
+        # order the initial cert
+        dbAcmeOrder_1 = make_one__AcmeOrder__api(
+            self,
+            domain_names_http01="test-single-use-reuse-1-year.example.com",
+            processing_strategy="process_single",
+            private_key_cycle__primary="single_use__reuse_1_year",
+        )
+        assert dbAcmeOrder_1.private_key_cycle == "single_use__reuse_1_year"
+        assert (
+            dbAcmeOrder_1.renewal_configuration.private_key_cycle__primary
+            == "single_use__reuse_1_year"
+        )
+        assert dbAcmeOrder_1.private_key.private_key_type == "single_use__reuse_1_year"
+
+        def _make_one__AcmeOrder_Renewal(
+            _dbAcmeOrder: model_objects.AcmeOrder,
+            _replaces: str,
+        ) -> Dict:
+            """
+            _dbAcmeOrder: use this AcmeOrder's RenewalConfiguration for new order
+            _replaces: ari.identifier we are replacing
+            """
+            _res = self.testapp.get(
+                "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
+                % _dbAcmeOrder.renewal_configuration_id,
+                status=200,
+            )
+            _post_args = {
+                "processing_strategy": "process_single",
+                "replaces": _replaces,
+            }
+            _res2 = self.testapp.post(
+                "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
+                % _dbAcmeOrder.renewal_configuration_id,
+                _post_args,
+            )
+            assert _res2.status_code == 200
+            assert _res2.json["result"] == "success"
+
+            return _res2.json
+
+        # order a replacement
+        _renewalJson = _make_one__AcmeOrder_Renewal(
+            dbAcmeOrder_1,
+            _replaces=dbAcmeOrder_1.certificate_signed.ari_identifier,
+        )
+
+        assert (
+            _renewalJson["AcmeOrder"]["private_key_cycle"] == "single_use__reuse_1_year"
+        )
+        assert (
+            _renewalJson["AcmeOrder"]["RenewalConfiguration"][
+                "private_key_cycle__primary"
+            ]
+            == "single_use__reuse_1_year"
+        )
+        dbPrivateKey__renewal = lib_db_get.get__PrivateKey__by_id(
+            self.ctx, _renewalJson["AcmeOrder"]["PrivateKey"]["id"]
+        )
+        assert dbPrivateKey__renewal.private_key_type == "single_use__reuse_1_year"
+
+        # this is what we want to see...
+        assert dbAcmeOrder_1.private_key_id == dbPrivateKey__renewal.id
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_alt

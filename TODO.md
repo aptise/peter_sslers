@@ -16,15 +16,22 @@ Staging Example
 
 Test Needed
 
-    single_use__reuse_1_year
-        is this correctly locked for renewals to that cert?
+    ensure a single_use pkey can't be re-used
+    ensure a single_use__reuse_1_year pkey can't be used on other accounts
+    ensure an account oriented pkey can't be used on other accounts
+    ensure data based pkeys can't be resued
+    
 
     certs without akid ?
         this messes up newer pythons
         our system now handles it, is there a chance this could happen in the wild?
         is it worth improving the errors?
 
-
+Standardize Fields
+    /acme-order/new/freeform
+        private_key_option -> private_key_option__primary
+        private_key_generate -> private_key_generate__primary
+        private_key_existing -> private_key_existing__primary ???(pem_md5 vs id)???
 
 
 Tests
