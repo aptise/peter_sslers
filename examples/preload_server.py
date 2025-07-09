@@ -162,18 +162,21 @@ if not _exists:
     assert _acmeAccounts[2].endswith("@ pebble-alt")
 
     form_data = {
-        "acme_account_id__backup": mapping["AcmeAccount"]["backup"]["id"],
-        "acme_account_id__primary": mapping["AcmeAccount"]["primary"]["id"],
-        "acme_profile__backup": "shortlived",
-        "acme_profile__primary": "shortlived",
+        # core
         "domain_template_dns01": "",
         "domain_template_http01": "{DOMAIN}",
         "name": "preload_server",
         "note": "created by the preload_server script",
-        "private_key_cycle__backup": "single_use__reuse_1_year",
+        # primary cert
+        "acme_account_id__primary": mapping["AcmeAccount"]["primary"]["id"],
+        "acme_profile__primary": "shortlived",
         "private_key_cycle__primary": "single_use__reuse_1_year",
-        "private_key_technology__backup": "EC_P256",
         "private_key_technology__primary": "EC_P256",
+        # backup cert
+        "acme_account_id__backup": mapping["AcmeAccount"]["backup"]["id"],
+        "acme_profile__backup": "shortlived",
+        "private_key_cycle__backup": "single_use__reuse_1_year",
+        "private_key_technology__backup": "EC_P256",
     }
 
     r = requests.post(URL_BASE + "/enrollment-factorys/new.json", form_data)

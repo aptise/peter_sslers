@@ -122,18 +122,22 @@ if not domain_primary_certs:
         pprint.pprint(_rjson)
 
         form = {
-            "account_key_option": "account_key_global__primary",
-            "account_key_global__primary": _default["AcmeAccountKey"]["key_pem_md5"],
-            "profile": "shortlived",
-            "account_key_option__backup": "account_key_global__backup",
-            "account_key_global__backup": _backup["AcmeAccountKey"]["key_pem_md5"],
-            "profile": "shortlived",
-            "key_technology": "account_default",
-            "private_key_cycle": "account_default",
-            "private_key_option__primary": "account_default",
+            # core
             "domain_names_http01": domain_name,
             "processing_strategy": "process_single",
             "note": "API Request; Record X",
+            # primary cert
+            "account_key_option__primary": "account_key_global__primary",
+            "account_key_global__primary": _default["AcmeAccountKey"]["key_pem_md5"],
+            "acme_profile__primary": "shortlived",
+            "private_key_cycle__primary": "account_default",
+            "private_key_option__primary": "account_default",
+            # backup cert
+            "account_key_option__backup": "account_key_global__backup",
+            "account_key_global__backup": _backup["AcmeAccountKey"]["key_pem_md5"],
+            "acme_profile__backup": "shortlived",
+            "private_key_cycle__backup": "account_default",
+            "private_key_option__backup": "account_default",
         }
         print("Making the order... (this can take a bit)")
         r = requests.post(URL_BASE + "/acme-order/new/freeform.json", form)

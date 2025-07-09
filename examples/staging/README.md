@@ -329,9 +329,9 @@ the web tool on, `peter-sslers.testing.opensource.aptise.com` ::
         domain_names_http01="peter-sslers.testing.opensource.aptise.com" \
         is_export_filesystem="on" \
         label="peter-sslers.testing.opensource.aptise.com" \
-        account_key_option=account_key_existing \
+        account_key_option__primary=account_key_existing \
         account_key_option__backup=account_key_existing \
-        account_key_existing="{{PEM MD5 of Primary Key}}" \
+        account_key_existing__primary="{{PEM MD5 of Primary Key}}" \
         account_key_existing__backup="{{PEM MD5 OF Backup Key}}" \
         private_key_cycle__primary="account_default" \
         private_key_cycle__backup="account_default" \
@@ -343,7 +343,7 @@ A few things to note in the above:
 * `domain_names_http01` - a comma separated list of domain names to authenticate with the `HTTP-01` challenge
 * `is_export_filesystem` - we want to persist these certificates to disk, in addition to the database storage
 * `label` this will be a unique name to identify our certificates with on disk
-* `account_key_option=account_key_existing` this specifies the account_key will be provided with the md5 value of the PEM encoded key in the `account_key_existing` argument; the numeric id of the Acme Account could also be used with `account_key_option=acme_accout_id` alongside `acme_account_id={ID}`.  using the key_pem can be beneficial because that id is tied to the ACME server , while the `acme_account_id` is local to this particular installation.
+* `account_key_option__primary=account_key_existing` this specifies the account_key will be provided with the md5 value of the PEM encoded key in the `account_key_existing` argument; the numeric id of the Acme Account could also be used with `account_key_option__primary=acme_accout_id` alongside `acme_account_id={ID}`.  using the key_pem can be beneficial because that id is tied to the ACME server , while the `acme_account_id` is local to this particular installation.
 * many of the options can be set to `account_default`, allowing global changes to be made as needed.
 
 ### Get a Certificate
@@ -745,9 +745,9 @@ According to the above, `acme_server_id = 5; buypass production`::
         domain_names_http01="peter-sslers.testing.opensource.aptise.com" \
         is_export_filesystem="on" \
         label="peter-sslers.testing.opensource.aptise.com" \
-        account_key_option=acme_account_id \
+        account_key_option__primary=acme_account_id \
         account_key_option__backup=acme_account_id \
-        acme_account_id=1 \
+        acme_account_id__primary=1 \
         acme_account_id__backup=2 \
         private_key_cycle__primary="account_default" \
         private_key_cycle__backup="account_default" \
