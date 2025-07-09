@@ -13325,17 +13325,18 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 domain_names,
             )
             assert resp.status_code == 200
-            assert resp.json()["result"] == "error"
+            resp_json = resp.json()
+            assert resp_json["result"] == "error"
             assert (
-                resp.json()["error"]
+                resp_json["form_errors"]["Error_Main"]
                 == "`pending` AcmeOrder failed an AcmeAuthorization"
             )
-            assert "AcmeOrder" in resp.json()
-            obj_id = resp.json()["AcmeOrder"]["id"]
-            assert resp.json()["AcmeOrder"]["certificate_url"] is None
-            assert resp.json()["AcmeOrder"]["acme_status_order"] == "invalid"
+            assert "AcmeOrder" in resp_json
+            obj_id = resp_json["AcmeOrder"]["id"]
+            assert resp_json["AcmeOrder"]["certificate_url"] is None
+            assert resp_json["AcmeOrder"]["acme_status_order"] == "invalid"
             assert (
-                resp.json()["AcmeOrder"]["acme_order_processing_status"]
+                resp_json["AcmeOrder"]["acme_order_processing_status"]
                 == "processing_completed_failure"
             )
 
