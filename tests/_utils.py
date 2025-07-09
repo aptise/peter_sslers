@@ -1726,7 +1726,6 @@ def make_one__AcmeOrder__api(
     assert res2.status_code == 303
     matched = RE_AcmeOrder.match(res2.location)
     assert matched
-
     obj_id = matched.groups()[0]
 
     dbAcmeOrder = testCase.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)

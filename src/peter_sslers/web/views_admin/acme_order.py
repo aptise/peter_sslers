@@ -289,6 +289,7 @@ def submit__new_freeform(
 
                 formStash.assets["is_duplicate_renewal_configuration"] = True
                 formStash.assets["AcmeOrder"] = dbAcmeOrder
+                formStash.assets["AcmeOrderCreatedError"] = exc
 
             formStash.fatal_form(
                 error_main="%s" % exc,
@@ -1511,7 +1512,10 @@ class View_New(Handler):
             )
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                rval = {"result": "error", "form_errors": exc.formStash.errors}
+                rval = {
+                    "result": "error",
+                    "form_errors": exc.formStash.errors,
+                }
                 #
                 if "AcmeOrder" in exc.formStash.assets:
                     rval["AcmeOrder"] = exc.formStash.assets["AcmeOrder"].as_json
@@ -1519,6 +1523,11 @@ class View_New(Handler):
                     rval["is_duplicate_renewal_configuration"] = exc.formStash.assets[
                         "is_duplicate_renewal_configuration"
                     ]
+                if "AcmeOrderCreatedError" in exc.formStash.assets:
+                    # we don't want the prefix
+                    rval["form_errors"]["Error_Main"] = exc.formStash.assets[
+                        "AcmeOrderCreatedError"
+                    ].args[0]
                 return rval
             return formhandling.form_reprint(self.request, self._new_freeform__print)
 

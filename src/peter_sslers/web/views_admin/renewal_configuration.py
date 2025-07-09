@@ -1524,7 +1524,11 @@ class View_Focus_New(View_Focus):
                 % (
                     self.request.api_context.application_settings["admin_prefix"],
                     dbRenewalConfiguration_new.id,
-                    "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
+                    (
+                        "?is_duplicate_renewal_configuration=true"
+                        if is_duplicate_renewal
+                        else ""
+                    ),
                 )
             )
         except formhandling.FormInvalid as exc:
@@ -1757,7 +1761,11 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 % (
                     self.request.api_context.application_settings["admin_prefix"],
                     dbRenewalConfiguration.id,
-                    "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
+                    (
+                        "?is_duplicate_renewal_configuration=true"
+                        if is_duplicate_renewal
+                        else ""
+                    ),
                 )
             )
         except formhandling.FormInvalid as exc:
@@ -1870,7 +1878,11 @@ class View_New_Enrollment(Handler):
                 % (
                     self.request.api_context.application_settings["admin_prefix"],
                     dbRenewalConfiguration.id,
-                    "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
+                    (
+                        "?is_duplicate_renewal_configuration=true"
+                        if is_duplicate_renewal
+                        else ""
+                    ),
                 )
             )
         except formhandling.FormInvalid as exc:

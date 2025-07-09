@@ -2256,8 +2256,19 @@
 
 <%def name="formgroup__AcmeAccount_file(show_header=True, show_contact=True, concept=None)">
     <%
-        if concept not in ("primary", "backup"):
-            concept = "primary"
+        ## html id and fields are treated differently due to how tests were originally structured
+        ##
+        ## html id="section--field--concept"
+        concept_id = ""
+        ## html name="field__concept"
+        concept_name = ""
+        if concept:
+            if concept not in ("primary", "backup"):
+                concept = "primary"
+            concept_id = "--%s" % concept
+            concept_name = "__%s" % concept
+        else:
+            concept = ""
     %>
     <table class="table table-condensed">
         <thead>
@@ -2288,7 +2299,7 @@
                             </label>
                         </th>
                         <td>
-                            <select class="form-control" id="f1-acme_server_id--${concept}" name="acme_server_id__${concept}">
+                            <select class="form-control" id="f1-acme_server_id${concept_id}" name="acme_server_id${concept_name}">
                                 % for option in AcmeServers:
                                     <option value="${option.id}" ${'selected' if option.is_default else ''}>${option.name} (${option.url})</option>
                                 % endfor
@@ -2302,7 +2313,7 @@
                             </label>
                         </th>
                         <td>
-                            <input class="form-control" type="file" id="f1-account_key_file_pem--${concept}" name="account_key_file_pem__${concept}" />
+                            <input class="form-control" type="file" id="f1-account_key_file_pem${concept_id}" name="account_key_file_pem${concept_name}" />
                         </td>
                     </tr>
                     <tr>
@@ -2311,7 +2322,7 @@
                         </th>
                         <td>
                             <div class="form-group">
-                                <input class="form-control" type="text" id="f1-account__contact--${concept}" name="account__contact__${concept}" value=""/>
+                                <input class="form-control" type="text" id="f1-account__contact${concept_id}" name="account__contact${concept_name}" value=""/>
                             </div>
                         </td>
                     </tr>
@@ -2329,10 +2340,10 @@
                 <table class="table table-condensed table-striped">
                     <tr>
                         <th>
-                            <label for="f1-account_key_file_le_meta__${concept}">LetsEncrypt meta.json</label>
+                            <label for="f1-account_key_file_le_meta${concept_name}">LetsEncrypt meta.json</label>
                         </th>
                         <td>
-                            <input class="form-control" type="file" id="f1-account_key_file_le_meta--${concept}" name="account_key_file_le_meta__${concept}" />
+                            <input class="form-control" type="file" id="f1-account_key_file_le_meta${concept_id}" name="account_key_file_le_meta${concept_name}" />
                         </td>
                     </tr>
                     <tr>
@@ -2340,7 +2351,7 @@
                             <label for="f1-account_key_file_le_pkey">LetsEncrypt private_key.json</label>
                         </th>
                         <td>
-                            <input class="form-control" type="file" id="f1-account_key_file_le_pkey--${concept}" name="account_key_file_le_pkey__${concept}" />
+                            <input class="form-control" type="file" id="f1-account_key_file_le_pkey${concept_id}" name="account_key_file_le_pkey${concept_name}" />
                         </td>
                     </tr>
                     <tr>
@@ -2348,7 +2359,7 @@
                             <label for="f1-account_key_file_le_reg">LetsEncrypt regr.json</label>
                         </th>
                         <td>
-                            <input class="form-control" type="file" id="f1-account_key_file_le_reg--${concept}" name="account_key_file_le_reg__${concept}" />
+                            <input class="form-control" type="file" id="f1-account_key_file_le_reg${concept_id}" name="account_key_file_le_reg${concept_name}" />
                         </td>
                     </tr>
                 </table>

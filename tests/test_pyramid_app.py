@@ -121,6 +121,7 @@ from .regex_library import RE_UniqueFQDNSet_modify
 from .regex_library import RE_UniqueFQDNSet_new
 
 if TYPE_CHECKING:
+    from requests import Response
     from webtest import TestApp
     from webtest.http import StopableWSGIServer
 
@@ -2926,14 +2927,10 @@ class FunctionalTests_AcmeOrder(AppTest):
                 "/.well-known/peter_sslers/acme-order/new/freeform.json", form
             )
 
-            try:
-                assert res2.status_code == 200
-                assert res2.json["result"] == "success"
-                assert "AcmeOrder" in res2.json
-                obj_id = res2.json["AcmeOrder"]["id"]
-            except:
-                pprint.pprint(res2.json)
-                raise
+            assert res2.status_code == 200
+            assert res2.json["result"] == "success"
+            assert "AcmeOrder" in res2.json
+            obj_id = res2.json["AcmeOrder"]["id"]
 
             dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
             assert dbAcmeOrder
@@ -6281,7 +6278,6 @@ class _MixinEnrollmentFactory:
             form,
         )
         assert res.status_code == 200
-        pprint.pprint(res.json)
         assert res.json["result"] == "success"
         assert "EnrollmentFactory" in res.json
         return res.json["EnrollmentFactory"]["id"]
@@ -7069,12 +7065,8 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
             "/.well-known/peter_sslers/renewal-configuration/new.json",
             form,
         )
-        try:
-            assert res2.json["result"] == "success"
-            assert "RenewalConfiguration" in res2.json
-        except:
-            pprint.pprint(res2.json)
-            raise
+        assert res2.json["result"] == "success"
+        assert "RenewalConfiguration" in res2.json
 
         focusItem = (
             self.ctx.dbSession.query(model_objects.RenewalConfiguration)
@@ -7366,11 +7358,7 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
         )
         form["note"] = note
         res2 = form.submit()
-        try:
-            assert res2.status_code == 303
-        except:
-            print(res2.text)
-            raise
+        assert res2.status_code == 303
         matched = RE_RenewalConfiguration.match(res2.location)
         assert matched
         obj_id = matched.groups()[0]
@@ -9577,7 +9565,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         obj_id = matched.groups()[0]
 
         # "admin:acme_order:focus|json",
-        # this could be an: `?is_duplicate_renewal=true'
+        # this could be an: `?is_duplicate_renewal_configuration=true'
         url_json = "%s.json" % res2.location.split("?")[0]
         res = self.testapp.get(url_json, status=200)
         assert "AcmeOrder" in res.json
@@ -11192,7 +11180,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             {},
         )
         assert res2.status_code == 200
-        pprint.pprint(res2.json)
         assert res2.json["result"] == "success"
         assert "AriCheck" in res2.json
 
@@ -12916,7 +12903,9 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         ).count()
         return stats
 
-    def _place_order(self, account_key_file_pem, account__contact, domain_names):
+    def _place_order(
+        self, account_key_file_pem: str, account__contact: str, domain_names: List[str]
+    ) -> "Response":
         resp = requests.get(
             "http://peter-sslers.example.com:5002/.well-known/peter_sslers/acme-order/new/freeform.json"
         )
@@ -13244,24 +13233,28 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
 
         assert resp.status_code == 200
-        assert resp.json()["result"] == "error"
+        resp_json = resp.json()
+        assert resp_json["result"] == "error"
 
         # somehow, this is now being returned:
         # "(400, {'type': 'urn:ietf:params:acme:error:malformed', 'detail': 'Cannot update challenge with status invalid, only status pending', 'status': 400})"
 
-        assert resp.json()["error"] == "`pending` AcmeOrder failed an AcmeAuthorization"
-        assert "AcmeOrder" in resp.json()
-        obj_id = resp.json()["AcmeOrder"]["id"]
+        assert (
+            resp_json["form_errors"]["Error_Main"]
+            == "`pending` AcmeOrder failed an AcmeAuthorization"
+        )
+        assert "AcmeOrder" in resp_json
+        obj_id = resp_json["AcmeOrder"]["id"]
 
         # # test for resync bug
         # url = "http://peter-sslers.example.com:5002/.well-known/peter_sslers/acme-order/%s/acme-server/sync.json" % obj_id
         # rrr = requests.post(url)
         # pdb.set_trace()
 
-        assert resp.json()["AcmeOrder"]["certificate_url"] is None
-        assert resp.json()["AcmeOrder"]["acme_status_order"] == "invalid"
+        assert resp_json["AcmeOrder"]["certificate_url"] is None
+        assert resp_json["AcmeOrder"]["acme_status_order"] == "invalid"
         assert (
-            resp.json()["AcmeOrder"]["acme_order_processing_status"]
+            resp_json["AcmeOrder"]["acme_order_processing_status"]
             == "processing_deactivated"
         )
 
