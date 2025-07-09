@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 # pypi
 from typing_extensions import TypedDict
 
-# local
 if TYPE_CHECKING:
     from .context import ApiContext
 

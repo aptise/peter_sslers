@@ -2,6 +2,7 @@
 import logging
 from typing import Dict
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # pypi
@@ -9,9 +10,10 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
 from pyramid.view import view_config
+from typing_extensions import Literal
 
 # local
-from ..lib import form_utils as form_utils
+from ..lib import form_utils
 from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
@@ -24,9 +26,312 @@ from ...lib import errors
 from ...model import utils as model_utils
 from ...model.objects import AcmeOrder
 
+if TYPE_CHECKING:
+    from pyramid.request import Request
+
 log = logging.getLogger("peter_sslers.web")
 
 # ==============================================================================
+
+
+def submit__new_freeform(
+    request: "Request",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[AcmeOrder, bool]:
+    """
+    Creates a RenewalConfiguration and then initiates an AcmeOrder
+
+
+    IMPORTANT
+
+    the difference between:
+
+        http://127.0.0.1:7201/.well-known/peter_sslers/acme-order/new/freeform
+        http://127.0.0.1:7201/.well-known/peter_sslers/renewal-configuration/new
+
+    acme-order/new/freeform
+        `private_key_option__primary`
+            == "account_default"
+                use the acme account's default pkey setting
+            == "private_key_generate"
+                generate a new key with `private_key_generate__primary`
+            == "private_key_existing"
+                use a specific key (pem md5) `private_key_existing__primary-pem_md5`
+
+    renewal-configuration/new
+        `private_key_technology__primary`
+            what kind of key is this generated with?
+
+
+
+    """
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_AcmeOrder_new_freeform,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+
+    domains_challenged = form_utils.form_domains_challenge_typed(
+        request,
+        formStash,
+        dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
+    )
+
+    is_duplicate_renewal_configuration = None
+
+    # note: tryBlock- form_key_selection__NewOrderFreeform__primary
+    try:
+        (acmeAccountSelection__primary, privateKeySelection__primary) = (
+            form_utils.form_selections__NewOrderFreeform(
+                request,
+                formStash,
+                context="primary",
+                require_contact=False,
+                support_upload_AcmeAccount=False,
+                support_upload_PrivateKey=False,
+            )
+        )
+        assert acmeAccountSelection__primary.AcmeAccount is not None
+        assert privateKeySelection__primary.PrivateKey is not None
+
+        (acmeAccountSelection__backup, privateKeySelection_backup) = (
+            form_utils.form_selections__NewOrderFreeform(
+                request,
+                formStash,
+                context="backup",
+                require_contact=False,
+                support_upload_AcmeAccount=False,
+                support_upload_PrivateKey=False,
+            )
+        )
+        if formStash.results["private_key_option__backup"] in (None, "none"):
+            assert privateKeySelection_backup.PrivateKey is None
+        else:
+            assert privateKeySelection_backup.PrivateKey is not None
+
+        # shared
+        note = formStash.results["note"]
+        processing_strategy = formStash.results["processing_strategy"]
+
+        # PRIMARY cert
+        acme_profile__primary = formStash.results["acme_profile__primary"]
+        private_key_cycle__primary = formStash.results["private_key_cycle__primary"]
+        private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle__primary
+        )
+        private_key_technology_id__primary = (
+            privateKeySelection__primary.private_key_technology_id
+        )
+
+        # BACKUP cert
+        acme_profile__backup: Optional[str] = None
+        private_key_cycle__backup: Optional[str] = None
+        private_key_cycle_id__backup: Optional[int] = None
+        private_key_technology_id__backup: Optional[int] = None
+
+        if acmeAccountSelection__backup.AcmeAccount:
+            # these are only required if we're doing backup cert
+
+            private_key_option__backup = formStash.results["private_key_option__backup"]
+            if private_key_option__backup in (None, "none", ""):
+                formStash.fatal_field(
+                    field="private_key_option__backup",
+                    error_field="Required for Backup Certificates",
+                )
+
+            private_key_cycle__backup = formStash.results["private_key_cycle__backup"]
+            if not private_key_cycle__backup:
+                formStash.fatal_field(
+                    field="private_key_cycle__backup",
+                    error_field="Required for Backup Certificates",
+                )
+            private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+                private_key_cycle__backup
+            )
+            private_key_technology_id__backup = (
+                privateKeySelection_backup.private_key_technology_id
+            )
+
+            acme_profile__backup = formStash.results["acme_profile__backup"]
+            private_key_generate__backup = formStash.results[
+                "private_key_generate__backup"
+            ]
+            if private_key_generate__backup:
+                private_key_technology_id__backup = (
+                    model_utils.KeyTechnology.from_string(private_key_generate__backup)
+                )
+
+        # validate the domains
+
+        domains_all = []
+        # check for blocklists here
+        # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
+        # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
+        for challenge_, domains_ in domains_challenged.items():
+            if domains_:
+                lib_db.validate.validate_domain_names(request.api_context, domains_)
+                if challenge_ == "dns-01":
+                    # check to ensure the domains are configured for dns-01
+                    # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
+                    try:
+                        lib_db.validate.ensure_domains_dns01(
+                            request.api_context, domains_
+                        )
+                    except errors.AcmeDomainsRequireConfigurationAcmeDNS as exc:
+                        # in "experimental" mode, we may want to use specific
+                        # acme-dns servers and not the global one
+                        if (
+                            request.api_context.application_settings["acme_dns_support"]
+                            == "experimental"
+                        ):
+                            raise
+                        # in "basic" mode we can just associate these to the global option
+                        if not request.api_context.dbAcmeDnsServer_GlobalDefault:
+                            formStash.fatal_field(
+                                "domain_names_dns01",
+                                "No global acme-dns server configured.",
+                            )
+                        assert (
+                            request.api_context.dbAcmeDnsServer_GlobalDefault
+                            is not None
+                        )
+                        # exc.args[0] will be the listing of domains
+                        (domainObjects, adnsAccountObjects) = (
+                            lib_db.associate.ensure_domain_names_to_acmeDnsServer(
+                                request.api_context,
+                                exc.args[0],
+                                request.api_context.dbAcmeDnsServer_GlobalDefault,
+                                discovery_type="via renewal_configuration.new",
+                            )
+                        )
+                domains_all.extend(domains_)
+
+        # create the configuration
+        # this will create:
+        # * model_utils.RenewableConfig
+        # * model_utils.UniquelyChallengedFQDNSet2Domain
+        # * model_utils.UniqueFQDNSet
+        # note: tryBlock3- create__RenewalConfiguration
+        try:
+            dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                request.api_context,
+                domains_challenged=domains_challenged,
+                # PRIMARY cert
+                dbAcmeAccount__primary=acmeAccountSelection__primary.AcmeAccount,
+                private_key_cycle_id__primary=private_key_cycle_id__primary,
+                private_key_technology_id__primary=private_key_technology_id__primary,
+                acme_profile__primary=acme_profile__primary,
+                # BACKUP cert
+                dbAcmeAccount__backup=acmeAccountSelection__backup.AcmeAccount,
+                private_key_cycle_id__backup=private_key_cycle_id__backup,
+                private_key_technology_id__backup=private_key_technology_id__backup,
+                acme_profile__backup=acme_profile__backup,
+                # misc
+                note=note,
+            )
+            is_duplicate_renewal_configuration = False
+        except errors.DuplicateRenewalConfiguration as exc:
+            is_duplicate_renewal_configuration = True
+            # we could raise exc to abort, but this is likely preferred
+            dbRenewalConfiguration = exc.args[0]
+
+        # unused because we're not uploading accounts
+        # migrate_a = formStash.results["account__order_default_private_key_technology"]
+        # migrate_b = formStash.results["account__order_default_private_key_cycle"]
+
+        # ???: should this be done elsewhere?
+
+        # check for blocklists here
+        # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
+        # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
+        for challenge_, domains_ in domains_challenged.items():
+            if domains_:
+                # # already validated in the first loop above
+                # lib_db.validate.validate_domain_names(
+                #    request.api_context, domains_
+                # )
+                if challenge_ == "dns-01":
+                    # check to ensure the domains are configured for dns-01
+                    # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
+                    lib_db.validate.ensure_domains_dns01(request.api_context, domains_)
+        # note: tryBlock- do__AcmeV2_AcmeOrder__new
+        try:
+            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                request.api_context,
+                dbRenewalConfiguration=dbRenewalConfiguration,
+                processing_strategy=processing_strategy,
+                acme_order_type_id=model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM,
+                note=note,
+                dbPrivateKey=privateKeySelection__primary.PrivateKey,
+                transaction_commit=True,
+            )
+
+        except errors.DuplicateAcmeOrder as exc:
+            raise formStash.fatal_form(error_main=exc.args[0])
+
+        except errors.FieldError as exc:
+            raise formStash.fatal_field(
+                field=exc.args[0],
+                error_field=exc.args[1],
+            )
+
+        except Exception as exc:
+
+            # unpack a `errors.AcmeOrderCreatedError` to local vars
+            if isinstance(exc, errors.AcmeOrderCreatedError):
+                dbAcmeOrder = exc.acme_order
+                exc = exc.original_exception
+
+                formStash.assets["is_duplicate_renewal_configuration"] = True
+                formStash.assets["AcmeOrder"] = dbAcmeOrder
+
+            formStash.fatal_form(
+                error_main="%s" % exc,
+            )
+
+        return dbAcmeOrder, is_duplicate_renewal_configuration
+
+    except (errors.ConflictingObject,) as exc:
+        formStash.fatal_form(error_main=str(exc))
+
+    except (
+        errors.AcmeDomainsInvalid,
+        errors.AcmeDomainsBlocklisted,
+        errors.AcmeDomainsRequireConfigurationAcmeDNS,
+    ) as exc:
+        formStash.fatal_form(error_main=str(exc))
+
+    except errors.AcmeDuplicateChallenges as exc:
+        formStash.fatal_form(error_main=str(exc))
+
+    except errors.AcmeDnsServerError as exc:  # noqa: F841
+        formStash.fatal_form(error_main="Error communicating with the acme-dns server.")
+
+    except (errors.DuplicateRenewalConfiguration,) as exc:
+        message = (
+            "This appears to be a duplicate of RenewalConfiguration: `%s`."
+            % exc.args[0].id
+        )
+        formStash.fatal_form(error_main=message)
+
+    except (
+        errors.AcmeError,
+        errors.InvalidRequest,
+    ) as exc:
+        formStash.fatal_form(error_main=str(exc))
+
+    except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
+        # exc.args: var(matches field), submitted, allowed
+        formStash.fatal_field(
+            field=exc.args[0],
+            error_field="Unknown acme_profile (%s); not one of: %s."
+            % (exc.args[1], exc.args[2]),
+        )
 
 
 class View_List(Handler):
@@ -1056,73 +1361,93 @@ class View_New(Handler):
             "instructions": "curl {ADMIN_PREFIX}/acme-order/new/freeform.json",
             "form_fields": {
                 # ALL certs
-                "domain_names_http01": "required; a comma separated list of domain names to process",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
-                "private_key_option": "How is the PrivateKey being specified?",
-                "private_key_existing": "pem_md5 of existing key",
-                "processing_strategy": "How should the order be processed?",
+                "domain_names_http01": "required; a comma separated list of domain names to process",
                 "note": "A string to associate with the AcmeOrder.",
+                "processing_strategy": "How should the order be processed?",
                 # primary cert
-                "account_key_option": "How is the AcmeAccount specified?",
-                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`; used to ensure the default did not change.",
-                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "acme_account_id": "local AcmeAccount id. Must/Only submit if `account_key_option==acme_account_id`",
-                "acme_account_url": "AcmeAccount's URL. Must/Only submit if `account_key_option==acme_account_url`",
+                "account_key_existing__primary": "pem_md5 of any key. Must/Only submit if `account_key_option__primary==account_key_existing`",
+                "account_key_global__primary": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option__primary==account_key_global__primary`; used to ensure the default did not change.",
+                "account_key_option__primary": "How is the AcmeAccount specified?",
+                "acme_account_id__primary": "local AcmeAccount id. Must/Only submit if `account_key_option__primary==acme_account_id`",
+                "acme_account_url__primary": "AcmeAccount's URL. Must/Only submit if `account_key_option__primary==acme_account_url`",
+                "acme_profile__primary": "The name of an ACME Profile on the ACME Server. Leave this blank for no profile. If you want to defer to the AcmeAccount, use the special name `@`.",
                 "private_key_cycle__primary": "how should the PrivateKey be cycled on renewals?",
-                "acme_profile": """The name of an ACME Profile on the ACME Server.
-Leave this blank for no profile.
-If you want to defer to the AcmeAccount, use the special name `@`.""",
+                "private_key_existing__primary": "pem_md5 of existing key",
+                "private_key_option__primary": "How is the PrivateKey being specified?",
+                "private_key_generate__primary": "What type of key should be used?",
                 # backup cert
-                "account_key_option__backup": "How is the AcmeAccount specified? [Backup Cert]",
-                "account_key_global__backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option__backup==account_key_global__backup` [Backup Cert]",
                 "account_key_existing__backup": "pem_md5 of any key. Must/Only submit if `account_key_option__backup==account_key_existing__backup` [Backup Cert]",
+                "account_key_global__backup": "pem_md5 of the Global Backup account key. Must/Only submit if `account_key_option__backup==account_key_global__backup` [Backup Cert]",
+                "account_key_option__backup": "How is the AcmeAccount specified? [Backup Cert]",
                 "acme_account_id__backup": "local id of AcmeAccount. Must/Only submit if `account_key_option__backup==acme_account_id` [Backup Cert]",
                 "acme_account_url__backup": "AcmeAccount's URL. Must/Only submit if `account_key_option__backup==acme_account_url` [Backup Cert]",
+                "acme_profile__backup": "The name of an ACME Profile on the ACME Server [Backup Cert]. Leave this blank for no profile. If you want to defer to the AcmeAccount, use the special name `@`.",
                 "private_key_cycle__backup": "how should the PrivateKey be cycled on renewals?",
-                "acme_profile__backup": """The name of an ACME Profile on the ACME Server [Backup Cert].
-Leave this blank for no profile.
-If you want to defer to the AcmeAccount, use the special name `@`.""",
+                "private_key_existing__backup": "pem_md5 of existing key",
+                "private_key_option__backup": "How is the PrivateKey being specified?",
+                "private_key_generate__backup": "What type of key should be used?",
             },
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
-                ["private_key_option", "private_key_existing"],
+                ["private_key_option__primary", "private_key_existing__primary"],
                 [
-                    "account_key_option",
-                    "account_key_global_default",
-                    "account_key_existing",
+                    "account_key_existing__primary",
+                    "account_key_global__primary",
+                    "account_key_option__primary",
+                    "acme_account_id__primary",
+                    "acme_account_url__primary",
                     "acme_profile__primary",
-                    "acme_account_id",
-                    "acme_account_url",
+                    "private_key_cycle__primary",
+                    "private_key_existing__primary",
+                    "private_key_option__primary",
+                    "private_key_generate__primary",
                 ],
                 [
-                    "account_key_option__backup",
-                    "account_key_global__backup",
                     "account_key_existing__backup",
-                    "acme_profile__backup",
+                    "account_key_global__backup",
+                    "account_key_option__backup",
                     "acme_account_id__backup",
-                    "acme_account_url",
+                    "acme_account_url__backup",
+                    "acme_profile__backup",
+                    "private_key_cycle__backup",
+                    "private_key_existing__backup",
+                    "private_key_option__backup",
+                    "private_key_generate__backup",
                 ],
             ],
             "valid_options": {
                 "SystemConfigurations": "{RENDER_ON_REQUEST}",
-                "account_key_option": Form_AcmeOrder_new_freeform.fields[
-                    "account_key_option"
+                "account_key_option__backup": Form_AcmeOrder_new_freeform.fields[
+                    "account_key_option__backup"
                 ].list,
-                "processing_strategy": Form_AcmeOrder_new_freeform.fields[
-                    "processing_strategy"
-                ].list,
-                "private_key_option": Form_AcmeOrder_new_freeform.fields[
-                    "private_key_option"
-                ].list,
-                "private_key_cycle__primary": Form_AcmeOrder_new_freeform.fields[
-                    "private_key_cycle__primary"
+                "account_key_option__primary": Form_AcmeOrder_new_freeform.fields[
+                    "account_key_option__primary"
                 ].list,
                 "private_key_cycle__backup": Form_AcmeOrder_new_freeform.fields[
                     "private_key_cycle__backup"
                 ].list,
+                "private_key_cycle__primary": Form_AcmeOrder_new_freeform.fields[
+                    "private_key_cycle__primary"
+                ].list,
+                "private_key_option__backup": Form_AcmeOrder_new_freeform.fields[
+                    "private_key_option__backup"
+                ].list,
+                "private_key_option__primary": Form_AcmeOrder_new_freeform.fields[
+                    "private_key_option__primary"
+                ].list,
+                "private_key_generate__backup": Form_AcmeOrder_new_freeform.fields[
+                    "private_key_generate__backup"
+                ].list,
+                "private_key_generate__primary": Form_AcmeOrder_new_freeform.fields[
+                    "private_key_generate__primary"
+                ].list,
+                "processing_strategy": Form_AcmeOrder_new_freeform.fields[
+                    "processing_strategy"
+                ].list,
             },
             "requirements": [
-                "Submit corresponding field(s) to account_key_option, e.g. `account_key_existing` or `account_key_global_default`.",
+                "Submit corresponding field(s) to account_key_option, e.g. `account_key_existing` or `account_key_global__primary`.",
                 "Submit at least one of `domain_names_http01` or `domain_names_dns01`",
             ],
             "examples": [
@@ -1162,318 +1487,46 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
         Creates a RenewalConfiguration and then initiates an AcmeOrder
         """
         try:
-            (result, formStash) = formhandling.form_validate(
+            (dbAcmeOrder, is_duplicate_renewal_configuration) = submit__new_freeform(
                 self.request,
-                schema=Form_AcmeOrder_new_freeform,
-                validate_get=False,
+                acknowledge_transaction_commits=True,
             )
-            if not result:
-                raise formhandling.FormInvalid(formStash)
-
-            domains_challenged = form_utils.form_domains_challenge_typed(
-                self.request,
-                formStash,
-                dbAcmeDnsServer_GlobalDefault=self.request.api_context.dbAcmeDnsServer_GlobalDefault,
-            )
-
-            is_duplicate_renewal = None
-
-            try:
-                (acmeAccountSelection, privateKeySelection) = (
-                    form_utils.form_key_selection(
-                        self.request,
-                        formStash,
-                        require_contact=False,
-                        support_upload_AcmeAccount=False,
-                        support_upload_PrivateKey=False,
-                    )
-                )
-                assert acmeAccountSelection.AcmeAccount is not None
-                assert privateKeySelection.PrivateKey is not None
-
-                acmeAccountSelection_backup = (
-                    form_utils.parse_AcmeAccountSelection_backup(
-                        self.request,
-                        formStash,
-                    )
-                )
-
-                # shared
-                note = formStash.results["note"]
-                processing_strategy = formStash.results["processing_strategy"]
-
-                # PRIMARY cert
-                acme_profile__primary = formStash.results["acme_profile__primary"]
-                private_key_technology_id__primary = (
-                    privateKeySelection.private_key_technology_id
-                )
-                private_key_cycle__primary = formStash.results[
-                    "private_key_cycle__primary"
-                ]
-                private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
-                    private_key_cycle__primary
-                )
-
-                # BACKUP cert
-                private_key_cycle_id__backup: Optional[int] = None
-                private_key_technology_id__backup: Optional[int] = None
-                acme_profile__backup: Optional[str] = None
-                private_key_technology__backup = formStash.results[
-                    "private_key_technology__backup"
-                ]
-                if private_key_technology__backup:
-                    private_key_technology_id__backup = (
-                        model_utils.KeyTechnology.from_string(
-                            private_key_technology__backup
-                        )
-                    )
-                private_key_cycle__backup = formStash.results[
-                    "private_key_cycle__backup"
-                ]
-                if private_key_cycle__backup:
-                    private_key_cycle_id__backup = (
-                        model_utils.PrivateKeyCycle.from_string(
-                            private_key_cycle__backup
-                        )
-                    )
-                acme_profile__backup = formStash.results["acme_profile__backup"]
-
-                if acmeAccountSelection_backup.AcmeAccount:
-                    if not formStash.results["private_key_cycle__backup"]:
-                        formStash.fatal_field(
-                            field="private_key_cycle__backup",
-                            error_field="Required for Backup Accounts",
-                        )
-                    if not formStash.results["private_key_technology__backup"]:
-                        formStash.fatal_field(
-                            field="private_key_technology__backup",
-                            error_field="Required for Backup Accounts",
-                        )
-                else:
-                    private_key_cycle_id__backup = None
-                    private_key_technology_id__backup = None
-                    acme_profile__backup = None
-
-                #
-                # validate the domains
-
-                domains_all = []
-                # check for blocklists here
-                # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-                # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
-                for challenge_, domains_ in domains_challenged.items():
-                    if domains_:
-                        lib_db.validate.validate_domain_names(
-                            self.request.api_context, domains_
-                        )
-                        if challenge_ == "dns-01":
-                            # check to ensure the domains are configured for dns-01
-                            # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
-                            try:
-                                lib_db.validate.ensure_domains_dns01(
-                                    self.request.api_context, domains_
-                                )
-                            except errors.AcmeDomainsRequireConfigurationAcmeDNS as exc:
-                                # in "experimental" mode, we may want to use specific
-                                # acme-dns servers and not the global one
-                                if (
-                                    self.request.api_context.application_settings[
-                                        "acme_dns_support"
-                                    ]
-                                    == "experimental"
-                                ):
-                                    raise
-                                # in "basic" mode we can just associate these to the global option
-                                if (
-                                    not self.request.api_context.dbAcmeDnsServer_GlobalDefault
-                                ):
-                                    formStash.fatal_field(
-                                        "domain_names_dns01",
-                                        "No global acme-dns server configured.",
-                                    )
-                                assert (
-                                    self.request.api_context.dbAcmeDnsServer_GlobalDefault
-                                    is not None
-                                )
-                                # exc.args[0] will be the listing of domains
-                                (domainObjects, adnsAccountObjects) = (
-                                    lib_db.associate.ensure_domain_names_to_acmeDnsServer(
-                                        self.request.api_context,
-                                        exc.args[0],
-                                        self.request.api_context.dbAcmeDnsServer_GlobalDefault,
-                                        discovery_type="via renewal_configuration.new",
-                                    )
-                                )
-                        domains_all.extend(domains_)
-
-                # create the configuration
-                # this will create:
-                # * model_utils.RenewableConfig
-                # * model_utils.UniquelyChallengedFQDNSet2Domain
-                # * model_utils.UniqueFQDNSet
-                try:
-                    dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
-                        self.request.api_context,
-                        domains_challenged=domains_challenged,
-                        # PRIMARY cert
-                        dbAcmeAccount__primary=acmeAccountSelection.AcmeAccount,
-                        private_key_cycle_id__primary=private_key_cycle_id__primary,
-                        private_key_technology_id__primary=private_key_technology_id__primary,
-                        acme_profile__primary=acme_profile__primary,
-                        # BACKUP cert
-                        dbAcmeAccount__backup=acmeAccountSelection_backup.AcmeAccount,
-                        private_key_cycle_id__backup=private_key_cycle_id__backup,
-                        private_key_technology_id__backup=private_key_technology_id__backup,
-                        acme_profile__backup=acme_profile__backup,
-                        # misc
-                        note=note,
-                    )
-                    is_duplicate_renewal = False
-                except errors.DuplicateRenewalConfiguration as exc:
-                    is_duplicate_renewal = True
-                    # we could raise exc to abort, but this is likely preferred
-                    dbRenewalConfiguration = exc.args[0]
-
-                # unused because we're not uploading accounts
-                # migrate_a = formStash.results["account__order_default_private_key_technology"]
-                # migrate_b = formStash.results["account__order_default_private_key_cycle"]
-
-                # ???: should this be done elsewhere?
-
-                # check for blocklists here
-                # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-                # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
-                for challenge_, domains_ in domains_challenged.items():
-                    if domains_:
-                        # # already validated in the first loop above
-                        # lib_db.validate.validate_domain_names(
-                        #    self.request.api_context, domains_
-                        # )
-                        if challenge_ == "dns-01":
-                            # check to ensure the domains are configured for dns-01
-                            # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
-                            lib_db.validate.ensure_domains_dns01(
-                                self.request.api_context, domains_
-                            )
-                try:
-                    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
-                        self.request.api_context,
-                        dbRenewalConfiguration=dbRenewalConfiguration,
-                        processing_strategy=processing_strategy,
-                        acme_order_type_id=model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM,
-                        note=note,
-                        dbPrivateKey=privateKeySelection.PrivateKey,
-                        transaction_commit=True,
-                    )
-
-                except errors.DuplicateAcmeOrder as exc:
-                    raise formStash.fatal_form(error_main=exc.args[0])
-
-                except errors.FieldError as exc:
-                    raise formStash.fatal_field(
-                        field=exc.args[0],
-                        error_field=exc.args[1],
-                    )
-
-                except Exception as exc:
-                    # unpack a `errors.AcmeOrderCreatedError` to local vars
-                    if isinstance(exc, errors.AcmeOrderCreatedError):
-                        dbAcmeOrder = exc.acme_order
-                        exc = exc.original_exception
-                        if isinstance(exc, errors.AcmeError):
-                            if self.request.wants_json:
-                                return {
-                                    "result": "error",
-                                    "error": str(exc),
-                                    "AcmeOrder": dbAcmeOrder.as_json,
-                                }
-                            return HTTPSeeOther(
-                                "%s/acme-order/%s?result=error&error=%s&operation=new+freeform"
-                                % (
-                                    self.request.registry.settings[
-                                        "application_settings"
-                                    ]["admin_prefix"],
-                                    dbAcmeOrder.id,
-                                    exc.as_querystring,
-                                )
-                            )
-
-                    formStash.fatal_form(
-                        error_main="%s" % exc,
-                    )
-
-                if self.request.wants_json:
-                    return {
-                        "result": "success",
-                        "AcmeOrder": dbAcmeOrder.as_json,
-                        "is_duplicate_renewal_configuration": is_duplicate_renewal,
-                    }
-
-                return HTTPSeeOther(
-                    "%s/acme-order/%s%s"
-                    % (
-                        self.request.api_context.application_settings["admin_prefix"],
-                        dbAcmeOrder.id,
-                        "?is_duplicate_renewal=true" if is_duplicate_renewal else "",
-                    )
-                )
-            except (errors.ConflictingObject,) as exc:
-                formStash.fatal_form(error_main=str(exc))
-
-            except (
-                errors.AcmeDomainsInvalid,
-                errors.AcmeDomainsBlocklisted,
-                errors.AcmeDomainsRequireConfigurationAcmeDNS,
-            ) as exc:
-                formStash.fatal_form(error_main=str(exc))
-
-            except errors.AcmeDuplicateChallenges as exc:
-                formStash.fatal_form(error_main=str(exc))
-
-            except errors.AcmeDnsServerError as exc:  # noqa: F841
-                formStash.fatal_form(
-                    error_main="Error communicating with the acme-dns server."
-                )
-
-            except (errors.DuplicateRenewalConfiguration,) as exc:
-                message = (
-                    "This appears to be a duplicate of RenewalConfiguration: `%s`."
-                    % exc.args[0].id
-                )
-                formStash.fatal_form(error_main=message)
-            except (
-                errors.AcmeError,
-                errors.InvalidRequest,
-            ) as exc:
-
-                if self.request.wants_json:
-                    return {"result": "error", "error": str(exc)}
-
-                return HTTPSeeOther(
-                    "%s/acme-orders/all?result=error&error=%s&operation=new+freeform"
-                    % (
-                        self.request.api_context.application_settings["admin_prefix"],
-                        exc.as_querystring,
-                    )
-                )
-            except errors.UnknownAcmeProfile_Local as exc:  # noqa: F841
-                # exc.args: var(matches field), submitted, allowed
-                formStash.fatal_field(
-                    field=exc.args[0],
-                    error_field="Unknown acme_profile (%s); not one of: %s."
-                    % (exc.args[2], exc.args[2]),
-                )
-
-            except formhandling.FormInvalid:
-                raise
-
-            except Exception as exc:  # noqa: F841
-                return HTTPSeeOther(
-                    "%s/acme-orders/all?result=error&operation=new-freeform"
-                    % self.request.api_context.application_settings["admin_prefix"]
-                )
-
-        except formhandling.FormInvalid as exc:  # noqa: F841
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
+                return {
+                    "result": "success",
+                    "AcmeOrder": dbAcmeOrder.as_json,
+                    "is_duplicate_renewal_configuration": is_duplicate_renewal_configuration,
+                }
+            return HTTPSeeOther(
+                "%s/acme-order/%s%s"
+                % (
+                    self.request.api_context.application_settings["admin_prefix"],
+                    dbAcmeOrder.id,
+                    (
+                        "?is_duplicate_renewal_configuration=true"
+                        if is_duplicate_renewal_configuration
+                        else ""
+                    ),
+                )
+            )
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                rval = {"result": "error", "form_errors": exc.formStash.errors}
+                #
+                if "AcmeOrder" in exc.formStash.assets:
+                    rval["AcmeOrder"] = exc.formStash.assets["AcmeOrder"].as_json
+                if "is_duplicate_renewal_configuration" in exc.formStash.assets:
+                    rval["is_duplicate_renewal_configuration"] = exc.formStash.assets[
+                        "is_duplicate_renewal_configuration"
+                    ]
+                return rval
             return formhandling.form_reprint(self.request, self._new_freeform__print)
+
+        except Exception as exc:  # noqa: F841
+            raise
+            # note: allow this on testing
+            # raise
+            return HTTPSeeOther(
+                "%s/acme-orders/all?result=error&operation=new-freeform"
+                % self.request.api_context.application_settings["admin_prefix"]
+            )

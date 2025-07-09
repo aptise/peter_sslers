@@ -14,12 +14,13 @@ from . import db as lib_db
 from .errors import InvalidRequest
 
 if TYPE_CHECKING:
-    from pyramid.request import Request
     from paste.deploy.config import PrefixMiddleware
+    from pyramid.request import Request
     from sqlalchemy.orm.session import Session
+
     from .config_utils import ApplicationSettings
-    from ..model.objects import AcmeServer
     from ..model.objects import AcmeDnsServer
+    from ..model.objects import AcmeServer
     from ..model.objects import OperationsEvent
     from ..model.objects import SystemConfiguration
 

@@ -56,11 +56,16 @@ def main(argv=sys.argv):
 
     # actually, we order the backups first
 
-    _order_missing = tuple(
-        int(j)
-        for j in [i.strip() for i in options.get("order_missing-rcs", "").split(",")]
-        if j
-    ) or None
+    _order_missing = (
+        tuple(
+            int(j)
+            for j in [
+                i.strip() for i in options.get("order_missing-rcs", "").split(",")
+            ]
+            if j
+        )
+        or None
+    )
 
     dbRoutineExecution_1 = lib_db.actions.routine__order_missing(  # noqa: F841
         ctx,

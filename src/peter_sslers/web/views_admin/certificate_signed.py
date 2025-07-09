@@ -1363,9 +1363,13 @@ class View_Focus_Manipulate(View_Focus):
                 % (self._focus_url, utils.urlify(dbAriObject.as_json))
             )
 
-        except (errors.AcmeAriCheckDeclined, errors.AcmeServerError, errors.AcmeServerErrorPublic) as exc:
-        
-            msg: str 
+        except (
+            errors.AcmeAriCheckDeclined,
+            errors.AcmeServerError,
+            errors.AcmeServerErrorPublic,
+        ) as exc:
+
+            msg: str
             if isinstance(exc, errors.AcmeServerError):
                 msg = "%s|%s" % (exc.args[0], str(exc.args[2]))
             else:

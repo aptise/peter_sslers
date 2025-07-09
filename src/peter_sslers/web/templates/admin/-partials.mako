@@ -1953,17 +1953,17 @@
 
 
 
-<%def name="formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile='', dbSystemConfiguration=None,)">
+<%def name="formgroup__AcmeAccount_selector__primary(dbAcmeAccountReuse=None, support_upload=False, support_profiles=False, default_profile='', dbSystemConfiguration=None,)">
     <%
         checked = {
             "none": "",
             "account_key_reuse": "",
-            "account_key_global_default": "",
+            "account_key_global__primary": "",
         }
         if dbAcmeAccountReuse:
             checked["account_key_reuse"] = 'checked="checked"'
         elif not dbAcmeAccountReuse:
-            checked["account_key_global_default"] = 'checked="checked"'
+            checked["account_key_global__primary"] = 'checked="checked"'
         elif not dbAcmeAccountReuse:
             checked["none"] = 'checked="checked"'
         if not dbSystemConfiguration:
@@ -1976,8 +1976,8 @@
         % if dbAcmeAccountReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse"]|n}/>
-                    <input type="hidden" name="account_key_reuse" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
+                    <input type="radio" name="account_key_option__primary" id="account_key_option__primary-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse"]|n}/>
+                    <input type="hidden" name="account_key_reuse__primary" value="${dbAcmeAccountReuse.acme_account_key.key_pem_md5}"/>
                     Select to renew with the same AcmeAccount
                 </label>
                 <p class="form-control-static">
@@ -2001,7 +2001,7 @@
         % if acmeAccount_GlobalDefault:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-account_key_global_default" value="account_key_global_default" ${checked["account_key_global_default"]|n}/>
+                    <input type="radio" name="account_key_option__primary" id="account_key_option__primary-account_key_global__primary" value="account_key_global__primary" ${checked["account_key_global__primary"]|n}/>
                     The Global Default AcmeAccount.
                 </label>
                 <p class="form-control-static">
@@ -2020,7 +2020,7 @@
                     <b>pem md5:</b> <code>${acmeAccount_GlobalDefault.acme_account_key.key_pem_md5}</code><br/>
                     <b>pem line 1:</b> <code>${acmeAccount_GlobalDefault.acme_account_key.key_pem_sample}</code><br/>
                     <b>known profiles:</b> <code>${acmeAccount_GlobalDefault.acme_server.profiles}</code><br/>
-                    <input type="hidden" name="account_key_global_default" value="${acmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>
+                    <input type="hidden" name="account_key_global__primary" value="${acmeAccount_GlobalDefault.acme_account_key.key_pem_md5}"/>
                 </p>
             </div>
         % else:
@@ -2037,38 +2037,38 @@
             </div>
         % endif
         <div class="radio">
-            <label for="account_key_option-account_key_existing">
-                <input type="radio" name="account_key_option" id="account_key_option-account_key_existing" value="account_key_existing"/>
+            <label for="account_key_option__primary-account_key_existing">
+                <input type="radio" name="account_key_option__primary" id="account_key_option__primary-account_key_existing" value="account_key_existing"/>
                 The PEM MD5 of an AcmeAccountKey already enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="account_key_existing" id="account_key_option-account_key_existing" type="text"/>
+               <input class="form-control" name="account_key_existing__primary" id="account_key_option__primary-account_key_existing" type="text"/>
             </div>
         </div>
         <div class="radio">
-            <label for="account_key_option-acme_account_id">
-                <input type="radio" name="account_key_option" id="account_key_option-acme_account_id" value="acme_account_id"/>
+            <label for="account_key_option__primary-acme_account_id__primary">
+                <input type="radio" name="account_key_option__primary" id="account_key_option__primary-acme_account_id__primary" value="acme_account_id"/>
                 The internal ID of an ACME Account enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="acme_account_id" id="account_key_existing-acme_account_id" type="text"/>
+               <input class="form-control" name="acme_account_id__primary" id="account_key_existing-acme_account_id__primary" type="text"/>
             </div>
         </div>
         <div class="radio">
-            <label for="account_key_option-acme_account_url">
-                <input type="radio" name="account_key_option" id="account_key_option-acme_account_url" value="acme_account_url"/>
+            <label for="account_key_option__primary-acme_account_url__primary">
+                <input type="radio" name="account_key_option__primary" id="account_key_option__primary-acme_account_url__primary" value="acme_account_url"/>
                 The ACME Account URL (on the ACME Server).
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="acme_account_url" id="account_key_existing-acme_account_url" type="text"/>
+               <input class="form-control" name="acme_account_url__primary" id="account_key_existing-acme_account_url__primary" type="text"/>
             </div>
         </div>
         % if support_upload:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-account_key_file" value="account_key_file">
+                    <input type="radio" name="account_key_option__primary" id="account_key_option__primary-account_key_file__primary" value="account_key_file">
                     Upload a new AcmeAccount
-                    ${formgroup__AcmeAccount_file()}
+                    ${formgroup__AcmeAccount_file(concept="primary")}
                 </label>
             </div>
         % endif
@@ -2254,7 +2254,11 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccount_file(show_header=True, show_contact=True)">
+<%def name="formgroup__AcmeAccount_file(show_header=True, show_contact=True, concept=None)">
+    <%
+        if concept not in ("primary", "backup"):
+            concept = "primary"
+    %>
     <table class="table table-condensed">
         <thead>
             <tr><th>1) Select Account Defaults</th></tr>
@@ -2284,7 +2288,7 @@
                             </label>
                         </th>
                         <td>
-                            <select class="form-control" id="f1-acme_server_id" name="acme_server_id">
+                            <select class="form-control" id="f1-acme_server_id--${concept}" name="acme_server_id__${concept}">
                                 % for option in AcmeServers:
                                     <option value="${option.id}" ${'selected' if option.is_default else ''}>${option.name} (${option.url})</option>
                                 % endfor
@@ -2298,7 +2302,7 @@
                             </label>
                         </th>
                         <td>
-                            <input class="form-control" type="file" id="f1-account_key_file_pem" name="account_key_file_pem" />
+                            <input class="form-control" type="file" id="f1-account_key_file_pem--${concept}" name="account_key_file_pem__${concept}" />
                         </td>
                     </tr>
                     <tr>
@@ -2307,7 +2311,7 @@
                         </th>
                         <td>
                             <div class="form-group">
-                                <input class="form-control" type="text" id="f1-account__contact" name="account__contact" value=""/>
+                                <input class="form-control" type="text" id="f1-account__contact--${concept}" name="account__contact__${concept}" value=""/>
                             </div>
                         </td>
                     </tr>
@@ -2325,10 +2329,10 @@
                 <table class="table table-condensed table-striped">
                     <tr>
                         <th>
-                            <label for="f1-account_key_file_le_meta">LetsEncrypt meta.json</label>
+                            <label for="f1-account_key_file_le_meta__${concept}">LetsEncrypt meta.json</label>
                         </th>
                         <td>
-                            <input class="form-control" type="file" id="f1-account_key_file_le_meta" name="account_key_file_le_meta" />
+                            <input class="form-control" type="file" id="f1-account_key_file_le_meta--${concept}" name="account_key_file_le_meta__${concept}" />
                         </td>
                     </tr>
                     <tr>
@@ -2336,7 +2340,7 @@
                             <label for="f1-account_key_file_le_pkey">LetsEncrypt private_key.json</label>
                         </th>
                         <td>
-                            <input class="form-control" type="file" id="f1-account_key_file_le_pkey" name="account_key_file_le_pkey" />
+                            <input class="form-control" type="file" id="f1-account_key_file_le_pkey--${concept}" name="account_key_file_le_pkey__${concept}" />
                         </td>
                     </tr>
                     <tr>
@@ -2344,7 +2348,7 @@
                             <label for="f1-account_key_file_le_reg">LetsEncrypt regr.json</label>
                         </th>
                         <td>
-                            <input class="form-control" type="file" id="f1-account_key_file_le_reg" name="account_key_file_le_reg" />
+                            <input class="form-control" type="file" id="f1-account_key_file_le_reg--${concept}" name="account_key_file_le_reg__${concept}" />
                         </td>
                     </tr>
                 </table>
@@ -2618,6 +2622,7 @@
 
 
 <%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_default=None, option_generate_new=None, default=None, support_upload=None, concept=None)">
+    ## currently only used by acme-order/new/freeform
     <%
         if concept not in ("primary", "backup"):
             concept = "primary"
@@ -2644,8 +2649,8 @@
     <div class="form-horizontal">
         % if option_account_default:
             <div class="radio">
-                <label for="private_key_option-account_default">
-                    <input type="radio" name="private_key_option" id="private_key_option-account_default" value="account_default" ${selected["account_default"]|n}>
+                <label for="private_key_option__${concept}-account_default">
+                    <input type="radio" name="private_key_option__${concept}" id="private_key_option__${concept}-account_default" value="account_default" ${selected["account_default"]|n}>
                     Use the AcmeAccount&#39;s Default PrivateKey Settings
                 </label>
             </div>
@@ -2653,7 +2658,7 @@
         % if dbPrivateKeyReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_reuse" value="private_key_reuse"${selected["private_key_reuse"]|n}/>
+                    <input type="radio" name="private_key_option__${concept}" id="private_key_option__${concept}-private_key_reuse" value="private_key_reuse"${selected["private_key_reuse"]|n}/>
                     <input type="hidden" name="private_key_reuse" value="${dbPrivateKeyReuse.key_pem_md5}"/>
                     Select to renew with the same PrivateKey
                 </label>
@@ -2676,11 +2681,11 @@
         % endif        
         % if option_generate_new:
             <div class="radio">
-                <label for="private_key_option-private_key_generate">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate" ${selected["private_key_generate"]|n}>
+                <label for="private_key_option__${concept}-private_key_generate">
+                    <input type="radio" name="private_key_option__${concept}" id="private_key_option__${concept}-private_key_generate" value="private_key_generate" ${selected["private_key_generate"]|n}>
                     Generate a new Private Key
 
-                    <select class="form-control" id="private_key_option-private_key_generate-select" name="private_key_generate">
+                    <select class="form-control" id="private_key_option__${concept}-private_key_generate-select" name="private_key_generate__${concept}">
                         <% _default = model_websafe.KeyTechnology._DEFAULT_Generate %>
                         % for _option_text in model_websafe.KeyTechnology._options_Generate:
                             <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
@@ -2691,18 +2696,18 @@
             </div>
         % endif
         <div class="radio">
-            <label for="private_key_option-private_key_existing">
-                <input type="radio" name="private_key_option" id="private_key_option-private_key_existing" value="private_key_existing"/>
+            <label for="private_key_option__${concept}-private_key_existing">
+                <input type="radio" name="private_key_option__${concept}" id="private_key_option__${concept}-private_key_existing" value="private_key_existing"/>
                 The PEM MD5 of a PrivateKey already enrolled in the system.
             </label>
             <div class="form-control-static">
-               <input class="form-control" name="private_key_existing" id="private_key_existing-pem_md5" type="text"/>
+               <input class="form-control" name="private_key_existing__${concept}" id="private_key_existing__${concept}-pem_md5" type="text"/>
             </div>
         </div>
         % if support_upload:
             <div class="radio">
-                <label for="private_key_option-private_key_file_pem">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_file_pem" value="private_key_file_pem">
+                <label for="private_key_option__${concept}-private_key_file_pem">
+                    <input type="radio" name="private_key_option__${concept}" id="private_key_option__${concept}-private_key_file_pem" value="private_key_file_pem">
                     Upload a new PrivateKey
                         ${formgroup__PrivateKey_file()}
                 </label>

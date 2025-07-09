@@ -48,7 +48,6 @@ from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
-
 if TYPE_CHECKING:
     from ..acme_v2 import AuthenticatedUser
     from ..context import ApiContext

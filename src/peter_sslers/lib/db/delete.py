@@ -8,10 +8,10 @@ from sqlalchemy import delete
 # local
 from ...model import objects as model_objects
 
-# from typing import Optional
-
 if TYPE_CHECKING:
     from ..context import ApiContext
+
+# from typing import Optional
 
 
 # ==============================================================================

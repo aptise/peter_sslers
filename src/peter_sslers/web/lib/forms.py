@@ -303,80 +303,87 @@ class Form_AcmeDnsServer_import_domain(_Form_Schema_Base):
 
 class Form_AcmeOrder_new_freeform(_Form_Schema_Base):
 
-    account_key_option = OneOf(
-        model_utils.AcmeAccountKeyOption.options_basic,
-        not_empty=True,
-    )
-    account_key_global_default = UnicodeString(
-        not_empty=False, if_missing=None, strip=True
-    )
-    account_key_existing = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    acme_account_id = Int(not_empty=False, if_missing=None)
-    acme_account_url = UnicodeString(not_empty=False, if_missing=None, strip=True)
-
-    private_key_option = OneOf(
-        model_utils.PrivateKeyOption.options_basic,
-        not_empty=True,
-    )
-    private_key_existing = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    private_key_generate = OneOf(
-        model_utils.KeyTechnology._options_Generate,
-        not_empty=False,
-        if_missing=None,
-    )
-
-    # inherited:
-    # account_key_global_default = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    # account_key_existing = UnicodeString(not_empty=False, if_missing=None, strip=True)
-
-    account_key_option__backup = OneOf(
-        model_utils.AcmeAccountKeyOption.options_basic_backup,
-        not_empty=False,
-        if_missing=None,
-    )
-    account_key_global__backup = UnicodeString(
-        not_empty=False, if_missing=None, strip=True
-    )
-    account_key_existing__backup = UnicodeString(
-        not_empty=False, if_missing=None, strip=True
-    )
-    acme_account_id__backup = Int(not_empty=False, if_missing=None)
-    acme_account_url__backup = UnicodeString(
-        not_empty=False, if_missing=None, strip=True
-    )
-
-    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    # CORE / Shared
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
-
+    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
     processing_strategy = OneOf(
         model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
         not_empty=True,
     )
 
-    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
-
     # PRIMARY cert
+    account_key_existing__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    account_key_global__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    account_key_option__primary = OneOf(
+        model_utils.AcmeAccountKeyOption.options_basic,
+        not_empty=True,
+    )
+    acme_account_id__primary = Int(not_empty=False, if_missing=None)
+    acme_account_url__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
     acme_profile__primary = UnicodeString(
         not_empty=False, if_missing=None, strip=True, max=64
     )
+
     private_key_cycle__primary = OneOf(
         model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
         not_empty=True,
     )
-    # TODO - update args for private key
+    private_key_existing__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    private_key_option__primary = OneOf(
+        model_utils.PrivateKeyOption.options_basic,
+        not_empty=True,
+    )
+    private_key_generate__primary = OneOf(
+        model_utils.KeyTechnology._options_AcmeOrder_freeform_private_key_generate,
+        not_empty=False,
+        if_missing=None,
+    )
 
     # BACKUP cert
+    account_key_existing__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    account_key_global__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    account_key_option__backup = OneOf(
+        model_utils.AcmeAccountKeyOption.options_basic_backup,
+        not_empty=False,
+        if_missing=None,
+    )
+    acme_account_id__backup = Int(not_empty=False, if_missing=None)
+    acme_account_url__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
     acme_profile__backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True, max=64
     )
+
     private_key_cycle__backup = OneOf(
         model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
-        not_empty=True,
+        not_empty=False,
         if_missing=None,
     )
-    private_key_technology__backup = OneOf(
-        model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology,
-        not_empty=True,
+    private_key_existing__backup = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    private_key_option__backup = OneOf(
+        model_utils.PrivateKeyOption.options_basic__backup,
+        not_empty=False,
+        if_missing=None,
+    )
+    private_key_generate__backup = OneOf(
+        model_utils.KeyTechnology._options_AcmeOrder_freeform_private_key_generate,
+        not_empty=False,
         if_missing=None,
     )
 
@@ -428,6 +435,7 @@ class Form_API_Domain_certificate_if_needed(_Form_Schema_Base):
     account_key_existing__primary = UnicodeString(
         not_empty=False, if_missing=None, strip=True
     )
+
     # this is the `private_key_cycle` of the AcmeOrder renewals
     private_key_cycle__primary = OneOf(
         model_utils.PrivateKeyCycle._options_CertificateIfNeeded_private_key_cycle,
@@ -450,7 +458,7 @@ class Form_API_Domain_certificate_if_needed(_Form_Schema_Base):
 
     # BACKUP
     account_key_option__backup = OneOf(
-        model_utils.AcmeAccountKeyOption.options_streamlined_backup,
+        model_utils.AcmeAccountKeyOption.options_streamlined__backup,
         not_empty=False,
         if_missing=None,
     )
@@ -464,7 +472,7 @@ class Form_API_Domain_certificate_if_needed(_Form_Schema_Base):
         if_missing=None,
     )
     private_key_option__backup = OneOf(
-        model_utils.PrivateKeyOption.options_streamlined_backup,
+        model_utils.PrivateKeyOption.options_streamlined__backup,
         not_empty=False,
         if_missing=None,
     )
@@ -688,17 +696,47 @@ class Form_RenewalConfig_new_order(_Form_Schema_Base):
 
 
 class Form_RenewalConfig_new(_Form_Schema_Base):
-    account_key_option = OneOf(
+
+    # CORE / Shared
+    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
+    is_export_filesystem = OneOf(
+        model_utils.OptionsOnOff._options_RenewalConfiguration_isExportFilesystem,
+        not_empty=False,
+        if_missing="off",
+    )
+
+    # PRIMARY cert
+    account_key_option__primary = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic,
         not_empty=True,
     )
-    account_key_global_default = UnicodeString(
+    account_key_global__primary = UnicodeString(
         not_empty=False, if_missing=None, strip=True
     )
-    account_key_existing = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    acme_account_id = Int(not_empty=False, if_missing=None)
-    acme_account_url = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    account_key_existing__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    acme_account_id__primary = Int(not_empty=False, if_missing=None)
+    acme_account_url__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    acme_profile__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True, max=64
+    )
+    private_key_technology__primary = OneOf(
+        model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+        not_empty=True,
+    )
+    # this is the `private_key_cycle` of the AcmeOrder renewals
+    private_key_cycle__primary = OneOf(
+        model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
+        not_empty=True,
+    )
 
+    # BACKUP cert
     account_key_option__backup = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic_backup,
         not_empty=False,
@@ -714,32 +752,6 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
     acme_account_url__backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True
     )
-
-    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
-    is_export_filesystem = OneOf(
-        model_utils.OptionsOnOff._options_RenewalConfiguration_isExportFilesystem,
-        not_empty=False,
-        if_missing="off",
-    )
-
-    # PRIMARY cert
-    acme_profile__primary = UnicodeString(
-        not_empty=False, if_missing=None, strip=True, max=64
-    )
-    private_key_technology__primary = OneOf(
-        model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology,
-        not_empty=True,
-    )
-    # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle__primary = OneOf(
-        model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle,
-        not_empty=True,
-    )
-
-    # BACKUP cert
     acme_profile__backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True, max=64
     )
@@ -761,13 +773,30 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
 
 
 class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
-    account_key_option = OneOf(
+
+    if False:
+        # CORE / Shared
+        note = UnicodeString(not_empty=False, if_missing=None, strip=True)
+        label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
+        is_export_filesystem = OneOf(
+            model_utils.OptionsOnOff._options_RenewalConfiguration_isExportFilesystem,
+            not_empty=False,
+            if_missing="off",
+        )
+
+    # PRIMARY cert
+    account_key_option__primary = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic_reuse,
         not_empty=True,
     )
-    account_key_reuse = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    acme_account_id = Int(not_empty=False, if_missing=None)
-    acme_account_url = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    account_key_reuse__primary = UnicodeString(
+        not_empty=False, if_missing=None, strip=True
+    )
+    if False:
+        acme_account_id__primary = Int(not_empty=False, if_missing=None)
+        acme_account_url__primary = UnicodeString(
+            not_empty=False, if_missing=None, strip=True
+        )
 
     account_key_option__backup = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic_backup_reuse,
@@ -777,19 +806,14 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
     account_key_reuse__backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True
     )
-    acme_account_id__backup = Int(not_empty=False, if_missing=None)
-    acme_account_url__backup = UnicodeString(
-        not_empty=False, if_missing=None, strip=True
-    )
-
-    acme_profile = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
-    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
-    is_export_filesystem = OneOf(
-        model_utils.OptionsOnOff._options_RenewalConfiguration_isExportFilesystem,
-        not_empty=False,
-        if_missing="off",
-    )
+    if False:
+        acme_account_id__backup = Int(not_empty=False, if_missing=None)
+        acme_account_url__backup = UnicodeString(
+            not_empty=False, if_missing=None, strip=True
+        )
+        acme_profile__primary = UnicodeString(
+            not_empty=False, if_missing=None, strip=True, max=64
+        )
 
 
 class Form_RenewalConfig_new_enrollment(_Form_Schema_Base):

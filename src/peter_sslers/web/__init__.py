@@ -24,9 +24,10 @@ from ..lib.utils import unurlify
 from ..model import websafe as model_websafe
 
 if TYPE_CHECKING:
+    from pyramid.request import Request
+
     # from .context import ApiContext
     # from ..model.objects import Domain
-    from pyramid.request import Request
 
 
 # ==============================================================================

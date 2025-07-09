@@ -76,18 +76,18 @@
                             </td>
                         </tr>
                         <tr>
-                            <th>Key Technology</th>
-                            <td>
-                               ${admin_partials.formgroup__key_technology(
-                                   field_name="private_key_technology__primary",
-                                )}
-                            </td>
-                        </tr>
-                        <tr>
                             <th>Key Cycling</th>
                             <td>
                                ${admin_partials.formgroup__private_key_cycle(
                                    field_name="private_key_cycle__primary",
+                                )}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Key Technology</th>
+                            <td>
+                               ${admin_partials.formgroup__key_technology(
+                                   field_name="private_key_technology__primary",
                                 )}
                             </td>
                         </tr>
@@ -127,18 +127,18 @@
                             </td>
                         </tr>
                         <tr>
-                            <th>Key Technology</th>
-                            <td>
-                               ${admin_partials.formgroup__key_technology(
-                                   field_name="private_key_technology__backup",
-                                )}
-                            </td>
-                        </tr>
-                        <tr>
                             <th>Key Cycle</th>
                             <td>
                                ${admin_partials.formgroup__private_key_cycle(
                                    field_name="private_key_cycle__backup",
+                                )}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Key Technology</th>
+                            <td>
+                               ${admin_partials.formgroup__key_technology(
+                                   field_name="private_key_technology__backup",
                                 )}
                             </td>
                         </tr>

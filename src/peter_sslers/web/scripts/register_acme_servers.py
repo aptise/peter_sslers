@@ -99,6 +99,7 @@ def main(argv=sys.argv):
     fpath = argv[3] if action in ("register", "export") else None
 
     if action == "register":
+        assert isinstance(fpath, str)  # typing
         if not os.path.exists(fpath):
             raise ValueError("%s is not a file" % fpath)
         with open(fpath, "r") as fh:
@@ -132,11 +133,10 @@ def main(argv=sys.argv):
         ctx.pyramid_transaction_commit()
 
     elif action == "export":
-
+        assert isinstance(fpath, str)  # typing
         if os.path.exists(fpath):
             raise ValueError("filepath `%s` exists" % fpath)
 
-        #
         ctx = new_scripts_setup(config_uri, options=None)
 
         exportServers = []

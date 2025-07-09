@@ -221,7 +221,7 @@ class ViewAdminApi_Domain(Handler):
                 "{ADMIN_PREFIX}/api/domain/certificate-if-needed.json",
             ],
             "requirements": [
-                "Submit corresponding field(s) to account_key_option, e.g. `account_key_existing` or `account_key_global_default`.",
+                "Submit corresponding field(s) to account_key_option, e.g. `account_key_existing` or `account_key_global__primary`.",
             ],
             "form_fields": {
                 # CORE

@@ -5,6 +5,12 @@ from typing import TYPE_CHECKING
 from typing import Union
 import warnings
 
+if TYPE_CHECKING:
+    from pyramid.request import Request
+
+    from ..model.objects import CertificateSigned
+    from ..model.objects import Domain
+
 # pypi
 try:
     from redis import Redis
@@ -17,12 +23,6 @@ except ImportError as exc:  # noqa: F841
 
     Redis = None  # type: ignore[assignment, misc]
     RedisError = _FakeRedisError  # type: ignore[assignment, misc]
-
-
-if TYPE_CHECKING:
-    from pyramid.request import Request
-    from ..model.objects import Domain
-    from ..model.objects import CertificateSigned
 
 # ==============================================================================
 

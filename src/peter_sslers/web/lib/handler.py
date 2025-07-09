@@ -11,12 +11,10 @@ from pyramid.httpexceptions import HTTPFound
 from ...lib import db as lib_db
 from ...model.objects import CertificateCAPreferencePolicy
 
-
-# ==============================================================================
-
 if TYPE_CHECKING:
     from pyramid.request import Request
 
+# ==============================================================================
 
 # misc config options
 items_per_page = 50

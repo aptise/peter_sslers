@@ -72,10 +72,10 @@ from peter_sslers.web.models import get_engine
 from peter_sslers.web.models import get_session_factory
 from .regex_library import RE_AcmeOrder
 
-# from peter_sslers.lib.utils import RequestCommandline
-
 if TYPE_CHECKING:
     from webob import Response
+
+# from peter_sslers.lib.utils import RequestCommandline
 
 # ==============================================================================
 
@@ -1182,7 +1182,7 @@ TEST_FILES: Dict = {
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle__primary": "account_daily",
-                "private_key_option": "account_default",
+                "private_key_option__primary": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-a.example.com",
                     "new-freeform-1-b.example.com",
@@ -1195,7 +1195,7 @@ TEST_FILES: Dict = {
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle__primary": "account_daily",
-                "private_key_option": "account_default",
+                "private_key_option__primary": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-c.example.com",
                     "new-freeform-1-d.example.com",
@@ -1695,7 +1695,7 @@ def make_one__AcmeOrder__api(
 ) -> model_objects.AcmeOrder:
     """
     Creates an AcmeOrder using the html API based on specified domain names
-    the `account_key_global_default` is used
+    the `account_key_global__primary` is used
     """
 
     # pebble loses state, so:
@@ -1706,10 +1706,10 @@ def make_one__AcmeOrder__api(
     )
     form = res.form
     _form_fields = form.fields.keys()
-    assert "account_key_option" in _form_fields
-    form["account_key_option"].force_value("account_key_global_default")
+    assert "account_key_option__primary" in _form_fields
+    form["account_key_option__primary"].force_value("account_key_global__primary")
     form["private_key_cycle__primary"] = private_key_cycle__primary
-    form["private_key_option"] = private_key_option
+    form["private_key_option__primary"] = private_key_option
     if domain_names_http01:
         form["domain_names_http01"] = domain_names_http01
     if domain_names_dns01:
@@ -1790,8 +1790,8 @@ def make_one__RenewalConfiguration__api(
     assert "form_fields" in res.json
 
     form: Dict[str, Optional[str]] = {}
-    form["account_key_option"] = "account_key_existing"
-    form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
+    form["account_key_option__primary"] = "account_key_existing"
+    form["account_key_existing__primary"] = dbAcmeAccount.acme_account_key.key_pem_md5
     form["private_key_cycle__primary"] = private_key_cycle
     form["private_key_technology__primary"] = key_technology
     form["domain_names_http01"] = domain_names_http01
@@ -1818,6 +1818,7 @@ def make_one__RenewalConfiguration__api(
 def setup_SystemConfiguration__api(
     testCase: CustomizedTestCase,
     policy_name: Literal["autocert", "certificate-if-needed"],
+    ensure_auth: bool = True,
 ) -> model_objects.AcmeOrder:
     """
     Uses the json API to copy the global configuration onto another specified policy
@@ -1871,21 +1872,27 @@ def setup_SystemConfiguration__api(
     dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
         testCase.ctx, policy_name
     )
+    assert dbSystemConfiguration
+    if not dbSystemConfiguration.is_configured:
+        print("Why is this happening?")
+        # this does not use `get`; it should be a fresh load
+        testCase.ctx.dbSession.expire(dbSystemConfiguration)
 
     assert dbSystemConfiguration
     assert dbSystemConfiguration.is_configured
 
-    # ensure auth/reg
-    # pebble loses state across tests
-    ensure_AcmeAccount_auth(
-        testCase=testCase,
-        acme_account_id=dbSystemConfiguration_global.acme_account_id__primary,
-    )
-    if dbSystemConfiguration_global.acme_account_id__backup:
+    if ensure_auth:
+        # ensure auth/reg
+        # pebble loses state across tests
         ensure_AcmeAccount_auth(
             testCase=testCase,
-            acme_account_id=dbSystemConfiguration_global.acme_account_id__backup,
+            acme_account_id=dbSystemConfiguration_global.acme_account_id__primary,
         )
+        if dbSystemConfiguration_global.acme_account_id__backup:
+            ensure_AcmeAccount_auth(
+                testCase=testCase,
+                acme_account_id=dbSystemConfiguration_global.acme_account_id__backup,
+            )
 
     return dbSystemConfiguration
 

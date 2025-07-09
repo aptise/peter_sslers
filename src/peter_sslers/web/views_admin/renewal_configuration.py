@@ -35,8 +35,9 @@ from ...model.objects import AcmeOrder
 from ...model.objects import RenewalConfiguration
 
 if TYPE_CHECKING:
-    from pyramid_formencode_classic import FormStash
     from pyramid.request import Request
+    from pyramid_formencode_classic import FormStash
+
     from ...model.objects import CertificateSigned
     from ...model.objects import EnrollmentFactory
     from ...model.utils import DomainsChallenged
@@ -188,14 +189,20 @@ def submit__new(
     acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
         request,
         formStash,
+        context="primary",
+        allow_none=False,
         require_contact=False,
         support_upload=False,
     )
     assert acmeAccountSelection.AcmeAccount is not None
 
-    acmeAccountSelection_backup = form_utils.parse_AcmeAccountSelection_backup(
+    acmeAccountSelection_backup = form_utils.parse_AcmeAccountSelection(
         request,
         formStash,
+        context="backup",
+        allow_none=True,
+        require_contact=False,
+        support_upload=False,
     )
 
     # shared
@@ -361,14 +368,20 @@ def submit__new_configuration(
         acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
             request,
             formStash,
+            context="primary",
+            allow_none=False,
             require_contact=False,
             support_upload=False,
         )
         assert acmeAccountSelection.AcmeAccount is not None
 
-        acmeAccountSelection_backup = form_utils.parse_AcmeAccountSelection_backup(
+        acmeAccountSelection_backup = form_utils.parse_AcmeAccountSelection(
             request,
             formStash,
+            context="backup",
+            allow_none=True,
+            require_contact=False,
+            support_upload=False,
         )
 
         # shared
@@ -1400,11 +1413,11 @@ class View_Focus_New(View_Focus):
                 "note": "A string to associate with the RenewalConfiguration.",
                 "label": "A short string used to label the RenewalConfiguration on exports. [Optional]",
                 # primary cert
-                "account_key_option": "How is the AcmeAccount specified?",
-                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`; used to ensure the default did not change.",
-                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "acme_account_id": "local AcmeAccount id. Must/Only submit if `account_key_option==acme_account_id`",
-                "acme_account_url": "AcmeAccount's URL. Must/Only submit if `account_key_option==acme_account_url`",
+                "account_key_option__primary": "How is the AcmeAccount specified?",
+                "account_key_global__primary": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option__primary==account_key_global__primary`; used to ensure the default did not change.",
+                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option__primary==account_key_existing`",
+                "acme_account_id__primary": "local AcmeAccount id. Must/Only submit if `account_key_option__primary==acme_account_id`",
+                "acme_account_url__primary": "AcmeAccount's URL. Must/Only submit if `account_key_option__primary==acme_account_url`",
                 "private_key_cycle__primary": "how should the PrivateKey be cycled on renewals?",
                 "private_key_technology__primary": "what kind of keys to use?",
                 "acme_profile__primary": "The name of an ACME Profile on the ACME Server",
@@ -1421,11 +1434,11 @@ class View_Focus_New(View_Focus):
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
                 [
-                    "account_key_option",
-                    "account_key_global_default",
-                    "account_key_existing",
-                    "acme_account_id",
-                    "acme_account_url",
+                    "account_key_option__primary",
+                    "account_key_global__primary",
+                    "account_key_existing__primary",
+                    "acme_account_id__primary",
+                    "acme_account_url__primary",
                 ],
                 [
                     "account_key_option__backup",
@@ -1437,8 +1450,8 @@ class View_Focus_New(View_Focus):
             ],
             "valid_options": {
                 "SystemConfigurations": "{RENDER_ON_REQUEST}",
-                "account_key_option": Form_RenewalConfig_new_configuration.fields[
-                    "account_key_option"
+                "account_key_option__primary": Form_RenewalConfig_new_configuration.fields[
+                    "account_key_option__primary"
                 ].list,
                 "account_key_option__backup": Form_RenewalConfig_new.fields[
                     "account_key_option__backup"
@@ -1626,11 +1639,11 @@ class View_New(Handler):
                 "note": "A string to associate with the RenewalConfiguration.",
                 "label": "A short string used to label the RenewalConfiguration on exports. [Optional]",
                 # primary cert
-                "account_key_option": "How is the AcmeAccount specified?",
-                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`; used to ensure the default did not change.",
-                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                "acme_account_id": "local id of AcmeAccount. Must/Only submit if `account_key_option==acme_account_id`",
-                "acme_account_url": "AcmeAccount's URL. Must/Only submit if `account_key_option==acme_account_url`",
+                "account_key_option__primary": "How is the AcmeAccount specified?",
+                "account_key_global__primary": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option__primary==account_key_global__primary`; used to ensure the default did not change.",
+                "account_key_existing__primary": "pem_md5 of any key. Must/Only submit if `account_key_option__primary==account_key_existing`",
+                "acme_account_id__primary": "local id of AcmeAccount. Must/Only submit if `account_key_option__primary==acme_account_id`",
+                "acme_account_url__primary": "AcmeAccount's URL. Must/Only submit if `account_key_option__primary==acme_account_url`",
                 "private_key_cycle__primary": "how should the PrivateKey be cycled on renewals?",
                 "private_key_technology__primary": "what kind of keys to use?",
                 "acme_profile__primary": """The name of an ACME Profile on the ACME Server.
@@ -1652,12 +1665,12 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
             "form_fields_related": [
                 ["domain_names_http01", "domain_names_dns01"],
                 [
-                    "account_key_option",
-                    "account_key_global_default",
-                    "account_key_existing",
+                    "account_key_option__primary",
+                    "account_key_global__primary",
+                    "account_key_existing__primary",
                     "acme_profile__primary",
-                    "acme_account_id",
-                    "acme_account_url",
+                    "acme_account_id__primary",
+                    "acme_account_url__primary",
                 ],
                 [
                     "account_key_option__backup",
@@ -1670,8 +1683,8 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
             ],
             "valid_options": {
                 "SystemConfigurations": "{RENDER_ON_REQUEST}",
-                "account_key_option": Form_RenewalConfig_new.fields[
-                    "account_key_option"
+                "account_key_option__primary": Form_RenewalConfig_new.fields[
+                    "account_key_option__primary"
                 ].list,
                 "account_key_option__backup": Form_RenewalConfig_new.fields[
                     "account_key_option__backup"

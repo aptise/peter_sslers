@@ -41,8 +41,8 @@ from ...model.objects import AriCheck
 from ...model.objects import CertificateSigned
 from ...model.utils import AcmeServerInput
 
-
 if TYPE_CHECKING:
+    from ..context import ApiContext
     from ...model.objects import AcmeAccount
     from ...model.objects import Domain
     from ...model.objects import OperationsEvent
@@ -52,7 +52,6 @@ if TYPE_CHECKING:
     from ...model.objects import SystemConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.utils import DomainsChallenged
-    from ..context import ApiContext
 
 
 # ==============================================================================

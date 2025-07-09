@@ -36,7 +36,6 @@ from ...lib import db as lib_db  # noqa: F401
 from ...lib.utils import validate_config_uri
 from ...model import objects as model_objects
 
-
 if TYPE_CHECKING:
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
@@ -422,8 +421,12 @@ def main(argv=sys.argv):
             elif subcommand == "clear":
                 # !!!: - clear - help
                 if "help" in options:
-                    print("submit either `acme_account_id=INT` or `acme_server_id=INT`.")
-                    print("you may submit `unique_fqdn_set_id=INT` with `acme_server_id`.")
+                    print(
+                        "submit either `acme_account_id=INT` or `acme_server_id=INT`."
+                    )
+                    print(
+                        "you may submit `unique_fqdn_set_id=INT` with `acme_server_id`."
+                    )
                     exit(0)
                 acme_account_id = options.get("acme_account_id", None)
                 acme_server_id = options.get("acme_server_id", None)

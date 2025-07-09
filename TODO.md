@@ -28,10 +28,47 @@ Test Needed
         is it worth improving the errors?
 
 Standardize Fields
+    private_key_cycle --> private_key_cycle__primary
+
     /acme-order/new/freeform
+        account_key_option -> account_key_option__primary
         private_key_option -> private_key_option__primary
-        private_key_generate -> private_key_generate__primary
+            parse_PrivateKeySelection
+            formgroup__PrivateKey_selector__advanced
+                # only used by acme-order/new/freeform
+        
         private_key_existing -> private_key_existing__primary ???(pem_md5 vs id)???
+            parse_PrivateKeySelection
+
+Streamline Concept
+    PrivateKeyDeferred private_key_deferred_id
+
+        Currently:
+            NOT_DEFERRED = 0
+            ACCOUNT_DEFAULT = 1  # Placeholder
+            ACCOUNT_ASSOCIATE = 2
+            SYSTEM_CONFIGURATION_DEFAULT = 3  # Placeholder
+            # Specifically Requested Keys
+            GENERATE__RSA_2048 = 11
+            GENERATE__RSA_3072 = 12
+            GENERATE__RSA_4096 = 13
+            GENERATE__EC_P256 = 14
+            GENERATE__EC_P384 = 15
+        
+        Target
+            NOT_DEFERRED = 0
+            ACCOUNT_DEFAULT = 1  # Placeholder
+            ACCOUNT_ASSOCIATE = 2
+            SYSTEM_CONFIGURATION_DEFAULT = 3  # Placeholder
+            GENERATE = 4
+            
+            Then use another field to dictiate the genreateed type
+        
+        
+
+
+
+
 
 
 Tests

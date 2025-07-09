@@ -14,11 +14,11 @@ from . import utils
 from ..lib.db.logger import log__OperationsEvent
 from ..model import utils as model_utils
 
-
 if TYPE_CHECKING:
+    from pyramid.request import Request
+
     from .context import ApiContext
     from ..model.objects import Domain
-    from pyramid.request import Request
 
 # ==============================================================================
 

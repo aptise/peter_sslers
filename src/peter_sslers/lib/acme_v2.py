@@ -54,6 +54,14 @@ from .. import USER_AGENT
 from ..model import utils as model_utils
 
 if TYPE_CHECKING:
+    from email.message import Message
+    from http.client import HTTPMessage
+
+    from requests import Response
+    from requests.structures import CaseInsensitiveDict
+
+    from .context import ApiContext
+    from .db.logger import AcmeLogger
     from ..model.objects import AcmeAccount
     from ..model.objects import AcmeAccountKey
     from ..model.objects import AcmeAuthorization
@@ -63,12 +71,6 @@ if TYPE_CHECKING:
     from ..model.objects import CertificateSigned
     from ..model.objects import UniqueFQDNSet
     from ..model.utils import DomainsChallenged
-    from .db.logger import AcmeLogger
-    from .context import ApiContext
-    from email.message import Message
-    from http.client import HTTPMessage
-    from requests import Response
-    from requests.structures import CaseInsensitiveDict
 
     HEADERS_COMPAT = Union["HTTPMessage", "CaseInsensitiveDict", "Message"]
 

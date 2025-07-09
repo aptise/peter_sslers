@@ -76,15 +76,15 @@ if not domain_primary_certs:
     _rjson = r.json()
     if not _rjson["RenewalConfigurations"]:
         form = {
-            "account_key_option": "account_key_global_default",
-            "account_key_global_default": _default["AcmeAccountKey"]["key_pem_md5"],
+            "account_key_option": "account_key_global__primary",
+            "account_key_global__primary": _default["AcmeAccountKey"]["key_pem_md5"],
             "profile": "shortlived",
             "account_key_option__backup": "account_key_global__backup",
             "account_key_global__backup": _backup["AcmeAccountKey"]["key_pem_md5"],
             "profile": "shortlived",
             "key_technology": "account_default",
             "private_key_cycle": "account_default",
-            "private_key_option": "account_default",
+            "private_key_option__primary": "account_default",
             "domain_names_http01": domain_name,
             "processing_strategy": "process_single",
             "note": "API Request; Record X",

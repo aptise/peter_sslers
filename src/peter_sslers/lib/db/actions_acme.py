@@ -58,24 +58,23 @@ from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
-# from .getcreate import getcreate__UniqueFQDNSet__by_domains
-
 if TYPE_CHECKING:
+    from ..acme_v2 import AcmeOrderRFC
+    from ..acme_v2 import AriCheckResult
+    from ..acme_v2 import AuthenticatedUser
+    from ..context import ApiContext
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAuthorization
     from ...model.objects import AcmeChallenge
-    from ...model.objects import AriCheck
     from ...model.objects import AcmeOrder
     from ...model.objects import AcmeServer
+    from ...model.objects import AriCheck
     from ...model.objects import CertificateSigned
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
-    from ..acme_v2 import AcmeOrderRFC
-    from ..acme_v2 import AuthenticatedUser
-    from ..acme_v2 import AriCheckResult
-    from ..context import ApiContext
 
 
+# from .getcreate import getcreate__UniqueFQDNSet__by_domains
 # from .logger import _log_object_event
 
 # ==============================================================================
