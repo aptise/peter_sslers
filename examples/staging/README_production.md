@@ -8,6 +8,12 @@ This is a production version of https://github.com/aptise/peter_sslers/tree/main
 
 ### initialize new data store
 
+    cd ~/peter_sslers
+    mkdir data_production
+    touch data_production/nginx_ca_bundle.pem
+    cp example_configs/production.ini data_production/config.ini
+    vi data_production/config.ini
+
     initialize_peter_sslers_db data_production
 
 ### Create AcmeAccount: LetsEncrypt
@@ -169,7 +175,7 @@ According to the above, `acme_server_id = 2; PEBBLE TEST 2`::
 
     cd ~/peter_sslers/examples/staging
     export ROOT_DOMAIN="aptise.com"
-    python _generate_openresty.py
+    python generate_openresty.py
 
 ## Test and Restart OpenResty
 

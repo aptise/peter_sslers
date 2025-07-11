@@ -1,0 +1,103 @@
+# this file just iterates through the directions in the README, ensuring they work
+
+### initialize new data store
+
+    mkdir data_testrun
+    touch data_testrun/nginx_ca_bundle.pem
+    cp example_configs/development.ini data_testrun/config.ini
+    vi data_testrun/config.ini
+    initialize_peter_sslers_db data_testrun
+
+### Create AcmeAccount: Pebble 1
+
+    ssl_manage data_testrun acme-server list
+
+According to the above, `acme_server_id = 1; PEBBLE TEST 1`::
+    
+    ssl_manage data_testrun acme-account new \
+        acme_server_id=1 \
+        account__order_default_private_key_cycle=single_use \
+        account__order_default_private_key_technology=RSA_2048 \
+        account__private_key_technology=RSA_2048 \
+        account__contact="peter_sslers@2xlp.com"
+
+    ssl_manage data_testrun acme-account authenticate id=1
+
+### Create AcmeAccount: Pebble 2
+
+According to the above, `acme_server_id = 2; PEBBLE TEST 2`::
+
+    ssl_manage data_testrun acme-account new \
+        acme_server_id=2 \
+        account__order_default_private_key_cycle=single_use \
+        account__order_default_private_key_technology=RSA_2048 \
+        account__private_key_technology=RSA_2048 \
+        account__contact="peter_sslers@2xlp.com"
+
+    ssl_manage data_testrun acme-account authenticate id=2
+
+### Create a Renewal Configuration for the main landing page
+
+    ssl_manage data_testrun renewal-configuration new \
+        domain_names_http01="dev.peter-sslers.testing.opensource.aptise.com" \
+        is_export_filesystem="on" \
+        label="dev.peter-sslers.testing.opensource.aptise.com" \
+        account_key_option__primary=acme_account_id \
+        account_key_option__backup=acme_account_id \
+        acme_account_id__primary=1 \
+        acme_account_id__backup=2 \
+        private_key_cycle__primary="account_default" \
+        private_key_cycle__backup="account_default" \
+        private_key_technology__primary="account_default" \
+        private_key_technology__backup="account_default"
+
+# configure acme-dns
+
+    ssl_manage data_testrun acme-dns-server new \
+        api_url="http://localhost:8011" \
+        domain="acme-dns.aptise.com"
+
+    ssl_manage data_testrun acme-dns-server list
+    ssl_manage data_testrun acme-dns-server check id=1
+
+
+## Create an EnrollmentFactory
+
+    ssl_manage data_testrun enrollment-factory list
+
+    ssl_manage data_testrun enrollment-factory new \
+        acme_account_id__primary=1 \
+        domain_template_dns01="dns-01.{DOMAIN}" \
+        domain_template_http01="http-01.{DOMAIN}" \
+        is_export_filesystem=on \
+        label_template="chall_prefix-{DOMAIN}" \
+        name="dns-http-example" \
+        private_key_cycle__primary=account_weekly \
+        private_key_technology__primary=EC_P256 \
+        acme_account_id__backup=2 \
+        private_key_cycle__backup=account_weekly \
+        private_key_technology__backup=EC_P256
+
+    ssl_manage data_testrun renewal-configuration list
+
+    ssl_manage data_testrun renewal-configuration new-enrollment \
+        enrollment_factory_id=1 \
+        domain_name="a.peter-sslers.testing.opensource.aptise.com" \
+        label="chall_prefix-{DOMAIN}" \
+        is_export_filesystem=enrollment_factory_default
+
+## Run the audit tools
+
+    acme_dns_audit data_testrun format=json
+    cat data_testrun/acme_dns_audit-accounts.json | jq  
+    
+## order the certs
+
+    routine__automatic_orders data_testrun dry-run=1
+
+    routine__automatic_orders data_testrun
+
+## Now list the certs::
+
+    ls -alh data_testrun/certificates
+    ls -alh data_testrun/certificates/*

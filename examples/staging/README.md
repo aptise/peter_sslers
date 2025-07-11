@@ -109,7 +109,7 @@ Switch to this directory::
 
 In this example, the Cloudflare API is used to generate the core DNS records.
 
-The script used to generate this is included, `_cloudflare_a_records.py`
+The script used to generate this is included, `cloudflare_a_records.py`
 
 You will need the following info:
 
@@ -131,7 +131,7 @@ All other dependencies should be installed by peter_sslers already.
 Running the following script will generate the necessary A records for your DNS;
 CNAME and TXT records will be handled later.
 
-    python _cloudflare_a_records.py
+    python cloudflare_a_records.py
 
 This will create the following records pointing to your dns:
 
@@ -140,7 +140,7 @@ This will create the following records pointing to your dns:
 
 ## Generate nginx/openresty config files, part 1
 
-A second script, `_generate_openresty.py`, is used to generate the following files:
+A second script, `generate_openresty.py`, is used to generate the following files:
 
 * OpenResty/Nginx configuration files
 * Index.html files to serve
@@ -149,7 +149,7 @@ This script will be invoked multiple times; the contents of the files it generat
 are controlled by your progress in this tutorial::
 
     export ROOT_DOMAIN=aptise.com
-    python _generate_openresty.py
+    python generate_openresty.py
 
 Create symlinks for the files to serve::
 
@@ -210,7 +210,7 @@ it may need to be increased more depending on the number of domains you already 
 
 ## ensure there is no SSL here, because we don't have a cert yet!
 
-The `_generate_openresty.py` script should have detected this situation, and NOT generated any 443 blocks.
+The `generate_openresty.py` script should have detected this situation, and NOT generated any 443 blocks.
 
 You can ensure that with::
 
@@ -390,7 +390,7 @@ For this installation, we will create a `certificates` directory in our dedicate
 Now that there are Certificates procured, we want to regenerate the openresty files::
 
     cd ~/peter_sslers/examples/staging
-    python _generate_openresty.py
+    python generate_openresty.py
 
 Look at the generated files, and check to ensure there are HTTPS blocks::
 
@@ -654,11 +654,11 @@ First, link the Certificates on-disk to our openresty installation::
     sudo ln -s ~/peter_sslers/data_staging/certificates/dns-http-example/chall_prefix-* .
     ls -alh .
 
-Next, run the `_generate_openresty` script again; it will detect the certificates
+Next, run the `generate_openresty.py` script again; it will detect the certificates
 and upgrade the various websites::
 
     cd ~/peter_sslers/examples/staging
-    python _generate_openresty.py
+    python generate_openresty.py
     sudo openresty -t
     ps aux | grep openresty
     kill -HUP ##PID##
