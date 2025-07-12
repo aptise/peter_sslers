@@ -1057,7 +1057,9 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
         log.info("> refresh_pebble_ca_certs X no pebble")
         return False
 
-    r0 = requests.get("https://127.0.0.1:15000/roots/0", verify=False)
+    ca_bundle_file = pebbleServer.local_ca_bundle(ctx) or False
+
+    r0 = requests.get("https://127.0.0.1:15000/roots/0", verify=ca_bundle_file)
     if r0.status_code != 200:
         raise ValueError("Could not load first root")
     root_pems = [
@@ -1066,7 +1068,7 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
     alternates = acme_v2.get_header_links(r0.headers, "alternate")
     if alternates:
         for _alt in alternates:
-            _r = requests.get(_alt, verify=False)
+            _r = requests.get(_alt, verify=ca_bundle_file)
             if _r.status_code != 200:
                 raise ValueError("Could not load additional root")
             root_pems.append(_r.text)

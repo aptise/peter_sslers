@@ -99,7 +99,9 @@ class ApiContext(object):
         """
         Loads the autocert :class:`model.objects.SystemConfiguration` into the view's :attr:`.dbSystemConfiguration_autocert`.
         """
-        return lib_db.get.get__SystemConfiguration__by_name(self, "autocert")
+        return lib_db.get.get__SystemConfiguration__by_name(
+            self, "autocert", eagerload_acme_accounts=True
+        )
 
     @reify
     def dbSystemConfiguration_cin(self) -> Optional["SystemConfiguration"]:
@@ -107,7 +109,7 @@ class ApiContext(object):
         Loads the certificate-if-needed :class:`model.objects.SystemConfiguration` into the view's :attr:`.dbSystemConfiguration_cin`.
         """
         return lib_db.get.get__SystemConfiguration__by_name(
-            self, "certificate-if-needed"
+            self, "certificate-if-needed", eagerload_acme_accounts=True
         )
 
     @reify
@@ -115,7 +117,9 @@ class ApiContext(object):
         """
         Loads the global :class:`model.objects.SystemConfiguration` into the view's :attr:`.dbSystemConfiguration_global`.
         """
-        return lib_db.get.get__SystemConfiguration__by_name(self, "global")
+        return lib_db.get.get__SystemConfiguration__by_name(
+            self, "global", eagerload_acme_accounts=True
+        )
 
     # -----
 

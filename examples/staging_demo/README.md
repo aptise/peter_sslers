@@ -103,7 +103,7 @@ You might prefer installing some extra packages (recommended) with::
 
 Switch to this directory::
 
-    cd examples/staging
+    cd examples/staging_demo
 
 ## Set up DNS `A` records for test domains
 
@@ -154,14 +154,14 @@ are controlled by your progress in this tutorial::
 Create symlinks for the files to serve::
 
     cd /var/www/sites
-    sudo ln -s ~/peter_sslers/examples/staging/www com.aptise.opensource.testing.peter_sslers
+    sudo ln -s ~/peter_sslers/examples/staging_demo/www com.aptise.opensource.testing.peter_sslers
     ls -alh com.aptise.opensource.testing.peter_sslers
     ls -alh com.aptise.opensource.testing.peter_sslers/
 
 Create symlinks for the nginx configuration files::
 
     cd /etc/openresty
-    sudo ln -s ~/peter_sslers/examples/staging/nginx_conf/com.aptise.opensource.testing.peter_sslers_ .
+    sudo ln -s ~/peter_sslers/examples/staging_demo/nginx_conf/com.aptise.opensource.testing.peter_sslers_ .
     ls -alh com.aptise.opensource.testing.peter_sslers_
     ls -alh com.aptise.opensource.testing.peter_sslers_/
 
@@ -389,7 +389,7 @@ For this installation, we will create a `certificates` directory in our dedicate
 
 Now that there are Certificates procured, we want to regenerate the openresty files::
 
-    cd ~/peter_sslers/examples/staging
+    cd ~/peter_sslers/examples/staging_demo
     python generate_openresty.py
 
 Look at the generated files, and check to ensure there are HTTPS blocks::
@@ -657,7 +657,7 @@ First, link the Certificates on-disk to our openresty installation::
 Next, run the `generate_openresty.py` script again; it will detect the certificates
 and upgrade the various websites::
 
-    cd ~/peter_sslers/examples/staging
+    cd ~/peter_sslers/examples/staging_demo
     python generate_openresty.py
     sudo openresty -t
     ps aux | grep openresty
@@ -790,4 +790,4 @@ it should have a lock. you may need to restart your browser.
 
 # Doing this on Production
 
-https://github.com/aptise/peter_sslers/tree/main/examples/staging/README_production.md
+https://github.com/aptise/peter_sslers/tree/main/examples/staging_demo/README_production.md

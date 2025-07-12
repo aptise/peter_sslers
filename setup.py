@@ -45,7 +45,7 @@ requires = [
     "typing_extensions",
     "urllib3>2.4.0",
     "waitress",
-    "zope.sqlalchemy>=1.6",  # support for python2&3
+    "zope.sqlalchemy",
 ]
 tests_require = [
     "certbot",
@@ -90,7 +90,7 @@ setup(
     ),
     package_dir={"": "src"},
     include_package_data=True,
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     install_requires=requires,
     tests_require=tests_require,
     extras_require={

@@ -401,17 +401,27 @@ def new_test_connections() -> ApiContext:
     return ctx
 
 
-def process_pebble_roots(pebble_ports: Tuple[int, int]) -> Literal[True]:
+def process_pebble_roots(
+    port_public: int, port_admin: int, env_name: str
+) -> Literal[True]:
     """
     Pebble generates new trusted roots on every run
     We need to load them from the pebble server, otherwise we have no idea
     what they are.
     """
-    log.info("`process_pebble_roots(%s)`" % str(pebble_ports))
+    log.info("`process_pebble_roots(%s)`" % str((port_public, port_admin, env_name)))
 
-    # the first root is guaranteed to be here:
+    # the first root is guaranteed to be live
+    # the additional deployments may or may not be
 
-    r0 = requests.get("https://127.0.0.1:%s/roots/0" % pebble_ports[1], verify=False)
+    _pebble_server_root = "%s/%s/certs/pebble.minica.pem" % (
+        PEBBLE_CONFIG_DIR,
+        env_name,
+    )
+    assert os.path.exists(_pebble_server_root)
+    r0 = requests.get(
+        "https://127.0.0.1:%s/roots/0" % port_admin, verify=_pebble_server_root
+    )
     if r0.status_code != 200:
         raise ValueError("Could not load first root")
     root_pems = [
@@ -420,7 +430,7 @@ def process_pebble_roots(pebble_ports: Tuple[int, int]) -> Literal[True]:
     alternates = acme_v2.get_header_links(r0.headers, "alternate")
     if alternates:
         for _alt in alternates:
-            _r = requests.get(_alt, verify=False)
+            _r = requests.get(_alt, verify=_pebble_server_root)
             if _r.status_code != 200:
                 raise ValueError("Could not load additional root")
             root_pems.append(_r.text)
@@ -439,16 +449,17 @@ def process_pebble_roots(pebble_ports: Tuple[int, int]) -> Literal[True]:
             )
     ctx.pyramid_transaction_commit()
     ctx.dbSession.close()
-
     return True
 
 
-def archive_pebble_data(pebble_ports: Tuple[int, int]) -> Literal[True]:
+def archive_pebble_data(
+    port_public: int, port_admin: int, env_name: str
+) -> Literal[True]:
     """
     pebble account urls have a serial that restarts on each load
     this causes issues with tests
     """
-    log.info("`archive_pebble_data(%s)`" % str(pebble_ports))
+    log.info("`archive_pebble_data(%s)`" % str((port_public, port_admin, env_name)))
     ctx = new_test_connections()
     # model_objects.AcmeAccount
     # migration strategy - append a `@{UUID}` to the url, so it will not match
@@ -481,16 +492,16 @@ def archive_pebble_data(pebble_ports: Tuple[int, int]) -> Literal[True]:
     return True
 
 
-def handle_new_pebble(pebble_ports: Tuple[int, int]) -> None:
+def handle_new_pebble(port_public, port_admin, env_name) -> None:
     """
     When pebble starts:
         * we must inspect the new pebble roots
     When pebble restarts
         * the database may have old pebble data
     """
-    log.info("`handle_new_pebble(%s)`" % str(pebble_ports))
-    process_pebble_roots(pebble_ports)
-    archive_pebble_data(pebble_ports)
+    log.info("`handle_new_pebble(%s)`" % str((port_public, port_admin, env_name)))
+    process_pebble_roots(port_public, port_admin, env_name)
+    archive_pebble_data(port_public, port_admin, env_name)
 
 
 # ACME_CHECK_MSG = b"Listening on: 0.0.0.0:14000"
@@ -566,7 +577,7 @@ def under_pebble(_function: Callable) -> Callable:
             try:
                 PEBBLE_RUNNING = True
                 # catch in app_test so we don't recycle the roots
-                handle_new_pebble((14000, 15000))
+                handle_new_pebble(14000, 15000, "test")
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -645,7 +656,7 @@ def under_pebble_strict(_function: Callable) -> Callable:
             try:
                 PEBBLE_RUNNING = True
                 # catch in app_test so we don't recycle the roots
-                handle_new_pebble((14000, 15000))
+                handle_new_pebble(14000, 15000, "test")
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -726,7 +737,7 @@ def under_pebble_alt(_function: Callable) -> Callable:
             try:
                 PEBBLE_ALT_RUNNING = True
                 # catch in app_test so we don't recycle the roots
-                handle_new_pebble((14001, 15001))
+                handle_new_pebble(14001, 15001, "test-alt")
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit

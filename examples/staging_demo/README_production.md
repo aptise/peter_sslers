@@ -1,4 +1,4 @@
-This is a production version of https://github.com/aptise/peter_sslers/tree/main/examples/staging/README.md
+This is a production version of https://github.com/aptise/peter_sslers/tree/main/examples/staging_demo/README.md
 
 ### Set Env Vars
     export ROOT_DOMAIN="{Your Domain, e.g. aptise.com}"
@@ -173,7 +173,7 @@ According to the above, `acme_server_id = 2; PEBBLE TEST 2`::
 
 ## Generate OpenResty Files
 
-    cd ~/peter_sslers/examples/staging
+    cd ~/peter_sslers/examples/staging_demo
     export ROOT_DOMAIN="aptise.com"
     python generate_openresty.py
 

@@ -31,5 +31,13 @@ if COMMANDLINE_TESTS_DISABLE_WARNINGS:
     warnings.simplefilter("ignore")
     logging.getLogger().addHandler(logging.NullHandler())
 
+# this doesn't really work, because the entrypoint scripts placed in {ENV}/bin
+# will import `peter_sslers.web`, which imports `pyramid`, which imports pkg_resources.
+# if we move the imports under `main()` in that file, at some point we still import
+# `zope.sqlalchemy`, which will trigger the same warning.  If we try to gurad against
+# that, this is just becoming a massive amount of work!
+warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API.")
+
+
 if COMMANDLINE_TESTS_DISABLE_LOGGINGS:
     logging.disable(logging.CRITICAL)
