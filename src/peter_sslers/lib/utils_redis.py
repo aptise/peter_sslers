@@ -210,7 +210,7 @@ def redis_prime_logic__style_1_Domain(
         "p": "%s" % dbCertificateSigned.private_key_id,
         "i": "%s" % dbCertificateSigned.certificate_ca_chain_id__preferred,
     }
-    redis_client.hmset(key_redis, value_redis)
+    redis_client.hset(key_redis, mapping=value_redis)
 
     # then do the cert
     key_redis = "c:%s" % dbCertificateSigned.id
@@ -284,5 +284,5 @@ def redis_prime_logic__style_2_domain(
         "f": "%s" % dbCertificateSigned.cert_fullchain_pem,
         "p": "%s" % dbCertificateSigned.private_key.key_pem,
     }
-    redis_client.hmset(key_redis, value_redis)
+    redis_client.hset(key_redis, mapping=value_redis)
     return dbCertificateSigned
