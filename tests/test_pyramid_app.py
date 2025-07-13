@@ -9148,7 +9148,6 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         )
         assert res4.json["result"] == "success"
         assert "AcmeAccount" in res4.json
-        return True
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
