@@ -3,6 +3,59 @@
 
 # General Management Concepts
 
+## Centralized Directory Storage
+
+PeterSSLers is designed to use a local directory for storage.
+
+The core files in a data directory are:
+
+* `/data_environment/config.ini` a Python `.ini` file that contains the core configuration setup
+
+* `/data_environment/_ACME_SERVER_BUNDLE/` A directory containing pem files of upstream ACME Servers that are secured by non-public roots.  PeterSSLers will manage this directory and create the files as needed.  The files are named with the tempalte `{AcmeServer.id}-{AcmeServer.name}.pem` and contain ``{AcmeServer.server_ca_cert_bundle}`.
+
+* `/data_environment/nginx_ca_bundnle.pem` If integrating with openresty, this file should contain PEMs for the trusted roots of nginx servers it will connect to.
+
+* `/data_environment/ssl_minnow.sqlite` The core sqlite file
+
+* `/data_environment/certificates`. If RenewalConfigurations are configured to save certificates to disk, they will be managed here.
+  * If a RenewalConfiguration IS NOT associated to an EnrollmentFactory, certificates will be managed in a `global` first-level subdirectory.
+  * If a RenewalConfiguration IS associated to an EnrollmentFactory, certificates will be managed in a dedicated first-level subdirectory for that EnrollmentFactory
+  * Certificates will be managed in a second-level subdirectory named `rc-{Certificate.id}`
+  * If the RenewalConfiguration has a dedicated name, there will be a symlink from the `rc-{ID}` directory to that name
+  * A RenwalConfiguration will manage the Certificates on disk using a `primary` subdirectory, and `backup` subdirectory if configured' each one containing 4 files: `cert.pem`, `chain.pem`, `fullchain.pem`, and `pkey.pem`
+
+For example:
+
+```
+/data_production/
+    /certificates/
+        /global/
+            /rc-1/
+                /primary/
+                    cert.pem
+                    chain.pem
+                    privkey.pem
+                    fullchain.pem
+                /backup/
+                    cert.pem
+                    chain.pem
+                    privkey.pem
+                    fullchain.pem
+            /example.com  # symlink to rc-1
+        /example-enrollment-factory
+            /rc-2/
+                /primary/
+                    cert.pem
+                    chain.pem
+                    privkey.pem
+                    fullchain.pem
+            /foo.example.com  # symlink to rc-2
+```
+
+Additionally, the system is designed by default to log into this directory as well.
+
+This means the entire directory can be migrated across systems for installations and troubleshooting.
+
 
 ## Intuitive Hierarchy of Related Objects
 
