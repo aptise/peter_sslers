@@ -2894,7 +2894,7 @@ def ari_check(
             AriCheck[payload] will be null if there is an error
             AriCheck[headers] will always exist
     """
-    log.info("ari_check(%s", dbCertificateSigned)
+    log.info("ari_check(CertificateSigned.id=%s", dbCertificateSigned.id)
 
     # do not run ARI checks for certs that expire, or will expire before the
     # next proces is run
