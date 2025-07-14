@@ -188,7 +188,7 @@ Current support for ACME Challenge Types:
 * DNS-01: domains will be registered with a global acme-dns server
 * TLS-ALPN-01: support is not currently planned
 
-
+All data is stored in a per-environment directory.  You can run multiple deployments with a single installation, and easily migrate entire installations across machines.
 
 Why?
 -----
