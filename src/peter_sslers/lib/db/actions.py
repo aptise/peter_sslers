@@ -1246,7 +1246,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     # also, we need to time the routine
     TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
 
-    # the max_expiry will be in the future, to ensure we check ARI of anything
+    # the max_expiry will be slightly in the future, to ensure we check ARI of anything
     # that expires until the next routine invocation
     timestamp_max_expiry = datetime_ari_timely(
         ctx, datetime_now=TIMESTAMP_routine_start, context="routine__run_ari_checks"
@@ -1309,18 +1309,23 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
             CertificateSigned.id == latest_ari_checks.c.certificate_signed_id,
         )
         .filter(
+            # ARI is only managed for active certs
             CertificateSigned.is_active.is_(True),
-            # these are considered expired and must be renewed,
-            # so we don't need to run ARI checks on them
+            # if `timestamp_not_after <= timestamp_max_expiry`::
+            #   these are considered expired and must be renewed,
+            #   so we don't need to run ARI checks on them
             CertificateSigned.timestamp_not_after >= timestamp_max_expiry,
+            # the cert or order MUST support ARI
             sqlalchemy_or(
                 CertificateSigned.is_ari_supported__cert.is_(True),
                 CertificateSigned.is_ari_supported__order.is_(True),
             ),
             sqlalchemy_or(
+                # there is no ari check for this certificate
                 latest_ari_checks.c.latest_ari_id.is_(None),
-                # <= : select items that have expired
-                latest_ari_checks.c.timestamp_retry_after >= timestamp_max_expiry,
+                # OR
+                # <= : the previous ari check has expired
+                latest_ari_checks.c.timestamp_retry_after <= timestamp_max_expiry,
             ),
         )
         .order_by(
