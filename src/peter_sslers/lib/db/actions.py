@@ -1330,11 +1330,6 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
         .all()
     )
 
-    # import pdb;pdb.set_trace()
-    import pprint
-
-    pprint.pprint(certs)
-
     count_records_success = 0
     count_records_fail = 0
     for dbCertificateSigned, latest_ari_id in certs:
