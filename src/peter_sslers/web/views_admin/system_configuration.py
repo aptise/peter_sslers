@@ -240,7 +240,7 @@ class View_Focus(Handler):
             },
             "valid_options": {
                 "AcmeAccounts": "{RENDER_ON_REQUEST::as_json_label}",
-                "private_key_cycle": Form_SystemConfiguration_edit.fields[
+                "private_key_cycle__primary": Form_SystemConfiguration_edit.fields[
                     "private_key_cycle__primary"
                 ].list,
                 "private_key_cycle__backup": Form_SystemConfiguration_edit.fields[

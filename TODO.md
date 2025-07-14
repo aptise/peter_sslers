@@ -1,40 +1,9 @@
 URGENT
 =====
 
-
-
-
---------
-
-tests/test_pyramid_app.py::IntegratedTests_AcmeServer_AcmeOrder::test_Api_Domain_autocert_json
-  /home/runner/work/peter_sslers/peter_sslers/.tox/py/lib/python3.12/site-packages/peter_sslers/lib/utils_redis.py:158: UserWarning: Error 111 connecting to 127.0.0.1:6380. Connection refused.
-    warnings.warn(str(exc))
-
---------
-
-
-
-
-
-urllib3 has a breaking change in 2.4.0
-    # see https://github.com/urllib3/urllib3/issues/3571
-
 AcmePollingError
     bug on server; could have a dict;;  converting to json but ensure this is okay
     this may be fixed
-
-Standardize Fields
-    private_key_cycle --> private_key_cycle__primary
-
-    /acme-order/new/freeform
-        account_key_option -> account_key_option__primary
-        private_key_option -> private_key_option__primary
-            parse_PrivateKeySelection
-            formgroup__PrivateKey_selector__advanced
-                # only used by acme-order/new/freeform
-        
-        private_key_existing -> private_key_existing__primary ???(pem_md5 vs id)???
-            parse_PrivateKeySelection
 
 Audit:
     Concepts:
