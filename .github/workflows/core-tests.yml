@@ -31,6 +31,22 @@ jobs:
           - "3.12"
           - "3.13"
 
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      redis:
+        # Docker Hub image
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps port 6379 on service container to the host
+          - 6379:6379
+
     steps:
     - uses: actions/checkout@v3
 
@@ -74,16 +90,17 @@ jobs:
         echo "${{ github.workspace }}"
         echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
-    - name: Install Redis
-      # several tests require Redis
-      # note: if tests hang, it could be because the Redis version has changed
-      # set owner to `runner`, which is what GitHub actions uses
-      run: |
-        sudo apt-get install redis
-        # /var/lib/redis/peter_sslers_test is listed in the test redis-server.conf
-        sudo mkdir -p /var/lib/redis/peter_sslers_test
-        sudo chown -R runner /var/lib/redis/peter_sslers_test
-        sudo chown -R runner /var/lib/redis
+    # - name: Install Redis
+    #  # several tests require Redis
+    #  # note: if tests hang, it could be because the Redis version has changed
+    #  # set owner to `runner`, which is what GitHub actions uses
+    #  run: |
+    #    sudo apt-get install redis
+    #    # /var/lib/redis/peter_sslers_test is listed in the test redis-server.conf
+    #    sudo mkdir -p /var/lib/redis/peter_sslers_test
+    #    sudo chown -R runner /var/lib/redis/peter_sslers_test
+    #    sudo chown -R runner /var/lib/redis
+    #    sudo systemctl start redis
 
     - name: Install Pebble
       # several tests require a Pebble instance (ACME Server)
@@ -248,6 +265,7 @@ jobs:
         export SSL_RUN_API_TESTS__PEBBLE=1
         export SSL_RUN_NGINX_TESTS=1
         export SSL_RUN_REDIS_TESTS=1
+        export SSL_USE_SYSTEM_REDIS=1
         export DEBUG_ACMEORDERS=1
         export DEBUG_DBFREEZE=1
         export DEBUG_DBFREEZE_ARCHIVE=1

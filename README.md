@@ -7,7 +7,7 @@ PeterSSLers is a bundled ACME Client, Certificate Manager, OpenResty/Nginx Plugi
 and Python-based framework designed for programmatically managing SSL Certificates.
 
 This project started at Aptise Media as an internal tool for obtaining and managing
-SSL Certificates for partner/customer domains.  The project integrated an ACME(v1)
+SSL Certificates for partner/customer domains. The project integrated an ACME(v1)
 Client, a SQL based Certificate Manager, and an OpenResty plugin for dynamic
 certificate loading.
 
@@ -18,7 +18,7 @@ central object to a new `RenewalConfiguration` concept and streamlined operation
 
 
 peter_sslers README
-================================
+===================
 
 Peter SSLers *or how i stopped worrying and learned to LOVE the SSL Certificate*.
 
@@ -180,7 +180,7 @@ interface.
 Renewing Certificates can be done via two methods:
 
 * If the web application is running, it can renew certificates
-* A commandline cron routine will spin up a webserver to answer challenges if needed
+* A commandline routine will spin up a webserver to answer challenges if needed
 
 Current support for ACME Challenge Types:
 
@@ -242,9 +242,13 @@ ACME2 Features
 | Deactivate Account | Yes |
 | Account Key Rollover | Yes |
 | Automatic Renewal Information | Yes |
-| EAB | No |
+| EAB | No [1] |
+| IP Address Certificates | No [2] |
 
-EAB is not implemented due to the lack of need. This may one day change.
+[1] EAB is not implemented due to the lack of need. This may one day change.
+
+[2] The foundation for IP Address Certificates has been completed, but the support
+is not feature complete.
 
 
 The Components
@@ -332,6 +336,7 @@ Please read the
 [Automation Guide](https://github.com/aptise/peter_sslers/blob/main/docs/Automation.md)
 for more details and additional routines.
 
+
 ToDo
 =====
 
@@ -360,8 +365,8 @@ $VENV/bin/pip3 install -e .
 mkdir data_development
 co example_configs/development.ini data_development/config.ini
 vi data_development/config.ini
-$VENV/bin/initialize_peter_sslers_db data_development/config.ini
-$VENV/bin/import_certbot data_development/config.ini dir=/etc/letsencrypt
+$VENV/bin/initialize_peter_sslers_db data_development
+$VENV/bin/import_certbot data_development dir=/etc/letsencrypt
 $VENV/bin/pserve data_development/config.ini
 ```
 

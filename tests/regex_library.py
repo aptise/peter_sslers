@@ -107,7 +107,7 @@ RE_AcmeDnsServer_import_domain_existing = re.compile(
 # note: AcmeOrder
 
 RE_AcmeOrder = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)(?:\?is_duplicate_renewal=true)?$"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)(?:\?is_duplicate_renewal_configuration=true)?$"""
 )
 RE_AcmeOrder_retry = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)\?result=success&operation=retry\+order$"""
@@ -228,7 +228,7 @@ RE_Domain_operation_nginx_expire__GET = re.compile(
 
 # note: RenewalConfiguration
 RE_RenewalConfiguration = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/renewal-configuration/(\d+)(?:\?is_duplicate_renewal=true)?$"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/renewal-configuration/(\d+)(?:\?is_duplicate_renewal_configuration=true)?$"""
 )
 
 RE_RenewalConfiguration_link = re.compile(

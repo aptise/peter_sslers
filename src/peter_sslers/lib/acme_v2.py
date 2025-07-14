@@ -23,6 +23,7 @@ from urllib.request import urlopen
 # import pdb
 # import pprint
 # import subprocess
+# import sys
 
 # pypi
 import cert_utils
@@ -34,6 +35,8 @@ from typing_extensions import Literal
 from typing_extensions import NotRequired
 from typing_extensions import TypedDict
 from urllib3.util.ssl_ import create_urllib3_context
+from urllib3.util.ssl_ import VERIFY_X509_PARTIAL_CHAIN
+from urllib3.util.ssl_ import VERIFY_X509_STRICT
 
 # localapp
 from . import acmedns as lib_acmedns
@@ -51,6 +54,14 @@ from .. import USER_AGENT
 from ..model import utils as model_utils
 
 if TYPE_CHECKING:
+    from email.message import Message
+    from http.client import HTTPMessage
+
+    from requests import Response
+    from requests.structures import CaseInsensitiveDict
+
+    from .context import ApiContext
+    from .db.logger import AcmeLogger
     from ..model.objects import AcmeAccount
     from ..model.objects import AcmeAccountKey
     from ..model.objects import AcmeAuthorization
@@ -60,12 +71,6 @@ if TYPE_CHECKING:
     from ..model.objects import CertificateSigned
     from ..model.objects import UniqueFQDNSet
     from ..model.utils import DomainsChallenged
-    from .db.logger import AcmeLogger
-    from .context import ApiContext
-    from email.message import Message
-    from http.client import HTTPMessage
-    from requests import Response
-    from requests.structures import CaseInsensitiveDict
 
     HEADERS_COMPAT = Union["HTTPMessage", "CaseInsensitiveDict", "Message"]
 
@@ -159,7 +164,14 @@ def url_request(
         }
         if alt_bundle:
             # see https://github.com/urllib3/urllib3/issues/3571
-            context = create_urllib3_context()
+            # see https://github.com/urllib3/urllib3/issues/3605
+            # needed for `sys.version_info < (3, 13)`; however just specify it
+            # remove this when py312 is EOL
+            # if sys.version_info < (3, 13):
+            verify_flags = 0
+            verify_flags |= VERIFY_X509_PARTIAL_CHAIN
+            verify_flags |= VERIFY_X509_STRICT
+            context = create_urllib3_context(verify_flags=verify_flags)
             context.load_verify_locations(cafile=alt_bundle)
             log_api.info("Making a request with alt_bundle: %s", alt_bundle)
         resp = urlopen(

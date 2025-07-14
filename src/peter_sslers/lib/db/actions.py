@@ -41,8 +41,8 @@ from ...model.objects import AriCheck
 from ...model.objects import CertificateSigned
 from ...model.utils import AcmeServerInput
 
-
 if TYPE_CHECKING:
+    from ..context import ApiContext
     from ...model.objects import AcmeAccount
     from ...model.objects import Domain
     from ...model.objects import OperationsEvent
@@ -52,7 +52,6 @@ if TYPE_CHECKING:
     from ...model.objects import SystemConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.utils import DomainsChallenged
-    from ..context import ApiContext
 
 
 # ==============================================================================
@@ -1058,7 +1057,9 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
         log.info("> refresh_pebble_ca_certs X no pebble")
         return False
 
-    r0 = requests.get("https://127.0.0.1:15000/roots/0", verify=False)
+    ca_bundle_file = pebbleServer.local_ca_bundle(ctx) or False
+
+    r0 = requests.get("https://127.0.0.1:15000/roots/0", verify=ca_bundle_file)
     if r0.status_code != 200:
         raise ValueError("Could not load first root")
     root_pems = [
@@ -1067,7 +1068,7 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
     alternates = acme_v2.get_header_links(r0.headers, "alternate")
     if alternates:
         for _alt in alternates:
-            _r = requests.get(_alt, verify=False)
+            _r = requests.get(_alt, verify=ca_bundle_file)
             if _r.status_code != 200:
                 raise ValueError("Could not load additional root")
             root_pems.append(_r.text)
@@ -1091,7 +1092,7 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
 def register_acme_servers(
     ctx: "ApiContext",
     acme_servers: List[AcmeServerInput],
-    source: Literal["initial", "user"],
+    source: Literal["initial", "user", "reset"],
 ):
     for item in acme_servers:
 
@@ -1140,7 +1141,7 @@ def register_acme_servers(
         if source == "initial":
             log.debug("Adding New ACME Server: %s", server)
             _new_AcmeServer()
-        else:
+        elif source == "user":
             existingDbServer = get.get__AcmeServer__by_server(ctx, server)
             if not existingDbServer:
                 log.debug("Adding New ACME Server: %s", server)
@@ -1150,6 +1151,18 @@ def register_acme_servers(
                 if existingDbServer.server_ca_cert_bundle != server_ca_cert_bundle:
                     log.debug("Updating: %s", server)
                     existingDbServer.server_ca_cert_bundle = server_ca_cert_bundle
+                    existingDbServer.local_ca_bundle(ctx, force_refresh=True)
+        elif source == "reset":
+            existingDbServer = get.get__AcmeServer__by_server(ctx, server)
+            if not existingDbServer:
+                raise ValueError("Expected server in db: `%s`" % server)
+            log.debug("Existing ACME Server: %s", server)
+            if existingDbServer.server_ca_cert_bundle != server_ca_cert_bundle:
+                log.debug("Updating: %s", server)
+                existingDbServer.server_ca_cert_bundle = server_ca_cert_bundle
+                existingDbServer.local_ca_bundle(ctx, force_refresh=True)
+        else:
+            raise ValueError("unknown")
     ctx.pyramid_transaction_commit()
     return True
 

@@ -47,6 +47,7 @@ def main(argv=sys.argv):
     config_uri = argv[1]
     config_uri = validate_config_uri(config_uri)
     options = parse_vars(argv[2:])
+    config_dir = os.path.dirname(config_uri)
 
     ctx = new_scripts_setup(config_uri, options=options)
 
@@ -83,13 +84,15 @@ def main(argv=sys.argv):
     if _format not in ("csv", "json"):
         _format = "csv"
     if _format == "csv":
-        print("OUTPUTTING: acme_dns_audit-accounts.csv")
-        with open("acme_dns_audit-accounts.csv", "w", newline="") as csvfile:
+        fname = os.path.join(config_dir, "acme_dns_audit-accounts.csv")
+        print("OUTPUTTING: %s" % fname)
+        with open(fname, "w", newline="") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=audits[0].keys())
             writer.writeheader()
             for audit in audits:
                 writer.writerow(audit)
     elif _format == "json":
-        print("OUTPUTTING: acme_dns_audit-accounts.json")
-        with open("acme_dns_audit-accounts.json", "w") as jsonfile:
+        fname = os.path.join(config_dir, "acme_dns_audit-accounts.json")
+        print("OUTPUTTING: %s" % fname)
+        with open(fname, "w") as jsonfile:
             json.dump(audits, jsonfile)

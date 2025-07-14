@@ -5,7 +5,7 @@
 __pycache__
 /data_development
 /data_testing
-/examples/staging/www/com.aptise.opensource.testing.peter_sslers.*
-/examples/staging/nginx_conf/com.aptise.opensource.testing.peter_sslers_/sites-available/com.aptise.opensource.testing./
+/examples/staging_demo/www/com.aptise.opensource.testing.peter_sslers.*
+/examples/staging_demo/nginx_conf/com.aptise.opensource.testing.peter_sslers_/sites-available/com.aptise.opensource.testing./
 /src/peter_sslers.egg-info
 /X_TESTRUN_DATA

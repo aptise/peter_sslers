@@ -28,6 +28,7 @@ from ..model import utils as model_utils
 
 if TYPE_CHECKING:
     from sqlalchemy.orm.session import Session
+
     from .context import ApiContext
     from ..model.objects import CertificateCAPreferencePolicy
 
@@ -352,7 +353,9 @@ class RequestCommandline(object):
 
 def validate_config_uri(config_uri: str) -> str:
     if not os.path.exists(config_uri):
-        raise ValueError("Not a valid `config_uri`; Does not exist :: `%s`" % config_uri)
+        raise ValueError(
+            "Not a valid `config_uri`; Does not exist :: `%s`" % config_uri
+        )
     if os.path.isdir(config_uri):
         if "config.ini" not in os.listdir(config_uri):
             raise ValueError("Not a valid `config_uri` :: `%s`" % config_uri)

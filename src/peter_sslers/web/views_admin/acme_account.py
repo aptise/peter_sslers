@@ -1264,7 +1264,7 @@ class View_Focus_Manipulate(View_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _handle_potentially_deactivated(self, exc:errors.AcmeServerError):
+    def _handle_potentially_deactivated(self, exc: errors.AcmeServerError):
         # exc:errors.AcmeServerError
         # (status_code, url, resp_data, headers) = exc.args
         if TYPE_CHECKING:

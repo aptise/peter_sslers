@@ -72,10 +72,10 @@ from peter_sslers.web.models import get_engine
 from peter_sslers.web.models import get_session_factory
 from .regex_library import RE_AcmeOrder
 
-# from peter_sslers.lib.utils import RequestCommandline
-
 if TYPE_CHECKING:
     from webob import Response
+
+# from peter_sslers.lib.utils import RequestCommandline
 
 # ==============================================================================
 
@@ -109,6 +109,9 @@ see the nginx test config file `testing.conf`
 RUN_NGINX_TESTS = bool(int(os.environ.get("SSL_RUN_NGINX_TESTS", 0)))
 # run tests to prime redis
 RUN_REDIS_TESTS = bool(int(os.environ.get("SSL_RUN_REDIS_TESTS", 0)))
+
+# use system redis?
+USE_SYSTEM_REDIS = bool(int(os.environ.get("SSL_USE_SYSTEM_REDIS", 0)))
 
 # run tests against LE API
 RUN_API_TESTS__PEBBLE = bool(int(os.environ.get("SSL_RUN_API_TESTS__PEBBLE", 0)))
@@ -401,17 +404,27 @@ def new_test_connections() -> ApiContext:
     return ctx
 
 
-def process_pebble_roots(pebble_ports: Tuple[int, int]) -> Literal[True]:
+def process_pebble_roots(
+    port_public: int, port_admin: int, env_name: str
+) -> Literal[True]:
     """
     Pebble generates new trusted roots on every run
     We need to load them from the pebble server, otherwise we have no idea
     what they are.
     """
-    log.info("`process_pebble_roots(%s)`" % str(pebble_ports))
+    log.info("`process_pebble_roots(%s)`" % str((port_public, port_admin, env_name)))
 
-    # the first root is guaranteed to be here:
+    # the first root is guaranteed to be live
+    # the additional deployments may or may not be
 
-    r0 = requests.get("https://127.0.0.1:%s/roots/0" % pebble_ports[1], verify=False)
+    _pebble_server_root = "%s/%s/certs/pebble.minica.pem" % (
+        PEBBLE_CONFIG_DIR,
+        env_name,
+    )
+    assert os.path.exists(_pebble_server_root)
+    r0 = requests.get(
+        "https://127.0.0.1:%s/roots/0" % port_admin, verify=_pebble_server_root
+    )
     if r0.status_code != 200:
         raise ValueError("Could not load first root")
     root_pems = [
@@ -420,7 +433,7 @@ def process_pebble_roots(pebble_ports: Tuple[int, int]) -> Literal[True]:
     alternates = acme_v2.get_header_links(r0.headers, "alternate")
     if alternates:
         for _alt in alternates:
-            _r = requests.get(_alt, verify=False)
+            _r = requests.get(_alt, verify=_pebble_server_root)
             if _r.status_code != 200:
                 raise ValueError("Could not load additional root")
             root_pems.append(_r.text)
@@ -439,16 +452,17 @@ def process_pebble_roots(pebble_ports: Tuple[int, int]) -> Literal[True]:
             )
     ctx.pyramid_transaction_commit()
     ctx.dbSession.close()
-
     return True
 
 
-def archive_pebble_data(pebble_ports: Tuple[int, int]) -> Literal[True]:
+def archive_pebble_data(
+    port_public: int, port_admin: int, env_name: str
+) -> Literal[True]:
     """
     pebble account urls have a serial that restarts on each load
     this causes issues with tests
     """
-    log.info("`archive_pebble_data(%s)`" % str(pebble_ports))
+    log.info("`archive_pebble_data(%s)`" % str((port_public, port_admin, env_name)))
     ctx = new_test_connections()
     # model_objects.AcmeAccount
     # migration strategy - append a `@{UUID}` to the url, so it will not match
@@ -481,16 +495,16 @@ def archive_pebble_data(pebble_ports: Tuple[int, int]) -> Literal[True]:
     return True
 
 
-def handle_new_pebble(pebble_ports: Tuple[int, int]) -> None:
+def handle_new_pebble(port_public, port_admin, env_name) -> None:
     """
     When pebble starts:
         * we must inspect the new pebble roots
     When pebble restarts
         * the database may have old pebble data
     """
-    log.info("`handle_new_pebble(%s)`" % str(pebble_ports))
-    process_pebble_roots(pebble_ports)
-    archive_pebble_data(pebble_ports)
+    log.info("`handle_new_pebble(%s)`" % str((port_public, port_admin, env_name)))
+    process_pebble_roots(port_public, port_admin, env_name)
+    archive_pebble_data(port_public, port_admin, env_name)
 
 
 # ACME_CHECK_MSG = b"Listening on: 0.0.0.0:14000"
@@ -566,7 +580,7 @@ def under_pebble(_function: Callable) -> Callable:
             try:
                 PEBBLE_RUNNING = True
                 # catch in app_test so we don't recycle the roots
-                handle_new_pebble((14000, 15000))
+                handle_new_pebble(14000, 15000, "test")
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -645,7 +659,7 @@ def under_pebble_strict(_function: Callable) -> Callable:
             try:
                 PEBBLE_RUNNING = True
                 # catch in app_test so we don't recycle the roots
-                handle_new_pebble((14000, 15000))
+                handle_new_pebble(14000, 15000, "test")
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -726,7 +740,7 @@ def under_pebble_alt(_function: Callable) -> Callable:
             try:
                 PEBBLE_ALT_RUNNING = True
                 # catch in app_test so we don't recycle the roots
-                handle_new_pebble((14001, 15001))
+                handle_new_pebble(14001, 15001, "test-alt")
                 res = _function(*args, **kwargs)
             finally:
                 # explicitly terminate, otherwise it won't exit
@@ -748,6 +762,10 @@ def under_redis(_function: Callable) -> Callable:
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
+        if USE_SYSTEM_REDIS:
+            log.info("`redis`: `USE_SYSTEM_REDIS=1` for `%s`" % _function.__qualname__)
+            res = _function(*args, **kwargs)
+            return res
         log.info("`redis`: spinning up for `%s`" % _function.__qualname__)
         log.info("`redis`: SSL_BIN_REDIS_SERVER  : %s", SSL_BIN_REDIS_SERVER)
         log.info("`redis`: SSL_CONF_REDIS_SERVER : %s", SSL_CONF_REDIS_SERVER)
@@ -1182,7 +1200,7 @@ TEST_FILES: Dict = {
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle__primary": "account_daily",
-                "private_key_option": "account_default",
+                "private_key_option__primary": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-a.example.com",
                     "new-freeform-1-b.example.com",
@@ -1195,7 +1213,7 @@ TEST_FILES: Dict = {
                 "account_key_file_pem": "key_technology-rsa/AcmeAccountKey-1.pem",
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle__primary": "account_daily",
-                "private_key_option": "account_default",
+                "private_key_option__primary": "account_default",
                 "domain_names_http01": [
                     "new-freeform-1-c.example.com",
                     "new-freeform-1-d.example.com",
@@ -1551,6 +1569,8 @@ def routes_tested(*args) -> Callable:
 
 def do__AcmeServers_sync__api(
     testCase: CustomizedTestCase,
+    sync_primary: bool = True,
+    sync_backup: bool = True,
 ) -> Literal[True]:
     """
     Hits the `/acme-server/%s/check` endpoint for all configured policies
@@ -1572,18 +1592,20 @@ def do__AcmeServers_sync__api(
                 dbSystemConfiguration.acme_account__primary.acme_server_id
                 not in acme_server_ids
             ):
-                acme_server_ids.append(
-                    dbSystemConfiguration.acme_account__primary.acme_server_id
-                )
+                if sync_primary:
+                    acme_server_ids.append(
+                        dbSystemConfiguration.acme_account__primary.acme_server_id
+                    )
             if dbSystemConfiguration.acme_account__backup:
                 assert dbSystemConfiguration.acme_account__backup.acme_server
                 if (
                     dbSystemConfiguration.acme_account__backup.acme_server_id
                     not in acme_server_ids
                 ):
-                    acme_server_ids.append(
-                        dbSystemConfiguration.acme_account__backup.acme_server_id
-                    )
+                    if sync_backup:
+                        acme_server_ids.append(
+                            dbSystemConfiguration.acme_account__backup.acme_server_id
+                        )
         else:
             if _pname == "global":
                 raise ValueError("SystemConfiguration[global] not configured")
@@ -1681,11 +1703,17 @@ def make_one__AcmeOrder__api(
     account_key_option__backup: Optional[str] = None,
     acme_profile__primary: Optional[str] = None,
     acme_profile__backup: Optional[str] = None,
+    private_key_option: Literal[
+        "account_default", "private_key_generate"
+    ] = "account_default",
+    private_key_cycle__primary: Literal[
+        "account_default", "single_use__reuse_1_year"
+    ] = "account_default",
     processing_strategy: Literal["create_order", "process_single"] = "create_order",
 ) -> model_objects.AcmeOrder:
     """
     Creates an AcmeOrder using the html API based on specified domain names
-    the `account_key_global_default` is used
+    the `account_key_global__primary` is used
     """
 
     # pebble loses state, so:
@@ -1696,10 +1724,10 @@ def make_one__AcmeOrder__api(
     )
     form = res.form
     _form_fields = form.fields.keys()
-    assert "account_key_option" in _form_fields
-    form["account_key_option"].force_value("account_key_global_default")
-    form["private_key_option"].force_value("account_default")
-    form["private_key_cycle__primary"].force_value("account_default")
+    assert "account_key_option__primary" in _form_fields
+    form["account_key_option__primary"].force_value("account_key_global__primary")
+    form["private_key_cycle__primary"] = private_key_cycle__primary
+    form["private_key_option__primary"] = private_key_option
     if domain_names_http01:
         form["domain_names_http01"] = domain_names_http01
     if domain_names_dns01:
@@ -1716,7 +1744,6 @@ def make_one__AcmeOrder__api(
     assert res2.status_code == 303
     matched = RE_AcmeOrder.match(res2.location)
     assert matched
-
     obj_id = matched.groups()[0]
 
     dbAcmeOrder = testCase.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
@@ -1780,8 +1807,8 @@ def make_one__RenewalConfiguration__api(
     assert "form_fields" in res.json
 
     form: Dict[str, Optional[str]] = {}
-    form["account_key_option"] = "account_key_existing"
-    form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
+    form["account_key_option__primary"] = "account_key_existing"
+    form["account_key_existing__primary"] = dbAcmeAccount.acme_account_key.key_pem_md5
     form["private_key_cycle__primary"] = private_key_cycle
     form["private_key_technology__primary"] = key_technology
     form["domain_names_http01"] = domain_names_http01
@@ -1808,6 +1835,7 @@ def make_one__RenewalConfiguration__api(
 def setup_SystemConfiguration__api(
     testCase: CustomizedTestCase,
     policy_name: Literal["autocert", "certificate-if-needed"],
+    ensure_auth: bool = True,
 ) -> model_objects.AcmeOrder:
     """
     Uses the json API to copy the global configuration onto another specified policy
@@ -1861,21 +1889,27 @@ def setup_SystemConfiguration__api(
     dbSystemConfiguration = lib_db_get.get__SystemConfiguration__by_name(
         testCase.ctx, policy_name
     )
+    assert dbSystemConfiguration
+    if not dbSystemConfiguration.is_configured:
+        print("Why is this happening?")
+        # this does not use `get`; it should be a fresh load
+        testCase.ctx.dbSession.expire(dbSystemConfiguration)
 
     assert dbSystemConfiguration
     assert dbSystemConfiguration.is_configured
 
-    # ensure auth/reg
-    # pebble loses state across tests
-    ensure_AcmeAccount_auth(
-        testCase=testCase,
-        acme_account_id=dbSystemConfiguration_global.acme_account_id__primary,
-    )
-    if dbSystemConfiguration_global.acme_account_id__backup:
+    if ensure_auth:
+        # ensure auth/reg
+        # pebble loses state across tests
         ensure_AcmeAccount_auth(
             testCase=testCase,
-            acme_account_id=dbSystemConfiguration_global.acme_account_id__backup,
+            acme_account_id=dbSystemConfiguration_global.acme_account_id__primary,
         )
+        if dbSystemConfiguration_global.acme_account_id__backup:
+            ensure_AcmeAccount_auth(
+                testCase=testCase,
+                acme_account_id=dbSystemConfiguration_global.acme_account_id__backup,
+            )
 
     return dbSystemConfiguration
 
@@ -2009,7 +2043,9 @@ def ensure_RateLimited__database(
         testCase.ctx, domain_name
     )
     dbUniqueFQDNSet, _created = (
-        lib_db_getcreate.getcreate__UniqueFQDNSet__by_domainObjects(testCase.ctx, [dbDomain])
+        lib_db_getcreate.getcreate__UniqueFQDNSet__by_domainObjects(
+            testCase.ctx, [dbDomain]
+        )
     )
     if TYPE_CHECKING:
         assert dbAcmeAccount

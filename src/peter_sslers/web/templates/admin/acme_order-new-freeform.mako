@@ -46,14 +46,14 @@
                 ${form.html_error_main_fillable()|n}
 
                 <h3>Primary Certificate</h3>
-                ${admin_partials.formgroup__AcmeAccount_selector__advanced(
+                ${admin_partials.formgroup__AcmeAccount_selector__primary(
                     support_upload=False,
                     support_profiles=True,
                     default_profile=SystemConfiguration_global.acme_profile__primary,
                     dbSystemConfiguration=SystemConfiguration_global,
                 )}
                 <hr/>
-                <h4>PrivateKey</h4>
+                <h4>PrivateKey (Primary)</h4>
                 
                 ${admin_partials.formgroup__private_key_cycle(
                     field_name="private_key_cycle__primary",
@@ -76,17 +76,18 @@
                     dbSystemConfiguration=SystemConfiguration_global,
                 )}
                 <hr/>
-                <h4>PrivateKey</h4>
+                <h4>PrivateKey (Backup)</h4>
                 ${admin_partials.formgroup__private_key_cycle(
                     field_name="private_key_cycle__backup",
                     label="[Backup Certificate]",
                     default=SystemConfiguration_global.private_key_cycle__backup,
                 )}
-                ${admin_partials.formgroup__key_technology(
-                    field_name="private_key_technology__backup",
-                    label="[Backup Certificate]",
-                    default=SystemConfiguration_global.private_key_technology__backup,
-                    options=model_websafe.KeyTechnology._options_RenewalConfiguration_private_key_technology,
+                ${admin_partials.formgroup__PrivateKey_selector__advanced(
+                    support_upload=False,
+                    option_account_default=True,
+                    option_generate_new=True,
+                    default="account_default",
+                    concept="backup",
                 )}
                 <hr/>
                 <hr/>

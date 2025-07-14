@@ -5,6 +5,8 @@ import os  # noqa: I100
 import sys
 
 # pypi
+import alembic
+import alembic.config
 from pyramid.scripts.common import parse_vars
 
 # local
@@ -38,3 +40,6 @@ def main(argv=sys.argv):
     _setup.initialize_database(ctx)
 
     ctx.pyramid_transaction_commit()
+
+    alembic_cfg = alembic.config.Config(config_uri, toml_file="pyproject.toml")
+    alembic.command.stamp(alembic_cfg, "head")

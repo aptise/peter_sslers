@@ -79,4 +79,3 @@ prepend_sys_path = [
 # type = "exec"
 # executable = "%(here)s/.venv/bin/ruff"
 # options = "check --fix REVISION_SCRIPT_FILENAME"
-

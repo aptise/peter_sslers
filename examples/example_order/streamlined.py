@@ -1,3 +1,21 @@
+"""
+This is a streamlined script version of `narrative.py`, which is an expanded
+version with narrative comments and print statements.
+
+This script expects a peter_sslers instance running on `URL_BASE`.
+
+Using three Terminal windows:
+
+    Window 1
+        python run_dev_servers.py
+
+    Window 2
+        pserve --reload data_testing/config.ini
+
+    Window 3
+        python example.py
+"""
+
 # stdlib
 import pprint
 
@@ -6,7 +24,7 @@ import requests
 
 # - - -
 
-URL_BASE = "http://127.0.0.1:7201/.well-known/peter_sslers"
+URL_BASE = "http://127.0.0.1:5002/.well-known/peter_sslers"
 
 # = = =
 
@@ -37,28 +55,37 @@ domain_primary_certs = _rjson["Domain"]["certificate_signeds__single_primary_5"]
 if not domain_primary_certs:
     r = requests.get(URL_BASE + "/acme-accounts.json")
     _rjson = r.json()
-    _default = _rjson["globals"]["default"]
-    _backup = _rjson["globals"]["backup"]
-    assert _default
-    assert _backup
+    _global = _rjson["SystemConfiguration_global"]
+
+    acme_account_id__primary = _global["acme_account_id__primary"]
+    acme_server_id__primary = _global["acme_server_id__primary"]
+    assert acme_account_id__primary
+    assert acme_server_id__primary
+
+    acme_account_id__backup = _global["acme_account_id__backup"]
+    acme_server_id__backup = _global["acme_server_id__backup"]
+    assert acme_account_id__backup
+    assert acme_server_id__backup
 
     # for each of these accounts, refresh their support aginst the acme-sever
     # to ensure we get the current profiles:
     r = requests.post(
-        URL_BASE + "/acme-server/%s/check-support.json" % _default["acme_server_id"]
+        URL_BASE + "/acme-server/%s/check-support.json" % acme_server_id__primary
     )
     _rjson = r.json()
     assert _rjson["result"] == "success"
     assert "AcmeServer" in _rjson
+    assert _rjson["AcmeServer"]["name"] == "pebble"
     assert "default" in _rjson["AcmeServer"]["profiles"]
     assert "shortlived" in _rjson["AcmeServer"]["profiles"]
 
     r = requests.post(
-        URL_BASE + "/acme-server/%s/check-support.json" % _backup["acme_server_id"]
+        URL_BASE + "/acme-server/%s/check-support.json" % acme_server_id__backup
     )
     _rjson = r.json()
     assert _rjson["result"] == "success"
     assert "AcmeServer" in _rjson
+    assert _rjson["AcmeServer"]["name"] == "pebble-alt"
     assert "default" in _rjson["AcmeServer"]["profiles"]
     assert "shortlived" in _rjson["AcmeServer"]["profiles"]
 
@@ -69,18 +96,22 @@ if not domain_primary_certs:
     _rjson = r.json()
     if not _rjson["RenewalConfigurations"]:
         form = {
-            "account_key_option": "account_key_global_default",
-            "account_key_global_default": _default["AcmeAccountKey"]["key_pem_md5"],
-            "profile": "shortlived",
-            "account_key_option__backup": "account_key_global__backup",
-            "account_key_global__backup": _backup["AcmeAccountKey"]["key_pem_md5"],
-            "profile": "shortlived",
-            "key_technology": "account_default",
-            "private_key_cycle": "account_default",
-            "private_key_option": "account_default",
+            # core
             "domain_names_http01": domain_name,
             "processing_strategy": "process_single",
             "note": "API Request; Record X",
+            # primary cert
+            "account_key_option__primary": "acme_account_id",
+            "acme_account_id__primary": acme_account_id__primary,
+            "acme_profile__primary": "shortlived",
+            "private_key_cycle__primary": "account_default",
+            "private_key_option__primary": "account_default",
+            # backup cert
+            "account_key_option__backup": "acme_account_id",
+            "acme_account_id__backup": acme_account_id__backup,
+            "acme_profile__backup": "shortlived",
+            "private_key_cycle__backup": "account_default",
+            "private_key_option__backup": "account_default",
         }
         r = requests.post(URL_BASE + "/acme-order/new/freeform.json", form)
         _rjson = r.json()

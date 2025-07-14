@@ -13,9 +13,6 @@ import cert_utils
 from dateutil import parser as dateutil_parser
 import sqlalchemy
 
-# from typing_extensions import Required
-# from typing_extensions import TypedDict
-
 # local
 from .helpers import _certificate_parse_to_record
 from .logger import _log_object_event
@@ -30,9 +27,8 @@ from ...lib.db import get as _get  # noqa: F401
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
-# from typing import Optional
-
 if TYPE_CHECKING:
+    from ..context import ApiContext
     from ...lib.acme_v2 import AriCheckResult
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAuthorization
@@ -60,19 +56,21 @@ if TYPE_CHECKING:
     from ...model.objects import DomainAutocert
     from ...model.objects import EnrollmentFactory
     from ...model.objects import Notification
-    from ...model.objects import SystemConfiguration
     from ...model.objects import PrivateKey
     from ...model.objects import RateLimited
     from ...model.objects import RenewalConfiguration
     from ...model.objects import RoutineExecution
+    from ...model.objects import SystemConfiguration
     from ...model.objects import UniqueFQDNSet
-    from ..context import ApiContext
     from ...model.utils import DomainsChallenged
 
     # from ...lib.acme_v2 import AcmeOrderRFC
 
     # --
 
+# from typing import Optional
+# from typing_extensions import Required
+# from typing_extensions import TypedDict
 
 # ==============================================================================
 

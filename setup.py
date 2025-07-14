@@ -32,7 +32,7 @@ requires = [
     "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
-    "pyramid_formencode_classic>=0.9.3,<1.0",
+    "pyramid_formencode_classic>=0.10.0,<1.0",
     "pyramid_mako",
     "pyramid_route_7>=0.5.3",
     "pyramid_tm",
@@ -43,9 +43,9 @@ requires = [
     "SQLAlchemy>2",
     "tldextract>=5.2.0",
     "typing_extensions",
-    "urllib3<2.4.0",
+    "urllib3>2.4.0",
     "waitress",
-    "zope.sqlalchemy>=1.6",  # support for python2&3
+    "zope.sqlalchemy",
 ]
 tests_require = [
     "certbot",
@@ -55,7 +55,6 @@ tests_require = [
     "pyramid-debugtoolbar-ajax",
     "pytest",
     "types-invoke",
-    "types-urllib3",
     "webtest",
 ]
 testing_extras = tests_require + []
@@ -91,7 +90,7 @@ setup(
     ),
     package_dir={"": "src"},
     include_package_data=True,
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     install_requires=requires,
     tests_require=tests_require,
     extras_require={

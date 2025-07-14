@@ -5501,6 +5501,16 @@ class SystemConfiguration(Base, _Mixin_AcmeAccount_Effective):
             "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,
             "acme_profile__backup__effective": self.acme_profile__backup__effective,
+            "acme_server_id__primary": (
+                self.acme_account__primary.acme_server_id
+                if self.acme_account__primary
+                else None
+            ),
+            "acme_server_id__backup": (
+                self.acme_account__backup.acme_server_id
+                if self.acme_account__backup
+                else None
+            ),
             "is_configured": self.is_configured,
             "private_key_technology__primary": self.private_key_technology__primary,
             "private_key_technology__primary__effective": self.private_key_technology__primary__effective,

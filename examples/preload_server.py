@@ -11,6 +11,12 @@ After running this script, run
     routine__automatic_orders data_staging/config.ini
 
 the above command should order the backup certificates
+
+This file is expected to run against 2 pebble accounts; this can be done using:
+
+        python run_dev_servers.py
+
+Do not run this against production servers.
 """
 
 # stdlib
@@ -22,7 +28,7 @@ import requests
 
 # - - -
 
-URL_BASE = "http://127.0.0.1:7201/.well-known/peter_sslers"
+URL_BASE = "http://127.0.0.1:5002/.well-known/peter_sslers"
 
 # = = =
 
@@ -89,7 +95,6 @@ assert mapping["AcmeServer"]["backup"] is not None
 #
 r = requests.get(URL_BASE + "/acme-accounts.json")
 r_json = r.json()
-# pprint.pprint(r_json)
 for id_, acmeAccount in r_json["AcmeAccounts"].items():
     if acmeAccount["acme_server_name"] == "pebble":
         mapping["AcmeAccount"]["primary"] = acmeAccount
@@ -146,30 +151,44 @@ while page:
     page = r_json["pagination"]["page_next"]
 
 if not _exists:
+    print("Creating EnrollmentFactory...")
 
     # the NEW endpoint will document possible AcmeAccounts
     r = requests.get(URL_BASE + "/enrollment-factorys/new.json")
     r_json = r.json()
     # make sure our intended AcmeAcconts are the right ones!
+
+    # the API provides a shortcut of valid options
     _acmeAccounts = {
         aa["id"]: aa["label"] for aa in r_json["valid_options"]["AcmeAccounts"]
     }
-    assert _acmeAccounts[1].endswith("@ pebble")
-    assert _acmeAccounts[2].endswith("@ pebble-alt")
+
+    # ensure the primary is in there, and on pebble
+    assert mapping["AcmeAccount"]["primary"]["id"] in _acmeAccounts
+    assert _acmeAccounts[mapping["AcmeAccount"]["primary"]["id"]].endswith("@ pebble")
+
+    # ensure the backup is in there, and on pebble-alt
+    assert mapping["AcmeAccount"]["backup"]["id"] in _acmeAccounts
+    assert _acmeAccounts[mapping["AcmeAccount"]["backup"]["id"]].endswith(
+        "@ pebble-alt"
+    )
 
     form_data = {
-        "acme_account_id__backup": mapping["AcmeAccount"]["backup"]["id"],
-        "acme_account_id__primary": mapping["AcmeAccount"]["primary"]["id"],
-        "acme_profile__backup": "shortlived",
-        "acme_profile__primary": "shortlived",
+        # core
         "domain_template_dns01": "",
         "domain_template_http01": "{DOMAIN}",
         "name": "preload_server",
         "note": "created by the preload_server script",
-        "private_key_cycle__backup": "single_use__reuse_1_year",
+        # primary cert
+        "acme_account_id__primary": mapping["AcmeAccount"]["primary"]["id"],
+        "acme_profile__primary": "shortlived",
         "private_key_cycle__primary": "single_use__reuse_1_year",
-        "private_key_technology__backup": "EC_P256",
         "private_key_technology__primary": "EC_P256",
+        # backup cert
+        "acme_account_id__backup": mapping["AcmeAccount"]["backup"]["id"],
+        "acme_profile__backup": "shortlived",
+        "private_key_cycle__backup": "single_use__reuse_1_year",
+        "private_key_technology__backup": "EC_P256",
     }
 
     r = requests.post(URL_BASE + "/enrollment-factorys/new.json", form_data)
@@ -180,6 +199,7 @@ if not _exists:
 
 # 2. enroll a domain for each letter of the alphabet
 
+print("Creating RenewalConfigurations...")
 ENROLLMENT_FACTORY_ID = mapping["EnrollmentFactory"]["preload_server"]["id"]
 for phonetic in NATO_ALPHABET:
     r = requests.get(
@@ -208,6 +228,7 @@ for phonetic in NATO_ALPHABET:
 
 
 # 3. loop our RenewalConfigurations to order certs
+print("Ordering Certificates...")
 for phonetic in mapping["RenewalConfiguration"].keys():
     rc_id = mapping["RenewalConfiguration"][phonetic]["id"]
 

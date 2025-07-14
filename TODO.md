@@ -1,32 +1,40 @@
 URGENT
 =====
 
-ProductionServer - keeps ordering certs
-    routine__automatic_orders is not detecting fulfillment
-    trouble duplicating, was this fixed?
+
+
+
+--------
+
+tests/test_pyramid_app.py::IntegratedTests_AcmeServer_AcmeOrder::test_Api_Domain_autocert_json
+  /home/runner/work/peter_sslers/peter_sslers/.tox/py/lib/python3.12/site-packages/peter_sslers/lib/utils_redis.py:158: UserWarning: Error 111 connecting to 127.0.0.1:6380. Connection refused.
+    warnings.warn(str(exc))
+
+--------
+
+
+
+
 
 urllib3 has a breaking change in 2.4.0
     # see https://github.com/urllib3/urllib3/issues/3571
 
 AcmePollingError
     bug on server; could have a dict;;  converting to json but ensure this is okay
+    this may be fixed
 
-Test Needed
+Standardize Fields
+    private_key_cycle --> private_key_cycle__primary
 
-    single_use_1_year
-        is this correctly locked for renewals to that cert?
-
-
-Tests
-    submit (hostname, ipv4, ipv6) to domain new
-    view domain (html, json) for (hostname, ipv4, ipv6)
-    submit (hostname, ipv4, ipv6) to acme_dns_server ensure domain
-
-
-
-
-
-
+    /acme-order/new/freeform
+        account_key_option -> account_key_option__primary
+        private_key_option -> private_key_option__primary
+            parse_PrivateKeySelection
+            formgroup__PrivateKey_selector__advanced
+                # only used by acme-order/new/freeform
+        
+        private_key_existing -> private_key_existing__primary ???(pem_md5 vs id)???
+            parse_PrivateKeySelection
 
 Audit:
     Concepts:
@@ -41,7 +49,6 @@ Audit:
                 the def will commit the transaction; the caller must acknowledge this
 
 
-
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 
@@ -49,7 +56,6 @@ Feature?
     * example client that monitors certs on disk.
     * db logging : control via config
         operations events
-    * use a md5hash of the acme account url as an account identifier; likely better than acme_account_key
 
 Fix
     ARI Checks
@@ -69,36 +75,7 @@ acme-dns:
             https://github.com/joohoi/acme-dns/pull/378
 
 Audit
-    objects | certificate has some odd attributes that should be removed
-
-Tests:
-    AcmeAccounts:
-        These all work as intended, but unitests should ensure:
-            test to ensure a Default can't be set to the same server as Backup
-            test to ensure a Backup can't be set to the same server as Default
-            test to ensure 2 acme accounts don't have the same key
-            * test against active account key
-            * test against prior account key
-    AcmeOrder:
-        test with valid profile
-        test with invalid profile
-    Renewal Configuration
-        ensure acme_profile__backup and @ work
-        renewing an INACTIVE duplciate will still return the INACTIVE dupicate (works, just needs coverage)
-        toggle is_export_filesystem
-
-    EnrollmentFactory
-        improve testing
-            fail predictablly
-            "*.{DOMAIN}," - not allowed in HTTP-01; requires DNS setup
-        tests showing 'global' is prohibited as a factory name
-        test creating with vs without backups
-        check contents of templates post-create and post-edit
-        try invalid submission of _options_EnrollmentFactory_isExportFilesystem
-
-    DNS-01 tests
-
-    Not all routines are covered by tests
+    objects | certificate has some odd attributes for html generation that should be removed
 
  UX:
     do a quick overview of key objects
@@ -110,18 +87,11 @@ Tests:
     dev docs
     tests
 
-Streamline Onboarding
-    set the first acme account and first acme server to be the defaults
-        see: update_AcmeServer__activate_default
-
 CertificateCaPreferencePolicy
     allow creating custom policies, and assigning to RC/EF
 
 SQLAlchemy
     audit use of `secondary` again, as that pattern is fragile on some of our selects -- so they may need to be replaced with the aliased pattern.
-
-
-
 
 
 
@@ -132,7 +102,8 @@ check to see if we correctly handle this:
 
 bug?
     if we lose a connection during the db save, do we lose the ability to finalize/download
-    sync-order seems to reconcile this
+        sync-order seems to reconcile this
+        `routine__reconcile_blocks` automates this.
 
 Blocking:
     block repeat requests
@@ -167,51 +138,20 @@ AcmeAccount
 
 
 QueryString errors and encodings
-    redo urlify/unurlify/etc
+    ??? completed ??? redo urlify/unurlify/etc
     redo querystring partial
 
 
 
-test to property handle:
-    sync acme challenge against a 404 challenge
-
 audit exception classes and usage
-
-*   Add a unit test to ensure every object with an `.as_json` property can be encoded.
-    Context: AcmeOrder.as_json has an `acme_process_steps` method
-             `acme_process_steps` did not properly encode an AcmeAuthorization item
-             This caused AcmeOrder to not encode, but the tracebacks buried the underlying
-             cause of this. A direct test should prevent this from happening again.
-             While this is inherently tested by the route tests, a unittest will
-             surface issues sooner.
-
-* CertificateSigned
-	* TESTS
-	- test for a situation where the dbPrivateKey for a certificate is deactivated before deactivating a certificate
-	- test for a situation where the dbPrivateKey for a certificate is deactivated before queuring a renewal
-
-*   api/domain/autocert
-		test against different strategies to ensure correct behavior
-		- dogpile defense
-		- repeat request, correct data
 
 * update API logging;
     [x] dedicated outlet
     [ ] formatting check
 
-Test the scripts
-
 Audit
     private_key_reuse - make sure correct forms check for it
     tests don't seem to run ApplicationSettings.from_settings_dict ?
-
-Tests
-    selfsigned-1.example.com - disable authz/order
-    split out functional under_pebble that are really integrated
-    create test:
-        private_key_reuse on new/retry order
-    /renewal_configuration.py
-        key_technology_id might be wrong on new; should this be detectd via parsed?
 
 Docs
     application design
@@ -275,25 +215,6 @@ AuthorizationPotential
     []list view on domains page is unusable; needs alternate table
 
 
-Testing
-------------
-
-* Tests Needed:
-	UNIT Tests
-		* add a test to ensure chains/fullchains do not have blank lines
-		* add a test to ensure chain direction
-
-	AcmeAccount
-		* upload: a duplicate key
-		* new: submit a different key for an existing contact on the acme server
-		* new: submit a new key for an existing contact on the acme server
-
-	NGINX
-		* Test to ensure we have the expected peter_sslers API version loaded
-	
-	MISC
-	    * deactivate a valid authorization
-		
 
 Not Finished Yet
 ===============
@@ -310,7 +231,6 @@ Audit/Remove "todo" markers
 TODO:
 ======
 
-* Alembic
 * DomainAutocert
 	as_json payload was not tested
 
@@ -421,40 +341,3 @@ Long Term Questions:
 	is this necessary with our `ctx.pyramid_transaction_commit` hook?
 
 
-Test Cases to Write
-===================
-
-Case A:
-	create order
-		sync order authorizations
-	visit account:
-		deactivate account authorizations
-	visit order authorizations:
-		check order authorization:
-			- it should be invalid
-			- challenges should be 410
-	visit order:
-		check order:
-			- it should be invalid/deactivated
-
-Case B:
-	Create an order
-	destroy the order on the acme server
-	sync the order to the acme server
-
-
-
-Rejected Tasks
-===============
-* UniqueFQDNSet
-    Idea
-	- allow a set to be decomposed into one or more sets
-	- for example:
-		- original set: [a.example.com, b.example.com, c.example.com,]
-		- new set(s): [a.example.com,]; [b.example.com, c.example.com,]
-		- new set(s): [a.example.com,]
-    Rejection
-    - This is inherently handled through the "/renewal-configuration/{ID}/new-configuration"
-* Take into account the validity of existing LetsEncrypt authz and challenges when requesting certs.
-    Rejection
-    - The cached validity time may drastically change as short-life certs re introduced.

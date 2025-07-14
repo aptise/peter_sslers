@@ -1,9 +1,16 @@
 # stdlib
 import datetime
 import logging
+from typing import Callable
+from typing import Dict
+from typing import Optional
 from typing import TYPE_CHECKING
 
 # pypi
+# note: pkg_resources deprecation.
+#       Pyramid items could be loaded in `main()` to get around
+#       issue  https://github.com/Pylons/pyramid/issues/3731
+#       however, several other libraries raise this too
 from pyramid.config import Configurator
 from pyramid.events import BeforeRender
 from pyramid.renderers import JSON
@@ -24,16 +31,18 @@ from ..lib.utils import unurlify
 from ..model import websafe as model_websafe
 
 if TYPE_CHECKING:
+    from pyramid.request import Request
+    from pyramid.response import Response
+
     # from .context import ApiContext
     # from ..model.objects import Domain
-    from pyramid.request import Request
 
 
 # ==============================================================================
 
 
-def header_tween_factory(handler, registry):
-    def header_tween(request):
+def header_tween_factory(handler: Callable[["Request"], "Response"], registry):
+    def header_tween(request: "Request") -> "Response":
         response = handler(request)
         response.headers["X-Peter-SSLers"] = "production"
         return response
@@ -41,7 +50,7 @@ def header_tween_factory(handler, registry):
     return header_tween
 
 
-def add_renderer_globals(event):
+def add_renderer_globals(event: Dict):
     """sticks the admin_prefix into the renderer's topline namespace"""
     event["admin_prefix"] = event["request"].registry.settings["application_settings"][
         "admin_prefix"
@@ -51,8 +60,10 @@ def add_renderer_globals(event):
     event["unurlify"] = unurlify
 
 
-def db_log_cleanup__tween_factory(handler, registry):
-    def db_log_cleanup__tween(request):
+def db_log_cleanup__tween_factory(
+    handler: Callable[["Request"], "Response"], registry
+) -> Callable[["Request"], "Response"]:
+    def db_log_cleanup__tween(request: "Request") -> "Response":
         try:
             if request.environ.get("paste.command_request", None):
                 # turn off logging
@@ -74,7 +85,7 @@ def db_log_cleanup__tween_factory(handler, registry):
     return db_log_cleanup__tween
 
 
-def main(global_config, **settings):
+def main(global_config: Optional[Dict], **settings):
     """This function returns a Pyramid WSGI application."""
     config = Configurator(settings=settings)
     config.add_tween(".header_tween_factory")

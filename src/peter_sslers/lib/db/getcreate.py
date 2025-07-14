@@ -48,7 +48,6 @@ from ...lib import utils as lib_utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 
-
 if TYPE_CHECKING:
     from ..acme_v2 import AuthenticatedUser
     from ..context import ApiContext
@@ -1454,6 +1453,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
         # NOTE: AcmeAccountNeedsPrivateKey ; single_use
         # ???: do we lookup?
         # ???: how is create scoped - within an order?
+
         dbPrivateKey_new = create__PrivateKey(
             ctx,
             private_key_source_id=model_utils.PrivateKeySource.GENERATED,

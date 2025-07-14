@@ -67,6 +67,12 @@ for "export" action:
 the routine will dump all servers into a json encoding, in a format compatible
 with the `register` action
 
+
+for "reset" action:
+
+nothing required.
+
+
 """
 
 
@@ -75,21 +81,25 @@ def usage(argv):
     print("usage: %s <config_uri> <action> <file>\n" % cmd)
     print('(example: "%s data_development/config.ini register imports.json")\n' % cmd)
     print('(example: "%s data_development/config.ini export exports.json")\n' % cmd)
+    print('(example: "%s data_development/config.ini reset")\n' % cmd)
     print(INSTRUCTIONS)
     sys.exit(1)
 
 
 def main(argv=sys.argv):
-    if len(argv) != 4:
+    if len(argv) not in (3, 4):
         usage(argv)
+        if len(argv) == 3 and argv[2] != "reset":
+            usage(argv)
     config_uri = argv[1]
     config_uri = validate_config_uri(config_uri)
     action = argv[2]
-    if action not in ("register", "export"):
-        raise ValueError("action must be `register` or `export`")
-    fpath = argv[3]
+    if action not in ("register", "export", "reset"):
+        raise ValueError("action must be `register`, `export` or `reset`")
+    fpath = argv[3] if action in ("register", "export") else None
 
     if action == "register":
+        assert isinstance(fpath, str)  # typing
         if not os.path.exists(fpath):
             raise ValueError("%s is not a file" % fpath)
         with open(fpath, "r") as fh:
@@ -123,11 +133,10 @@ def main(argv=sys.argv):
         ctx.pyramid_transaction_commit()
 
     elif action == "export":
-
+        assert isinstance(fpath, str)  # typing
         if os.path.exists(fpath):
             raise ValueError("filepath `%s` exists" % fpath)
 
-        #
         ctx = new_scripts_setup(config_uri, options=None)
 
         exportServers = []
@@ -144,3 +153,8 @@ def main(argv=sys.argv):
 
         with open(fpath, "w") as fh:
             fh.write(json.dumps(exportServers))
+
+    elif action == "reset":
+        ctx = new_scripts_setup(config_uri, options=None)
+        lib_db.actions.register_acme_servers(ctx, lib_db._setup.acme_servers, "reset")
+        ctx.pyramid_transaction_commit()

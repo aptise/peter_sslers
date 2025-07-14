@@ -32,6 +32,7 @@ from ...model.objects import EnrollmentFactory
 if TYPE_CHECKING:
     from pyramid.request import Request
     from pyramid_formencode_classic import FormStash
+
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
 

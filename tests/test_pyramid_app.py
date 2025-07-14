@@ -121,9 +121,11 @@ from .regex_library import RE_UniqueFQDNSet_modify
 from .regex_library import RE_UniqueFQDNSet_new
 
 if TYPE_CHECKING:
-    from peter_sslers.lib.context import ApiContext
+    from requests import Response
     from webtest import TestApp
     from webtest.http import StopableWSGIServer
+
+    from peter_sslers.lib.context import ApiContext
 
 
 # ==============================================================================
@@ -2878,43 +2880,53 @@ class FunctionalTests_AcmeOrder(AppTest):
 
         def _make_one_base(
             domain_names_http01: str,
-            account_key_option: str,
-            account_key_option_value: str,
+            account_key_option__primary: str,
+            account_key_option__primary_value: str,
             account_key_option__backup: str,
             account_key_option__backup_value: str,
             processing_strategy: Literal["create_order"],
         ) -> model_objects.AcmeOrder:
             """use the json api!"""
 
-            _backup_translate = {
-                "account_key_global__backup": "account_key_global__backup",
-                "account_key_existing": "account_key_existing__backup",
-                "acme_account_id": "acme_account_id__backup",
-                "acme_account_url": "acme_account_url__backup",
-            }
-            _backup_field = _backup_translate[account_key_option__backup]
-
             form = {}
-            form["account_key_option"] = account_key_option
-            form[account_key_option] = account_key_option_value
-            form["account_key_option__backup"] = account_key_option__backup
-            form[_backup_field] = account_key_option__backup_value
 
-            form["private_key_option"] = "account_default"
+            # primary cert
+            form["account_key_option__primary"] = account_key_option__primary
+            _primary_translate = {
+                "account_key_global__primary": "account_key_global__primary",
+                "account_key_existing": "account_key_existing__primary",
+                "acme_account_id": "acme_account_id__primary",
+                "acme_account_url": "acme_account_url__primary",
+            }
+            _primary_field = _primary_translate[account_key_option__primary]
+            form[_primary_field] = account_key_option__primary_value
+            form["private_key_option__primary"] = "account_default"
             form["private_key_cycle__primary"] = "account_default"
-            form["private_key_cycle__backup"] = "account_default"
-
             form["acme_profile__primary"] = "@"
-            form["acme_profile__backup"] = "@"
 
-            form["private_key_technology__backup"] = "account_default"
+            # backup cert
+            form["account_key_option__backup"] = account_key_option__backup
+            if account_key_option__backup != "none":
+                _backup_translate = {
+                    "account_key_global__backup": "account_key_global__backup",
+                    "account_key_existing": "account_key_existing__backup",
+                    "acme_account_id": "acme_account_id__backup",
+                    "acme_account_url": "acme_account_url__backup",
+                }
+                _backup_field = _backup_translate[account_key_option__backup]
+                form[_backup_field] = account_key_option__backup_value
+                form["private_key_option__backup"] = "account_default"
+                form["private_key_cycle__backup"] = "account_default"
+                form["acme_profile__backup"] = "@"
 
+            # core
             form["domain_names_http01"] = domain_names_http01
             form["processing_strategy"] = processing_strategy
 
             res2 = self.testapp.post(
                 "/.well-known/peter_sslers/acme-order/new/freeform.json", form
             )
+
             assert res2.status_code == 200
             assert res2.json["result"] == "success"
             assert "AcmeOrder" in res2.json
@@ -2946,12 +2958,12 @@ class FunctionalTests_AcmeOrder(AppTest):
         assert dbSystemConfiguration_global.acme_account__primary.account_url
         assert dbSystemConfiguration_global.acme_account__backup.account_url
 
-        # note: via account_key_global_default
+        # note: via account_key_global__primary
         domain_names_1 = generate_random_domain(testCase=self)
         dbAcmeOrder1 = _make_one_base(
             domain_names_http01=domain_names_1,
-            account_key_option="account_key_global_default",
-            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
+            account_key_option__primary="account_key_global__primary",
+            account_key_option__primary_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
             account_key_option__backup="account_key_global__backup",
             account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
             processing_strategy="create_order",
@@ -2961,8 +2973,8 @@ class FunctionalTests_AcmeOrder(AppTest):
         domain_names_2 = generate_random_domain(testCase=self)
         dbAcmeOrder2 = _make_one_base(
             domain_names_http01=domain_names_2,
-            account_key_option="account_key_existing",
-            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
+            account_key_option__primary="account_key_existing",
+            account_key_option__primary_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
             account_key_option__backup="account_key_existing",
             account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
             processing_strategy="create_order",
@@ -2972,8 +2984,8 @@ class FunctionalTests_AcmeOrder(AppTest):
         domain_names_3 = generate_random_domain(testCase=self)
         dbAcmeOrder3 = _make_one_base(
             domain_names_http01=domain_names_3,
-            account_key_option="acme_account_id",
-            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.id,
+            account_key_option__primary="acme_account_id",
+            account_key_option__primary_value=dbSystemConfiguration_global.acme_account__primary.id,
             account_key_option__backup="acme_account_id",
             account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.id,
             processing_strategy="create_order",
@@ -2983,8 +2995,8 @@ class FunctionalTests_AcmeOrder(AppTest):
         domain_names_4 = generate_random_domain(testCase=self)
         dbAcmeOrder4 = _make_one_base(
             domain_names_http01=domain_names_4,
-            account_key_option="acme_account_url",
-            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url,
+            account_key_option__primary="acme_account_url",
+            account_key_option__primary_value=dbSystemConfiguration_global.acme_account__primary.account_url,
             account_key_option__backup="acme_account_url",
             account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.account_url,
             processing_strategy="create_order",
@@ -3003,8 +3015,8 @@ class FunctionalTests_AcmeOrder(AppTest):
 
         def _make_one_base(
             domain_names_http01: str,
-            account_key_option: str,
-            account_key_option_value: str,
+            account_key_option__primary: str,
+            account_key_option__primary_value: str,
             account_key_option__backup: str,
             account_key_option__backup_value: str,
             processing_strategy: Literal["create_order"],
@@ -3014,26 +3026,42 @@ class FunctionalTests_AcmeOrder(AppTest):
                 "/.well-known/peter_sslers/acme-order/new/freeform", status=200
             )
 
-            _backup_translate = {
-                "account_key_global__backup": "account_key_global__backup",
-                "account_key_existing": "account_key_existing__backup",
-                "acme_account_id": "acme_account_id__backup",
-                "acme_account_url": "acme_account_url__backup",
-            }
-            _backup_field = _backup_translate[account_key_option__backup]
-
             form = res.form
             _form_fields = form.fields.keys()
-            form["account_key_option"].force_value(account_key_option)
-            form[account_key_option].force_value(account_key_option_value)
-            form["account_key_option__backup"].force_value(account_key_option__backup)
-            form[_backup_field].force_value(account_key_option__backup_value)
-            form["private_key_option"].force_value("account_default")
-            form["private_key_cycle__primary"].force_value("account_default")
-            form["domain_names_http01"] = domain_names_http01
+
+            # primary cert
+            form["account_key_option__primary"] = account_key_option__primary
+            _primary_translate = {
+                "account_key_global__primary": "account_key_global__primary",
+                "account_key_existing": "account_key_existing__primary",
+                "acme_account_id": "acme_account_id__primary",
+                "acme_account_url": "acme_account_url__primary",
+            }
+            _primary_field = _primary_translate[account_key_option__primary]
+            form[_primary_field] = account_key_option__primary_value
+            form["private_key_option__primary"] = "account_default"
+            form["private_key_cycle__primary"] = "account_default"
             form["acme_profile__primary"] = "@"
-            form["acme_profile__backup"] = "@"
+
+            # backup cert
+            form["account_key_option__backup"].force_value(account_key_option__backup)
+            if account_key_option__backup != "none":
+                _backup_translate = {
+                    "account_key_global__backup": "account_key_global__backup",
+                    "account_key_existing": "account_key_existing__backup",
+                    "acme_account_id": "acme_account_id__backup",
+                    "acme_account_url": "acme_account_url__backup",
+                }
+                _backup_field = _backup_translate[account_key_option__backup]
+                form[_backup_field] = account_key_option__backup_value
+                form["private_key_option__backup"] = "account_default"
+                form["private_key_cycle__backup"] = "account_default"
+                form["acme_profile__backup"] = "@"
+
+            # core
+            form["domain_names_http01"] = domain_names_http01
             form["processing_strategy"].force_value(processing_strategy)
+
             res2 = form.submit()
             assert res2.status_code == 303
 
@@ -3069,13 +3097,13 @@ class FunctionalTests_AcmeOrder(AppTest):
         assert dbSystemConfiguration_global.acme_account__primary.account_url
         assert dbSystemConfiguration_global.acme_account__backup.account_url
 
-        # note: via account_key_global_default
+        # note: via account_key_global__primary
         domain_names_1 = generate_random_domain(testCase=self)
 
         dbAcmeOrder1 = _make_one_base(
             domain_names_http01=domain_names_1,
-            account_key_option="account_key_global_default",
-            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
+            account_key_option__primary="account_key_global__primary",
+            account_key_option__primary_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
             account_key_option__backup="account_key_global__backup",
             account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
             processing_strategy="create_order",
@@ -3085,8 +3113,8 @@ class FunctionalTests_AcmeOrder(AppTest):
         domain_names_2 = generate_random_domain(testCase=self)
         dbAcmeOrder2 = _make_one_base(
             domain_names_http01=domain_names_2,
-            account_key_option="account_key_existing",
-            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
+            account_key_option__primary="account_key_existing",
+            account_key_option__primary_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
             account_key_option__backup="account_key_existing",
             account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
             processing_strategy="create_order",
@@ -3096,8 +3124,8 @@ class FunctionalTests_AcmeOrder(AppTest):
         domain_names_3 = generate_random_domain(testCase=self)
         dbAcmeOrder3 = _make_one_base(
             domain_names_http01=domain_names_3,
-            account_key_option="acme_account_id",
-            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.id,
+            account_key_option__primary="acme_account_id",
+            account_key_option__primary_value=dbSystemConfiguration_global.acme_account__primary.id,
             account_key_option__backup="acme_account_id",
             account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.id,
             processing_strategy="create_order",
@@ -3107,8 +3135,8 @@ class FunctionalTests_AcmeOrder(AppTest):
         domain_names_4 = generate_random_domain(testCase=self)
         dbAcmeOrder4 = _make_one_base(
             domain_names_http01=domain_names_4,
-            account_key_option="acme_account_url",
-            account_key_option_value=dbSystemConfiguration_global.acme_account__primary.account_url,
+            account_key_option__primary="acme_account_url",
+            account_key_option__primary_value=dbSystemConfiguration_global.acme_account__primary.account_url,
             account_key_option__backup="acme_account_url",
             account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.account_url,
             processing_strategy="create_order",
@@ -6193,9 +6221,9 @@ class FunctionalTests_DomainBlocklisted(AppTest):
 
         form = res.form
         _form_fields = form.fields.keys()
-        assert "account_key_option" in _form_fields
-        form["account_key_option"].force_value("account_key_global_default")
-        form["private_key_option"].force_value("account_default")
+        assert "account_key_option__primary" in _form_fields
+        form["account_key_option__primary"].force_value("account_key_global__primary")
+        form["private_key_option__primary"].force_value("account_default")
         form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = "always-fail.example.com, foo.example.com"
         form["processing_strategy"].force_value("create_order")
@@ -6250,7 +6278,6 @@ class _MixinEnrollmentFactory:
             form,
         )
         assert res.status_code == 200
-        pprint.pprint(res.json)
         assert res.json["result"] == "success"
         assert "EnrollmentFactory" in res.json
         return res.json["EnrollmentFactory"]["id"]
@@ -6936,16 +6963,18 @@ class FunctionalTests_RateLimited(AppTest, _MixinEnrollmentFactory):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/rate-limiteds", status=303
-        )
+        res = self.testapp.get("/.well-known/peter_sslers/rate-limiteds", status=303)
         assert (
             res.location
             == """http://peter-sslers.example.com/.well-known/peter_sslers/rate-limiteds/all"""
         )
         # all
-        res = self.testapp.get("/.well-known/peter_sslers/rate-limiteds/all", status=200)
-        res = self.testapp.get("/.well-known/peter_sslers/rate-limiteds/all/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds/all", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/rate-limiteds/all/1", status=200
+        )
 
     @routes_tested(
         (
@@ -6976,11 +7005,7 @@ class FunctionalTests_RateLimited(AppTest, _MixinEnrollmentFactory):
         )
         assert "RateLimiteds" in res.json
 
-    @routes_tested(
-        (
-            "admin:rate_limited:focus",
-        )
-    )
+    @routes_tested(("admin:rate_limited:focus",))
     def test_focus_html(self):
         (focusItem, focus_id) = self._get_one()
 
@@ -6988,12 +7013,7 @@ class FunctionalTests_RateLimited(AppTest, _MixinEnrollmentFactory):
             "/.well-known/peter_sslers/rate-limited/%s" % focus_id, status=200
         )
 
-
-    @routes_tested(
-        (
-            "admin:rate_limited:focus|json",
-        )
-    )
+    @routes_tested(("admin:rate_limited:focus|json",))
     def test_focus_json(self):
         (focusItem, focus_id) = self._get_one()
 
@@ -7003,8 +7023,6 @@ class FunctionalTests_RateLimited(AppTest, _MixinEnrollmentFactory):
         )
         assert "RateLimited" in res.json
         assert res.json["RateLimited"]["id"] == focus_id
-
-
 
 
 class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
@@ -7032,13 +7050,13 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
         )
         assert "form_fields" in res.json
 
-        account_key_global_default = res.json["valid_options"]["SystemConfigurations"][
+        account_key_global__primary = res.json["valid_options"]["SystemConfigurations"][
             "global"
         ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
         form = {}
-        form["account_key_option"] = "account_key_global_default"
-        form["account_key_global_default"] = account_key_global_default
+        form["account_key_option__primary"] = "account_key_global__primary"
+        form["account_key_global__primary"] = account_key_global__primary
         form["private_key_cycle__primary"] = "account_default"
         form["private_key_technology__primary"] = "account_default"
         form["domain_names_http01"] = generate_random_domain(testCase=self)
@@ -7436,8 +7454,8 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
             status=200,
         )
         form = {
-            "account_key_option": "account_key_global_default",
-            "account_key_global_default": res.json["valid_options"][
+            "account_key_option__primary": "account_key_global__primary",
+            "account_key_global__primary": res.json["valid_options"][
                 "SystemConfigurations"
             ]["global"]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"],
             "private_key_cycle__primary": "account_default",
@@ -7471,9 +7489,9 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
         note = generate_random_domain(testCase=self)
 
         form = res.form
-        form["account_key_option"].force_value("account_key_global_default")
+        form["account_key_option__primary"].force_value("account_key_global__primary")
         # this is rendered in the html
-        # form["account_key_global_default"] =
+        # form["account_key_global__primary"] =
         form["private_key_cycle__primary"].force_value("account_default")
         form["private_key_technology__primary"].force_value("account_default")
         form["domain_names_http01"] = generate_random_domain(testCase=self)
@@ -7497,15 +7515,15 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
         )
         assert "form_fields" in res.json
 
-        account_key_global_default = res.json["valid_options"]["SystemConfigurations"][
+        account_key_global__primary = res.json["valid_options"]["SystemConfigurations"][
             "global"
         ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
         note = generate_random_domain(testCase=self)
 
         form = {}
-        form["account_key_option"] = "account_key_global_default"
-        form["account_key_global_default"] = account_key_global_default
+        form["account_key_option__primary"] = "account_key_global__primary"
+        form["account_key_global__primary"] = account_key_global__primary
         form["private_key_cycle__primary"] = "account_default"
         form["private_key_technology__primary"] = "account_default"
         form["domain_names_http01"] = generate_random_domain(testCase=self)
@@ -7558,7 +7576,7 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
         )
         assert "form_fields" in res.json
 
-        account_key_global_default = res.json["valid_options"]["SystemConfigurations"][
+        account_key_global__primary = res.json["valid_options"]["SystemConfigurations"][
             "global"
         ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
 
@@ -8864,6 +8882,7 @@ class FunctionalTests_API(AppTest):
     def test_redis(self):
         """
         python -m unittest tests.test_pyramid_app.FunctionalTests_API.test_redis
+        pytest tests/test_pyramid_app.py::FunctionalTests_API::test_redis
         """
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # NOTE: prep work, ensure we updated recents
@@ -9130,7 +9149,6 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         )
         assert res4.json["result"] == "success"
         assert "AcmeAccount" in res4.json
-        return True
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble
@@ -9528,12 +9546,12 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         )
         form = res.form
         _form_fields = form.fields.keys()
-        assert "account_key_option" in _form_fields
-        form["account_key_option"].force_value("account_key_existing")
-        form["account_key_existing"].force_value(
+        assert "account_key_option__primary" in _form_fields
+        form["account_key_option__primary"].force_value("account_key_existing")
+        form["account_key_existing__primary"].force_value(
             dbAcmeAccount.acme_account_key.key_pem_md5
         )
-        form["private_key_option"].force_value("account_default")
+        form["private_key_option__primary"].force_value("account_default")
         form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#1"]["domain_names_http01"]
@@ -9547,7 +9565,7 @@ class IntegratedTests_AcmeServer_AcmeAccount(AppTest):
         obj_id = matched.groups()[0]
 
         # "admin:acme_order:focus|json",
-        # this could be an: `?is_duplicate_renewal=true'
+        # this could be an: `?is_duplicate_renewal_configuration=true'
         url_json = "%s.json" % res2.location.split("?")[0]
         res = self.testapp.get(url_json, status=200)
         assert "AcmeOrder" in res.json
@@ -9735,12 +9753,12 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         form = res.form
         note = generate_random_domain(testCase=self)
         _form_fields = form.fields.keys()
-        assert "account_key_option" in _form_fields
-        form["account_key_option"].force_value("account_key_existing")
-        form["account_key_existing"].force_value(
+        assert "account_key_option__primary" in _form_fields
+        form["account_key_option__primary"].force_value("account_key_existing")
+        form["account_key_existing__primary"].force_value(
             dbAcmeAccount.acme_account_key.key_pem_md5
         )
-        form["private_key_option"].force_value("account_default")
+        form["private_key_option__primary"].force_value("account_default")
         form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = domain_names_http01
         form["processing_strategy"].force_value(processing_strategy)
@@ -10148,12 +10166,12 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         form = res.form
         _form_fields = form.fields.keys()
-        assert "account_key_option" in _form_fields
-        form["account_key_option"].force_value("account_key_existing")
-        form["account_key_existing"].force_value(
+        assert "account_key_option__primary" in _form_fields
+        form["account_key_option__primary"].force_value("account_key_existing")
+        form["account_key_existing__primary"].force_value(
             dbAcmeAccount.acme_account_key.key_pem_md5
         )
-        form["private_key_option"].force_value("account_default")
+        form["private_key_option__primary"].force_value("account_default")
         form["private_key_cycle__primary"].force_value("account_default")
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#2"]["domain_names_http01"]
@@ -10508,9 +10526,11 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         # "admin:acme_order:new:freeform",
         form = {}
         note = generate_random_domain(testCase=self)
-        form["account_key_option"] = "account_key_existing"
-        form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
-        form["private_key_option"] = "account_default"
+        form["account_key_option__primary"] = "account_key_existing"
+        form["account_key_existing__primary"] = (
+            dbAcmeAccount.acme_account_key.key_pem_md5
+        )
+        form["private_key_option__primary"] = "account_default"
         form["private_key_cycle__primary"] = "account_default"
         form["domain_names_http01"] = domain_names_http01
         form["processing_strategy"] = processing_strategy
@@ -10791,8 +10811,8 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
 
         # we can just change the `private_key_cycle`
         form = {
-            "account_key_option": "account_key_reuse",
-            "account_key_reuse": account_key,
+            "account_key_option__primary": "account_key_reuse",
+            "account_key_reuse__primary": account_key,
             "private_key_technology__primary": "account_default",
             "private_key_cycle__primary": "single_use",
             "domain_names_http01": renewal_configuration_1__domains,
@@ -10881,9 +10901,11 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert "instructions" in res.json
 
         form = {}
-        form["account_key_option"] = "account_key_existing"
-        form["account_key_existing"] = dbAcmeAccount.acme_account_key.key_pem_md5
-        form["private_key_option"] = "account_default"
+        form["account_key_option__primary"] = "account_key_existing"
+        form["account_key_existing__primary"] = (
+            dbAcmeAccount.acme_account_key.key_pem_md5
+        )
+        form["private_key_option__primary"] = "account_default"
         form["private_key_cycle__primary"] = "single_use"
         form["domain_names_http01"] = ",".join(
             _test_data["acme-order/new/freeform#2"]["domain_names_http01"]
@@ -11158,7 +11180,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             {},
         )
         assert res2.status_code == 200
-        pprint.pprint(res2.json)
         assert res2.json["result"] == "success"
         assert "AriCheck" in res2.json
 
@@ -12104,6 +12125,87 @@ class IntegratedTests_Renewals(AppTestWSGI):
     """
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    def test__single_use__reuse_1_year(self):
+        """
+        python -m unittest tests.test_pyramid_app.IntegratedTests_Renewals.test__single_use__reuse_1_year
+
+        This tests a SIMPLE renewal situation:
+
+            generate a cert with a key specified to `single_use__reuse_1_year`
+            renew cert, check same key was used
+        """
+        do__AcmeServers_sync__api(self, sync_backup=False)
+
+        # pebble loses state across test runs
+        ensure_AcmeAccount_auth(testCase=self)
+
+        # order the initial cert
+        dbAcmeOrder_1 = make_one__AcmeOrder__api(
+            self,
+            domain_names_http01="test-single-use-reuse-1-year.example.com",
+            processing_strategy="process_single",
+            private_key_cycle__primary="single_use__reuse_1_year",
+        )
+        assert dbAcmeOrder_1.private_key_cycle == "single_use__reuse_1_year"
+        assert (
+            dbAcmeOrder_1.renewal_configuration.private_key_cycle__primary
+            == "single_use__reuse_1_year"
+        )
+        assert dbAcmeOrder_1.private_key.private_key_type == "single_use__reuse_1_year"
+
+        def _make_one__AcmeOrder_Renewal(
+            _dbAcmeOrder: model_objects.AcmeOrder,
+            _replaces: str,
+        ) -> Dict:
+            """
+            _dbAcmeOrder: use this AcmeOrder's RenewalConfiguration for new order
+            _replaces: ari.identifier we are replacing
+            """
+            _res = self.testapp.get(
+                "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
+                % _dbAcmeOrder.renewal_configuration_id,
+                status=200,
+            )
+            _post_args = {
+                "processing_strategy": "process_single",
+                "replaces": _replaces,
+            }
+            _res2 = self.testapp.post(
+                "/.well-known/peter_sslers/renewal-configuration/%s/new-order.json"
+                % _dbAcmeOrder.renewal_configuration_id,
+                _post_args,
+            )
+            assert _res2.status_code == 200
+            assert _res2.json["result"] == "success"
+
+            return _res2.json
+
+        # order a replacement
+        _renewalJson = _make_one__AcmeOrder_Renewal(
+            dbAcmeOrder_1,
+            _replaces=dbAcmeOrder_1.certificate_signed.ari_identifier,
+        )
+
+        assert (
+            _renewalJson["AcmeOrder"]["private_key_cycle"] == "single_use__reuse_1_year"
+        )
+        assert (
+            _renewalJson["AcmeOrder"]["RenewalConfiguration"][
+                "private_key_cycle__primary"
+            ]
+            == "single_use__reuse_1_year"
+        )
+        dbPrivateKey__renewal = lib_db_get.get__PrivateKey__by_id(
+            self.ctx, _renewalJson["AcmeOrder"]["PrivateKey"]["id"]
+        )
+        assert dbPrivateKey__renewal is not None
+        assert dbPrivateKey__renewal.private_key_type == "single_use__reuse_1_year"
+
+        # this is what we want to see...
+        assert dbAcmeOrder_1.private_key_id == dbPrivateKey__renewal.id
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
     @under_pebble_alt
     @under_pebble
     def test_multi_pebble_renewal__simple(self):
@@ -12801,7 +12903,9 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         ).count()
         return stats
 
-    def _place_order(self, account_key_file_pem, account__contact, domain_names):
+    def _place_order(
+        self, account_key_file_pem: str, account__contact: str, domain_names: List[str]
+    ) -> "Response":
         resp = requests.get(
             "http://peter-sslers.example.com:5002/.well-known/peter_sslers/acme-order/new/freeform.json"
         )
@@ -12879,9 +12983,9 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         ensure_AcmeAccount_auth(testCase=self, acme_account_id=acme_account_id)
 
         form = {}
-        form["account_key_option"] = "account_key_existing"
-        form["account_key_existing"] = dbAcmeAccountKey.key_pem_md5
-        form["private_key_option"] = "account_default"
+        form["account_key_option__primary"] = "account_key_existing"
+        form["account_key_existing__primary"] = dbAcmeAccountKey.key_pem_md5
+        form["private_key_option__primary"] = "account_default"
         form["private_key_cycle__primary"] = "account_default"
         form["domain_names_http01"] = ",".join(domain_names)
         form["processing_strategy"] = "process_single"
@@ -13129,24 +13233,28 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
 
         assert resp.status_code == 200
-        assert resp.json()["result"] == "error"
+        resp_json = resp.json()
+        assert resp_json["result"] == "error"
 
         # somehow, this is now being returned:
         # "(400, {'type': 'urn:ietf:params:acme:error:malformed', 'detail': 'Cannot update challenge with status invalid, only status pending', 'status': 400})"
 
-        assert resp.json()["error"] == "`pending` AcmeOrder failed an AcmeAuthorization"
-        assert "AcmeOrder" in resp.json()
-        obj_id = resp.json()["AcmeOrder"]["id"]
+        assert (
+            resp_json["form_errors"]["Error_Main"]
+            == "`pending` AcmeOrder failed an AcmeAuthorization"
+        )
+        assert "AcmeOrder" in resp_json
+        obj_id = resp_json["AcmeOrder"]["id"]
 
         # # test for resync bug
         # url = "http://peter-sslers.example.com:5002/.well-known/peter_sslers/acme-order/%s/acme-server/sync.json" % obj_id
         # rrr = requests.post(url)
         # pdb.set_trace()
 
-        assert resp.json()["AcmeOrder"]["certificate_url"] is None
-        assert resp.json()["AcmeOrder"]["acme_status_order"] == "invalid"
+        assert resp_json["AcmeOrder"]["certificate_url"] is None
+        assert resp_json["AcmeOrder"]["acme_status_order"] == "invalid"
         assert (
-            resp.json()["AcmeOrder"]["acme_order_processing_status"]
+            resp_json["AcmeOrder"]["acme_order_processing_status"]
             == "processing_deactivated"
         )
 
@@ -13217,17 +13325,18 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 domain_names,
             )
             assert resp.status_code == 200
-            assert resp.json()["result"] == "error"
+            resp_json = resp.json()
+            assert resp_json["result"] == "error"
             assert (
-                resp.json()["error"]
+                resp_json["form_errors"]["Error_Main"]
                 == "`pending` AcmeOrder failed an AcmeAuthorization"
             )
-            assert "AcmeOrder" in resp.json()
-            obj_id = resp.json()["AcmeOrder"]["id"]
-            assert resp.json()["AcmeOrder"]["certificate_url"] is None
-            assert resp.json()["AcmeOrder"]["acme_status_order"] == "invalid"
+            assert "AcmeOrder" in resp_json
+            obj_id = resp_json["AcmeOrder"]["id"]
+            assert resp_json["AcmeOrder"]["certificate_url"] is None
+            assert resp_json["AcmeOrder"]["acme_status_order"] == "invalid"
             assert (
-                resp.json()["AcmeOrder"]["acme_order_processing_status"]
+                resp_json["AcmeOrder"]["acme_order_processing_status"]
                 == "processing_completed_failure"
             )
 

@@ -34,6 +34,7 @@ from ...model.objects import Domain
 
 if TYPE_CHECKING:
     from pyramid.request import Request
+
     from ...model.objects import AcmeDnsServer
 
 

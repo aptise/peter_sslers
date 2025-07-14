@@ -11,6 +11,7 @@ from ...model import objects as model_objects
 from ...model import utils as model_utils
 
 if TYPE_CHECKING:
+    from ..context import ApiContext
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAccountKey
     from ...model.objects import AcmeAuthorization
@@ -32,7 +33,6 @@ if TYPE_CHECKING:
     from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.objects import UniquelyChallengedFQDNSet
-    from ..context import ApiContext
 
 # ==============================================================================
 

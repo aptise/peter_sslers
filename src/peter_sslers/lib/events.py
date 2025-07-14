@@ -16,13 +16,13 @@ from .db import update as db_update
 from .. import lib
 from ..model import utils as model_utils
 
-# from .db import get as db_get
-
 if TYPE_CHECKING:
     from .context import ApiContext
     from ..model.objects import CertificateSigned
     from ..model.objects import OperationsEvent
     from ..model.objects import PrivateKey
+
+# from .db import get as db_get
 
 # ==============================================================================
 

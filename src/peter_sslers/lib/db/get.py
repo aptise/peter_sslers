@@ -1447,7 +1447,7 @@ def get__AriChecks__count(
     elif strategy == "cert-latest":
         counted = (
             ctx.dbSession.query(AriCheck)
-            .distinct(AriCheck.certificate_signed_id)
+            .distinct()
             .group_by(AriCheck.certificate_signed_id)
             .order_by(AriCheck.id.desc())
             .count()
@@ -1455,7 +1455,7 @@ def get__AriChecks__count(
     elif strategy == "cert-latest-overdue":
         counted = (
             ctx.dbSession.query(AriCheck)
-            .distinct(AriCheck.certificate_signed_id)
+            .distinct()
             .group_by(AriCheck.certificate_signed_id)
             .filter(AriCheck.timestamp_retry_after < ctx.timestamp)
             .order_by(AriCheck.id.desc())
@@ -1483,7 +1483,7 @@ def get__AriChecks___paginated(
     elif strategy == "cert-latest":
         q = (
             ctx.dbSession.query(AriCheck)
-            .distinct(AriCheck.certificate_signed_id)
+            .distinct()
             .group_by(AriCheck.certificate_signed_id)
             .order_by(AriCheck.id.desc())
             .limit(limit)
@@ -1493,7 +1493,7 @@ def get__AriChecks___paginated(
     elif strategy == "cert-latest-overdue":
         q = (
             ctx.dbSession.query(AriCheck)
-            .distinct(AriCheck.certificate_signed_id)
+            .distinct()
             .group_by(AriCheck.certificate_signed_id)
             .filter(AriCheck.timestamp_retry_after < ctx.timestamp)
             .order_by(AriCheck.id.desc())
@@ -3933,13 +3933,20 @@ def get__SystemConfiguration__by_id(
 
 
 def get__SystemConfiguration__by_name(
-    ctx: "ApiContext", name: str
+    ctx: "ApiContext",
+    name: str,
+    eagerload_acme_accounts: bool = False,
 ) -> Optional[SystemConfiguration]:
     if not name:
         raise ValueError("`name` required")
     q = ctx.dbSession.query(SystemConfiguration).filter(
         SystemConfiguration.name == name
     )
+    if eagerload_acme_accounts:
+        q = q.options(
+            joinedload(SystemConfiguration.acme_account__primary),
+            joinedload(SystemConfiguration.acme_account__backup),
+        )
     item = q.first()
     return item
 

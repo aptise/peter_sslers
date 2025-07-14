@@ -17,8 +17,8 @@ from sqlalchemy.sql import expression
 import sqlalchemy.types
 from typing_extensions import TypedDict
 
+# local
 from ..lib.errors import UnsupportedKeyTechnology
-
 
 if TYPE_CHECKING:
     from .objects.objects import Domain
@@ -720,14 +720,14 @@ class AcmeAccountKeyOption(object):
 
     # legacy options
     options_all = (
-        "account_key_global_default",
+        "account_key_global__primary",
         "account_key_existing",
         "account_key_reuse",
         "account_key_file",
     )
 
     options_basic = (
-        "account_key_global_default",
+        "account_key_global__primary",
         "account_key_existing",
         "acme_account_id",
         "acme_account_url",
@@ -745,14 +745,14 @@ class AcmeAccountKeyOption(object):
         "system_configuration_default",
         "account_key_existing",
     )
-    options_streamlined_backup = (
+    options_streamlined__backup = (
         "none",
         "system_configuration_default",
         "account_key_existing",
     )
 
     options_basic_reuse = (
-        "account_key_global_default",
+        "account_key_global__primary",
         "account_key_existing",
         "account_key_reuse",
         "acme_account_id",
@@ -1170,6 +1170,7 @@ class KeyTechnology(_mixin_mapping):
     _options_all_id = (0, 1, 2, 3, 4, 5)
     _options_AcmeAccount_private_key_technology_id = (1, 2, 3, 4, 5)
     _options_AcmeAccount_order_default_id = (1, 2, 3, 4, 5)
+    _options_AcmeOrder_freeform_private_key_generate_id = (0, 1, 2, 3, 4, 5)
     _options_CertificateIfNeeded_id = (0, 1, 2, 3, 4, 5, 99)
     _options_RenewalConfiguration_private_key_technology_id = (0, 1, 2, 3, 4, 5)
     _options_RenewalConfiguration_private_key_technology_id__alt = (
@@ -1203,6 +1204,7 @@ class KeyTechnology(_mixin_mapping):
     _options_all: List[str]
     _options_AcmeAccount_private_key_technology: List[str]
     _options_AcmeAccount_order_default: List[str]
+    _options_AcmeOrder_freeform_private_key_generate: List[str]
     _options_Generate: List[str]
     _options_RenewalConfiguration_private_key_technology: List[str]
     _options_RenewalConfiguration_private_key_technology__alt: List[str]
@@ -1258,6 +1260,10 @@ KeyTechnology._options_AcmeAccount_private_key_technology = [
 KeyTechnology._options_AcmeAccount_order_default = [
     KeyTechnology._mapping[_id]
     for _id in KeyTechnology._options_AcmeAccount_order_default_id
+]
+KeyTechnology._options_AcmeOrder_freeform_private_key_generate = [
+    KeyTechnology._mapping[_id]
+    for _id in KeyTechnology._options_AcmeOrder_freeform_private_key_generate_id
 ]
 KeyTechnology._options_CertificateIfNeeded = [
     KeyTechnology._mapping[_id] for _id in KeyTechnology._options_CertificateIfNeeded_id
@@ -1432,19 +1438,20 @@ class PrivateKeyDeferred(_mixin_mapping):
     """
     What kind of PrivateKeyDeferred is this?
 
-    When creating an order, we have a few ways to specify the key
+    When creating an ACME Order, we have a few ways to specify the key:
 
     1- Specify an Actual Key for the order
-    2- Defer the key
+    2- Defer the key selection
         1. use the AcmeAccount.order_default [account_default]
         2. use a weekly/daily key [account_associate]
         3. make a new key with a specific algorithm [generate__*]
+
     """
 
-    NOT_DEFERRED = 0
-    ACCOUNT_DEFAULT = 1  # Placeholder
-    ACCOUNT_ASSOCIATE = 2
-    SYSTEM_CONFIGURATION_DEFAULT = 3  # Placeholder
+    NOT_DEFERRED = 0  # A specific key has been assigned to this order.
+    ACCOUNT_DEFAULT = 1  # Placeholder: account default
+    ACCOUNT_ASSOCIATE = 2  # Placeholder: account time based
+    SYSTEM_CONFIGURATION_DEFAULT = 3  # Placeholder: System
 
     # Specifically Requested Keys
     GENERATE__RSA_2048 = 11
@@ -1528,12 +1535,19 @@ class PrivateKeyOption(object):
         "private_key_generate",
     )
 
+    options_basic__backup = (
+        "none",
+        "account_default",
+        "private_key_existing",
+        "private_key_generate",
+    )
+
     options_streamlined = (
         "private_key_generate",
         "private_key_existing",
     )
 
-    options_streamlined_backup = (
+    options_streamlined__backup = (
         "none",
         "private_key_generate",
         "private_key_existing",

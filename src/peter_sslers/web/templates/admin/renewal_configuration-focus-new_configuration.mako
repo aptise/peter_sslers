@@ -64,7 +64,7 @@
                 
 
                 <h3>AcmeAccount - Primary</h3>
-                ${admin_partials.formgroup__AcmeAccount_selector__advanced(
+                ${admin_partials.formgroup__AcmeAccount_selector__primary(
                     support_upload=False,
                     support_profiles=True,
                     dbAcmeAccountReuse=RenewalConfiguration.acme_account__primary,

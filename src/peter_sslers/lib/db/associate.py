@@ -17,11 +17,11 @@ from ...lib import acmedns as lib_acmedns
 from ...model.objects import AcmeOrder
 
 if TYPE_CHECKING:
+    from ..context import ApiContext
     from ...model.objects import AcmeDnsServer
     from ...model.objects import AcmeDnsServerAccount
     from ...model.objects import Domain
     from ...model.objects import RenewalConfiguration
-    from ..context import ApiContext
 
 
 # ==============================================================================

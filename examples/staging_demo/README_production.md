@@ -1,4 +1,4 @@
-This is a production version of https://github.com/aptise/peter_sslers/tree/main/examples/staging/README.md
+This is a production version of https://github.com/aptise/peter_sslers/tree/main/examples/staging_demo/README.md
 
 ### Set Env Vars
     export ROOT_DOMAIN="{Your Domain, e.g. aptise.com}"
@@ -7,6 +7,12 @@ This is a production version of https://github.com/aptise/peter_sslers/tree/main
     export CLOUDFLARE_TARGET_IP="{your ip}"
 
 ### initialize new data store
+
+    cd ~/peter_sslers
+    mkdir data_production
+    touch data_production/nginx_ca_bundle.pem
+    cp example_configs/production.ini data_production/config.ini
+    vi data_production/config.ini
 
     initialize_peter_sslers_db data_production
 
@@ -44,9 +50,9 @@ According to the above, `acme_server_id = 2; PEBBLE TEST 2`::
         domain_names_http01="dev.peter-sslers.testing.opensource.aptise.com" \
         is_export_filesystem="on" \
         label="dev.peter-sslers.testing.opensource.aptise.com" \
-        account_key_option=acme_account_id \
+        account_key_option__primary=acme_account_id \
         account_key_option__backup=acme_account_id \
-        acme_account_id=1 \
+        acme_account_id__primary=1 \
         acme_account_id__backup=2 \
         private_key_cycle__primary="account_default" \
         private_key_cycle__backup="account_default" \
@@ -167,9 +173,9 @@ According to the above, `acme_server_id = 2; PEBBLE TEST 2`::
 
 ## Generate OpenResty Files
 
-    cd ~/peter_sslers/examples/staging
+    cd ~/peter_sslers/examples/staging_demo
     export ROOT_DOMAIN="aptise.com"
-    python _generate_openresty.py
+    python generate_openresty.py
 
 ## Test and Restart OpenResty
 

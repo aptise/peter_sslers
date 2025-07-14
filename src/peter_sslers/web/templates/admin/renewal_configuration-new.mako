@@ -48,7 +48,7 @@
                 ${form.html_error_main_fillable()|n}
 
                 <h3>Primary Certificate</h3>
-                ${admin_partials.formgroup__AcmeAccount_selector__advanced(
+                ${admin_partials.formgroup__AcmeAccount_selector__primary(
                     support_upload=False,
                     support_profiles=True,
                     default_profile=SystemConfiguration_global.acme_profile__primary,
