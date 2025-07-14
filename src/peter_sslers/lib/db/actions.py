@@ -1213,6 +1213,10 @@ def routine__clear_old_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     )
     count_records_success = count_old_checks
 
+    import pdb
+
+    pdb.set_trace()
+
     stmt = sqlalchemy.delete(AriCheck).where(AriCheck.id.not_in(latest_ari_ids))
     result = ctx.dbSession.execute(stmt)
     ctx.pyramid_transaction_commit()
