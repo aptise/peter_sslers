@@ -1319,7 +1319,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
             sqlalchemy_or(
                 latest_ari_checks.c.latest_ari_id.is_(None),
                 # <= : select items that have expired
-                latest_ari_checks.c.timestamp_retry_after <= timestamp_max_expiry,
+                latest_ari_checks.c.timestamp_retry_after >= timestamp_max_expiry,
             ),
         )
         .order_by(
