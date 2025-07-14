@@ -265,6 +265,7 @@ jobs:
         export SSL_RUN_API_TESTS__PEBBLE=1
         export SSL_RUN_NGINX_TESTS=1
         export SSL_RUN_REDIS_TESTS=1
+        export SSL_USE_SYSTEM_REDIS=1
         export DEBUG_ACMEORDERS=1
         export DEBUG_DBFREEZE=1
         export DEBUG_DBFREEZE_ARCHIVE=1

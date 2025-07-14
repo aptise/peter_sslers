@@ -8882,6 +8882,7 @@ class FunctionalTests_API(AppTest):
     def test_redis(self):
         """
         python -m unittest tests.test_pyramid_app.FunctionalTests_API.test_redis
+        pytest tests/test_pyramid_app.py::FunctionalTests_API::test_redis
         """
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # NOTE: prep work, ensure we updated recents

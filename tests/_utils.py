@@ -110,6 +110,9 @@ RUN_NGINX_TESTS = bool(int(os.environ.get("SSL_RUN_NGINX_TESTS", 0)))
 # run tests to prime redis
 RUN_REDIS_TESTS = bool(int(os.environ.get("SSL_RUN_REDIS_TESTS", 0)))
 
+# use system redis?
+USE_SYSTEM_REDIS = bool(int(os.environ.get("SSL_USE_SYSTEM_REDIS", 0)))
+
 # run tests against LE API
 RUN_API_TESTS__PEBBLE = bool(int(os.environ.get("SSL_RUN_API_TESTS__PEBBLE", 0)))
 # does the LE validation work?  LE must be able to reach this
@@ -759,6 +762,10 @@ def under_redis(_function: Callable) -> Callable:
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
+        if USE_SYSTEM_REDIS:
+            log.info("`redis`: `USE_SYSTEM_REDIS=1` for `%s`" % _function.__qualname__)
+            res = _function(*args, **kwargs)
+            return res
         log.info("`redis`: spinning up for `%s`" % _function.__qualname__)
         log.info("`redis`: SSL_BIN_REDIS_SERVER  : %s", SSL_BIN_REDIS_SERVER)
         log.info("`redis`: SSL_CONF_REDIS_SERVER : %s", SSL_CONF_REDIS_SERVER)
