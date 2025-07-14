@@ -1310,8 +1310,9 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
         )
         .filter(
             CertificateSigned.is_active.is_(True),
-            # these are considered expired
-            CertificateSigned.timestamp_not_after <= timestamp_max_expiry,
+            # these are considered expired and must be renewed,
+            # so we don't need to run ARI checks on them
+            CertificateSigned.timestamp_not_after >= timestamp_max_expiry,
             sqlalchemy_or(
                 CertificateSigned.is_ari_supported__cert.is_(True),
                 CertificateSigned.is_ari_supported__order.is_(True),
@@ -1329,9 +1330,10 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
         .all()
     )
 
-    import pdb
+    # import pdb;pdb.set_trace()
+    import pprint
 
-    pdb.set_trace()
+    pprint.pprint(certs)
 
     count_records_success = 0
     count_records_fail = 0
