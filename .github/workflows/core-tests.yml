@@ -31,6 +31,22 @@ jobs:
           - "3.12"
           - "3.13"
 
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      redis:
+        # Docker Hub image
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps port 6379 on service container to the host
+          - 6379:6379
+
     steps:
     - uses: actions/checkout@v3
 
@@ -85,22 +101,6 @@ jobs:
     #    sudo chown -R runner /var/lib/redis/peter_sslers_test
     #    sudo chown -R runner /var/lib/redis
     #    sudo systemctl start redis
-
-    # Service containers to run with `container-job`
-    services:
-      # Label used to access the service container
-      redis:
-        # Docker Hub image
-        image: redis
-        # Set health checks to wait until redis has started
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          # Maps port 6379 on service container to the host
-          - 6379:6379
 
     - name: Install Pebble
       # several tests require a Pebble instance (ACME Server)
