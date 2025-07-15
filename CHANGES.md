@@ -305,6 +305,9 @@
 
     AcmeServerError
         descoped to include AcmeServerErrorPublic
+
+    urllib3 has a breaking change in 2.4.0
+        aligned support with https://github.com/urllib3/urllib3/issues/3571
     
 
 

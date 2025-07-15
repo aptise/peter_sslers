@@ -2416,16 +2416,11 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
             assert request
             data_dir = request.api_context.application_settings["data_dir"]
 
-        assert ctx.config_uri
-        _config_uri = ctx.config_uri
-        config_uri = _config_uri.split("/")[-1]
-        config_uri = config_uri.replace(".", "-")
-
         bundle_dir = "%s/_ACME_SERVER_BUNDLE" % data_dir
         if not os.path.exists(bundle_dir):
             os.mkdir(bundle_dir)
 
-        bundle_file = "%s/%s-%s.pem" % (bundle_dir, config_uri, self.id)
+        bundle_file = "%s/%s-%s.pem" % (bundle_dir, self.id, self.name)
         if not os.path.exists(bundle_file) or force_refresh:
             with open(bundle_file, "w") as fh:
                 fh.write(self.server_ca_cert_bundle)

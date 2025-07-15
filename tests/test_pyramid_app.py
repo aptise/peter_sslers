@@ -12147,11 +12147,14 @@ class IntegratedTests_Renewals(AppTestWSGI):
             processing_strategy="process_single",
             private_key_cycle__primary="single_use__reuse_1_year",
         )
-        assert dbAcmeOrder_1.private_key_cycle == "single_use__reuse_1_year"
+        # A `RenewalConfiguration` has __primary/__backup
         assert (
             dbAcmeOrder_1.renewal_configuration.private_key_cycle__primary
             == "single_use__reuse_1_year"
         )
+        # HOWEVER...
+        # An `AcmeOrder` only has a single private_key / private_key_cycle
+        assert dbAcmeOrder_1.private_key_cycle == "single_use__reuse_1_year"
         assert dbAcmeOrder_1.private_key.private_key_type == "single_use__reuse_1_year"
 
         def _make_one__AcmeOrder_Renewal(
@@ -12904,7 +12907,10 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         return stats
 
     def _place_order(
-        self, account_key_file_pem: str, account__contact: str, domain_names: List[str]
+        self,
+        account_key_file_pem: str,
+        account__contact: str,
+        domain_names: List[str],
     ) -> "Response":
         resp = requests.get(
             "http://peter-sslers.example.com:5002/.well-known/peter_sslers/acme-order/new/freeform.json"

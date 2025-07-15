@@ -99,7 +99,7 @@ def submit__new_freeform(
         assert acmeAccountSelection__primary.AcmeAccount is not None
         assert privateKeySelection__primary.PrivateKey is not None
 
-        (acmeAccountSelection__backup, privateKeySelection_backup) = (
+        (acmeAccountSelection__backup, privateKeySelection__backup) = (
             form_utils.form_selections__NewOrderFreeform(
                 request,
                 formStash,
@@ -110,9 +110,9 @@ def submit__new_freeform(
             )
         )
         if formStash.results["private_key_option__backup"] in (None, "none"):
-            assert privateKeySelection_backup.PrivateKey is None
+            assert privateKeySelection__backup.PrivateKey is None
         else:
-            assert privateKeySelection_backup.PrivateKey is not None
+            assert privateKeySelection__backup.PrivateKey is not None
 
         # shared
         note = formStash.results["note"]
@@ -154,7 +154,7 @@ def submit__new_freeform(
                 private_key_cycle__backup
             )
             private_key_technology_id__backup = (
-                privateKeySelection_backup.private_key_technology_id
+                privateKeySelection__backup.private_key_technology_id
             )
 
             acme_profile__backup = formStash.results["acme_profile__backup"]
@@ -166,7 +166,18 @@ def submit__new_freeform(
                     model_utils.KeyTechnology.from_string(private_key_generate__backup)
                 )
 
+        # validate PrivateKey Selection
+        # raises `formStash.fatal_field` if keys are invalid for this usage
+        form_utils.validate_PrivateKeySelection_selected(
+            request,
+            formStash,
+            privateKeySelection__primary,
+            privateKeySelection__backup,
+        )
+
+        #
         # validate the domains
+        #
 
         domains_all = []
         # check for blocklists here

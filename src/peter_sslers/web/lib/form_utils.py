@@ -36,6 +36,7 @@ TYPE_PRIVATE_KEY_OPTION_V2 = Literal[
 TYPE_PRIVATE_KEY_SELECTION = Literal[
     "generate", "upload", "none", "account_default", "existing", "reuse"
 ]
+TYPE_PRIVATE_KEY_SELECTION_V2 = Literal["generate", "none", "existing"]
 
 
 def decode_args(getcreate_args: Dict) -> Dict:
@@ -72,11 +73,11 @@ class _AcmeAccountSelection(object):
 class _PrivateKeySelection(object):
     context: TYPE_CONTEXT
     private_key_option: str
+    PrivateKey: Optional["PrivateKey"] = None
     selection: Optional[TYPE_PRIVATE_KEY_SELECTION] = (
         None  # `None` is unset; "none" is set.
     )
     upload_parsed: Optional["_PrivateKeyUploadParser"] = None
-    PrivateKey: Optional["PrivateKey"] = None
 
     # this should be set by the parser
     private_key_generate: Optional[str] = None  # see model_utils.KeyTechnology
@@ -117,6 +118,9 @@ class _PrivateKeySelection_v2(object):
     private_key_technology__effective: Optional[
         str
     ]  # required for Primary; optional for Backup
+    selection: Optional[TYPE_PRIVATE_KEY_SELECTION_V2] = (
+        None  # `None` is unset; "none" is set.
+    )
 
     def __init__(
         self,
@@ -721,6 +725,7 @@ def _parse_PrivateKeySelections_v2__context(
                 error_field="The selected PrivateKey is not active.",
             )
         pkeySelection.dbPrivateKey = dbPrivateKey
+        pkeySelection.selection = "existing"
 
     elif private_key_option == "private_key_generate":
         dbPrivateKey = lib_db.get.get__PrivateKey__by_id(request.api_context, 0)
@@ -730,6 +735,7 @@ def _parse_PrivateKeySelections_v2__context(
                 error_field="Could not load the placeholder PrivateKey.",
             )
         pkeySelection.dbPrivateKey = dbPrivateKey
+        pkeySelection.selection = "generate"
 
         private_key_technology = formStash.results[
             "private_key_technology__%s" % context
@@ -764,6 +770,7 @@ def _parse_PrivateKeySelections_v2__context(
                 field=private_key_option__field,
                 error_field="`none` is not a valid option for `primary`.",
             )
+        pkeySelection.selection = "none"
     elif private_key_option is None:
         # value not submitted
         if context == "primary":
@@ -771,7 +778,7 @@ def _parse_PrivateKeySelections_v2__context(
                 field=private_key_option__field,
                 error_field="A `private_key_option__primary` is required.",
             )
-
+        pkeySelection.selection = "none"
     else:
         formStash.fatal_field(
             field=private_key_option__field,
@@ -801,6 +808,16 @@ def parse_PrivateKeySelections_v2(
         context="backup",
         dbSystemConfiguration=dbSystemConfiguration,
     )
+
+    # validate PrivateKey Selection
+    # raises `formStash.fatal_field` if keys are invalid for this usage
+    validate_PrivateKeySelectionV2_selected(
+        request,
+        formStash,
+        pkeySelection__primary,
+        pkeySelection__backup,
+    )
+
     return pkeySelection__primary, pkeySelection__backup
 
 
@@ -1119,3 +1136,64 @@ def form_selections__NewOrderFreeform(
             raise ValueError("no PrivateKey parsed")
 
     return (acmeAccountSelection, privateKeySelection)
+
+
+def validate_PrivateKeySelection_selected(
+    request: "Request",
+    formStash: "FormStash",
+    privateKeySelection__primary: _PrivateKeySelection,
+    privateKeySelection__backup: _PrivateKeySelection,
+) -> Literal[True]:
+    # validate PrivateKey Selection
+    for pkeySelection, context in (
+        (privateKeySelection__primary, "primary"),
+        (privateKeySelection__backup, "backup"),
+    ):
+        if not pkeySelection.PrivateKey:
+            continue
+        if pkeySelection.private_key_option == "private_key_existing":
+            if pkeySelection.PrivateKey.private_key_type == "single_use":
+                if pkeySelection.PrivateKey.count_certificate_signeds:
+                    formStash.fatal_field(
+                        field="private_key_existing__%s" % context,
+                        error_field="`single_use` key is already used.",
+                    )
+            elif (
+                pkeySelection.PrivateKey.private_key_type == "single_use__reuse_1_year"
+            ):
+                formStash.fatal_field(
+                    field="private_key_existing__%s" % context,
+                    error_field="`single_use__reuse_1_year` is only for renewals.",
+                )
+    return True
+
+
+def validate_PrivateKeySelectionV2_selected(
+    request: "Request",
+    formStash: "FormStash",
+    pkeySelection__primary: _PrivateKeySelection_v2,
+    pkeySelection__backup: _PrivateKeySelection_v2,
+) -> Literal[True]:
+    # validate PrivateKey Selection
+    for pkeySelection, context in (
+        (pkeySelection__primary, "primary"),
+        (pkeySelection__backup, "backup"),
+    ):
+        if not pkeySelection.dbPrivateKey:
+            continue
+        if pkeySelection.private_key_option == "private_key_existing":
+            if pkeySelection.dbPrivateKey.private_key_type == "single_use":
+                if pkeySelection.dbPrivateKey.count_certificate_signeds:
+                    formStash.fatal_field(
+                        field="private_key_existing__%s" % context,
+                        error_field="`single_use` key is already used.",
+                    )
+            elif (
+                pkeySelection.dbPrivateKey.private_key_type
+                == "single_use__reuse_1_year"
+            ):
+                formStash.fatal_field(
+                    field="private_key_existing__%s" % context,
+                    error_field="`single_use__reuse_1_year` is only for renewals.",
+                )
+    return True
