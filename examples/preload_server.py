@@ -1,5 +1,4 @@
 """
-
 This script:
 
 * Creates an EnrollmentFactory named `preload_server`
@@ -10,13 +9,21 @@ After running this script, run
 
     routine__automatic_orders data_staging/config.ini
 
-the above command should order the backup certificates
+The above command should order the backup certificates
 
-This file is expected to run against 2 pebble accounts; this can be done using:
+
+This file is expected to run against::
+
+    Terminal 1 - Staging WebApp
+
+        pserve --reload data_testing/config.ini
+
+    Terminal 2 - Two (2) pebble accounts; this can be done using:
 
         python run_dev_servers.py
 
-Do not run this against production servers.
+!!! Do not run this against production servers !!!
+
 """
 
 # stdlib

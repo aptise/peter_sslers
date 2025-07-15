@@ -6,13 +6,13 @@ This script expects a peter_sslers instance running on `URL_BASE`.
 
 Using three Terminal windows:
 
-    Window 1
-        python run_dev_servers.py
-
-    Window 2
+    Terminal 1 - PeterSSLers WebApp
         pserve --reload data_testing/config.ini
 
-    Window 3
+    Terminal 2 - Two (2) Pebble Instances
+        python run_dev_servers.py
+
+    Terminal 3 - This script
         python example.py
 """
 
