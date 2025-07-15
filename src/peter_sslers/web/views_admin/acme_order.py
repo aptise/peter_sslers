@@ -167,25 +167,13 @@ def submit__new_freeform(
                 )
 
         # validate PrivateKey Selection
-        for pkeySelection, context in (
-            (privateKeySelection__primary, "primary"),
-            (privateKeySelection__backup, "backup"),
-        ):
-            if pkeySelection.private_key_option == "private_key_existing":
-                if pkeySelection.PrivateKey.private_key_type == "single_use":
-                    if pkeySelection.PrivateKey.count_certificate_signeds:
-                        formStash.fatal_field(
-                            field="private_key_existing__%s" % context,
-                            error_field="`single_use` key is already used.",
-                        )
-                elif (
-                    pkeySelection.PrivateKey.private_key_type
-                    == "single_use__reuse_1_year"
-                ):
-                    formStash.fatal_field(
-                        field="private_key_existing__%s" % context,
-                        error_field="`single_use__reuse_1_year` is only for renewals.",
-                    )
+        # raises `formStash.fatal_field` if keys are invalid for this usage
+        form_utils.validate_PrivateKeySelection_selected(
+            request,
+            formStash,
+            privateKeySelection__primary,
+            privateKeySelection__backup,
+        )
 
         #
         # validate the domains
