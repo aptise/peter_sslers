@@ -610,7 +610,8 @@ class AuthenticatedUser(object):
                 )
             )
             if dbAcmeServerConfiguration:
-                timestamp_max = timestamp_now - datetime.timedelta(seconds=300)
+                # cache the directory for 60s
+                timestamp_max = timestamp_now - datetime.timedelta(seconds=60)
                 if dbAcmeServerConfiguration.timestamp_lastchecked > timestamp_max:
                     fetch_directory = False
                     acme_directory = json.loads(
