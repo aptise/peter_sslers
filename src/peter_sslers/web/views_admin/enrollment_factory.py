@@ -23,6 +23,7 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
+from ...lib import utils
 from ...lib.utils import displayable_exception
 from ...lib.utils import validate_domains_template
 from ...lib.utils import validate_label_template
@@ -151,6 +152,12 @@ def submit__new(
 
         # shared
         name = formStash.results["name"]
+        name = utils.normalize_unique_text(name)
+        if not utils.validate_label(name):
+            formStash.fatal_field(
+                field="name", error_field="the `name` is not compliant"
+            )
+
         note = formStash.results["note"]
         private_key_cycle_id__backup: Optional[int]
         private_key_technology_id__backup: Optional[int]

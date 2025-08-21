@@ -2580,6 +2580,9 @@
     <div class="form-group">
         <label for="name">Name</label>
         <input class="form-control" type="text" name="name" id="name" value="${default or ''}"/>
+        <p>
+            A name may only have the following characters: letters, numbers, dash, period, underscore.
+        </p>
     </div>
 </%def>
 
