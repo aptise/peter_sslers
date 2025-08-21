@@ -1,5 +1,7 @@
+from . import __init__pre  # noqa: F401
+
 # stdlib
-import datetime
+import datetime  # noqa: I100
 import logging
 from typing import Callable
 from typing import Dict
@@ -36,7 +38,6 @@ if TYPE_CHECKING:
 
     # from .context import ApiContext
     # from ..model.objects import Domain
-
 
 # ==============================================================================
 
