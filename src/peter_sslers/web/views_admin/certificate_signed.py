@@ -1,9 +1,11 @@
 # stdlib
 import tempfile
 import time
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
+from typing import Union
 import zipfile
 
 # pypi
@@ -778,7 +780,7 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {"CertificateSigned": dbCertificateSigned.as_json}
         # x-x509-server-cert
-        templating_vars = {
+        templating_vars: Dict[str, Union[str, None, CertificateSigned, Dict]] = {
             "project": "peter_sslers",
             "CertificateSigned": dbCertificateSigned,
             "_AriCheck": None,

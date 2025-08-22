@@ -6398,6 +6398,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
             "admin:enrollment_factory:focus:certificate_signeds-paginated",
             "admin:enrollment_factory:focus:renewal_configurations",
             "admin:enrollment_factory:focus:renewal_configurations-paginated",
+            "admin:enrollment_factory:focus:query",
         )
     )
     def test_manipulate_html(self):
@@ -6413,7 +6414,6 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         domain = generate_random_domain()
         form["domain_template_http01"] = "mail.{DOMAIN}, %s.{DOMAIN}" % domain
         res2 = form.submit()
-
         assert res2.status_code == 303
         assert ".well-known/peter_sslers/enrollment-factory/" in res2.location
 
@@ -6436,6 +6436,15 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
             status=200,
         )
 
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/query", status=200
+        )
+        form = res.form
+        domain = generate_random_domain()
+        form["domain_name"] = domain
+        res2 = form.submit()
+        assert res2.status_code == 200
+
     @routes_tested(
         (
             "admin:enrollment_factory:focus|json",
@@ -6444,6 +6453,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
             "admin:enrollment_factory:focus:certificate_signeds-paginated|json",
             "admin:enrollment_factory:focus:renewal_configurations|json",
             "admin:enrollment_factory:focus:renewal_configurations-paginated|json",
+            "admin:enrollment_factory:focus:query|json",
         )
     )
     def test_manipulate_json(self):
@@ -6519,6 +6529,20 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
             "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations.json"
         )
         assert "RenewalConfigurations" in res5.json
+
+        resQ = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/query.json"
+        )
+        assert "instructions" in resQ.json
+        resQ2 = self.testapp.post(
+            "/.well-known/peter_sslers/enrollment-factory/1/query.json",
+            {"domain_name": "example.com"},
+        )
+        assert resQ2.status_code == 200
+        assert resQ2.json["result"] == "success"
+        assert resQ2.json["domain_name"] == "example.com"
+        assert "RenewalConfiguration" in resQ2.json
+        assert "CertificateSigneds" in resQ2.json
 
 
 class FunctionalTests_Operations(AppTest):

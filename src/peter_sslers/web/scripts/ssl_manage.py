@@ -22,6 +22,7 @@ from webob.multidict import MultiDict
 from ..lib import formhandling
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeDnsServer_new
+from ..lib.forms import Form_EnrollmentFactory_query
 from ..lib.forms import Form_RenewalConfig_new
 from ..lib.forms import Form_RenewalConfig_new_configuration
 from ..lib.forms import Form_RenewalConfig_new_enrollment
@@ -397,7 +398,30 @@ def main(argv=sys.argv):
             # !!!: focus
             if subcommand == "focus":
                 _dbEnrollmentFactory = _get_EnrollmentFactory()
-                render_data(_dbEnrollmentFactory.as_json)
+                # ssl_manage data_development enrollment-factory focus id=1 query=1 domain_name=example.com
+                if "query" in options:
+                    if "help" in options:
+                        render_data(Form_EnrollmentFactory_query.fields)
+                        exit(0)
+                    (formStash, dbRenewalConfiguration, dbCertificateSigneds) = (
+                        v_enrollment_factory.submit__query(
+                            request,
+                            dbEnrollmentFactory=_dbEnrollmentFactory,
+                        )
+                    )
+                    _formatted = {
+                        "result": "success",
+                        "domain_name": formStash.results["domain_name"],
+                        "RenewalConfiguration": (
+                            dbRenewalConfiguration.as_json
+                            if dbRenewalConfiguration
+                            else None
+                        ),
+                        "CertificateSigneds": [i.as_json for i in dbCertificateSigneds],
+                    }
+                    render_data(_formatted)
+                else:
+                    render_data(_dbEnrollmentFactory.as_json)
             # !!!: - list
             elif subcommand == "list":
                 print("Enrollment Factories:")

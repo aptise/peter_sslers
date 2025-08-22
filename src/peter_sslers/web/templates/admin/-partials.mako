@@ -2424,6 +2424,24 @@
 </%def>
 
 
+<%def name="formgroup__domain_name(
+    domain_name='',
+)">
+    <div class="form-group">
+        <label for="domain">Domain Name</label>
+        <input
+            type="text"
+            class="form-control"
+            name="domain_name"
+            value="${domain_name}"
+        />
+        <p class="help">
+            A Fully Qualified Domain Name.
+        </p>
+    </div>
+</%def>
+
+
 <%def name="formgroup__domain_names(
     specify_challenge=None,
     http01_only=False,

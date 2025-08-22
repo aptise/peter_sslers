@@ -609,6 +609,10 @@ class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
     )
 
 
+class Form_EnrollmentFactory_query(_Form_Schema_Base):
+    domain_name = UnicodeString(not_empty=True, strip=True)
+
+
 class Form_Notification_mark(_Form_Schema_Base):
     action = OneOf(("dismiss"), not_empty=True)
 
