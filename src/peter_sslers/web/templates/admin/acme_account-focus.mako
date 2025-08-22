@@ -254,8 +254,8 @@
                         <td><timestamp>${AcmeAccount.timestamp_created or ''}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>timestamp_last_certificate_request</th>
-                        <td><timestamp>${AcmeAccount.timestamp_last_certificate_request or ''}</timestamp></td>
+                        <th>timestamp_last_x509_certificate_request</th>
+                        <td><timestamp>${AcmeAccount.timestamp_last_x509_certificate_request or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_last_certificate_issue</th>

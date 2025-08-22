@@ -58,16 +58,16 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>CertificateRequest</th>
-                    <td>In order to get a <em>CertificateSigned</em> you create a <em>CertificateRequest</em> and sign it with your <em>PrivateKey</em>.
+                    <th>X509CertificateRequest</th>
+                    <td>In order to get a <em>CertificateSigned</em> you create a <em>X509CertificateRequest</em> and sign it with your <em>PrivateKey</em>.
                         It is generally not needed after a <em>CertificateSigned</em> is issued.
-                        A <em>CertificateRequest</em> will be created when an <em>AcmeOrder</em> is successful.
+                        A <em>X509CertificateRequest</em> will be created when an <em>AcmeOrder</em> is successful.
                     </td>
                 </tr>
                 <tr>
                     <th>CertificateSigned</th>
                     <td>Your <em>CertificateSigned</em> is an OpenSSL certificate that has been signed by a trusted <em>CertificateCA</em>.
-                        The <em>CertificateSigned</em> must be installed on your webserver with the <em>PrivateKey</em> that signed the corresponding <em>CertificateRequest</em> to serve https content.
+                        The <em>CertificateSigned</em> must be installed on your webserver with the <em>PrivateKey</em> that signed the corresponding <em>X509CertificateRequest</em> to serve https content.
                     </td>
                 </tr>
                 <tr>

@@ -314,11 +314,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateRequests</th>
+                        <th>X509CertificateRequests</th>
                         <td>
-                            ${admin_partials.table_CertificateRequests(Domain.certificate_requests__5, perspective="Domain")}
-                            % if Domain.certificate_requests__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/certificate-requests" % (admin_prefix, Domain.id))}
+                            ${admin_partials.table_X509CertificateRequests(Domain.x509_certificate_requests__5, perspective="Domain")}
+                            % if Domain.x509_certificate_requests__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/x509-certificate-requests" % (admin_prefix, Domain.id))}
                             % endif
                         </td>
                     </tr>

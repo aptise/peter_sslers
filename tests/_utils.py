@@ -1266,7 +1266,7 @@ TEST_FILES: Dict = {
             "letsencrypt_intermediate_r4_cross": "letsencrypt-certs/lets-encrypt-r4-cross-signed.pem",
         },
     },
-    "CertificateRequests": {
+    "X509CertificateRequests": {
         "1": {
             "domains": "foo.example.com, bar.example.com",
             "account_key": "key_technology-rsa/account_1.key",
@@ -2914,18 +2914,18 @@ class AppTest(AppTestCore):
                         in domain_names
                     )
 
-                    # note: pre-populate CertificateRequest
+                    # note: pre-populate X509CertificateRequest
                     _csr_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
                         "csr"
                     ]
                     csr_pem = self._filedata_testfile(_csr_filename)
                     (
-                        _dbCertificateRequest_1,
+                        _dbX509CertificateRequest_1,
                         _is_created,
-                    ) = db.getcreate.getcreate__CertificateRequest__by_pem_text(
+                    ) = db.getcreate.getcreate__X509CertificateRequest__by_pem_text(
                         self.ctx,
                         csr_pem,
-                        certificate_request_source_id=model_utils.CertificateRequestSource.IMPORTED,
+                        x509_certificate_request_source_id=model_utils.X509CertificateRequestSource.IMPORTED,
                         dbPrivateKey=_dbPrivateKey_1,
                         domain_names=[
                             TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][

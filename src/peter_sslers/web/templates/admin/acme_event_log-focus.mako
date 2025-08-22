@@ -97,14 +97,14 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>certificate_request_id</th>
+                    <th>x509_certificate_request_id</th>
                     <td>
-                        % if AcmeEventLog.certificate_request_id:
+                        % if AcmeEventLog.x509_certificate_request_id:
                             <a  class="label label-info"
-                                href="${admin_prefix}/certificate-request/${AcmeEventLog.certificate_request_id}"
+                                href="${admin_prefix}/x509-certificate-request/${AcmeEventLog.x509_certificate_request_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                CertificateRequest-${AcmeEventLog.certificate_request_id}
+                                X509CertificateRequest-${AcmeEventLog.x509_certificate_request_id}
                             </a>
                         % endif
                     </td>

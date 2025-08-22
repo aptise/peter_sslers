@@ -214,11 +214,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateRequests</th>
+                        <th>X509CertificateRequests</th>
                         <td>
-                            ${admin_partials.table_CertificateRequests(UniqueFQDNSet.certificate_requests__5, perspective="UniqueFQDNSet")}
-                            % if UniqueFQDNSet.certificate_requests__5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-requests" % (admin_prefix, UniqueFQDNSet.id))}
+                            ${admin_partials.table_X509CertificateRequests(UniqueFQDNSet.x509_certificate_requests__5, perspective="UniqueFQDNSet")}
+                            % if UniqueFQDNSet.x509_certificate_requests__5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/x509-certificate-requests" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>

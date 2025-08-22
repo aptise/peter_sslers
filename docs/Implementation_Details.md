@@ -166,7 +166,7 @@ One or more CertificateAuthority Certificates
     chain.pem           PEM     application/x-pem-file
     chain.pem.txt       PEM     text/plain
 
-#### CertificateRequest
+#### X509CertificateRequest
 
     csr.pem             PEM     application/x-pem-file
     csr.pem.txt         PEM     text/plain

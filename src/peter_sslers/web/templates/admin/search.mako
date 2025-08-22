@@ -50,7 +50,7 @@
                                             AcmeAccount-${acme_account.id}</a>
                                     </td>
                                     <td><code>${acme_account.acme_account_key.spki_sha256}</code></td>
-                                    <td><timestamp>${acme_account.timestamp_last_certificate_request}</timestamp></td>
+                                    <td><timestamp>${acme_account.timestamp_last_x509_certificate_request}</timestamp></td>
                                     <td><timestamp>${acme_account.timestamp_last_certificate_issue}</timestamp></td>
                                 </tr>
                             % endfor
@@ -88,7 +88,7 @@
                                             PrivateKey-${key.id}</a>
                                     </td>
                                     <td><code>${key.spki_sha256}</code></td>
-                                    <td><timestamp>${key.timestamp_last_certificate_request}</timestamp></td>
+                                    <td><timestamp>${key.timestamp_last_x509_certificate_request}</timestamp></td>
                                     <td><timestamp>${key.timestamp_last_certificate_issue}</timestamp></td>
                                 </tr>
                             % endfor
@@ -183,24 +183,24 @@
                     <hr/>
                 % endif
 
-                % if show_only['CertificateRequest']:
+                % if show_only['X509CertificateRequest']:
                     <h4>Certificate Requests</h4>
-                    % if results['CertificateRequest']['count']:
+                    % if results['X509CertificateRequest']['count']:
                         <table class="table table-condensed">
-                            % for csr in results['CertificateRequest']['items']:
+                            % for csr in results['X509CertificateRequest']['items']:
                                 <tr>
                                     <td>
                                         <a  class="label label-info"
-                                            href="${admin_prefix}/certificate-request/${csr.id}"
+                                            href="${admin_prefix}/x509-certificate-request/${csr.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            CertificateRequest-${csr.id}</a>
+                                            X509CertificateRequest-${csr.id}</a>
                                     </td>
                                 </tr>
                             % endfor
                         </table>
-                        % if results['CertificateRequest']['next']:
-                            <a href="${results['CertificateRequest']['next']}">More</a>
+                        % if results['X509CertificateRequest']['next']:
+                            <a href="${results['X509CertificateRequest']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>

@@ -44,7 +44,8 @@ pyproject configuration, based on the generic configuration.
 
 Creating Revisions
 
-    alembic revision -m "create account table"
+    # a sample config is required for db inspection
+    alembic -c data_development/config.ini revision --autogenerate -m "stub"    
 
 Applying Revisions
 
@@ -52,8 +53,6 @@ Applying Revisions
     alembic -c data_development/config.ini downgrade base
     
 See https://alembic.sqlalchemy.org/en/latest/autogenerate.html
-
-    alembic -c data_development/config.ini revision --autogenerate -m "stub"
     
     
 Example:

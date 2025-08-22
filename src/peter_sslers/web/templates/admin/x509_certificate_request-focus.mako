@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-requests">Certificate Requests</a></li>
+        <li><a href="${admin_prefix}/x509-certificate-requests">Certificate Requests</a></li>
         <li class="active">Focus [${CertificateRequest.id}]</li>
     </ol>
 </%block>
@@ -19,7 +19,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate-request/${CertificateRequest.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/x509-certificate-request/${CertificateRequest.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -48,9 +48,9 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>certificate_request_source</th>
+                        <th>x509_certificate_request_source</th>
                         <td>
-                            <span class="label label-default">${CertificateRequest.certificate_request_source}</span>
+                            <span class="label label-default">${CertificateRequest.x509_certificate_request_source}</span>
                         </td>
                     </tr>
                     <tr>
@@ -112,9 +112,9 @@
                         <td>
                             % if CertificateRequest.csr_pem:
                                 ## <textarea class="form-control">${CertificateRequest.csr_pem}</textarea>
-                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.pem">csr.pem</a>
-                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
-                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
+                                <a class="label label-info" href="${admin_prefix}/x509-certificate-request/${CertificateRequest.id}/csr.pem">csr.pem</a>
+                                <a class="label label-info" href="${admin_prefix}/x509-certificate-request/${CertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
+                                <a class="label label-info" href="${admin_prefix}/x509-certificate-request/${CertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
                             % else:
                                 <em>pem is not tracked</em>
                             % endif
@@ -166,7 +166,7 @@
                         <th>acme order history history</th>
                         <td>
                             <a
-                                href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-orders"
+                                href="${admin_prefix}/x509-certificate-request/${CertificateRequest.id}/acme-orders"
                                 class="label label-info"
                             >
                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>

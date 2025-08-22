@@ -6,26 +6,26 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/private-keys">Private Keys</a></li>
-        <li><a href="${admin_prefix}/private-key/${PrivateKey.id}">Focus [${PrivateKey.id}]</a></li>
+        <li><a href="${admin_prefix}/domains">Domains</a></li>
+        <li><a href="${admin_prefix}/domain/${Domain.id}">Focus [${Domain.id}-${Domain.domain_name}]</a></li>
         <li class="active">Certificate Requests</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Private Key - Focus | Certificate Requests</h2>
+    <h2>Domain Focus - Certificate Requests</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
-        <div class="col-sm-12">
-            % if CertificateRequests:
+        <div class="col-sm-9">
+            % if X509CertificateRequests:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateRequests(CertificateRequests, perspective='PrivateKey')}
+                ${admin_partials.table_X509CertificateRequests(X509CertificateRequests, perspective='Domain')}
             % else:
-                No known CertificateRequests.
+                No known X509CertificateRequests
             % endif
         </div>
     </div>

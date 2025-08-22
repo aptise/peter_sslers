@@ -19,7 +19,6 @@ from .objects import AcmeEventLog
 from .objects import AcmeOrder
 from .objects import AcmeOrder2AcmeAuthorization
 from .objects import AriCheck
-from .objects import CertificateRequest
 from .objects import CertificateSigned
 from .objects import CoverageAssuranceEvent
 from .objects import Domain
@@ -31,6 +30,7 @@ from .objects import UniqueFQDNSet
 from .objects import UniqueFQDNSet2Domain
 from .objects import UniquelyChallengedFQDNSet
 from .objects import UniquelyChallengedFQDNSet2Domain
+from .objects import X509CertificateRequest
 from .. import utils as model_utils
 
 
@@ -380,15 +380,17 @@ AcmeOrder.acme_event_logs__5 = sa_orm_relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-# note: CertificateRequest.latest_acme_order
-CertificateRequest.latest_acme_order = sa_orm_relationship(
+# note: X509CertificateRequest.latest_acme_order
+X509CertificateRequest.latest_acme_order = sa_orm_relationship(
     AcmeOrder,
     primaryjoin=(
         sa.and_(
-            CertificateRequest.id == AcmeOrder.certificate_request_id,
+            X509CertificateRequest.id == AcmeOrder.x509_certificate_request_id,
             AcmeOrder.id.in_(
                 sa.select((sa.func.max(AcmeOrder.id)))
-                .where(AcmeOrder.certificate_request_id == CertificateRequest.id)
+                .where(
+                    AcmeOrder.x509_certificate_request_id == X509CertificateRequest.id
+                )
                 .correlate()
             ),
         )
@@ -398,16 +400,17 @@ CertificateRequest.latest_acme_order = sa_orm_relationship(
 )
 
 
-# note: CertificateRequest.certificate_signed__latest
-CertificateRequest.certificate_signed__latest = sa_orm_relationship(
+# note: X509CertificateRequest.certificate_signed__latest
+X509CertificateRequest.certificate_signed__latest = sa_orm_relationship(
     CertificateSigned,
     primaryjoin=(
         sa.and_(
-            CertificateRequest.id == CertificateSigned.certificate_request_id,
+            X509CertificateRequest.id == CertificateSigned.x509_certificate_request_id,
             CertificateSigned.id.in_(
                 sa.select((sa.func.max(CertificateSigned.id)))
                 .where(
-                    CertificateSigned.certificate_request_id == CertificateRequest.id
+                    CertificateSigned.x509_certificate_request_id
+                    == X509CertificateRequest.id
                 )
                 .where(CertificateSigned.is_active.is_(True))
                 .offset(0)
@@ -421,16 +424,17 @@ CertificateRequest.certificate_signed__latest = sa_orm_relationship(
 )
 
 
-# note: CertificateRequest.certificate_signeds__5
-CertificateRequest.certificate_signeds__5 = sa_orm_relationship(
+# note: X509CertificateRequest.certificate_signeds__5
+X509CertificateRequest.certificate_signeds__5 = sa_orm_relationship(
     CertificateSigned,
     primaryjoin=(
         sa.and_(
-            CertificateRequest.id == CertificateSigned.certificate_request_id,
+            X509CertificateRequest.id == CertificateSigned.x509_certificate_request_id,
             CertificateSigned.id.in_(
                 sa.select((sa.func.max(CertificateSigned.id)))
                 .where(
-                    CertificateSigned.certificate_request_id == CertificateRequest.id
+                    CertificateSigned.x509_certificate_request_id
+                    == X509CertificateRequest.id
                 )
                 .order_by(CertificateSigned.id.desc())
                 .limit(5)
@@ -628,37 +632,38 @@ Domain.domain_autocerts__5 = sa_orm_relationship(
     viewonly=True,
 )
 
-# note: Domain.certificate_requests__5
+# note: Domain.x509_certificate_requests__5
 # returns an object with a `certificate` on it
-join_CertificateRequest_UniqueFQDNSet2Domain = sa.join(
+join_X509CertificateRequest_UniqueFQDNSet2Domain = sa.join(
     UniqueFQDNSet2Domain,
-    CertificateRequest,
-    CertificateRequest.unique_fqdn_set_id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+    X509CertificateRequest,
+    X509CertificateRequest.unique_fqdn_set_id
+    == UniqueFQDNSet2Domain.unique_fqdn_set_id,
 )
-CertificateRequest_via_UniqueFQDNSet2Domain = sa.orm.aliased(
-    CertificateRequest, join_CertificateRequest_UniqueFQDNSet2Domain, flat=True
+X509CertificateRequest_via_UniqueFQDNSet2Domain = sa.orm.aliased(
+    X509CertificateRequest, join_X509CertificateRequest_UniqueFQDNSet2Domain, flat=True
 )
-Domain.certificate_requests__5 = sa_orm_relationship(
-    CertificateRequest_via_UniqueFQDNSet2Domain,
+Domain.x509_certificate_requests__5 = sa_orm_relationship(
+    X509CertificateRequest_via_UniqueFQDNSet2Domain,
     primaryjoin=(
         sa.and_(
             Domain.id
-            == join_CertificateRequest_UniqueFQDNSet2Domain.c.unique_fqdn_set_2_domain_domain_id,
-            CertificateRequest.id.in_(
-                sa.select((CertificateRequest.id))
+            == join_X509CertificateRequest_UniqueFQDNSet2Domain.c.unique_fqdn_set_2_domain_domain_id,
+            X509CertificateRequest.id.in_(
+                sa.select((X509CertificateRequest.id))
                 .where(
-                    CertificateRequest.unique_fqdn_set_id
+                    X509CertificateRequest.unique_fqdn_set_id
                     == UniqueFQDNSet2Domain.unique_fqdn_set_id
                 )
                 .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
-                .order_by(CertificateRequest.id.desc())
+                .order_by(X509CertificateRequest.id.desc())
                 .limit(5)
                 .distinct()
                 .correlate()
             ),
         )
     ),
-    order_by=CertificateRequest.id.desc(),
+    order_by=X509CertificateRequest.id.desc(),
     viewonly=True,
 )
 
@@ -947,22 +952,22 @@ EnrollmentFactory.renewal_configurations__5 = sa.orm.relationship(
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-# note: PrivateKey.certificate_requests__5
-PrivateKey.certificate_requests__5 = sa_orm_relationship(
-    CertificateRequest,
+# note: PrivateKey.x509_certificate_requests__5
+PrivateKey.x509_certificate_requests__5 = sa_orm_relationship(
+    X509CertificateRequest,
     primaryjoin=(
         sa.and_(
-            PrivateKey.id == CertificateRequest.private_key_id,
-            CertificateRequest.id.in_(
-                sa.select((CertificateRequest.id))
-                .where(PrivateKey.id == CertificateRequest.private_key_id)
-                .order_by(CertificateRequest.id.desc())
+            PrivateKey.id == X509CertificateRequest.private_key_id,
+            X509CertificateRequest.id.in_(
+                sa.select((X509CertificateRequest.id))
+                .where(PrivateKey.id == X509CertificateRequest.private_key_id)
+                .order_by(X509CertificateRequest.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=CertificateRequest.id.desc(),
+    order_by=X509CertificateRequest.id.desc(),
     viewonly=True,
 )
 
@@ -1128,22 +1133,22 @@ UniqueFQDNSet.acme_orders__5 = sa_orm_relationship(
 )
 
 
-# note: UniqueFQDNSet.certificate_requests__5
-UniqueFQDNSet.certificate_requests__5 = sa_orm_relationship(
-    CertificateRequest,
+# note: UniqueFQDNSet.x509_certificate_requests__5
+UniqueFQDNSet.x509_certificate_requests__5 = sa_orm_relationship(
+    X509CertificateRequest,
     primaryjoin=(
         sa.and_(
-            UniqueFQDNSet.id == CertificateRequest.unique_fqdn_set_id,
-            CertificateRequest.id.in_(
-                sa.select((CertificateRequest.id))
-                .where(UniqueFQDNSet.id == CertificateRequest.unique_fqdn_set_id)
-                .order_by(CertificateRequest.id.desc())
+            UniqueFQDNSet.id == X509CertificateRequest.unique_fqdn_set_id,
+            X509CertificateRequest.id.in_(
+                sa.select((X509CertificateRequest.id))
+                .where(UniqueFQDNSet.id == X509CertificateRequest.unique_fqdn_set_id)
+                .order_by(X509CertificateRequest.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=CertificateRequest.id.desc(),
+    order_by=X509CertificateRequest.id.desc(),
     viewonly=True,
 )
 

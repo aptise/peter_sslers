@@ -84,7 +84,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     count_certificate_signeds: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )
-    timestamp_last_certificate_request: Mapped[Optional[datetime.datetime]] = (
+    timestamp_last_x509_certificate_request: Mapped[Optional[datetime.datetime]] = (
         mapped_column(TZDateTime(timezone=True), nullable=True)
     )
     timestamp_last_certificate_issue: Mapped[Optional[datetime.datetime]] = (
@@ -1491,9 +1491,9 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
     acme_order_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=True
     )
-    certificate_request_id: Mapped[Optional[int]] = mapped_column(
+    x509_certificate_request_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
-        sa.ForeignKey("certificate_request.id", use_alter=True),
+        sa.ForeignKey("x509_certificate_request.id", use_alter=True),
         nullable=True,
     )
     certificate_signed_id: Mapped[Optional[int]] = mapped_column(
@@ -1530,7 +1530,7 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
             "acme_authorization_id": self.acme_authorization_id,
             "acme_challenge_id": self.acme_challenge_id,
             "acme_order_id": self.acme_order_id,
-            "certificate_request_id": self.certificate_request_id,
+            "x509_certificate_request_id": self.x509_certificate_request_id,
             "certificate_signed_id": self.certificate_signed_id,
         }
 
@@ -1690,9 +1690,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     acme_account_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=False
     )
-    certificate_request_id: Mapped[Optional[int]] = mapped_column(
+    x509_certificate_request_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
-        sa.ForeignKey("certificate_request.id", use_alter=True),
+        sa.ForeignKey("x509_certificate_request.id", use_alter=True),
         nullable=True,
     )
     certificate_signed_id: Mapped[Optional[int]] = mapped_column(
@@ -1762,9 +1762,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_order",
     )
-    certificate_request = sa_orm_relationship(
-        "CertificateRequest",
-        primaryjoin="AcmeOrder.certificate_request_id==CertificateRequest.id",
+    x509_certificate_request = sa_orm_relationship(
+        "X509CertificateRequest",
+        primaryjoin="AcmeOrder.x509_certificate_request_id==X509CertificateRequest.id",
         uselist=False,
         back_populates="acme_orders",
     )
@@ -2073,7 +2073,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "acme_order_processing_status": self.acme_order_processing_status,
             "acme_order_processing_strategy": self.acme_order_processing_strategy,
             "acme_process_steps": self.acme_process_steps,
-            "certificate_request_id": self.certificate_request_id,
+            "x509_certificate_request_id": self.x509_certificate_request_id,
             "certificate_type": self.certificate_type,
             "certificate_signed_id": self.certificate_signed_id,
             "certificate_signed_id__replaces": self.certificate_signed_id__replaces,
@@ -3059,24 +3059,24 @@ class CertificateCAReconciliation(Base):
 # ==============================================================================
 
 
-class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
+class X509CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
-    A CertificateRequest is submitted to the LetsEncrypt signing authority.
+    A X509CertificateRequest is submitted to the LetsEncrypt signing authority.
     In goes your hope, out comes your dreams.
 
     The domains will be stored in the UniqueFQDNSet table
     * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
     """
 
-    __tablename__ = "certificate_request"
+    __tablename__ = "x509_certificate_request"
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
-    certificate_request_source_id: Mapped[int] = mapped_column(
+    x509_certificate_request_source_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.CertificateRequestSource
+    )  # see .utils.X509CertificateRequestSource
     csr_pem: Mapped[str] = mapped_column(sa.Text, nullable=False)
     csr_pem_md5: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
     spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
@@ -3101,40 +3101,40 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     acme_orders = sa_orm_relationship(
         "AcmeOrder",
-        primaryjoin="CertificateRequest.id==AcmeOrder.certificate_request_id",
+        primaryjoin="X509CertificateRequest.id==AcmeOrder.x509_certificate_request_id",
         uselist=True,
-        back_populates="certificate_request",
+        back_populates="x509_certificate_request",
     )
     certificate_signeds = sa_orm_relationship(
         "CertificateSigned",
-        primaryjoin="CertificateRequest.id==CertificateSigned.certificate_request_id",
-        back_populates="certificate_request",
+        primaryjoin="X509CertificateRequest.id==CertificateSigned.x509_certificate_request_id",
+        back_populates="x509_certificate_request",
         uselist=True,
     )
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
-        primaryjoin="CertificateRequest.id==OperationsObjectEvent.certificate_request_id",
-        back_populates="certificate_request",
+        primaryjoin="X509CertificateRequest.id==OperationsObjectEvent.x509_certificate_request_id",
+        back_populates="x509_certificate_request",
     )
     private_key = sa_orm_relationship(
         "PrivateKey",
-        primaryjoin="CertificateRequest.private_key_id==PrivateKey.id",
+        primaryjoin="X509CertificateRequest.private_key_id==PrivateKey.id",
         uselist=False,
-        back_populates="certificate_requests",
+        back_populates="x509_certificate_requests",
     )
     unique_fqdn_set = sa_orm_relationship(
         "UniqueFQDNSet",
-        primaryjoin="CertificateRequest.unique_fqdn_set_id==UniqueFQDNSet.id",
+        primaryjoin="X509CertificateRequest.unique_fqdn_set_id==UniqueFQDNSet.id",
         uselist=False,
-        back_populates="certificate_requests",
+        back_populates="x509_certificate_requests",
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @reify
-    def certificate_request_source(self) -> str:
-        return model_utils.CertificateRequestSource.as_string(
-            self.certificate_request_source_id
+    def x509_certificate_request_source(self) -> str:
+        return model_utils.X509CertificateRequestSource.as_string(
+            self.x509_certificate_request_source_id
         )
 
     @property
@@ -3146,7 +3146,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     @reify
     def csr_spki_search(self) -> str:
         return (
-            "type=spki&spki=%s&source=certificate_request&certificate_request.id=%s"
+            "type=spki&spki=%s&source=x509_certificate_request&x509_certificate_request.id=%s"
             % (self.spki_sha256, self.id)
         )
 
@@ -3169,7 +3169,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return {
             "id": self.id,
             # - -
-            "certificate_request_source": self.certificate_request_source,
+            "x509_certificate_request_source": self.x509_certificate_request_source,
             "csr_pem_md5": self.csr_pem_md5,
             "private_key_id": self.private_key_id,
             "spki_sha256": self.spki_sha256,
@@ -3182,7 +3182,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return {
             "id": self.id,
             # - -
-            "certificate_request_source": self.certificate_request_source,
+            "x509_certificate_request_source": self.x509_certificate_request_source,
             "certificate_signed_id__latest": self.certificate_signed_id__latest,
             "csr_pem": self.csr_pem,
             "csr_pem_md5": self.csr_pem_md5,
@@ -3265,9 +3265,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     # tracking
     # `use_alter=True` is needed for setup/drop
-    certificate_request_id: Mapped[Optional[int]] = mapped_column(
+    x509_certificate_request_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
-        sa.ForeignKey("certificate_request.id", use_alter=True),
+        sa.ForeignKey("x509_certificate_request.id", use_alter=True),
         nullable=True,
     )
     # utils.CertificateType.[RAW_IMPORTED, MANAGED_PRIMARY, MANAGED_BACKUP]
@@ -3338,9 +3338,9 @@ class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         back_populates="certificate_signed",
         uselist=True,
     )
-    certificate_request = sa_orm_relationship(
-        "CertificateRequest",
-        primaryjoin="CertificateSigned.certificate_request_id==CertificateRequest.id",
+    x509_certificate_request = sa_orm_relationship(
+        "X509CertificateRequest",
+        primaryjoin="CertificateSigned.x509_certificate_request_id==X509CertificateRequest.id",
         back_populates="certificate_signeds",
         uselist=False,
     )
@@ -4530,7 +4530,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN certificate_ca_chain_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "
-            " CASE WHEN certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
+            " CASE WHEN x509_certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN certificate_signed_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
@@ -4581,8 +4581,8 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     certificate_ca_chain_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=True
     )
-    certificate_request_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+    x509_certificate_request_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_request.id"), nullable=True
     )
     certificate_signed_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
@@ -4648,9 +4648,9 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="operations_object_events",
     )
-    certificate_request = sa_orm_relationship(
-        "CertificateRequest",
-        primaryjoin="OperationsObjectEvent.certificate_request_id==CertificateRequest.id",
+    x509_certificate_request = sa_orm_relationship(
+        "X509CertificateRequest",
+        primaryjoin="OperationsObjectEvent.x509_certificate_request_id==X509CertificateRequest.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -4711,7 +4711,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
 
 class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
-    These keys are used to sign CertificateRequests and are the PrivateKey component to a CertificateSigned.
+    These keys are used to sign X509CertificateRequests and are the PrivateKey component to a CertificateSigned.
 
     If `acme_account_id__owner` is specified, this key can only be used in combination with that key.
     """
@@ -4743,7 +4743,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     count_certificate_signeds: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )
-    timestamp_last_certificate_request: Mapped[Optional[datetime.datetime]] = (
+    timestamp_last_x509_certificate_request: Mapped[Optional[datetime.datetime]] = (
         mapped_column(TZDateTime(timezone=True), nullable=True)
     )
     timestamp_last_certificate_issue: Mapped[Optional[datetime.datetime]] = (
@@ -4788,10 +4788,10 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         order_by="AcmeOrder.id.desc()",
         back_populates="private_key",
     )
-    certificate_requests = sa_orm_relationship(
-        "CertificateRequest",
-        primaryjoin="PrivateKey.id==CertificateRequest.private_key_id",
-        order_by="CertificateRequest.id.desc()",
+    x509_certificate_requests = sa_orm_relationship(
+        "X509CertificateRequest",
+        primaryjoin="PrivateKey.id==X509CertificateRequest.private_key_id",
+        order_by="X509CertificateRequest.id.desc()",
         back_populates="private_key",
     )
     certificate_signeds = sa_orm_relationship(
@@ -5617,9 +5617,9 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="unique_fqdn_set",
     )
-    certificate_requests = sa_orm_relationship(
-        "CertificateRequest",
-        primaryjoin="UniqueFQDNSet.id==CertificateRequest.unique_fqdn_set_id",
+    x509_certificate_requests = sa_orm_relationship(
+        "X509CertificateRequest",
+        primaryjoin="UniqueFQDNSet.id==X509CertificateRequest.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
     certificate_signeds = sa_orm_relationship(
@@ -5956,7 +5956,6 @@ __all__ = (
     "CertificateCAPreference",
     "CertificateCAPreferencePolicy",
     "CertificateCAReconciliation",
-    "CertificateRequest",
     "CertificateSigned",
     "CertificateSignedChain",
     "CoverageAssuranceEvent",
@@ -5980,4 +5979,5 @@ __all__ = (
     "UniquelyChallengedFQDNSet2Domain",
     "UniqueFQDNSet",
     "UniqueFQDNSet2Domain",
+    "X509CertificateRequest",
 )

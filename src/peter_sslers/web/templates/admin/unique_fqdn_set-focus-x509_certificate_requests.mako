@@ -21,11 +21,11 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if CertificateRequests:
+            % if X509CertificateRequests:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateRequests(CertificateRequests, perspective='UniqueFQDNSet')}
+                ${admin_partials.table_X509CertificateRequests(X509CertificateRequests, perspective='UniqueFQDNSet')}
             % else:
-                No known CertificateRequests.
+                No known X509CertificateRequests.
             % endif
         </div>
     </div>

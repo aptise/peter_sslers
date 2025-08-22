@@ -534,15 +534,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateRequest</th>
+                        <th>X509CertificateRequest</th>
                         <td>
-                            % if AcmeOrder.certificate_request_id:
+                            % if AcmeOrder.x509_certificate_request_id:
                                 <a
                                     class="label label-info"
-                                    href="${admin_prefix}/certificate-request/${AcmeOrder.certificate_request_id}"
+                                    href="${admin_prefix}/x509-certificate-request/${AcmeOrder.x509_certificate_request_id}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateRequest-${AcmeOrder.certificate_request_id}
+                                    X509CertificateRequest-${AcmeOrder.x509_certificate_request_id}
                                 </a>
                             % endif
                         </td>

@@ -1009,17 +1009,17 @@ def operations_update_recents__global(
 
     # TODO: should we do the timestamps?
     """
-    UPDATE acme_account SET timestamp_last_certificate_request = (
-    SELECT MAX(timestamp_created) FROM certificate_request
-    WHERE certificate_request.acme_account_id = acme_account.id);
+    UPDATE acme_account SET timestamp_last_x509_certificate_request = (
+    SELECT MAX(timestamp_created) FROM x509_certificate_request
+    WHERE x509_certificate_request.acme_account_id = acme_account.id);
 
     UPDATE acme_account SET timestamp_last_certificate_issue = (
     SELECT MAX(timestamp_created) FROM certificate_signed
     WHERE certificate_signed.acme_account_id = acme_account.id);
 
-    UPDATE private_key SET timestamp_last_certificate_request = (
-    SELECT MAX(timestamp_created) FROM certificate_request
-    WHERE certificate_request.private_key_id = private_key.id);
+    UPDATE private_key SET timestamp_last_x509_certificate_request = (
+    SELECT MAX(timestamp_created) FROM x509_certificate_request
+    WHERE x509_certificate_request.private_key_id = private_key.id);
 
     UPDATE private_key SET timestamp_last_certificate_issue = (
     SELECT MAX(timestamp_created) FROM certificate_signed

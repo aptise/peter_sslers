@@ -18,9 +18,9 @@ from typing_extensions import Literal
 from .create import create__AcmeOrder
 from .create import create__AcmeOrderSubmission
 from .create import create__AriCheck
-from .create import create__CertificateRequest
 from .create import create__CertificateSigned
 from .create import create__PrivateKey
+from .create import create__X509CertificateRequest
 from .get import get__AcmeAccount__by_account_url
 from .get import get__AcmeAccountKey__by_key_pem
 from .get import get__AcmeAuthorizationPotential__by_AcmeOrderId_DomainId
@@ -2077,10 +2077,10 @@ def _do__AcmeV2_AcmeOrder__finalize(
         # what are the domain names?
         domain_names = dbAcmeOrder.domains_as_list
 
-        if dbAcmeOrder.certificate_request:
+        if dbAcmeOrder.x509_certificate_request:
             # this might happen if we fail during finalization
-            dbCertificateRequest = dbAcmeOrder.certificate_request
-            csr_pem = dbCertificateRequest.csr_pem
+            dbX509CertificateRequest = dbAcmeOrder.x509_certificate_request
+            csr_pem = dbX509CertificateRequest.csr_pem
         else:
             # make the CSR
             csr_pem = cert_utils.make_csr(
@@ -2089,17 +2089,17 @@ def _do__AcmeV2_AcmeOrder__finalize(
             )
 
             # immediately commit this
-            dbCertificateRequest = create__CertificateRequest(
+            dbX509CertificateRequest = create__X509CertificateRequest(
                 ctx,
                 csr_pem,
-                certificate_request_source_id=model_utils.CertificateRequestSource.ACME_ORDER,
+                x509_certificate_request_source_id=model_utils.X509CertificateRequestSource.ACME_ORDER,
                 dbPrivateKey=dbAcmeOrder.private_key,
                 domain_names=domain_names,
                 dbCertificateSigned__issued=None,
                 discovery_type="ACME Order",
             )
-            # dbAcmeOrder.certificate_request_id = dbCertificateRequest.id
-            dbAcmeOrder.certificate_request = dbCertificateRequest
+            # dbAcmeOrder.x509_certificate_request_id = dbX509CertificateRequest.id
+            dbAcmeOrder.x509_certificate_request = dbX509CertificateRequest
             ctx.pyramid_transaction_commit()
 
         # pull domains from csr
@@ -2109,7 +2109,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         )
         if set(csr_domains) != set(domain_names):
             raise errors.InvalidRequest(
-                "The CertificateRequest does not have the expected Domains."
+                "The X509CertificateRequest does not have the expected Domains."
             )
 
         # sign and download
@@ -2182,7 +2182,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             is_active=True,
             dbAcmeOrder=dbAcmeOrder,
             dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
-            dbCertificateRequest=dbCertificateRequest,
+            dbX509CertificateRequest=dbX509CertificateRequest,
             discovery_type="ACME Order",
             certificate_type_id=dbAcmeOrder.certificate_type_id,
         )
@@ -2191,7 +2191,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         authenticatedUser.acmeLogger.log_CertificateProcured(
             "v2",
             dbCertificateSigned=dbCertificateSigned,
-            dbCertificateRequest=dbAcmeOrder.certificate_request,
+            dbX509CertificateRequest=dbAcmeOrder.x509_certificate_request,
             transaction_commit=transaction_commit,
         )
 
@@ -2548,7 +2548,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
     authenticatedUser.acmeLogger.log_CertificateProcured(
         "v2",
         dbCertificateSigned=dbCertificateSigned,
-        dbCertificateRequest=dbAcmeOrder.certificate_request,
+        dbX509CertificateRequest=dbAcmeOrder.x509_certificate_request,
         transaction_commit=transaction_commit,
     )
 

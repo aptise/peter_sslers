@@ -187,8 +187,8 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>timestamp_last_certificate_request</th>
-                        <td><timestamp>${PrivateKey.timestamp_last_certificate_request or ''}</timestamp></td>
+                        <th>timestamp_last_x509_certificate_request</th>
+                        <td><timestamp>${PrivateKey.timestamp_last_x509_certificate_request or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_last_certificate_issue</th>
@@ -248,11 +248,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateRequests</th>
+                        <th>X509CertificateRequests</th>
                         <td>
-                            ${admin_partials.table_CertificateRequests(PrivateKey.certificate_requests__5, perspective='PrivateKey')}
-                            % if PrivateKey.certificate_requests__5:
-                                ${admin_partials.nav_pager("%s/private-key/%s/certificate-requests" % (admin_prefix, PrivateKey.id))}
+                            ${admin_partials.table_X509CertificateRequests(PrivateKey.x509_certificate_requests__5, perspective='PrivateKey')}
+                            % if PrivateKey.x509_certificate_requests__5:
+                                ${admin_partials.nav_pager("%s/private-key/%s/x509-certificate-requests" % (admin_prefix, PrivateKey.id))}
                             % endif
                         </td>
                     </tr>

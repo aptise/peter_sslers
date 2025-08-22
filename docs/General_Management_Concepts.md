@@ -120,11 +120,11 @@ This design was implemented for two reasons:
    Certificate. This can create confusion when adding and removing domains, as the
    lineage certificate's name does not necessarily reflect what is in the Certificate.
 
-2. One of the LetsEncrypt service's ratelimits is based on a CertificateRequest's
+2. One of the LetsEncrypt service's ratelimits is based on a X509CertificateRequest's
    "uniqueness" of Domains, which is essentially a UniqueFQDNSet (There may only
    be *n* "Duplicate Certificates" issued per week). By tracking the UniqueFQDNSets
    natively, PeterSSLers can help you avoid hitting these limits.  To more easily
-   deal with this limit, AcmeOrders/Certificates/CertificateRequests are designed
+   deal with this limit, AcmeOrders/Certificates/X509CertificateRequests are designed
    around the idea of a "UniqueFQDNSet" and not a single Domain.
 
 When requesting a new Certificate or importing existing ones, this happens all
@@ -208,13 +208,13 @@ The project now uses Cryptography exclusively.
 The system has two endpoints that can quickly provide single Domain Certificates
 in an "autocert" functionality to nginx:
 
-* `/api/domain/certificate-if-needed` will instantiate a CertificateRequest if
+* `/api/domain/certificate-if-needed` will instantiate a X509CertificateRequest if
   needed, or serve an existing Certificate. This is designed for programmatic access
   and offers full control.  Initiating a `certificate-if-needed` will create
   a new RenewalConfiguration using the directives establised in the
   "certificate-if-needed" EnrollmentPolicy.
 
-* `/api/domain/autocert` will instantiate a CertificateRequest if needed, or
+* `/api/domain/autocert` will instantiate a X509CertificateRequest if needed, or
   serve existing Certificate. this is designed for automatically handling the
   Certificate process from within nginx, has some throttle protections, and
   relies on configurable system default values.  Only ONE domain is supported
@@ -227,13 +227,13 @@ because our integration handles the "autocert" from a secondary service that mul
 webservers can interact with.
 
 
-## Certificates and CertificateRequests
+## Certificates and X509CertificateRequests
 
-PeterSSLers handles several types of CertificateRequests:
+PeterSSLers handles several types of X509CertificateRequests:
 
-1. (Preferred) The system will generate a CertificateRequest as part of the
+1. (Preferred) The system will generate a X509CertificateRequest as part of the
    ordering process with the built-in ACME-v2 client.
-2. Legacy. An existing CertificateRequest (and Certificate) can be imported
+2. Legacy. An existing X509CertificateRequest (and Certificate) can be imported
    for tracking and relationship analysis.
 
 

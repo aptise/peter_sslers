@@ -6,8 +6,8 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-requests">Certificate Requests</a></li>
-        <li><a href="${admin_prefix}/certificate-request/${CertificateRequest.id}">Focus [${CertificateRequest.id}]</a></li>
+        <li><a href="${admin_prefix}/x509-certificate-requests">Certificate Requests</a></li>
+        <li><a href="${admin_prefix}/x509-certificate-request/${CertificateRequest.id}">Focus [${CertificateRequest.id}]</a></li>
         <li class="active">ACME Orders</li>
     </ol>
 </%block>

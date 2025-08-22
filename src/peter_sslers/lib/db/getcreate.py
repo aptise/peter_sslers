@@ -18,7 +18,7 @@ from typing_extensions import TypedDict
 
 # localapp
 from .create import create__AcmeChallenge
-from .create import create__CertificateRequest
+from .create import create__X509CertificateRequest
 from .create import create__CertificateSigned
 from .create import create__PrivateKey
 from .get import get__AcmeAccount__count
@@ -29,7 +29,7 @@ from .get import get__AcmeDnsServer__count
 from .get import get__AcmeServer__by_server
 from .get import get__CertificateCA__by_pem_text
 from .get import get__CertificateCAChain__by_pem_text
-from .get import get__CertificateRequest__by_pem_text
+from .get import get__X509CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
 from .get import get__DomainBlocklisted__by_name
 from .get import get__PrivateKey_CurrentDay_AcmeAccount
@@ -59,7 +59,7 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeOrder
     from ...model.objects import CertificateCA
     from ...model.objects import CertificateCAChain
-    from ...model.objects import CertificateRequest
+    from ...model.objects import X509CertificateRequest
     from ...model.objects import CertificateSigned
     from ...model.objects import Domain
     from ...model.objects import DomainBlocklisted
@@ -1001,15 +1001,15 @@ def getcreate__CertificateCA__by_pem_text(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__CertificateRequest__by_pem_text(
+def getcreate__X509CertificateRequest__by_pem_text(
     ctx: "ApiContext",
     csr_pem: str,
-    certificate_request_source_id: int,
+    x509_certificate_request_source_id: int,
     dbPrivateKey: "PrivateKey",
     domain_names: List[str],
     dbCertificateSigned__issued: Optional["CertificateSigned"] = None,
     discovery_type: Optional[str] = None,
-) -> Tuple["CertificateRequest", bool]:
+) -> Tuple["X509CertificateRequest", bool]:
     """
     getcreate for a CSR
 
@@ -1021,21 +1021,21 @@ def getcreate__CertificateRequest__by_pem_text(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param csr_pem:
-    :param certificate_request_source_id: Must match an option in :class:`model.utils.CertificateRequestSource`
+    :param x509_certificate_request_source_id: Must match an option in :class:`model.utils.X509CertificateRequestSource`
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
     :param domain_names: (required) A list of fully qualified domain names
     :param dbCertificateSigned__issued: (optional) The :class:`model.objects.CertificateSigned` this issued as
     :param str discovery_type:
 
-    log__OperationsEvent takes place in `create__CertificateRequest`
+    log__OperationsEvent takes place in `create__X509CertificateRequest`
     """
     is_created = False
-    dbCertificateRequest = get__CertificateRequest__by_pem_text(ctx, csr_pem)
-    if not dbCertificateRequest:
-        dbCertificateRequest = create__CertificateRequest(
+    dbX509CertificateRequest = get__X509CertificateRequest__by_pem_text(ctx, csr_pem)
+    if not dbX509CertificateRequest:
+        dbX509CertificateRequest = create__X509CertificateRequest(
             ctx,
             csr_pem,
-            certificate_request_source_id=certificate_request_source_id,
+            x509_certificate_request_source_id=x509_certificate_request_source_id,
             dbPrivateKey=dbPrivateKey,
             domain_names=domain_names,
             dbCertificateSigned__issued=dbCertificateSigned__issued,
@@ -1043,7 +1043,7 @@ def getcreate__CertificateRequest__by_pem_text(
         )
         is_created = True
 
-    return (dbCertificateRequest, is_created)
+    return (dbX509CertificateRequest, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1058,7 +1058,7 @@ def getcreate__CertificateSigned(
     certificate_type_id: int,
     dbAcmeOrder: Optional["AcmeOrder"] = None,
     dbCertificateCAChains_alt: Optional[List["CertificateCAChain"]] = None,
-    dbCertificateRequest: Optional["CertificateRequest"] = None,
+    dbX509CertificateRequest: Optional["X509CertificateRequest"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
     discovery_type: Optional[str] = None,
     is_active: bool = False,
@@ -1078,14 +1078,14 @@ def getcreate__CertificateSigned(
       corresponding to this Certificate
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the
       certificate was generated through. If provivded, do not submit
-      `dbCertificateRequest` or `dbPrivateKey`
+      `dbX509CertificateRequest` or `dbPrivateKey`
     :param dbCertificateCAChains_alt: (optional) Iterable. Alternate
       :class:`model.objects.CertificateCAChain`s that signed this certificate
-    :param dbCertificateRequest: (optional) The
-      :class:`model.objects.CertificateRequest` the certificate was generated
+    :param dbX509CertificateRequest: (optional) The
+      :class:`model.objects.X509CertificateRequest` the certificate was generated
       through. If provivded, do not submit `dbAcmeOrder`.
     :param dbUniqueFQDNSet: (optional) required if there is no `dbAcmeOrder` or
-      `dbCertificateRequest` The :class:`model.objects.UniqueFQDNSet`
+      `dbX509CertificateRequest` The :class:`model.objects.UniqueFQDNSet`
       representing domains on the certificate.
     :param is_active: (optional) default `None`; do not activate a certificate
       when uploading unless specified.
@@ -1093,22 +1093,22 @@ def getcreate__CertificateSigned(
     returns:
     tuple (dbCertificateSigned, is_created)
     """
-    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
+    if not any((dbAcmeOrder, dbX509CertificateRequest, dbUniqueFQDNSet)):
         raise ValueError(
-            "getcreate__CertificateSigned must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
+            "getcreate__CertificateSigned must be provided with `dbX509CertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
         )
     if dbUniqueFQDNSet:
         if any(
             (
                 dbAcmeOrder,
-                dbCertificateRequest,
+                dbX509CertificateRequest,
             )
         ):
             raise ValueError(
-                "getcreate__CertificateSigned must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
+                "getcreate__CertificateSigned must not be provided with `dbX509CertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
             )
 
-    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
+    if not any((dbAcmeOrder, dbX509CertificateRequest, dbUniqueFQDNSet)):
         if not dbUniqueFQDNSet:
             raise ValueError(
                 "must submit `dbUniqueFQDNSet` if there is no `dbAcmeOrder` or `dbUniqueFQDNSet`"
@@ -1145,9 +1145,9 @@ def getcreate__CertificateSigned(
     if _cert_spki != _pkey_spki:
         raise ValueError("The PrivateKey did not sign the CertificateSigned")
 
-    if dbCertificateRequest:
-        if _cert_spki != dbCertificateRequest.spki_sha256:
-            raise ValueError("The PrivateKey did not sign the CertificateRequest")
+    if dbX509CertificateRequest:
+        if _cert_spki != dbX509CertificateRequest.spki_sha256:
+            raise ValueError("The PrivateKey did not sign the X509CertificateRequest")
 
     dbCertificateSigned = (
         ctx.dbSession.query(model_objects.CertificateSigned)
@@ -1207,7 +1207,7 @@ def getcreate__CertificateSigned(
             is_active=is_active,
             dbAcmeOrder=dbAcmeOrder,
             dbCertificateCAChains_alt=dbCertificateCAChains_alt,
-            dbCertificateRequest=dbCertificateRequest,
+            dbX509CertificateRequest=dbX509CertificateRequest,
             dbPrivateKey=dbPrivateKey,
             dbUniqueFQDNSet=dbUniqueFQDNSet,
             discovery_type=discovery_type,

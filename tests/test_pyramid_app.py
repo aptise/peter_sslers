@@ -4420,16 +4420,16 @@ class FunctionalTests_CertificateCAChain(AppTest):
                 tmpfile_pem.close()
 
 
-class FunctionalTests_CertificateRequest(AppTest):
+class FunctionalTests_X509CertificateRequest(AppTest):
     """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateRequest
+    python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateRequest
     """
 
-    def _get_one(self) -> Tuple[model_objects.CertificateRequest, int]:
+    def _get_one(self) -> Tuple[model_objects.X509CertificateRequest, int]:
         # grab a certificate
         focusItem = (
-            self.ctx.dbSession.query(model_objects.CertificateRequest)
-            .order_by(model_objects.CertificateRequest.id.asc())
+            self.ctx.dbSession.query(model_objects.X509CertificateRequest)
+            .order_by(model_objects.X509CertificateRequest.id.asc())
             .first()
         )
         assert focusItem is not None
@@ -4437,91 +4437,95 @@ class FunctionalTests_CertificateRequest(AppTest):
 
     @routes_tested(
         (
-            "admin:certificate_requests",
-            "admin:certificate_requests-paginated",
+            "admin:x509_certificate_requests",
+            "admin:x509_certificate_requests-paginated",
         )
     )
     def test_list_html(self):
         # root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-requests", status=200
+            "/.well-known/peter_sslers/x509-certificate-requests", status=200
         )
 
         # paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-requests/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-requests/1", status=200
         )
 
     @routes_tested(
         (
-            "admin:certificate_requests|json",
-            "admin:certificate_requests-paginated|json",
+            "admin:x509_certificate_requests|json",
+            "admin:x509_certificate_requests-paginated|json",
         )
     )
     def test_list_json(self):
         # root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-requests.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-requests.json", status=200
         )
-        assert "CertificateRequests" in res.json
+        assert "X509CertificateRequests" in res.json
 
         # paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-requests/1.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-requests/1.json", status=200
         )
-        assert "CertificateRequests" in res.json
+        assert "X509CertificateRequests" in res.json
 
     @routes_tested(
         (
-            "admin:certificate_request:focus",
-            "admin:certificate_request:focus:acme_orders",
-            "admin:certificate_request:focus:acme_orders-paginated",
+            "admin:x509_certificate_request:focus",
+            "admin:x509_certificate_request:focus:acme_orders",
+            "admin:x509_certificate_request:focus:acme_orders-paginated",
         )
     )
     def test_focus_html(self):
         (focusItem, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-request/%s" % focus_id, status=200
-        )
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-request/%s/acme-orders" % focus_id,
+            "/.well-known/peter_sslers/x509-certificate-request/%s" % focus_id,
             status=200,
         )
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-request/%s/acme-orders/1" % focus_id,
+            "/.well-known/peter_sslers/x509-certificate-request/%s/acme-orders"
+            % focus_id,
             status=200,
         )
 
-    @routes_tested(("admin:certificate_request:focus:raw",))
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-request/%s/acme-orders/1"
+            % focus_id,
+            status=200,
+        )
+
+    @routes_tested(("admin:x509_certificate_request:focus:raw",))
     def test_focus_raw(self):
         (focusItem, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-request/%s/csr.csr" % focus_id,
+            "/.well-known/peter_sslers/x509-certificate-request/%s/csr.csr" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-request/%s/csr.pem" % focus_id,
+            "/.well-known/peter_sslers/x509-certificate-request/%s/csr.pem" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-request/%s/csr.pem.txt" % focus_id,
+            "/.well-known/peter_sslers/x509-certificate-request/%s/csr.pem.txt"
+            % focus_id,
             status=200,
         )
 
-    @routes_tested(("admin:certificate_request:focus|json",))
+    @routes_tested(("admin:x509_certificate_request:focus|json",))
     def test_focus_json(self):
         (focusItem, focus_id) = self._get_one()
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-request/%s.json" % focus_id,
+            "/.well-known/peter_sslers/x509-certificate-request/%s.json" % focus_id,
             status=200,
         )
-        assert "CertificateRequest" in res.json
-        assert res.json["CertificateRequest"]["id"] == focus_id
+        assert "X509CertificateRequest" in res.json
+        assert res.json["X509CertificateRequest"]["id"] == focus_id
 
 
 class FunctionalTests_CertificateSigned(AppTest):
@@ -5522,8 +5526,8 @@ class FunctionalTests_Domain(AppTest):
             "admin:domain:focus:acme_challenges-paginated",
             "admin:domain:focus:acme_orders",
             "admin:domain:focus:acme_orders-paginated",
-            "admin:domain:focus:certificate_requests",
-            "admin:domain:focus:certificate_requests-paginated",
+            "admin:domain:focus:x509_certificate_requests",
+            "admin:domain:focus:x509_certificate_requests-paginated",
             "admin:domain:focus:domain_autocerts",
             "admin:domain:focus:domain_autocerts-paginated",
             "admin:domain:focus:certificate_signeds",
@@ -5602,11 +5606,12 @@ class FunctionalTests_Domain(AppTest):
         )
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/domain/%s/certificate-requests" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/x509-certificate-requests" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/domain/%s/certificate-requests/1" % focus_id,
+            "/.well-known/peter_sslers/domain/%s/x509-certificate-requests/1"
+            % focus_id,
             status=200,
         )
 
@@ -6707,8 +6712,8 @@ class FunctionalTests_PrivateKey(AppTest):
     @routes_tested(
         (
             "admin:private_key:focus",
-            "admin:private_key:focus:certificate_requests",
-            "admin:private_key:focus:certificate_requests-paginated",
+            "admin:private_key:focus:x509_certificate_requests",
+            "admin:private_key:focus:x509_certificate_requests-paginated",
             "admin:private_key:focus:certificate_signeds",
             "admin:private_key:focus:certificate_signeds-paginated",
         )
@@ -6720,11 +6725,12 @@ class FunctionalTests_PrivateKey(AppTest):
             "/.well-known/peter_sslers/private-key/%s" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/private-key/%s/certificate-requests" % focus_id,
+            "/.well-known/peter_sslers/private-key/%s/x509-certificate-requests"
+            % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/private-key/%s/certificate-requests/1"
+            "/.well-known/peter_sslers/private-key/%s/x509-certificate-requests/1"
             % focus_id,
             status=200,
         )
@@ -8010,8 +8016,8 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             "admin:unique_fqdn_set:focus",
             "admin:unique_fqdn_set:focus:acme_orders",
             "admin:unique_fqdn_set:focus:acme_orders-paginated",
-            "admin:unique_fqdn_set:focus:certificate_requests",
-            "admin:unique_fqdn_set:focus:certificate_requests-paginated",
+            "admin:unique_fqdn_set:focus:x509_certificate_requests",
+            "admin:unique_fqdn_set:focus:x509_certificate_requests-paginated",
             "admin:unique_fqdn_set:focus:certificate_signeds",
             "admin:unique_fqdn_set:focus:certificate_signeds-paginated",
             "admin:unique_fqdn_set:focus:uniquely_challenged_fqdn_sets",
@@ -8035,12 +8041,12 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         )
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/unique-fqdn-set/%s/certificate-requests"
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/x509-certificate-requests"
             % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/unique-fqdn-set/%s/certificate-requests/1"
+            "/.well-known/peter_sslers/unique-fqdn-set/%s/x509-certificate-requests/1"
             % focus_id,
             status=200,
         )

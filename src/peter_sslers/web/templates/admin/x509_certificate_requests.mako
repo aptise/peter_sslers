@@ -18,7 +18,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate-requests.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/x509-certificate-requests.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -31,9 +31,9 @@
 
     <div class="row">
         <div class="col-sm-12">
-            % if CertificateRequests:
+            % if X509CertificateRequests:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateRequests(CertificateRequests, perspective='CertificateRequest')}
+                ${admin_partials.table_X509CertificateRequests(X509CertificateRequests, perspective='X509CertificateRequest')}
             % else:
                 <em>
                     No Certificate Requests

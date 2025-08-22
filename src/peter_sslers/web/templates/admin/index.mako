@@ -156,11 +156,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-polling-errors</a></li>
-                <li><a href="${admin_prefix}/certificate-requests"
-                       title="CertificateRequests"
+                <li><a href="${admin_prefix}/x509-certificate-requests"
+                       title="X509CertificateRequests"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-requests
+                    x509-certificate-requests
                     </a></li>
                 <li><a href="${admin_prefix}/domain-autocerts"
                        title="DomainAutocerts"

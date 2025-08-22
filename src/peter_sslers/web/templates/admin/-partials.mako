@@ -523,7 +523,7 @@
                 <th>acme_authorization_id</th>
                 <th>acme_challenge_id</th>
                 <th>acme_order_id</th>
-                <th>certificate_request_id</th>
+                <th>x509_certificate_request_id</th>
                 <th>certificate_signed_id</th>
             </tr>
         </thead>
@@ -581,12 +581,12 @@
                     % endif
                 </td>
                 <td>
-                    % if logged.certificate_request_id:
+                    % if logged.x509_certificate_request_id:
                         <a  class="label label-info"
-                            href="${admin_prefix}/certificate-request/${logged.certificate_request_id}"
+                            href="${admin_prefix}/x509-certificate-request/${logged.x509_certificate_request_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            CertificateRequest-${logged.certificate_request_id}
+                            X509CertificateRequest-${logged.x509_certificate_request_id}
                         </a>
                     % endif
                 </td>
@@ -617,15 +617,15 @@
                 "timestamp_finalized",
                 "acme_account_id",
                 "renewal_configuration_id",
-                "certificate_request_id",
+                "x509_certificate_request_id",
                 "acme_order_types",
                 "certificate_signed_id",
                 "unique_fqdn_set_id",
                )
         if perspective == 'AcmeOrders':
-            cols = [c for c in cols if c != 'certificate_request_id']
-        elif perspective == 'CertificateRequest':
-            cols = [c for c in cols if c != 'certificate_request_id']
+            cols = [c for c in cols if c != 'x509_certificate_request_id']
+        elif perspective == 'X509CertificateRequest':
+            cols = [c for c in cols if c != 'x509_certificate_request_id']
         elif perspective == 'Domain':
             cols = [c for c in cols]
         elif perspective == 'AcmeAuthorization':
@@ -686,11 +686,11 @@
                                         AcmeAccount-${acme_order.acme_account_id}
                                     </a>
                                 % endif
-                            % elif c == 'certificate_request_id':
-                                % if acme_order.certificate_request_id:
-                                    <a href="${admin_prefix}/certificate-request/${acme_order.certificate_request_id}" class="label label-info">
+                            % elif c == 'x509_certificate_request_id':
+                                % if acme_order.x509_certificate_request_id:
+                                    <a href="${admin_prefix}/x509-certificate-request/${acme_order.x509_certificate_request_id}" class="label label-info">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        CertificateRequest-${acme_order.certificate_request_id}
+                                        X509CertificateRequest-${acme_order.x509_certificate_request_id}
                                     </a>
                                 % endif
                             % elif c == 'acme_order_types':
@@ -905,10 +905,10 @@
 </%def>
 
 
-<%def name="table_CertificateRequests(certificate_requests, perspective=None)">
+<%def name="table_X509CertificateRequests(x509_certificate_requests, perspective=None)">
     <%
-        show_domains = True if perspective in ("PrivateKey", 'CertificateRequest', ) else False
-        show_certificate = True if perspective in ("CertificateSigned", 'CertificateRequest', ) else False
+        show_domains = True if perspective in ("PrivateKey", 'X509CertificateRequest', ) else False
+        show_certificate = True if perspective in ("CertificateSigned", 'X509CertificateRequest', ) else False
     %>
     <%
         cols = ("id",
@@ -919,7 +919,7 @@
                )
         if perspective == 'AcmeAccount':
             cols = [c for c in cols]
-        elif perspective == 'CertificateRequest':
+        elif perspective == 'X509CertificateRequest':
             cols = [c for c in cols]
         elif perspective == 'Domain':
             cols = [c for c in cols]
@@ -944,44 +944,44 @@
             </tr>
         </thead>
         <tbody>
-            % for certificate_request in certificate_requests:
+            % for x509_certificate_request in x509_certificate_requests:
                 <tr>
                     % for c in cols:
                         % if c == 'id':
                             <td>
                                 <a  class="label label-info"
-                                    href="${admin_prefix}/certificate-request/${certificate_request.id}">
+                                    href="${admin_prefix}/x509-certificate-request/${x509_certificate_request.id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateRequest-${certificate_request.id}</a>
+                                    X509CertificateRequest-${x509_certificate_request.id}</a>
                             </td>
                         % elif c == 'type':
                             <td>
-                                <span class="label label-default">${certificate_request.certificate_request_source}</span>
+                                <span class="label label-default">${x509_certificate_request.x509_certificate_request_source}</span>
                             </td>
                         % elif c == 'timestamp_created':
                             <td>
-                                <timestamp>${certificate_request.timestamp_created}</timestamp>
+                                <timestamp>${x509_certificate_request.timestamp_created}</timestamp>
                             </td>
                         % elif c == 'AcmeOrder':
                             <td>
-                                % if certificate_request.certificate_request_source_id == model_websafe.CertificateRequestSource.ACME_ORDER:
+                                % if x509_certificate_request.x509_certificate_request_source_id == model_websafe.X509CertificateRequestSource.ACME_ORDER:
                                     <a  class="label label-info"
-                                    href="${admin_prefix}/acme-order/${certificate_request.acme_orders[0].id}">
+                                    href="${admin_prefix}/acme-order/${x509_certificate_request.acme_orders[0].id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeOrder-${certificate_request.acme_orders[0].id}</a>
+                                    AcmeOrder-${x509_certificate_request.acme_orders[0].id}</a>
                                 % endif
                             </td>
                         % elif c == 'unique_fqdn_set_id':
                             <td>
                                 <a  class="label label-info"
-                                href="${admin_prefix}/unique-fqdn-set/${certificate_request.unique_fqdn_set_id}">
+                                href="${admin_prefix}/unique-fqdn-set/${x509_certificate_request.unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFQDNSet-${certificate_request.unique_fqdn_set_id}</a>
+                                UniqueFQDNSet-${x509_certificate_request.unique_fqdn_set_id}</a>
                             </td>
                         % endif
                     % endfor
                     % if show_domains:
-                         <td><code>${certificate_request.domains_as_string}</code></td>
+                         <td><code>${x509_certificate_request.domains_as_string}</code></td>
                     % endif
                 </tr>
             % endfor
@@ -1724,7 +1724,7 @@
 
 
 <%def name="table_UniqueFQDNSet_Domains(unique_fqdn_set, perspective=None)">
-    % if perspective == 'CertificateRequest':
+    % if perspective == 'X509CertificateRequest':
         <table class="table table-striped table-condensed">
             <thead>
                 <tr>
@@ -1786,10 +1786,10 @@
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
             CertificateCA-${object_event.certificate_ca_id}
         </a>
-    % elif object_event.certificate_request_id:
-        <a class="label label-info" href="${admin_prefix}/certificate-request/${object_event.certificate_request_id}">
+    % elif object_event.x509_certificate_request_id:
+        <a class="label label-info" href="${admin_prefix}/x509-certificate-request/${object_event.x509_certificate_request_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            CertificateRequest-${object_event.certificate_request_id}
+            X509CertificateRequest-${object_event.x509_certificate_request_id}
         </a>
     % elif object_event.domain_id:
         <a class="label label-info" href="${admin_prefix}/domain/${object_event.domain_id}">
@@ -2758,7 +2758,7 @@
             <tr><td>
                 <p class="help-block">
                     Upload a RSA PrivateKey in PEM format.
-                    This will be used to sign CertificateRequests and is required for CertificateSigned deployment.
+                    This will be used to sign X509CertificateRequests and is required for CertificateSigned deployment.
                     The key will be saved into the system.
                 </p>
                 <table class="table table-condensed table-striped">

@@ -234,31 +234,33 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificate_requests",
-        renderer="/admin/unique_fqdn_set-focus-certificate_requests.mako",
+        route_name="admin:unique_fqdn_set:focus:x509_certificate_requests",
+        renderer="/admin/unique_fqdn_set-focus-x509_certificate_requests.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificate_requests-paginated",
-        renderer="/admin/unique_fqdn_set-focus-certificate_requests.mako",
+        route_name="admin:unique_fqdn_set:focus:x509_certificate_requests-paginated",
+        renderer="/admin/unique_fqdn_set-focus-x509_certificate_requests.mako",
     )
-    def related__CertificateRequests(self):
+    def related__X509CertificateRequests(self):
         dbUniqueFQDNSet = self._focus()
-        items_count = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__count(
+        items_count = lib_db.get.get__X509CertificateRequest__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
-        url_template = "%s/certificate-requests/{0}" % self._focus_url
+        url_template = "%s/x509-certificate-requests/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__paginated(
-            self.request.api_context,
-            dbUniqueFQDNSet.id,
-            limit=items_per_page,
-            offset=offset,
+        items_paged = (
+            lib_db.get.get__X509CertificateRequest__by_UniqueFQDNSetId__paginated(
+                self.request.api_context,
+                dbUniqueFQDNSet.id,
+                limit=items_per_page,
+                offset=offset,
+            )
         )
         return {
             "project": "peter_sslers",
             "UniqueFQDNSet": dbUniqueFQDNSet,
-            "CertificateRequests_count": items_count,
-            "CertificateRequests": items_paged,
+            "X509CertificateRequests_count": items_count,
+            "X509CertificateRequests": items_paged,
             "pager": pager,
         }
 

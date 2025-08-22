@@ -672,26 +672,26 @@ def _admin_views(config: "Configurator") -> None:
 
     # !!!: Certificate Requests
     config.add_route_7(
-        "admin:certificate_requests",
-        "/certificate-requests",
+        "admin:x509_certificate_requests",
+        "/x509-certificate-requests",
         jsonify=True,
         paginate=True,
     )
 
     # !!!: Certificate Request - Focus
     config.add_route_7(
-        "admin:certificate_request:focus",
-        "/certificate-request/{@id}",
+        "admin:x509_certificate_request:focus",
+        "/x509-certificate-request/{@id}",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_request:focus:acme_orders",
-        "/certificate-request/{@id}/acme-orders",
+        "admin:x509_certificate_request:focus:acme_orders",
+        "/x509-certificate-request/{@id}/acme-orders",
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_request:focus:raw",
-        "/certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}",
+        "admin:x509_certificate_request:focus:raw",
+        "/x509-certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}",
     )
 
     # !!!: CertificateSigneds
@@ -967,8 +967,8 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:domain:focus:certificate_requests",
-        "/domain/{domain_identifier}/certificate-requests",
+        "admin:domain:focus:x509_certificate_requests",
+        "/domain/{domain_identifier}/x509-certificate-requests",
         paginate=True,
     )
     config.add_route_7(
@@ -1145,8 +1145,8 @@ def _admin_views(config: "Configurator") -> None:
         "/private-key/{@id}/key.{format:(key|pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:private_key:focus:certificate_requests",
-        "/private-key/{@id}/certificate-requests",
+        "admin:private_key:focus:x509_certificate_requests",
+        "/private-key/{@id}/x509-certificate-requests",
         paginate=True,
     )
     config.add_route_7(
@@ -1345,8 +1345,8 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:unique_fqdn_set:focus:certificate_requests",
-        "/unique-fqdn-set/{@id}/certificate-requests",
+        "admin:unique_fqdn_set:focus:x509_certificate_requests",
+        "/unique-fqdn-set/{@id}/x509-certificate-requests",
         paginate=True,
     )
     config.add_route_7(

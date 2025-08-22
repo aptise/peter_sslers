@@ -43,7 +43,6 @@ from ...model.objects import CertificateCA
 from ...model.objects import CertificateCAChain
 from ...model.objects import CertificateCAPreference
 from ...model.objects import CertificateCAPreferencePolicy
-from ...model.objects import CertificateRequest
 from ...model.objects import CertificateSigned
 from ...model.objects import CertificateSignedChain
 from ...model.objects import CoverageAssuranceEvent
@@ -65,6 +64,7 @@ from ...model.objects import UniqueFQDNSet
 from ...model.objects import UniqueFQDNSet2Domain
 from ...model.objects import UniquelyChallengedFQDNSet
 from ...model.objects import UniquelyChallengedFQDNSet2Domain
+from ...model.objects import X509CertificateRequest
 from ...model.objects.aliases import UniqueFQDNSet2DomainAlt
 
 if TYPE_CHECKING:
@@ -1125,26 +1125,26 @@ def get__AcmeOrder__by_order_url(
     return item
 
 
-def get__AcmeOrder__by_CertificateRequest__count(
-    ctx: "ApiContext", certificate_request_id: int
+def get__AcmeOrder__by_X509CertificateRequest__count(
+    ctx: "ApiContext", x509_certificate_request_id: int
 ) -> int:
     counted = (
         ctx.dbSession.query(AcmeOrder)
-        .filter(AcmeOrder.certificate_request_id == certificate_request_id)
+        .filter(AcmeOrder.x509_certificate_request_id == x509_certificate_request_id)
         .count()
     )
     return counted
 
 
-def get__AcmeOrder__by_CertificateRequest__paginated(
+def get__AcmeOrder__by_X509CertificateRequest__paginated(
     ctx: "ApiContext",
-    certificate_request_id: int,
+    x509_certificate_request_id: int,
     limit: Optional[int] = None,
     offset: int = 0,
 ) -> List[AcmeOrder]:
     items_paged = (
         ctx.dbSession.query(AcmeOrder)
-        .filter(AcmeOrder.certificate_request_id == certificate_request_id)
+        .filter(AcmeOrder.x509_certificate_request_id == x509_certificate_request_id)
         .order_by(AcmeOrder.id.desc())
         .limit(limit)
         .offset(offset)
@@ -1796,24 +1796,24 @@ def get__CertificateCAPreferencePolicy__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CertificateRequest__count(ctx: "ApiContext") -> int:
-    counted = ctx.dbSession.query(CertificateRequest).count()
+def get__X509CertificateRequest__count(ctx: "ApiContext") -> int:
+    counted = ctx.dbSession.query(X509CertificateRequest).count()
     return counted
 
 
-def get__CertificateRequest__paginated(
+def get__X509CertificateRequest__paginated(
     ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
-) -> List[CertificateRequest]:
+) -> List[X509CertificateRequest]:
     items_paged = (
-        ctx.dbSession.query(CertificateRequest)
+        ctx.dbSession.query(X509CertificateRequest)
         .options(
-            joinedload(CertificateRequest.certificate_signeds).options(
+            joinedload(X509CertificateRequest.certificate_signeds).options(
                 subqueryload(CertificateSigned.unique_fqdn_set)
                 .joinedload(UniqueFQDNSet.to_domains)
                 .joinedload(UniqueFQDNSet2Domain.domain),
             ),
         )
-        .order_by(CertificateRequest.id.desc())
+        .order_by(X509CertificateRequest.id.desc())
         .limit(limit)
         .offset(offset)
         .all()
@@ -1821,14 +1821,14 @@ def get__CertificateRequest__paginated(
     return items_paged
 
 
-def get__CertificateRequest__by_id(
-    ctx: "ApiContext", certificate_request_id: int
-) -> Optional[CertificateRequest]:
-    dbCertificateRequest = (
-        ctx.dbSession.query(CertificateRequest)
-        .filter(CertificateRequest.id == certificate_request_id)
+def get__X509CertificateRequest__by_id(
+    ctx: "ApiContext", x509_certificate_request_id: int
+) -> Optional[X509CertificateRequest]:
+    dbX509CertificateRequest = (
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(X509CertificateRequest.id == x509_certificate_request_id)
         .options(
-            joinedload(CertificateRequest.certificate_signeds__5).options(
+            joinedload(X509CertificateRequest.certificate_signeds__5).options(
                 subqueryload(CertificateSigned.unique_fqdn_set)
                 .joinedload(UniqueFQDNSet.to_domains)
                 .joinedload(UniqueFQDNSet2Domain.domain),
@@ -1836,33 +1836,33 @@ def get__CertificateRequest__by_id(
         )
         .first()
     )
-    return dbCertificateRequest
+    return dbX509CertificateRequest
 
 
-def get__CertificateRequest__by_pem_text(
+def get__X509CertificateRequest__by_pem_text(
     ctx: "ApiContext", csr_pem: str
-) -> Optional[CertificateRequest]:
+) -> Optional[X509CertificateRequest]:
     csr_pem = cert_utils.cleanup_pem_text(csr_pem)
     csr_pem_md5 = cert_utils.utils.md5_text(csr_pem)
-    dbCertificateRequest = (
-        ctx.dbSession.query(CertificateRequest)
+    dbX509CertificateRequest = (
+        ctx.dbSession.query(X509CertificateRequest)
         .filter(
-            CertificateRequest.csr_pem_md5 == csr_pem_md5,
-            CertificateRequest.csr_pem == csr_pem,
+            X509CertificateRequest.csr_pem_md5 == csr_pem_md5,
+            X509CertificateRequest.csr_pem == csr_pem,
         )
         .first()
     )
-    return dbCertificateRequest
+    return dbX509CertificateRequest
 
 
-def get__CertificateRequest__by_DomainId__count(
+def get__X509CertificateRequest__by_DomainId__count(
     ctx: "ApiContext", domain_id: int
 ) -> int:
     counted = (
-        ctx.dbSession.query(CertificateRequest)
+        ctx.dbSession.query(X509CertificateRequest)
         .join(
             UniqueFQDNSet,
-            CertificateRequest.unique_fqdn_set_id == UniqueFQDNSet.id,
+            X509CertificateRequest.unique_fqdn_set_id == UniqueFQDNSet.id,
         )
         .join(
             UniqueFQDNSet2Domain,
@@ -1874,21 +1874,21 @@ def get__CertificateRequest__by_DomainId__count(
     return counted
 
 
-def get__CertificateRequest__by_DomainId__paginated(
+def get__X509CertificateRequest__by_DomainId__paginated(
     ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[CertificateRequest]:
+) -> List[X509CertificateRequest]:
     items_paged = (
-        ctx.dbSession.query(CertificateRequest)
+        ctx.dbSession.query(X509CertificateRequest)
         .join(
             UniqueFQDNSet,
-            CertificateRequest.unique_fqdn_set_id == UniqueFQDNSet.id,
+            X509CertificateRequest.unique_fqdn_set_id == UniqueFQDNSet.id,
         )
         .join(
             UniqueFQDNSet2Domain,
             UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
         )
         .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-        .order_by(CertificateRequest.id.desc())
+        .order_by(X509CertificateRequest.id.desc())
         .limit(limit)
         .offset(offset)
         .all()
@@ -1896,29 +1896,29 @@ def get__CertificateRequest__by_DomainId__paginated(
     return items_paged
 
 
-def get__CertificateRequest__by_PrivateKeyId__count(
+def get__X509CertificateRequest__by_PrivateKeyId__count(
     ctx: "ApiContext", key_id: int
 ) -> int:
     counted = (
-        ctx.dbSession.query(CertificateRequest)
-        .filter(CertificateRequest.private_key_id == key_id)
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(X509CertificateRequest.private_key_id == key_id)
         .count()
     )
     return counted
 
 
-def get__CertificateRequest__by_PrivateKeyId__paginated(
+def get__X509CertificateRequest__by_PrivateKeyId__paginated(
     ctx: "ApiContext", key_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[CertificateRequest]:
+) -> List[X509CertificateRequest]:
     items_paged = (
-        ctx.dbSession.query(CertificateRequest)
-        .filter(CertificateRequest.private_key_id == key_id)
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(X509CertificateRequest.private_key_id == key_id)
         .options(
-            subqueryload(CertificateRequest.unique_fqdn_set)
+            subqueryload(X509CertificateRequest.unique_fqdn_set)
             .joinedload(UniqueFQDNSet.to_domains)
             .joinedload(UniqueFQDNSet2Domain.domain),
         )
-        .order_by(CertificateRequest.id.desc())
+        .order_by(X509CertificateRequest.id.desc())
         .limit(limit)
         .offset(offset)
         .all()
@@ -1926,27 +1926,27 @@ def get__CertificateRequest__by_PrivateKeyId__paginated(
     return items_paged
 
 
-def get__CertificateRequest__by_UniqueFQDNSetId__count(
+def get__X509CertificateRequest__by_UniqueFQDNSetId__count(
     ctx: "ApiContext", unique_fqdn_set_id: int
 ) -> int:
     counted = (
-        ctx.dbSession.query(CertificateRequest)
-        .filter(CertificateRequest.unique_fqdn_set_id == unique_fqdn_set_id)
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(X509CertificateRequest.unique_fqdn_set_id == unique_fqdn_set_id)
         .count()
     )
     return counted
 
 
-def get__CertificateRequest__by_UniqueFQDNSetId__paginated(
+def get__X509CertificateRequest__by_UniqueFQDNSetId__paginated(
     ctx: "ApiContext",
     unique_fqdn_set_id: int,
     limit: Optional[int] = None,
     offset: int = 0,
-) -> List[CertificateRequest]:
+) -> List[X509CertificateRequest]:
     items_paged = (
-        ctx.dbSession.query(CertificateRequest)
-        .filter(CertificateRequest.unique_fqdn_set_id == unique_fqdn_set_id)
-        .order_by(CertificateRequest.id.desc())
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(X509CertificateRequest.unique_fqdn_set_id == unique_fqdn_set_id)
+        .order_by(X509CertificateRequest.id.desc())
         .limit(limit)
         .offset(offset)
         .all()
@@ -2905,7 +2905,7 @@ def _get__Domain__core(q, preload: bool = False, eagerload_web: bool = False):
     if eagerload_web:
         q = q.options(
             subqueryload(Domain.acme_orders__5),
-            subqueryload(Domain.certificate_requests__5),
+            subqueryload(Domain.x509_certificate_requests__5),
             # subqueryload(Domain.certificate_signeds__5),
             # subqueryload(Domain.certificate_signeds__single_primary_5),
             # subqueryload(Domain.certificate_signeds__single_backup_5),
@@ -3407,8 +3407,8 @@ def get__PrivateKey__by_id(
     q = ctx.dbSession.query(PrivateKey).filter(PrivateKey.id == key_id)
     if eagerload_web:
         q = q.options(
-            subqueryload(PrivateKey.certificate_requests__5)
-            .joinedload(CertificateRequest.unique_fqdn_set)
+            subqueryload(PrivateKey.x509_certificate_requests__5)
+            .joinedload(X509CertificateRequest.unique_fqdn_set)
             .joinedload(UniqueFQDNSet.to_domains)
             .joinedload(UniqueFQDNSet2Domain.domain),
             subqueryload(PrivateKey.certificate_signeds__5)

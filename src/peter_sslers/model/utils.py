@@ -320,10 +320,10 @@ class _OperationsUnified(_mixin_mapping):
         200: "CertificateCA__letsencrypt_sync",  # DEPRECATED
         210: "CertificateCA__insert",
         230: "CertificateCAChain__insert",
-        610: "CertificateRequest__insert",
-        620: "CertificateRequest__new",
-        621: "CertificateRequest__new__imported",
-        630: "CertificateRequest__new__acme_order",
+        610: "X509CertificateRequest__insert",
+        620: "X509CertificateRequest__new",
+        621: "X509CertificateRequest__new__imported",
+        630: "X509CertificateRequest__new__acme_order",
         1200: "CoverageAssuranceEvent__mark_resolution",
         410: "Domain__insert",
         420: "Domain__mark",
@@ -962,9 +962,9 @@ class AddressType(_mixin_mapping):
     }
 
 
-class CertificateRequestSource(_mixin_mapping):
+class X509CertificateRequestSource(_mixin_mapping):
     """
-    How was the CertificateRequest generated?
+    How was the X509CertificateRequest generated?
     - imported - just records the CSR; uploaded into our system
     - acme_order - part of an acme order
     """
