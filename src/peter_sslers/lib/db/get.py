@@ -3788,6 +3788,19 @@ def get__RenewalConfigurations__by_DomainId__paginated(
     return items_paged
 
 
+def get__RenewalConfiguration__by_EnrollmentFactoryId_UniqueFqdnSetId(
+    ctx: "ApiContext",
+    enrollment_factory_id: int,
+    unique_fqdn_set_id: int,
+) -> Optional[RenewalConfiguration]:
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id,
+        RenewalConfiguration.unique_fqdn_set_id == unique_fqdn_set_id,
+    )
+    item = q.first()
+    return item
+
+
 def get__RenewalConfiguration__by_EnrollmentFactoryId__count(
     ctx: "ApiContext",
     enrollment_factory_id: int,
@@ -4030,6 +4043,19 @@ def get__UniqueFQDNSet__by_id(
         .first()
     )
     return item
+
+
+def get__UniqueFQDNSet__by_DomainIds(
+    ctx: "ApiContext", domain_ids: List[int]
+) -> Optional[UniqueFQDNSet]:
+    domain_ids.sort()
+    domain_ids_string = ",".join([str(id_) for id_ in domain_ids])
+    dbUniqueFQDNSet = (
+        ctx.dbSession.query(UniqueFQDNSet)
+        .filter(UniqueFQDNSet.domain_ids_string == domain_ids_string)
+        .first()
+    )
+    return dbUniqueFQDNSet
 
 
 def get__UniqueFQDNSet__by_DomainId__count(ctx: "ApiContext", domain_id: int) -> int:

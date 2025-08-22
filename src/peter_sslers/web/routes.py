@@ -1060,6 +1060,11 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
     config.add_route_7(
+        "admin:enrollment_factory:focus:query",
+        "/enrollment-factory/{@id}/query",
+        jsonify=True,
+    )
+    config.add_route_7(
         "admin:enrollment_factory:focus:certificate_signeds",
         "/enrollment-factory/{@id}/certificate-signeds",
         jsonify=True,

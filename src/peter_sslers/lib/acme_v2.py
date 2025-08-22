@@ -610,7 +610,8 @@ class AuthenticatedUser(object):
                 )
             )
             if dbAcmeServerConfiguration:
-                timestamp_max = timestamp_now - datetime.timedelta(seconds=300)
+                # cache the directory for 60s
+                timestamp_max = timestamp_now - datetime.timedelta(seconds=60)
                 if dbAcmeServerConfiguration.timestamp_lastchecked > timestamp_max:
                     fetch_directory = False
                     acme_directory = json.loads(
@@ -1933,7 +1934,7 @@ class AuthenticatedUser(object):
                 finalize_response,
                 _finalize_headers,
             ) = self._send_signed_request(
-                "OrderUrl",
+                "FinalizeUrl",
                 dbAcmeOrder.finalize_url,
                 payload=payload_finalize,
             )
@@ -2028,7 +2029,7 @@ class AuthenticatedUser(object):
             for url in alt_chains_urls:
                 # wrap these in a try/except so a single failure doesn't kill the download
                 try:
-                    _pem = self._send_signed_request("CertificateUrl", url)[1]
+                    _pem = self._send_signed_request("AltCertificateUrl", url)[1]
                     if not isinstance(_pem, str):
                         raise ValueError("expected `str` response")
                     if TYPE_CHECKING:

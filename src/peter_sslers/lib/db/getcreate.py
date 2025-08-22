@@ -36,6 +36,7 @@ from .get import get__PrivateKey_CurrentDay_AcmeAccount
 from .get import get__PrivateKey_CurrentDay_Global
 from .get import get__PrivateKey_CurrentWeek_AcmeAccount
 from .get import get__PrivateKey_CurrentWeek_Global
+from .get import get__UniqueFQDNSet__by_DomainIds
 from .logger import _log_object_event
 from .logger import log__OperationsEvent
 from .update import update_AcmeAuthorization_from_payload
@@ -1649,11 +1650,7 @@ def getcreate__UniqueFQDNSet__by_domainObjects(
     domain_ids.sort()
     domain_ids_string = ",".join([str(id_) for id_ in domain_ids])
 
-    dbUniqueFQDNSet = (
-        ctx.dbSession.query(model_objects.UniqueFQDNSet)
-        .filter(model_objects.UniqueFQDNSet.domain_ids_string == domain_ids_string)
-        .first()
-    )
+    dbUniqueFQDNSet = get__UniqueFQDNSet__by_DomainIds(ctx, domain_ids)
 
     if not dbUniqueFQDNSet:
         event_payload_dict = utils.new_event_payload_dict()

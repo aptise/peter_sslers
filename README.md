@@ -174,8 +174,8 @@ There are 2 main libraries:
     * usable by humans with simplified html
   * An isolated library and model for building custom applications
 
-Provisioning Certificates and initial orders are currently done through the web
-interface.
+Provisioning Certificates and initial orders can be done through the web
+interface or through commandline tools.
 
 Renewing Certificates can be done via two methods:
 

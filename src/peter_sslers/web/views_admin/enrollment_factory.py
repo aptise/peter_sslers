@@ -1,4 +1,5 @@
 # stdlib
+from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -14,15 +15,18 @@ from pyramid.view import view_config
 from typing_extensions import Literal
 
 # local
+from ..lib import form_utils as form_utils
 from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_EnrollmentFactory_edit_new
+from ..lib.forms import Form_EnrollmentFactory_query
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
+from ...lib import utils
 from ...lib.utils import displayable_exception
 from ...lib.utils import validate_domains_template
 from ...lib.utils import validate_label_template
@@ -35,6 +39,8 @@ if TYPE_CHECKING:
 
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
+    from ...model.objects import CertificateSigned
+    from ...model.objects import RenewalConfiguration
 
 # ==============================================================================
 
@@ -151,6 +157,12 @@ def submit__new(
 
         # shared
         name = formStash.results["name"]
+        name = utils.normalize_unique_text(name)
+        if not utils.validate_label(name):
+            formStash.fatal_field(
+                field="name", error_field="the `name` is not compliant"
+            )
+
         note = formStash.results["note"]
         private_key_cycle_id__backup: Optional[int]
         private_key_technology_id__backup: Optional[int]
@@ -344,6 +356,81 @@ def submit__edit(
         return result
     except Exception as exc:
         formStash.fatal_form(error_main=displayable_exception(exc))
+
+
+def submit__query(
+    request: "Request",
+    dbEnrollmentFactory: EnrollmentFactory,
+) -> Tuple["FormStash", Optional["RenewalConfiguration"], List["CertificateSigned"]]:
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_EnrollmentFactory_query,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+
+    # note: step 1 - analyze the "submitted" domain
+    # this ensures only one domain
+    # we'll pretend it's http-01, though that is irreleveant
+    domains_challenged = form_utils.form_single_domain_challenge_typed(
+        request, formStash, challenge_type="http-01"
+    )
+    # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
+    for challenge_, domains_ in domains_challenged.items():
+        if domains_:
+            try:
+                lib_db.validate.validate_domain_names(request.api_context, domains_)
+            except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
+                formStash.fatal_field(
+                    field="domain_name",
+                    error_field="This domain_name has been blocklisted",
+                )
+            except errors.AcmeDomainsInvalid as exc:  # noqa: F841
+                formStash.fatal_field(
+                    field="domain_name",
+                    error_field="This domain_name is invalid",
+                )
+
+    domain_name = domains_challenged["http-01"][0]
+
+    # does the domain exist?
+    # we should check to see if it does and has certs
+    dbDomain = lib_db.get.get__Domain__by_name(
+        request.api_context,
+        domain_name,
+    )
+    if not dbDomain:
+        return (formStash, None, [])
+
+    dbUniqueFQDNSet = lib_db.get.get__UniqueFQDNSet__by_DomainIds(
+        request.api_context,
+        [
+            dbDomain.id,
+        ],
+    )
+    if not dbUniqueFQDNSet:
+        return (formStash, None, [])
+
+    dbRenewalConfiguration = (
+        lib_db.get.get__RenewalConfiguration__by_EnrollmentFactoryId_UniqueFqdnSetId(
+            request.api_context,
+            dbEnrollmentFactory.id,
+            dbUniqueFQDNSet.id,
+        )
+    )
+    dbCertificateSigneds = []
+    if dbRenewalConfiguration:
+        dbCertificateSigneds = (
+            lib_db.get.get__CertificateSigned__by_RenewalConfigurationId__paginated(
+                request.api_context,
+                dbRenewalConfiguration.id,
+                limit=5,
+                offset=0,
+            )
+        )
+    return formStash, dbRenewalConfiguration, dbCertificateSigneds
 
 
 class View_List(Handler):
@@ -560,6 +647,79 @@ class View_Focus(Handler):
             if self.request.wants_json:
                 return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._edit__print)
+
+    @view_config(
+        route_name="admin:enrollment_factory:focus:query",
+        renderer="/admin/enrollment_factory-focus-query.mako",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:query|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/enrollment-factory/{ID}/query.json",
+            "section": "enrollment-factory",
+            "about": """EnrollmentFactory focus query""",
+            "POST": None,
+            "GET": True,
+            "instructions": "curl {ADMIN_PREFIX}/enrollment-factory/1/query.json",
+            "examples": [],
+            "form_fields": {
+                "domain_name": "string",
+            },
+        }
+    )
+    def query(self):
+        dbEnrollmentFactory = self._focus()  # noqa: F841
+        if self.request.method == "POST":
+            return self._query__submit()
+        return self._query__print()
+
+    def _query__print(self):
+        assert self.dbEnrollmentFactory is not None
+        if self.request.wants_json:
+            return formatted_get_docs(self, "/enrollment-factory/{ID}/query.json")
+        return render_to_response(
+            "/admin/enrollment_factory-focus-query.mako",
+            {
+                "domain_name": None,
+                "EnrollmentFactory": self.dbEnrollmentFactory,
+            },
+            self.request,
+        )
+
+    def _query__submit(self):
+        assert self.dbEnrollmentFactory is not None
+        try:
+            (formStash, dbRenewalConfiguration, dbCertificateSigneds) = submit__query(
+                self.request,
+                self.dbEnrollmentFactory,
+            )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "domain_name": formStash.results["domain_name"],
+                    "RenewalConfiguration": (
+                        dbRenewalConfiguration.as_json
+                        if dbRenewalConfiguration
+                        else None
+                    ),
+                    "CertificateSigneds": [i.as_json for i in dbCertificateSigneds],
+                }
+            return render_to_response(
+                "/admin/enrollment_factory-focus-query.mako",
+                {
+                    "domain_name": formStash.results["domain_name"],
+                    "EnrollmentFactory": self.dbEnrollmentFactory,
+                    "RenewalConfiguration": dbRenewalConfiguration,
+                    "CertificateSigneds": dbCertificateSigneds,
+                },
+                self.request,
+            )
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": exc.formStash.errors}
+            return formhandling.form_reprint(self.request, self._query__print)
 
     @view_config(
         route_name="admin:enrollment_factory:focus:certificate_signeds",

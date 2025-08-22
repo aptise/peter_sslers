@@ -27,6 +27,10 @@
             <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
             Edit
         </a>
+        <a href="${admin_prefix}/enrollment-factory/${EnrollmentFactory.id}/query" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+            Query
+        </a>
     </p>
 </%block>
 
