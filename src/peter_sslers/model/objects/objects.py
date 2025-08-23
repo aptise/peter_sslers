@@ -4530,8 +4530,6 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN certificate_ca_chain_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "
-            " CASE WHEN x509_certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
             " CASE WHEN certificate_signed_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN coverage_assurance_event_id IS NOT NULL THEN 1 ELSE 0 END "
@@ -4547,6 +4545,8 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " CASE WHEN unique_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN uniquely_challenged_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN x509_certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
             " ) = 1",
             name="ooe_check1",
         ),
@@ -4581,9 +4581,6 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     certificate_ca_chain_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=True
     )
-    x509_certificate_request_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("x509_certificate_request.id"), nullable=True
-    )
     certificate_signed_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
     )
@@ -4607,6 +4604,9 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     )
     uniquely_challenged_fqdn_set_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("uniquely_challenged_fqdn_set.id"), nullable=True
+    )
+    x509_certificate_request_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_request.id"), nullable=True
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
