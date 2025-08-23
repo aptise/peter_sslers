@@ -184,7 +184,7 @@
                 % endif
 
                 % if show_only['X509CertificateRequest']:
-                    <h4>Certificate Requests</h4>
+                    <h4>X509 Certificate Requests</h4>
                     % if results['X509CertificateRequest']['count']:
                         <table class="table table-condensed">
                             % for csr in results['X509CertificateRequest']['items']:

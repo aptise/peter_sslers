@@ -6,13 +6,13 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li>Certificate Requests</li>
+        <li>X509 Certificate Requests</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Certificate Requests</h2>
+    <h2>X509 Certificate Requests</h2>
 </%block>
 
 
@@ -36,7 +36,7 @@
                 ${admin_partials.table_X509CertificateRequests(X509CertificateRequests, perspective='X509CertificateRequest')}
             % else:
                 <em>
-                    No Certificate Requests
+                    No X509 Certificate Requests
                 </em>
             % endif
         </div>

@@ -1542,7 +1542,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     """
     ACME Order Object [https://tools.ietf.org/html/rfc8555#section-7.1.3]
 
-    An ACME Order is essentially a Certificate Request
+    An ACME Order is essentially a X509 Certificate Request
 
     It contains the following objects:
         Identifiers (Domains)

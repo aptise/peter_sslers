@@ -28,7 +28,7 @@
                 <th>provider</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
-                ## <th>count certificate requests</th>
+                ## <th>count x509 certificate requests</th>
                 <th>count certificates issued</th>
             </tr>
         </thead>
@@ -1388,7 +1388,7 @@
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
                 <th>count active certificates</th>
-                ## <th>count certificate requests</th>
+                ## <th>count x509 certificate requests</th>
                 <th>count certificates issued</th>
             </tr>
         </thead>

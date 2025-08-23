@@ -670,7 +670,7 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
 
-    # !!!: Certificate Requests
+    # !!!: X509 Certificate Requests
     config.add_route_7(
         "admin:x509_certificate_requests",
         "/x509-certificate-requests",
@@ -678,7 +678,7 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
 
-    # !!!: Certificate Request - Focus
+    # !!!: X509 Certificate Request - Focus
     config.add_route_7(
         "admin:x509_certificate_request:focus",
         "/x509-certificate-request/{@id}",
