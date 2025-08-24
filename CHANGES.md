@@ -309,6 +309,10 @@
     urllib3 has a breaking change in 2.4.0
         aligned support with https://github.com/urllib3/urllib3/issues/3571
     
+    Standardized against python cryptography names::
+    CertificateSigned is renamed to X509Certificate
+    CertificateRequest is renamed to X509CertificateRequest
+    
 
 
 0.6.0
