@@ -11,8 +11,8 @@ from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
     from .context import ApiContext
-    from ..model.objects import CertificateSigned
     from ..model.objects import RenewalConfiguration
+    from ..model.objects import X509Certificate
 
 # ==============================================================================
 
@@ -44,14 +44,14 @@ A_ConfigPayload = TypedDict(
 )
 
 
-def encode_CertificateSigned_a(
-    dbCertificateSigned: "CertificateSigned",
+def encode_X509Certificate_a(
+    dbX509Certificate: "X509Certificate",
 ) -> A_CertPayload:
     payload: A_CertPayload = {
-        "cert.pem": dbCertificateSigned.cert_pem,
-        "chain.pem": dbCertificateSigned.cert_chain_pem or "",
-        "fullchain.pem": dbCertificateSigned.cert_fullchain_pem or "",
-        "pkey.pem": dbCertificateSigned.private_key.key_pem,
+        "cert.pem": dbX509Certificate.cert_pem,
+        "chain.pem": dbX509Certificate.cert_chain_pem or "",
+        "fullchain.pem": dbX509Certificate.cert_fullchain_pem or "",
+        "pkey.pem": dbX509Certificate.private_key.key_pem,
     }
     return payload
 
@@ -60,19 +60,19 @@ def encode_RenewalConfiguration_a(
     dbRenewalConfiguration: "RenewalConfiguration",
 ) -> A_DirectoryPayload:
     directory_payload: A_DirectoryPayload = {"primary": None, "backup": None}
-    pCert: Optional["CertificateSigned"] = None
-    bCert: Optional["CertificateSigned"] = None
-    if dbRenewalConfiguration.certificate_signeds__primary__5:
-        pCert = dbRenewalConfiguration.certificate_signeds__primary__5[0]
-    if dbRenewalConfiguration.certificate_signeds__backup__5:
-        bCert = dbRenewalConfiguration.certificate_signeds__backup__5[0]
+    pCert: Optional["X509Certificate"] = None
+    bCert: Optional["X509Certificate"] = None
+    if dbRenewalConfiguration.x509_certificates__primary__5:
+        pCert = dbRenewalConfiguration.x509_certificates__primary__5[0]
+    if dbRenewalConfiguration.x509_certificates__backup__5:
+        bCert = dbRenewalConfiguration.x509_certificates__backup__5[0]
     for dbCert, dest in ((pCert, "primary"), (bCert, "backup")):
         if not dbCert:
             continue
         if TYPE_CHECKING:
             assert dbCert.cert_chain_pem
             assert dbCert.fullchain_pem
-        payload = encode_CertificateSigned_a(dbCert)
+        payload = encode_X509Certificate_a(dbCert)
         directory_payload[dest] = payload  # type: ignore[literal-required]
     return directory_payload
 

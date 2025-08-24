@@ -1153,7 +1153,7 @@ def validate_PrivateKeySelection_selected(
             continue
         if pkeySelection.private_key_option == "private_key_existing":
             if pkeySelection.PrivateKey.private_key_type == "single_use":
-                if pkeySelection.PrivateKey.count_certificate_signeds:
+                if pkeySelection.PrivateKey.count_x509_certificates:
                     formStash.fatal_field(
                         field="private_key_existing__%s" % context,
                         error_field="`single_use` key is already used.",
@@ -1183,7 +1183,7 @@ def validate_PrivateKeySelectionV2_selected(
             continue
         if pkeySelection.private_key_option == "private_key_existing":
             if pkeySelection.dbPrivateKey.private_key_type == "single_use":
-                if pkeySelection.dbPrivateKey.count_certificate_signeds:
+                if pkeySelection.dbPrivateKey.count_x509_certificates:
                     formStash.fatal_field(
                         field="private_key_existing__%s" % context,
                         error_field="`single_use` key is already used.",

@@ -18,8 +18,8 @@ from typing_extensions import Literal
 from .create import create__AcmeOrder
 from .create import create__AcmeOrderSubmission
 from .create import create__AriCheck
-from .create import create__CertificateSigned
 from .create import create__PrivateKey
+from .create import create__X509Certificate
 from .create import create__X509CertificateRequest
 from .get import get__AcmeAccount__by_account_url
 from .get import get__AcmeAccountKey__by_key_pem
@@ -29,15 +29,15 @@ from .get import get__AcmeAuthorizations__by_ids
 from .get import get__AcmeChallenges__by_DomainId__active
 from .get import get__AcmeOrder__by_order_url
 from .get import get__AcmeOrder__by_RenewalConfigurationId__active
-from .get import get__CertificateSigned__by_ariIdentifier
-from .get import get__CertificateSigned_replaces_candidates
 from .get import get__PrivateKey__by_id
+from .get import get__X509Certificate__by_ariIdentifier
+from .get import get__X509Certificate_replaces_candidates
 from .getcreate import getcreate__AcmeAuthorization
 from .getcreate import getcreate__AcmeAuthorizationUrl
 from .getcreate import getcreate__AcmeChallenges_via_payload
 from .getcreate import getcreate__CertificateCAChain__by_pem_text
-from .getcreate import getcreate__CertificateSigned
 from .getcreate import getcreate__PrivateKey_for_AcmeAccount
+from .getcreate import getcreate__X509Certificate
 from .getcreate import process__AcmeAuthorization_payload
 from .logger import AcmeLogger
 from .logger import log__OperationsEvent
@@ -69,9 +69,9 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeOrder
     from ...model.objects import AcmeServer
     from ...model.objects import AriCheck
-    from ...model.objects import CertificateSigned
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
+    from ...model.objects import X509Certificate
 
 
 # from .getcreate import getcreate__UniqueFQDNSet__by_domains
@@ -2095,7 +2095,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 x509_certificate_request_source_id=model_utils.X509CertificateRequestSource.ACME_ORDER,
                 dbPrivateKey=dbAcmeOrder.private_key,
                 domain_names=domain_names,
-                dbCertificateSigned__issued=None,
+                dbX509Certificate__issued=None,
                 discovery_type="ACME Order",
             )
             # dbAcmeOrder.x509_certificate_request_id = dbX509CertificateRequest.id
@@ -2173,7 +2173,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         if certificate_pem is None:
             raise ValueError("Could not derive certificate_pem")
 
-        dbCertificateSigned = create__CertificateSigned(
+        dbX509Certificate = create__X509Certificate(
             ctx,
             cert_pem=certificate_pem,
             cert_domains_expected=domain_names,
@@ -2190,7 +2190,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         # update the logger
         authenticatedUser.acmeLogger.log_CertificateProcured(
             "v2",
-            dbCertificateSigned=dbCertificateSigned,
+            dbX509Certificate=dbX509Certificate,
             dbX509CertificateRequest=dbAcmeOrder.x509_certificate_request,
             transaction_commit=transaction_commit,
         )
@@ -2253,7 +2253,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     cert_path = os.path.join(rc_path, subdir)
                     if not os.path.exists(cert_path):
                         os.makedirs(cert_path)
-                    cert_data = exports.encode_CertificateSigned_a(dbCertificateSigned)
+                    cert_data = exports.encode_X509Certificate_a(dbX509Certificate)
                     for fname, fcontents in cert_data.items():
                         exports.write_pem(
                             cert_path,
@@ -2515,9 +2515,9 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         raise ValueError("Could not derive certificate_pem")
 
     (
-        dbCertificateSigned,
+        dbX509Certificate,
         _is_created__cert,
-    ) = getcreate__CertificateSigned(
+    ) = getcreate__X509Certificate(
         ctx,
         cert_pem=certificate_pem,
         cert_domains_expected=dbAcmeOrder.domains_as_list,
@@ -2530,12 +2530,12 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         discovery_type="ACME Order",
         is_active=True,
     )
-    if dbAcmeOrder.certificate_signed:
-        if dbAcmeOrder.certificate_signed_id != dbCertificateSigned.id:
+    if dbAcmeOrder.x509_certificate:
+        if dbAcmeOrder.x509_certificate_id != dbX509Certificate.id:
             raise ValueError("competing certificates for this AcmeOrder")
     else:
-        # dbAcmeOrder.certificate_signed_id = dbCertificateSigned.id
-        dbAcmeOrder.certificate_signed = dbCertificateSigned
+        # dbAcmeOrder.x509_certificate_id = dbX509Certificate.id
+        dbAcmeOrder.x509_certificate = dbX509Certificate
 
     # note that we've completed this!
     dbAcmeOrder.acme_order_processing_status_id = (
@@ -2547,7 +2547,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
     # update the logger
     authenticatedUser.acmeLogger.log_CertificateProcured(
         "v2",
-        dbCertificateSigned=dbCertificateSigned,
+        dbX509Certificate=dbX509Certificate,
         dbX509CertificateRequest=dbAcmeOrder.x509_certificate_request,
         transaction_commit=transaction_commit,
     )
@@ -2639,7 +2639,7 @@ def do__AcmeV2_AcmeOrder__new(
     dbUniqueFQDNSet = dbRenewalConfiguration.unique_fqdn_set
 
     # scoping
-    dbCertificateSigned_replaces_candidate: Optional["CertificateSigned"] = None
+    dbX509Certificate_replaces_candidate: Optional["X509Certificate"] = None
 
     if dbAcmeOrder_retry_of or (acme_order_type_id == model_utils.AcmeOrderType.RETRY):
         if (
@@ -2740,7 +2740,7 @@ def do__AcmeV2_AcmeOrder__new(
             else:
                 raise ValueError("unsupported `replaces_certificate_type`")
 
-            _candidate_certs = get__CertificateSigned_replaces_candidates(
+            _candidate_certs = get__X509Certificate_replaces_candidates(
                 ctx,
                 dbRenewalConfiguration=dbRenewalConfiguration,
                 certificate_type=replaces_certificate_type,
@@ -2816,7 +2816,7 @@ def do__AcmeV2_AcmeOrder__new(
 
     authenticatedUser: "AuthenticatedUser"
     dbAcmeOrder: Optional["AcmeOrder"] = None
-    dbCertificateSigned: Optional["CertificateSigned"] = None
+    dbX509Certificate: Optional["X509Certificate"] = None
     try:
         # check here, because we don't want to create a server order with invalid options
         if replaces:
@@ -2832,35 +2832,35 @@ def do__AcmeV2_AcmeOrder__new(
             else:
                 # Test 1 - Does the `replaces` exist?
                 # this may have been previously queried...
-                if dbCertificateSigned_replaces_candidate is None:
-                    dbCertificateSigned_replaces_candidate = (
-                        get__CertificateSigned__by_ariIdentifier(ctx, replaces)
+                if dbX509Certificate_replaces_candidate is None:
+                    dbX509Certificate_replaces_candidate = (
+                        get__X509Certificate__by_ariIdentifier(ctx, replaces)
                     )
-                if not dbCertificateSigned_replaces_candidate:
+                if not dbX509Certificate_replaces_candidate:
                     raise errors.FieldError(
                         "replaces", "could not find ARI identifier of `replaces`"
                     )
 
                 # Test 2 -  has the candidate already been replaced?
-                if dbCertificateSigned_replaces_candidate.ari_identifier__replaced_by:
+                if dbX509Certificate_replaces_candidate.ari_identifier__replaced_by:
                     raise errors.FieldError(
                         "replaces",
                         "the `replaces` candidate has already replaced a certificate",
                     )
 
                 # Test 3 - is the candidate viable based on lineage?
-                if dbCertificateSigned_replaces_candidate.acme_order:
+                if dbX509Certificate_replaces_candidate.acme_order:
                     # Certs that are Managed through this application have a straightforward check
 
                     # regardless of this matching the RenewalConfiguration,
                     # the AcmeAccount MUST match
                     if (
-                        dbCertificateSigned_replaces_candidate.acme_order.acme_account_id
+                        dbX509Certificate_replaces_candidate.acme_order.acme_account_id
                         == dbRenewalConfiguration.acme_account_id__primary
                     ):
                         account_selection = "primary"
                     elif (
-                        dbCertificateSigned_replaces_candidate.acme_order.acme_account_id
+                        dbX509Certificate_replaces_candidate.acme_order.acme_account_id
                         == dbRenewalConfiguration.acme_account_id__backup
                     ):
                         account_selection = "backup"
@@ -2872,7 +2872,7 @@ def do__AcmeV2_AcmeOrder__new(
 
                     # was the candidate issued by this renewal configuration?
                     if (
-                        dbCertificateSigned_replaces_candidate.acme_order.renewal_configuration_id
+                        dbX509Certificate_replaces_candidate.acme_order.renewal_configuration_id
                         == dbRenewalConfiguration.id
                     ):
                         # the certs have the same lineage
@@ -2880,7 +2880,7 @@ def do__AcmeV2_AcmeOrder__new(
                     else:
                         # if this is from another renewal configuration, the UniqueFQDNSet must match
                         if (
-                            dbCertificateSigned_replaces_candidate.unique_fqdn_set_id
+                            dbX509Certificate_replaces_candidate.unique_fqdn_set_id
                             != dbRenewalConfiguration.unique_fqdn_set_id
                         ):
                             raise errors.FieldError(
@@ -2889,10 +2889,10 @@ def do__AcmeV2_AcmeOrder__new(
                             )
 
                 else:
-                    # The `dbCertificateSigned_replaces_candidate` certificate was imported,
+                    # The `dbX509Certificate_replaces_candidate` certificate was imported,
                     # we can allow these as a renewal candidate **if** it covers the same domains
                     if (
-                        dbCertificateSigned_replaces_candidate.unique_fqdn_set_id
+                        dbX509Certificate_replaces_candidate.unique_fqdn_set_id
                         != dbRenewalConfiguration.unique_fqdn_set_id
                     ):
                         raise errors.FieldError(
@@ -2922,7 +2922,7 @@ def do__AcmeV2_AcmeOrder__new(
                 # the status-quo from ACME developers is to just retry
                 # an order without the `replaces` field if it fails on submission
                 # we follow the industry on this.
-                if dbCertificateSigned_replaces_candidate.timestamp_not_after < (
+                if dbX509Certificate_replaces_candidate.timestamp_not_after < (
                     ctx.timestamp - datetime.timedelta(days=45)
                 ):
                     # error: "timestamp_not_after < NOW"
@@ -3415,29 +3415,29 @@ def do__AcmeV2_AcmeOrder__retry(
 
 def do__AcmeV2_AriCheck(
     ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
+    dbX509Certificate: "X509Certificate",
     force_check: bool = False,
 ) -> Tuple["AriCheck", Optional["AriCheckResult"]]:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbCertificateSigned: (required)
-        A :class:`model.objects.CertificateSigned` object to check
+    :param dbX509Certificate: (required)
+        A :class:`model.objects.X509Certificate` object to check
 
     :returns: A tuple of
         :class:`model.objects.AriCheck` object for the new AriCheck, and the
         :class:`AriCheckResult` formatted API Response
     """
-    if not dbCertificateSigned:
-        raise ValueError("Must submit `dbCertificateSigned`")
+    if not dbX509Certificate:
+        raise ValueError("Must submit `dbX509Certificate`")
     try:
         ariCheckResult: Optional["AriCheckResult"] = acme_v2.ari_check(
             ctx=ctx,
-            dbCertificateSigned=dbCertificateSigned,
+            dbX509Certificate=dbX509Certificate,
             force_check=force_check,
         )
         dbAriCheck = create__AriCheck(
             ctx=ctx,
-            dbCertificateSigned=dbCertificateSigned,
+            dbX509Certificate=dbX509Certificate,
             ariCheckResult=ariCheckResult,
         )
     except Exception as exc:

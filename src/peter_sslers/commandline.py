@@ -35,7 +35,7 @@ def upload_fileset(server_url_root: str, fset: FileSet) -> None:
     """actually uploads a fileset"""
     if server_url_root[-1] == "/":
         server_url_root = server_url_root[:-1]
-    url = "%s/certificate-signed/upload.json" % server_url_root
+    url = "%s/x509-certificate/upload.json" % server_url_root
 
     try:
         with psutil.Popen(

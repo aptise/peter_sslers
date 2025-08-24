@@ -78,10 +78,10 @@
                             </td>
                         </tr>
                         <tr>
-                            <th>CertificateSigneds</th>
+                            <th>X509Certificates</th>
                             <td>
-                                % if CertificateSigneds:
-                                    ${admin_partials.table_CertificateSigneds(CertificateSigneds, perspective='EnrollmentFactory')}
+                                % if X509Certificates:
+                                    ${admin_partials.table_X509Certificates(X509Certificates, perspective='EnrollmentFactory')}
                                     <i>Only showing the 5 most recent.</i>
                                 % else:
                                     Not Found

@@ -329,8 +329,8 @@
                             <% quick_btn_class = '' if AcmeOrder.is_renewable_quick else 'disabled' %>
                             <%
                                 _replaces = ""
-                                if AcmeOrder.certificate_signed and not AcmeOrder.certificate_signed.ari_identifier__replaced_by:
-                                    _replaces = "?replaces.id=%s" % AcmeOrder.certificate_signed_id
+                                if AcmeOrder.x509_certificate and not AcmeOrder.x509_certificate.ari_identifier__replaced_by:
+                                    _replaces = "?replaces.id=%s" % AcmeOrder.x509_certificate_id
                                 else:
                                     if AcmeOrder.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
                                         _replaces = "?replaces.id=primary"
@@ -422,15 +422,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigned</th>
+                        <th>X509Certificate</th>
                         <td>
-                            % if AcmeOrder.certificate_signed_id:
+                            % if AcmeOrder.x509_certificate_id:
                                 <a
                                     class="label label-info"
-                                    href="${admin_prefix}/certificate-signed/${AcmeOrder.certificate_signed_id}"
+                                    href="${admin_prefix}/x509-certificate/${AcmeOrder.x509_certificate_id}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateSigned-${AcmeOrder.certificate_signed_id}
+                                    X509Certificate-${AcmeOrder.x509_certificate_id}
                                 </a>
                             % endif
                         </td>
@@ -460,15 +460,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>certificate_signed_id__replaces</th>
+                        <th>x509_certificate_id__replaces</th>
                         <td>
-                            % if AcmeOrder.certificate_signed_id__replaces:
+                            % if AcmeOrder.x509_certificate_id__replaces:
                                 <a
                                     class="label label-info"
-                                    href="${admin_prefix}/certificate-signed/${AcmeOrder.certificate_signed_id__replaces}"
+                                    href="${admin_prefix}/x509-certificate/${AcmeOrder.x509_certificate_id__replaces}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateSigned-${AcmeOrder.certificate_signed_id__replaces}
+                                    X509Certificate-${AcmeOrder.x509_certificate_id__replaces}
                                 </a>
                             % endif
                         </td>

@@ -202,10 +202,10 @@
     if not intended_replacement:
         intended_replacement = "primary"
 
-    _candidate_ids = [i.id for i in CertificateSigned_replaces_candidates__primary]
+    _candidate_ids = [i.id for i in X509Certificate_replaces_candidates__primary]
     _candidate_ids.append("primary")
     if RenewalConfiguration.acme_account__backup:
-        _candidate_ids.extend([i.id for i in CertificateSigned_replaces_candidates__backup])
+        _candidate_ids.extend([i.id for i in X509Certificate_replaces_candidates__backup])
         _candidate_ids.append("backup")
 
     if (not intended_replacement) or (intended_replacement not in _candidate_ids):
@@ -238,7 +238,7 @@
             </span>
         </div>
     </div>
-    % for dbCert in CertificateSigned_replaces_candidates__primary:
+    % for dbCert in X509Certificate_replaces_candidates__primary:
         <%
             _selected = ' checked="checked"' if dbCert.id == intended_replacement else ""
         %>
@@ -249,10 +249,10 @@
                 </label>
                 <a
                     class="label label-info"
-                    href="${admin_prefix}/certificate-signed/${dbCert.id}"
+                    href="${admin_prefix}/x509-certificate/${dbCert.id}"
                 >
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    CertificateSigned-${dbCert.id}
+                    X509Certificate-${dbCert.id}
                 </a>
                 <span class="label label-default">ari: ${dbCert.ari_identifier}</span>
                 <span class="label label-default">notAfter: ${dbCert.timestamp_not_after_isoformat}</span>
@@ -278,7 +278,7 @@
                 </span>
             </div>
         </div>
-        % for dbCert in CertificateSigned_replaces_candidates__backup:
+        % for dbCert in X509Certificate_replaces_candidates__backup:
             <%
                 _selected = ' checked="checked"' if dbCert.id == intended_replacement else ""
             %>
@@ -289,10 +289,10 @@
                     </label>
                     <a
                         class="label label-info"
-                        href="${admin_prefix}/certificate-signed/${dbCert.id}"
+                        href="${admin_prefix}/x509-certificate/${dbCert.id}"
                     >
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        CertificateSigned-${dbCert.id}
+                        X509Certificate-${dbCert.id}
                     </a>
                     <span class="label label-default">ari: ${dbCert.ari_identifier}</span>
                     <span class="label label-default">notAfter: ${dbCert.timestamp_not_after_isoformat}</span>

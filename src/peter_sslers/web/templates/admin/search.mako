@@ -103,9 +103,9 @@
                     <hr/>
                 % endif
 
-                % if show_only['CertificateSigned']:
-                    <h4>CertificateSigneds</h4>
-                    % if results['CertificateSigned']['count']:
+                % if show_only['X509Certificate']:
+                    <h4>X509Certificates</h4>
+                    % if results['X509Certificate']['count']:
                         <table class="table table-condensed">
                             <thead>
                                 <tr>
@@ -117,14 +117,14 @@
                                 </tr>
                             </thead>
                             <body>
-                            % for cert in results['CertificateSigned']['items']:
+                            % for cert in results['X509Certificate']['items']:
                                 <tr>
                                     <td>
                                         <a  class="label label-info"
-                                            href="${admin_prefix}/certificate-signed/${cert.id}"
+                                            href="${admin_prefix}/x509-certificate/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            CertificateSigned-${cert.id}</a>
+                                            X509Certificate-${cert.id}</a>
                                     </td>
                                     <td><code>${cert.spki_sha256}</code></td>
                                     <td><span class="label label-${'success' if cert.is_active else 'danger'}">${'Y' if cert.is_active else ''}</label></td>
@@ -134,8 +134,8 @@
                             % endfor
                             </body>
                         </table>
-                        % if results['CertificateSigned']['next']:
-                            <a href="${results['CertificateSigned']['next']}">More</a>
+                        % if results['X509Certificate']['next']:
+                            <a href="${results['X509Certificate']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>

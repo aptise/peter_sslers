@@ -6,20 +6,20 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-signeds">Certificate Signeds</a></li>
+        <li><a href="${admin_prefix}/x509-certificates">X509Certificates</a></li>
         <li class="active">Search</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Certificate Signeds: Search</h2>
+    <h2>X509Certificates: Search</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <a  class="btn btn-xs btn-info"
-        href="${admin_prefix}/certificate-signeds/search.json"
+        href="${admin_prefix}/x509-certificates/search.json"
     >
         <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
         .json</a>
@@ -32,7 +32,7 @@
             <p>
                 Search certificates by a field
             </p>
-            <form action="${admin_prefix}/certificate-signeds/search" id="form-certificate_signeds-search" method="POST">
+            <form action="${admin_prefix}/x509-certificates/search" id="form-x509_certificates-search" method="POST">
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
                 <div class="form-group">
@@ -51,31 +51,31 @@
                 <code>${search_query}</code>
                 
                 <h4>Results - Certificate</h4>
-                % if search_results['CertificateSigned']:
+                % if search_results['X509Certificate']:
                     <table class="table table-striped table-condensed">
                         <thead>
                             <tr>
-                                <th colspan="2">CertificateSigned</th>
+                                <th colspan="2">X509Certificate</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <th>id</th>
-                                <td><code>${search_results['CertificateSigned'].id}</code></td>
+                                <td><code>${search_results['X509Certificate'].id}</code></td>
                             </tr>
                             <tr>
                                 <th>record</th>
-                                <td><a href="${admin_prefix}/certificate-signed/${search_results['CertificateSigned'].id}"
+                                <td><a href="${admin_prefix}/x509-certificate/${search_results['X509Certificate'].id}"
                                        class="label label-info"
                                     >
-                                    CertificateSigned-${search_results['CertificateSigned'].id}
+                                    X509Certificate-${search_results['X509Certificate'].id}
                                     </a>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 % else:
-                    <em>No CertificateSigned</em>
+                    <em>No X509Certificate</em>
                 % endif 
             % endif 
             

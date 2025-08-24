@@ -51,7 +51,7 @@ else:
 # Get the domain record;
 r = requests.get(URL_BASE + "/domain/%s.json" % domain_id)
 _rjson = r.json()
-domain_primary_certs = _rjson["Domain"]["certificate_signeds__single_primary_5"]
+domain_primary_certs = _rjson["Domain"]["x509_certificates__single_primary_5"]
 if not domain_primary_certs:
     r = requests.get(URL_BASE + "/acme-accounts.json")
     _rjson = r.json()
@@ -121,10 +121,10 @@ r = requests.get(URL_BASE + "/domain/%s.json" % domain_id)
 _rjson = r.json()
 
 # these are the last 5 certs for ONLY this domain
-assert len(_rjson["Domain"]["certificate_signeds__single_primary_5"]) >= 1
-cert_id = _rjson["Domain"]["certificate_signeds__single_primary_5"][0]["id"]
+assert len(_rjson["Domain"]["x509_certificates__single_primary_5"]) >= 1
+cert_id = _rjson["Domain"]["x509_certificates__single_primary_5"][0]["id"]
 
-r = requests.get(URL_BASE + "/certificate-signed/%s/config.json" % cert_id)
+r = requests.get(URL_BASE + "/x509-certificate/%s/config.json" % cert_id)
 print("\n\nCert Config:")
 _rjson = r.json()
 pprint.pprint(_rjson)

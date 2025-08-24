@@ -309,9 +309,9 @@ def import_certbot(
             )
 
             (
-                dbCertificateSigned,
+                dbX509Certificate,
                 cert_is_created,
-            ) = lib_db.getcreate.getcreate__CertificateSigned(
+            ) = lib_db.getcreate.getcreate__X509Certificate(
                 ctx,
                 certificate_pem,
                 cert_domains_expected=_certificate_domain_names,
@@ -326,7 +326,7 @@ def import_certbot(
 
             if _version_int == _latest_version:
                 # _dbAcmeAccount = certbotId2acmeAccount.get(_account_id_r)
-                _domains = dbCertificateSigned.domains_as_list
+                _domains = dbX509Certificate.domains_as_list
                 _pref_challs = None
                 if _certbotLineageData:
                     _pref_challs = _certbotLineageData.get("pref_challs")

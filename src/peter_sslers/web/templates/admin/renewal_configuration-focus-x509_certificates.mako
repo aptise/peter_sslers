@@ -8,24 +8,24 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/renewal-configurations">RenewalConfiguration</a></li>
         <li><a href="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}">Focus [${RenewalConfiguration.id}]</a></li>
-        <li class="active">Certificate Signeds</li>
+        <li class="active">X509Certificates</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>RenewalConfiguration Focus - Certificate Signeds</h2>
+    <h2>RenewalConfiguration Focus - X509Certificates</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
-            % if CertificateSigneds:
+            % if X509Certificates:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateSigneds(CertificateSigneds, perspective='RenewalConfiguration')}
+                ${admin_partials.table_X509Certificates(X509Certificates, perspective='RenewalConfiguration')}
             % else:
-                No known CertificateSigneds
+                No known X509Certificates
             % endif
         </div>
     </div>

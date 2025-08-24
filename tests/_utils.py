@@ -1266,18 +1266,6 @@ TEST_FILES: Dict = {
             "letsencrypt_intermediate_r4_cross": "letsencrypt-certs/lets-encrypt-r4-cross-signed.pem",
         },
     },
-    "X509CertificateRequests": {
-        "1": {
-            "domains": "foo.example.com, bar.example.com",
-            "account_key": "key_technology-rsa/account_1.key",
-            "private_key": "key_technology-rsa/private_1.key",
-        },
-        "acme_test": {
-            "domains": SSL_TEST_DOMAINS,
-            "account_key": "key_technology-rsa/account_2.key",
-            "private_key": "key_technology-rsa/private_2.key",
-        },
-    },
     "Domains": {
         "AcmeDnsServer": {
             "1": {
@@ -1306,8 +1294,20 @@ TEST_FILES: Dict = {
             },
         },
     },
+    "X509CertificateRequests": {
+        "1": {
+            "domains": "foo.example.com, bar.example.com",
+            "account_key": "key_technology-rsa/account_1.key",
+            "private_key": "key_technology-rsa/private_1.key",
+        },
+        "acme_test": {
+            "domains": SSL_TEST_DOMAINS,
+            "account_key": "key_technology-rsa/account_2.key",
+            "private_key": "key_technology-rsa/private_2.key",
+        },
+    },
     # the certificates are a tuple of: (CommonName, crt, csr, key)
-    "CertificateSigneds": {
+    "X509Certificates": {
         "SelfSigned": {
             "1": {
                 "domain": "selfsigned-1.example.com",
@@ -1341,7 +1341,7 @@ TEST_FILES: Dict = {
             },
         },
         "Pebble": {
-            # these use `FormatA` and can be setup using `_setUp_CertificateSigneds_FormatA`
+            # these use `FormatA` and can be setup using `_setUp_X509Certificates_FormatA`
             "1": {
                 "domain": "a.example.com",
                 "cert": "cert1.pem",
@@ -1374,7 +1374,7 @@ TEST_FILES: Dict = {
             },
         },
         "AlternateChains": {
-            # these use `FormatA` and can be setup using `_setUp_CertificateSigneds_FormatA`
+            # these use `FormatA` and can be setup using `_setUp_X509Certificates_FormatA`
             "1": {
                 # reseved for `FunctionalTests_AlternateChains`
                 "domain": "example.com",
@@ -2541,7 +2541,7 @@ class AppTest(AppTestCore):
     # AppTest Class Variable
     _DB_SETUP_RECORDS = False
 
-    def _setUp_CertificateSigneds_FormatA(
+    def _setUp_X509Certificates_FormatA(
         self, payload_section: str, payload_key: str
     ) -> None:
         filename_template = None
@@ -2553,7 +2553,7 @@ class AppTest(AppTestCore):
             raise ValueError("invalid payload_section")
         _pkey_filename = (
             filename_template
-            % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["pkey"]
+            % TEST_FILES["X509Certificates"][payload_section][payload_key]["pkey"]
         )
         _pkey_pem = self._filedata_testfile(_pkey_filename)
         (
@@ -2567,7 +2567,7 @@ class AppTest(AppTestCore):
         )
         _chain_filename = (
             filename_template
-            % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["chain"]
+            % TEST_FILES["X509Certificates"][payload_section][payload_key]["chain"]
         )
         _chain_pem = self._filedata_testfile(_chain_filename)
         (
@@ -2580,15 +2580,15 @@ class AppTest(AppTestCore):
         dbCertificateCAChains_alt = None
         if (
             "alternate_chains"
-            in TEST_FILES["CertificateSigneds"][payload_section][payload_key]
+            in TEST_FILES["X509Certificates"][payload_section][payload_key]
         ):
             dbCertificateCAChains_alt = []
-            for _chain_index in TEST_FILES["CertificateSigneds"][payload_section][
+            for _chain_index in TEST_FILES["X509Certificates"][payload_section][
                 payload_key
             ]["alternate_chains"]:
                 _chain_subpath = "alternate_chains/%s/%s" % (
                     payload_key,
-                    TEST_FILES["CertificateSigneds"][payload_section][payload_key][
+                    TEST_FILES["X509Certificates"][payload_section][payload_key][
                         "alternate_chains"
                     ][_chain_index]["chain"],
                 )
@@ -2604,10 +2604,10 @@ class AppTest(AppTestCore):
 
         _cert_filename = (
             filename_template
-            % TEST_FILES["CertificateSigneds"][payload_section][payload_key]["cert"]
+            % TEST_FILES["X509Certificates"][payload_section][payload_key]["cert"]
         )
         _cert_domains_expected = [
-            TEST_FILES["CertificateSigneds"][payload_section][payload_key]["domain"],
+            TEST_FILES["X509Certificates"][payload_section][payload_key]["domain"],
         ]
         (
             _dbUniqueFQDNSet,
@@ -2619,9 +2619,9 @@ class AppTest(AppTestCore):
         _cert_pem = self._filedata_testfile(_cert_filename)
 
         (
-            _dbCertificateSigned,
+            _dbX509Certificate,
             _is_created,
-        ) = db.getcreate.getcreate__CertificateSigned(
+        ) = db.getcreate.getcreate__X509Certificate(
             self.ctx,
             _cert_pem,
             cert_domains_expected=_cert_domains_expected,
@@ -2804,22 +2804,22 @@ class AppTest(AppTestCore):
                                 )
                             )
 
-                    # note: pre-populate CertificateSigned 1-5
-                    # this should create `/certificate-signed/1`
+                    # note: pre-populate X509Certificate 1-5
+                    # this should create `/x509-certificate/1`
                     #
                     _dbAcmeOrder = None
-                    _dbCertificateSigned_1 = None
-                    _dbCertificateSigned_2 = None
-                    _dbCertificateSigned_3 = None
-                    _dbCertificateSigned_4 = None
-                    _dbCertificateSigned_5 = None
+                    _dbX509Certificate_1 = None
+                    _dbX509Certificate_2 = None
+                    _dbX509Certificate_3 = None
+                    _dbX509Certificate_4 = None
+                    _dbX509Certificate_5 = None
                     _dbPrivateKey_1 = None
                     _dbRenewalConfiguration = None
                     _dbUniqueFQDNSet_1: model_objects.UniqueFQDNSet
-                    for _id in TEST_FILES["CertificateSigneds"]["SelfSigned"].keys():
+                    for _id in TEST_FILES["X509Certificates"]["SelfSigned"].keys():
                         # note: pre-populate PrivateKey
                         # this should create `/private-key/1`
-                        _pkey_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
+                        _pkey_filename = TEST_FILES["X509Certificates"]["SelfSigned"][
                             _id
                         ]["pkey"]
                         pkey_pem = self._filedata_testfile(_pkey_filename)
@@ -2838,7 +2838,7 @@ class AppTest(AppTestCore):
                         # note: pre-populate CertificateCA - self-signed
                         # this should create `/certificate-ca/2`
                         #
-                        _cert_ca_filename = TEST_FILES["CertificateSigneds"][
+                        _cert_ca_filename = TEST_FILES["X509Certificates"][
                             "SelfSigned"
                         ][_id]["cert"]
                         chain_pem = self._filedata_testfile(_cert_ca_filename)
@@ -2851,13 +2851,11 @@ class AppTest(AppTestCore):
                         # print(_dbCertificateCAChain_SelfSigned, _is_created)
                         # self.ctx.pyramid_transaction_commit()
 
-                        _cert_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"][
+                        _cert_filename = TEST_FILES["X509Certificates"]["SelfSigned"][
                             _id
                         ]["cert"]
                         _cert_domains_expected = [
-                            TEST_FILES["CertificateSigneds"]["SelfSigned"][_id][
-                                "domain"
-                            ],
+                            TEST_FILES["X509Certificates"]["SelfSigned"][_id]["domain"],
                         ]
                         (
                             _dbUniqueFQDNSet,
@@ -2869,9 +2867,9 @@ class AppTest(AppTestCore):
 
                         cert_pem = self._filedata_testfile(_cert_filename)
                         (
-                            _dbCertificateSigned,
+                            _dbX509Certificate,
                             _is_created,
-                        ) = db.getcreate.getcreate__CertificateSigned(
+                        ) = db.getcreate.getcreate__X509Certificate(
                             self.ctx,
                             cert_pem,
                             cert_domains_expected=_cert_domains_expected,
@@ -2882,21 +2880,21 @@ class AppTest(AppTestCore):
                             dbUniqueFQDNSet=_dbUniqueFQDNSet,
                             is_active=True,
                         )
-                        # print(_dbCertificateSigned_1, _is_created)
+                        # print(_dbX509Certificate_1, _is_created)
                         # self.ctx.pyramid_transaction_commit()
 
                         if _id == "1":
-                            _dbCertificateSigned_1 = _dbCertificateSigned
                             _dbPrivateKey_1 = _dbPrivateKey
                             _dbUniqueFQDNSet_1 = _dbUniqueFQDNSet
+                            _dbX509Certificate_1 = _dbX509Certificate
                         elif _id == "2":
-                            _dbCertificateSigned_2 = _dbCertificateSigned
+                            _dbX509Certificate_2 = _dbX509Certificate
                         elif _id == "3":
-                            _dbCertificateSigned_3 = _dbCertificateSigned
+                            _dbX509Certificate_3 = _dbX509Certificate
                         elif _id == "4":
-                            _dbCertificateSigned_4 = _dbCertificateSigned
+                            _dbX509Certificate_4 = _dbX509Certificate
                         elif _id == "5":
-                            _dbCertificateSigned_5 = _dbCertificateSigned
+                            _dbX509Certificate_5 = _dbX509Certificate
 
                     if _dbPrivateKey_1 is None:
                         raise ValueError(
@@ -2908,14 +2906,14 @@ class AppTest(AppTestCore):
                     domains = db.get.get__Domain__paginated(self.ctx)
                     domain_names = [d.domain_name for d in domains]
                     assert (
-                        TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
+                        TEST_FILES["X509Certificates"]["SelfSigned"]["1"][
                             "domain"
                         ].lower()
                         in domain_names
                     )
 
                     # note: pre-populate X509CertificateRequest
-                    _csr_filename = TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
+                    _csr_filename = TEST_FILES["X509Certificates"]["SelfSigned"]["1"][
                         "csr"
                     ]
                     csr_pem = self._filedata_testfile(_csr_filename)
@@ -2928,15 +2926,13 @@ class AppTest(AppTestCore):
                         x509_certificate_request_source_id=model_utils.X509CertificateRequestSource.IMPORTED,
                         dbPrivateKey=_dbPrivateKey_1,
                         domain_names=[
-                            TEST_FILES["CertificateSigneds"]["SelfSigned"]["1"][
-                                "domain"
-                            ],
+                            TEST_FILES["X509Certificates"]["SelfSigned"]["1"]["domain"],
                         ],  # make it an iterable
                     )
 
-                    # note: pre-populate CertificateSigned 6-10, via "Pebble"
-                    for _id in TEST_FILES["CertificateSigneds"]["Pebble"].keys():
-                        self._setUp_CertificateSigneds_FormatA("Pebble", _id)
+                    # note: pre-populate X509CertificateRequest 6-10, via "Pebble"
+                    for _id in TEST_FILES["X509Certificates"]["Pebble"].keys():
+                        self._setUp_X509Certificates_FormatA("Pebble", _id)
 
                     # self.ctx.pyramid_transaction_commit()
 

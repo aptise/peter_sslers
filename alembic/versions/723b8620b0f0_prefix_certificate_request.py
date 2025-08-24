@@ -1,4 +1,4 @@
-"""certificate_request_prefixing
+"""prefix_certifcate_signed
 
 Revision ID: 723b8620b0f0
 Revises: feae28cb6dc2
@@ -54,7 +54,7 @@ def upgrade() -> None:
         )
         batch_op.drop_constraint("check1")
         batch_op.create_check_constraint(
-            "ck__operations_object_event__check1",
+            batch_op.f("ck__operations_object_event__check1"),
             sa.text(
                 " ( "
                 " CASE WHEN acme_account_id IS NOT NULL THEN 1 ELSE 0 END "
@@ -117,7 +117,7 @@ def downgrade() -> None:
 
         batch_op.drop_constraint("ck__operations_object_event__check1")
         batch_op.create_check_constraint(
-            "check1",
+            batch_op.f("check1"),
             sa.text(
                 " ( "
                 " CASE WHEN acme_account_id IS NOT NULL THEN 1 ELSE 0 END "

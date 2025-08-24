@@ -38,7 +38,7 @@ from ...model import objects as model_objects
 from ...model import utils as model_utils
 from ...model.objects import AcmeServer
 from ...model.objects import AriCheck
-from ...model.objects import CertificateSigned
+from ...model.objects import X509Certificate
 from ...model.utils import AcmeServerInput
 
 if TYPE_CHECKING:
@@ -323,8 +323,8 @@ def api_domains__certificate_if_needed(
         _result: Dict = {
             "domain.status": None,
             "domain.id": None,
-            "certificate_signed.id": None,
-            "certificate_signed.status": None,
+            "x509_certificate.id": None,
+            "x509_certificate.status": None,
             "acme_order.id": None,
         }
 
@@ -382,18 +382,18 @@ def api_domains__certificate_if_needed(
 
         # look for a certificate
         _logger_args = {"event_status_id": None}
-        _dbCertificateSigned = lib.db.get.get__CertificateSigned__by_DomainId__latest(
+        _dbX509Certificate = lib.db.get.get__X509Certificate__by_DomainId__latest(
             ctx, _dbDomain.id
         )
-        if _dbCertificateSigned:
-            _result["certificate_signed.status"] = "exists"
-            _result["certificate_signed.id"] = _dbCertificateSigned.id
+        if _dbX509Certificate:
+            _result["x509_certificate.status"] = "exists"
+            _result["x509_certificate.id"] = _dbX509Certificate.id
             _logger_args["event_status_id"] = (
                 model_utils.OperationsObjectEventStatus.from_string(
                     "ApiDomains__certificate_if_needed__certificate_exists"
                 )
             )
-            _logger_args["dbCertificateSigned"] = _dbCertificateSigned
+            _logger_args["dbX509Certificate"] = _dbX509Certificate
         else:
             try:
                 _domains_challenged__single = model_utils.DomainsChallenged.new_http01(
@@ -440,18 +440,18 @@ def api_domains__certificate_if_needed(
 
                 _logger_args["dbAcmeOrder"] = dbAcmeOrder
                 _result["acme_order.id"] = dbAcmeOrder.id
-                if dbAcmeOrder.certificate_signed_id:
-                    _result["certificate_signed.status"] = "new"
-                    _result["certificate_signed.id"] = dbAcmeOrder.certificate_signed_id
+                if dbAcmeOrder.x509_certificate_id:
+                    _result["x509_certificate.status"] = "new"
+                    _result["x509_certificate.id"] = dbAcmeOrder.x509_certificate_id
                     _logger_args["event_status_id"] = (
                         model_utils.OperationsObjectEventStatus.from_string(
                             "ApiDomains__certificate_if_needed__certificate_new_success"
                         )
                     )
-                    _logger_args["dbCertificateSigned"] = dbAcmeOrder.certificate_signed
+                    _logger_args["dbX509Certificate"] = dbAcmeOrder.x509_certificate
                 else:
-                    _result["error"] = "AcmeOrder did not generate a CertificateSigned"
-                    _result["certificate_signed.status"] = "fail"
+                    _result["error"] = "AcmeOrder did not generate a X509Certificate"
+                    _result["x509_certificate.status"] = "fail"
                     _logger_args["event_status_id"] = (
                         model_utils.OperationsObjectEventStatus.from_string(
                             "ApiDomains__certificate_if_needed__certificate_new_fail"
@@ -470,7 +470,7 @@ def api_domains__certificate_if_needed(
 
                 elif isinstance(exc, errors.AcmeError):
                     _result["error"] = "Could not process AcmeOrder, %s" % str(exc)
-                    _result["certificate_signed.status"] = "fail"
+                    _result["x509_certificate.status"] = "fail"
                     _logger_args["event_status_id"] = (
                         model_utils.OperationsObjectEventStatus.from_string(
                             "ApiDomains__certificate_if_needed__certificate_new_fail"
@@ -478,7 +478,7 @@ def api_domains__certificate_if_needed(
                     )
                 elif isinstance(exc, errors.DuplicateAcmeOrder):
                     _result["error"] = "Could not process AcmeOrder, %s" % exc.args[0]
-                    _result["certificate_signed.status"] = "fail"
+                    _result["x509_certificate.status"] = "fail"
 
                 raise
 
@@ -520,7 +520,7 @@ def operations_deactivate_expired(
     operationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string(
-            "CertificateSigned__deactivate_expired"
+            "X509Certificate__deactivate_expired"
         ),
         event_payload_dict,
     )
@@ -539,12 +539,12 @@ def operations_deactivate_expired(
     # Step 1: load all the Expired Certificates
     # order them by newest-first
     expired_certs = (
-        ctx.dbSession.query(model_objects.CertificateSigned)
+        ctx.dbSession.query(model_objects.X509Certificate)
         .filter(
-            model_objects.CertificateSigned.is_active.is_(True),
-            model_objects.CertificateSigned.timestamp_not_after < ctx.timestamp,
+            model_objects.X509Certificate.is_active.is_(True),
+            model_objects.X509Certificate.timestamp_not_after < ctx.timestamp,
         )
-        .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
+        .order_by(model_objects.X509Certificate.timestamp_not_after.desc())
         .all()
     )
     # Step 2: Analyze
@@ -559,13 +559,13 @@ def operations_deactivate_expired(
                 isouter=True,
             )
             .join(
-                model_objects.CertificateSigned,
+                model_objects.X509Certificate,
                 model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id
-                == model_objects.CertificateSigned.unique_fqdn_set_id,
+                == model_objects.X509Certificate.unique_fqdn_set_id,
                 isouter=True,
             )
             .filter(
-                model_objects.CertificateSigned.id == cert.id,
+                model_objects.X509Certificate.id == cert.id,
             )
             .all()
         )
@@ -573,8 +573,8 @@ def operations_deactivate_expired(
         for cert_domain in cert_domains:
             # if this Certificate is the latest Certificate for the domain, we can not turn it off
             if cert.id in (
-                cert_domain.certificate_signed_id__latest_single,
-                cert_domain.certificate_signed_id__latest_multi,
+                cert_domain.x509_certificate_id__latest_single,
+                cert_domain.x509_certificate_id__latest_multi,
             ):
                 cert_ok = False
         if cert_ok:
@@ -586,7 +586,7 @@ def operations_deactivate_expired(
     # update the event
     if len(deactivated_cert_ids):
         event_payload_dict["count_deactivated"] = len(deactivated_cert_ids)
-        event_payload_dict["certificate_signed.ids"] = deactivated_cert_ids
+        event_payload_dict["x509_certificate.ids"] = deactivated_cert_ids
         operationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[operationsEvent])
 
@@ -732,22 +732,22 @@ def operations_update_recents__domains(
 
     #
     # Step1:
-    # Update the cached `certificate_signed_id__latest_single` data for each Domain
+    # Update the cached `x509_certificate_id__latest_single` data for each Domain
     _q_sub = (
         (
-            ctx.dbSession.query(model_objects.CertificateSigned.id)
+            ctx.dbSession.query(model_objects.X509Certificate.id)
             .join(
                 model_objects.UniqueFQDNSet2Domain,
-                model_objects.CertificateSigned.unique_fqdn_set_id
+                model_objects.X509Certificate.unique_fqdn_set_id
                 == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
             )
             .filter(
-                model_objects.CertificateSigned.is_active.is_(True),
-                model_objects.CertificateSigned.is_single_domain_cert.is_(True),
+                model_objects.X509Certificate.is_active.is_(True),
+                model_objects.X509Certificate.is_single_domain_cert.is_(True),
                 model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
                 model_objects.Domain.id.in_(domain_ids),
             )
-            .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
+            .order_by(model_objects.X509Certificate.timestamp_not_after.desc())
             .limit(1)
         )
         .subquery()
@@ -755,28 +755,28 @@ def operations_update_recents__domains(
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
-        .values(certificate_signed_id__latest_single=_q_sub)
+        .values(x509_certificate_id__latest_single=_q_sub)
         .where(model_objects.Domain.__table__.c.id.in_(domain_ids))
     )
 
     #
     # Step2:
-    # Update the cached `certificate_signed_id__latest_multi` data for each Domain
+    # Update the cached `x509_certificate_id__latest_multi` data for each Domain
     _q_sub = (
         (
-            ctx.dbSession.query(model_objects.CertificateSigned.id)
+            ctx.dbSession.query(model_objects.X509Certificate.id)
             .join(
                 model_objects.UniqueFQDNSet2Domain,
-                model_objects.CertificateSigned.unique_fqdn_set_id
+                model_objects.X509Certificate.unique_fqdn_set_id
                 == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
             )
             .filter(
-                model_objects.CertificateSigned.is_active.is_(True),
-                model_objects.CertificateSigned.is_single_domain_cert.is_(False),
+                model_objects.X509Certificate.is_active.is_(True),
+                model_objects.X509Certificate.is_single_domain_cert.is_(False),
                 model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
                 model_objects.Domain.id.in_(domain_ids),
             )
-            .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
+            .order_by(model_objects.X509Certificate.timestamp_not_after.desc())
             .limit(1)
         )
         .subquery()
@@ -784,7 +784,7 @@ def operations_update_recents__domains(
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update()
-        .values(certificate_signed_id__latest_multi=_q_sub)
+        .values(x509_certificate_id__latest_multi=_q_sub)
         .where(model_objects.Domain.__table__.c.id.in_(domain_ids))
     )
 
@@ -813,22 +813,22 @@ def operations_update_recents__global(
     """
     #
     # Step1:
-    # Update the cached `certificate_signed_id__latest_single` data for each Domain
+    # Update the cached `x509_certificate_id__latest_single` data for each Domain
     # _t_domain = model_objects.Domain.__table__.alias('domain')
     _q_sub = (
         (
-            ctx.dbSession.query(model_objects.CertificateSigned.id)
+            ctx.dbSession.query(model_objects.X509Certificate.id)
             .join(
                 model_objects.UniqueFQDNSet2Domain,
-                model_objects.CertificateSigned.unique_fqdn_set_id
+                model_objects.X509Certificate.unique_fqdn_set_id
                 == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
             )
             .filter(
-                model_objects.CertificateSigned.is_active.is_(True),
-                model_objects.CertificateSigned.is_single_domain_cert.is_(True),
+                model_objects.X509Certificate.is_active.is_(True),
+                model_objects.X509Certificate.is_single_domain_cert.is_(True),
                 model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
             )
-            .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
+            .order_by(model_objects.X509Certificate.timestamp_not_after.desc())
             .limit(1)
         )
         .subquery()
@@ -836,28 +836,28 @@ def operations_update_recents__global(
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
-            certificate_signed_id__latest_single=_q_sub
+            x509_certificate_id__latest_single=_q_sub
         )
     )
 
     #
     # Step2:
-    # Update the cached `certificate_signed_id__latest_multi` data for each Domain
+    # Update the cached `x509_certificate_id__latest_multi` data for each Domain
     # _t_domain = model_objects.Domain.__table__.alias('domain')
     _q_sub = (
         (
-            ctx.dbSession.query(model_objects.CertificateSigned.id)
+            ctx.dbSession.query(model_objects.X509Certificate.id)
             .join(
                 model_objects.UniqueFQDNSet2Domain,
-                model_objects.CertificateSigned.unique_fqdn_set_id
+                model_objects.X509Certificate.unique_fqdn_set_id
                 == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
             )
             .filter(
-                model_objects.CertificateSigned.is_active.is_(True),
-                model_objects.CertificateSigned.is_single_domain_cert.is_(False),
+                model_objects.X509Certificate.is_active.is_(True),
+                model_objects.X509Certificate.is_single_domain_cert.is_(False),
                 model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
             )
-            .order_by(model_objects.CertificateSigned.timestamp_not_after.desc())
+            .order_by(model_objects.X509Certificate.timestamp_not_after.desc())
             .limit(1)
         )
         .subquery()
@@ -865,7 +865,7 @@ def operations_update_recents__global(
     )
     ctx.dbSession.execute(
         model_objects.Domain.__table__.update().values(
-            certificate_signed_id__latest_multi=_q_sub
+            x509_certificate_id__latest_multi=_q_sub
         )
     )
 
@@ -873,15 +873,11 @@ def operations_update_recents__global(
     # Step3:
     # update the count of active cert for each CertificateCA
 
-    CertificateSigned1 = sqlalchemy.orm.aliased(model_objects.CertificateSigned)
-    CertificateSigned2 = sqlalchemy.orm.aliased(model_objects.CertificateSigned)
+    X509Certificate1 = sqlalchemy.orm.aliased(model_objects.X509Certificate)
+    X509Certificate2 = sqlalchemy.orm.aliased(model_objects.X509Certificate)
 
-    CertificateSignedChain1 = sqlalchemy.orm.aliased(
-        model_objects.CertificateSignedChain
-    )
-    CertificateSignedChain2 = sqlalchemy.orm.aliased(
-        model_objects.CertificateSignedChain
-    )
+    X509CertificateChain1 = sqlalchemy.orm.aliased(model_objects.X509CertificateChain)
+    X509CertificateChain2 = sqlalchemy.orm.aliased(model_objects.X509CertificateChain)
 
     CertificateCAChain1 = sqlalchemy.orm.aliased(model_objects.CertificateCAChain)
     CertificateCAChain2 = sqlalchemy.orm.aliased(model_objects.CertificateCAChain)
@@ -890,32 +886,31 @@ def operations_update_recents__global(
         (
             ctx.dbSession.query(sqlalchemy.func.count(model_objects.Domain.id))
             .outerjoin(
-                CertificateSigned1,
-                model_objects.Domain.certificate_signed_id__latest_single
-                == CertificateSigned1.id,
+                X509Certificate1,
+                model_objects.Domain.x509_certificate_id__latest_single
+                == X509Certificate1.id,
             )
             .outerjoin(
-                CertificateSigned2,
-                model_objects.Domain.certificate_signed_id__latest_multi
-                == CertificateSigned2.id,
+                X509Certificate2,
+                model_objects.Domain.x509_certificate_id__latest_multi
+                == X509Certificate2.id,
             )
             .outerjoin(
-                CertificateSignedChain1,
-                CertificateSigned1.id == CertificateSignedChain1.certificate_signed_id,
+                X509CertificateChain1,
+                X509Certificate1.id == X509CertificateChain1.x509_certificate_id,
             )
             .outerjoin(
-                CertificateSignedChain2,
-                CertificateSignedChain2.id
-                == CertificateSignedChain2.certificate_signed_id,
+                X509CertificateChain2,
+                X509CertificateChain2.id == X509CertificateChain2.x509_certificate_id,
             )
             .outerjoin(
                 CertificateCAChain1,
-                CertificateSignedChain1.certificate_ca_chain_id
+                X509CertificateChain1.certificate_ca_chain_id
                 == CertificateCAChain1.certificate_ca_0_id,
             )
             .outerjoin(
                 CertificateCAChain2,
-                CertificateSignedChain1.certificate_ca_chain_id
+                X509CertificateChain1.certificate_ca_chain_id
                 == CertificateCAChain2.certificate_ca_0_id,
             )
             .filter(
@@ -954,21 +949,20 @@ def operations_update_recents__global(
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(count_acme_orders=_q_sub)
     )
-    # 4.b - PrivateKey.count_certificate_signeds
+    # 4.b - PrivateKey.count_x509_certificates
     _q_sub = (
         ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.CertificateSigned.private_key_id),
+            sqlalchemy.func.count(model_objects.X509Certificate.private_key_id),
         )
         .filter(
-            model_objects.CertificateSigned.private_key_id
-            == model_objects.PrivateKey.id,
+            model_objects.X509Certificate.private_key_id == model_objects.PrivateKey.id,
         )
         .subquery()
         .as_scalar()
     )
     ctx.dbSession.execute(
         model_objects.PrivateKey.__table__.update().values(
-            count_certificate_signeds=_q_sub
+            count_x509_certificates=_q_sub
         )
     )
 
@@ -989,21 +983,21 @@ def operations_update_recents__global(
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(count_acme_orders=_q_sub)
     )
-    # 5.b - AcmeAccount.count_certificate_signeds
+    # 5.b - AcmeAccount.count_x509_certificates
     _q_sub = (
         ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.certificate_signed_id),
+            sqlalchemy.func.count(model_objects.AcmeOrder.x509_certificate_id),
         )
         .filter(
             model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-            model_objects.AcmeOrder.certificate_signed_id.is_not(None),
+            model_objects.AcmeOrder.x509_certificate_id.is_not(None),
         )
         .subquery()
         .as_scalar()
     )
     ctx.dbSession.execute(
         model_objects.AcmeAccount.__table__.update().values(
-            count_certificate_signeds=_q_sub
+            count_x509_certificates=_q_sub
         )
     )
 
@@ -1014,16 +1008,16 @@ def operations_update_recents__global(
     WHERE x509_certificate_request.acme_account_id = acme_account.id);
 
     UPDATE acme_account SET timestamp_last_certificate_issue = (
-    SELECT MAX(timestamp_created) FROM certificate_signed
-    WHERE certificate_signed.acme_account_id = acme_account.id);
+    SELECT MAX(timestamp_created) FROM x509_certificate
+    WHERE x509_certificate.acme_account_id = acme_account.id);
 
     UPDATE private_key SET timestamp_last_x509_certificate_request = (
     SELECT MAX(timestamp_created) FROM x509_certificate_request
     WHERE x509_certificate_request.private_key_id = private_key.id);
 
     UPDATE private_key SET timestamp_last_certificate_issue = (
-    SELECT MAX(timestamp_created) FROM certificate_signed
-    WHERE certificate_signed.private_key_id = private_key.id);
+    SELECT MAX(timestamp_created) FROM x509_certificate
+    WHERE x509_certificate.private_key_id = private_key.id);
     """
 
     # bookkeeping, doing this will mark the session as changed!
@@ -1172,7 +1166,7 @@ def routine__clear_old_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     clear from the database outdated ARI checks.
     An ARI check is considered outdated once it has been replaced with a newer ARI check.
     """
-    # iterate over all the CertificateSigned - windowed query of 100
+    # iterate over all the X509Certificate - windowed query of 100
     # criteria: no ari check, ari_check expired
     # run & store ari check
 
@@ -1187,10 +1181,10 @@ def routine__clear_old_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
         SELECT subq.latest_ari_id FROM (
             SELECT
                 max(id) AS latest_ari_id,
-                certificate_signed_id
+                x509_certificate_id
             FROM ari_check
             GROUP BY
-                certificate_signed_id
+                x509_certificate_id
         ) subq
     );
     """
@@ -1198,9 +1192,9 @@ def routine__clear_old_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     latest_ari_checks = (
         ctx.dbSession.query(
             sqlalchemy.func.max(AriCheck.id).label("latest_ari_id"),
-            AriCheck.certificate_signed_id,
+            AriCheck.x509_certificate_id,
         )
-        .group_by(AriCheck.certificate_signed_id)
+        .group_by(AriCheck.x509_certificate_id)
         .subquery()
     )
 
@@ -1238,7 +1232,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     * no ARI check logged
     * current time is after the latest ARI check's retry-after
     """
-    # iterate over all the CertificateSigned - windowed query of 100
+    # iterate over all the X509Certificate - windowed query of 100
     # criteria: no ari check, ari_check expired
     # run & store ari check
 
@@ -1258,16 +1252,16 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
         latest_ari_checks.latest_ari_id,
         latest_ari_checks.timestamp_retry_after
     FROM
-        certificate_signed AS cert
+        x509_certificate AS cert
     LEFT OUTER JOIN (
         SELECT
-            certificate_signed_id,
+            x509_certificate_id,
             max(id) as latest_ari_id,
             timestamp_retry_after
         FROM ari_check
-        GROUP BY certificate_signed_id
+        GROUP BY x509_certificate_id
     ) AS latest_ari_checks
-    ON cert.id = latest_ari_checks.certificate_signed_id
+    ON cert.id = latest_ari_checks.x509_certificate_id
     WHERE
         cert.is_active IS True
         AND
@@ -1289,36 +1283,36 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
 
     latest_ari_checks = (
         ctx.dbSession.query(
-            AriCheck.certificate_signed_id,
+            AriCheck.x509_certificate_id,
             sqlalchemy.func.max(AriCheck.id).label("latest_ari_id"),
             AriCheck.timestamp_retry_after,
         )
-        .group_by(AriCheck.certificate_signed_id)
-        .order_by(AriCheck.certificate_signed_id.desc())
+        .group_by(AriCheck.x509_certificate_id)
+        .order_by(AriCheck.x509_certificate_id.desc())
         .subquery()
     )
 
     certs = (
         ctx.dbSession.query(
-            CertificateSigned,
+            X509Certificate,
             latest_ari_checks.c.latest_ari_id,
             # latest_ari_checks.c.timestamp_retry_after,
         )
         .outerjoin(
             latest_ari_checks,
-            CertificateSigned.id == latest_ari_checks.c.certificate_signed_id,
+            X509Certificate.id == latest_ari_checks.c.x509_certificate_id,
         )
         .filter(
             # ARI is only managed for active certs
-            CertificateSigned.is_active.is_(True),
+            X509Certificate.is_active.is_(True),
             # if `timestamp_not_after <= timestamp_max_expiry`::
             #   these are considered expired and must be renewed,
             #   so we don't need to run ARI checks on them
-            CertificateSigned.timestamp_not_after >= timestamp_max_expiry,
+            X509Certificate.timestamp_not_after >= timestamp_max_expiry,
             # the cert or order MUST support ARI
             sqlalchemy_or(
-                CertificateSigned.is_ari_supported__cert.is_(True),
-                CertificateSigned.is_ari_supported__order.is_(True),
+                X509Certificate.is_ari_supported__cert.is_(True),
+                X509Certificate.is_ari_supported__order.is_(True),
             ),
             sqlalchemy_or(
                 # there is no ari check for this certificate
@@ -1329,7 +1323,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
             ),
         )
         .order_by(
-            CertificateSigned.id.desc(),
+            X509Certificate.id.desc(),
             latest_ari_checks.c.latest_ari_id.desc(),
         )
         .all()
@@ -1337,15 +1331,15 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
 
     count_records_success = 0
     count_records_fail = 0
-    for dbCertificateSigned, latest_ari_id in certs:
+    for dbX509Certificate, latest_ari_id in certs:
         log.debug(
             "Running ARI Check for : %s [%s]"
-            % (dbCertificateSigned.id, dbCertificateSigned.cert_serial)
+            % (dbX509Certificate.id, dbX509Certificate.cert_serial)
         )
         try:
             dbAriObject, ari_check_result = actions_acme.do__AcmeV2_AriCheck(
                 ctx,
-                dbCertificateSigned=dbCertificateSigned,
+                dbX509Certificate=dbX509Certificate,
                 force_check=True,  # a potential delay exists after above SQL
             )
             count_records_success += 1
@@ -1536,21 +1530,21 @@ def routine__order_missing(
                     )
                     log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
                     log.debug(
-                        "Renewal Result: CertificateSigned: %s",
-                        dbAcmeOrderNew.certificate_signed_id,
+                        "Renewal Result: X509Certificate: %s",
+                        dbAcmeOrderNew.x509_certificate_id,
                     )
                     if DEBUG_LOCAL or dry_run:
 
                         def _debug():
                             print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
                             print(
-                                "Renewal Result: CertificateSigned: %s",
-                                dbAcmeOrderNew.certificate_signed_id,
+                                "Renewal Result: X509Certificate: %s",
+                                dbAcmeOrderNew.x509_certificate_id,
                             )
 
                         _debug()
 
-                    if dbAcmeOrderNew.certificate_signed_id:
+                    if dbAcmeOrderNew.x509_certificate_id:
                         count_renewals += 1
                         return True
                     else:
@@ -1808,9 +1802,9 @@ def routine__renew_expiring(
 
     RENEWAL_RUN: str = "RenewExpiring[%s]" % TIMESTAMP_routine_start
 
-    # `get_CertificateSigneds_renew_now` will compute a buffer,
+    # `get_X509Certificates_renew_now` will compute a buffer,
     # so we do not have to submit a `timestamp_max_expiry`
-    expiring_certs = get.get_CertificateSigneds_renew_now(ctx, limit=limit)
+    expiring_certs = get.get_X509Certificates_renew_now(ctx, limit=limit)
 
     if renewal_configuration_ids__only_process:
         # use a temporary variable for easier debugging
@@ -1831,12 +1825,14 @@ def routine__renew_expiring(
                 )
                 for rc_id in renewal_configuration_ids__only_process:
                     print("\t\tRenewalConfiguration: [%s]" % rc_id)
-                    rcCerts = get.get__CertificateSigned__by_RenewalConfigurationId__paginated(
-                        ctx, rc_id
+                    rcCerts = (
+                        get.get__X509Certificate__by_RenewalConfigurationId__paginated(
+                            ctx, rc_id
+                        )
                     )
                     for dbCert in rcCerts:
                         print(
-                            "\t\t\tCertificateSigned[%s]" % dbCert.id,
+                            "\t\t\tX509Certificate[%s]" % dbCert.id,
                             dbCert.timestamp_not_after,
                         )
                 raise
@@ -1844,8 +1840,8 @@ def routine__renew_expiring(
                 #
                 # for cert in expiring_certs: print(cert.id, cert.acme_order.renewal_configuration_id)
                 #
-                # all_certs = get.get_CertificateSigneds_renew_now(ctx)
-                # all_certs = get.get_CertificateSigneds_renew_now(ctx, datetime.datetime.now(datetime.timezone.utc))
+                # all_certs = get.get_X509Certificates_renew_now(ctx)
+                # all_certs = get.get_X509Certificates_renew_now(ctx, datetime.datetime.now(datetime.timezone.utc))
                 #
                 # for cert in all_certs: print(cert.id, cert.acme_order.renewal_configuration_id)
         expiring_certs = _expiring_certs
@@ -1883,15 +1879,15 @@ def routine__renew_expiring(
     if expiring_certs:
         wsgi_server = create_public_server(settings)
         try:
-            for dbCertificateSigned in expiring_certs:
-                if not dbCertificateSigned.acme_order:
-                    log.debug("No RenewalConfiguration for: %s", dbCertificateSigned.id)
+            for dbX509Certificate in expiring_certs:
+                if not dbX509Certificate.acme_order:
+                    log.debug("No RenewalConfiguration for: %s", dbX509Certificate.id)
                     continue
                 log.debug(
                     "Renewing... : %s with RenewalConfiguration : %s",
                     (
-                        dbCertificateSigned.id,
-                        dbCertificateSigned.acme_order.renewal_configuration_id,
+                        dbX509Certificate.id,
+                        dbX509Certificate.acme_order.renewal_configuration_id,
                     ),
                 )
                 if dry_run:
@@ -1900,24 +1896,24 @@ def routine__renew_expiring(
                     try:
                         replaces_certificate_type = (
                             model_utils.CertificateType.to_CertificateType_Enum(
-                                dbCertificateSigned.acme_order.certificate_type_id
+                                dbX509Certificate.acme_order.certificate_type_id
                             )
                         )
                         dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                             ctx,
-                            dbRenewalConfiguration=dbCertificateSigned.acme_order.renewal_configuration,
+                            dbRenewalConfiguration=dbX509Certificate.acme_order.renewal_configuration,
                             processing_strategy="process_single",
                             acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
                             note=RENEWAL_RUN,
-                            replaces=dbCertificateSigned.ari_identifier,
+                            replaces=dbX509Certificate.ari_identifier,
                             replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
                             replaces_certificate_type=replaces_certificate_type,
                             transaction_commit=True,
                         )
                         log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
                         log.debug(
-                            "Renewal Result: CertificateSigned: %s",
-                            dbAcmeOrderNew.certificate_signed_id,
+                            "Renewal Result: X509Certificate: %s",
+                            dbAcmeOrderNew.x509_certificate_id,
                         )
                         if DEBUG_LOCAL or dry_run:
 
@@ -1926,13 +1922,13 @@ def routine__renew_expiring(
                                     "Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id
                                 )
                                 print(
-                                    "Renewal Result: CertificateSigned: %s",
-                                    dbAcmeOrderNew.certificate_signed_id,
+                                    "Renewal Result: X509Certificate: %s",
+                                    dbAcmeOrderNew.x509_certificate_id,
                                 )
 
                             _debug()
 
-                        if dbAcmeOrderNew.certificate_signed_id:
+                        if dbAcmeOrderNew.x509_certificate_id:
                             count_renewals += 1
                         else:
                             count_failures += 1

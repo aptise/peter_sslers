@@ -115,17 +115,17 @@ class View_Focus(Handler):
     def focus(self):
         dbCertificateCA = self._focus()
         items_count = (
-            lib_db.get.get__CertificateSigned__by_CertificateCAId__primary__count(
+            lib_db.get.get__X509Certificate__by_CertificateCAId__primary__count(
                 self.request.api_context, dbCertificateCA.id
             )
         )
         items_paged = (
-            lib_db.get.get__CertificateSigned__by_CertificateCAId__primary__paginated(
+            lib_db.get.get__X509Certificate__by_CertificateCAId__primary__paginated(
                 self.request.api_context, dbCertificateCA.id, limit=10, offset=0
             )
         )
         items_paged_alt = (
-            lib_db.get.get__CertificateSigned__by_CertificateCAId__alt__paginated(
+            lib_db.get.get__X509Certificate__by_CertificateCAId__alt__paginated(
                 self.request.api_context, dbCertificateCA.id, limit=10, offset=0
             )
         )
@@ -142,9 +142,9 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "CertificateCA": dbCertificateCA,
-            "CertificateSigneds_count": items_count,
-            "CertificateSigneds": items_paged,
-            "CertificateSigneds_Alt": items_paged_alt,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
+            "X509Certificates_Alt": items_paged_alt,
             "CertificateCAChains0": chains_0,
             "CertificateCAChainsN": chains_n,
         }
@@ -248,24 +248,24 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_signeds",
-        renderer="/admin/certificate_ca-focus-certificate_signeds.mako",
+        route_name="admin:certificate_ca:focus:x509_certificates",
+        renderer="/admin/certificate_ca-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_signeds-paginated",
-        renderer="/admin/certificate_ca-focus-certificate_signeds.mako",
+        route_name="admin:certificate_ca:focus:x509_certificates-paginated",
+        renderer="/admin/certificate_ca-focus-x509_certificates.mako",
     )
-    def related__CertificateSigneds(self):
+    def related__X509Certificates(self):
         dbCertificateCA = self._focus()
         items_count = (
-            lib_db.get.get__CertificateSigned__by_CertificateCAId__primary__count(
+            lib_db.get.get__X509Certificate__by_CertificateCAId__primary__count(
                 self.request.api_context, dbCertificateCA.id
             )
         )
-        url_template = "%s/certificate-signeds/{0}" % self.focus_url
+        url_template = "%s/x509-certificates/{0}" % self.focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = (
-            lib_db.get.get__CertificateSigned__by_CertificateCAId__primary__paginated(
+            lib_db.get.get__X509Certificate__by_CertificateCAId__primary__paginated(
                 self.request.api_context,
                 dbCertificateCA.id,
                 limit=items_per_page,
@@ -275,30 +275,30 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "CertificateCA": dbCertificateCA,
-            "CertificateSigneds_count": items_count,
-            "CertificateSigneds": items_paged,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
             "pager": pager,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_signeds_alt",
-        renderer="/admin/certificate_ca-focus-certificate_signeds_alt.mako",
+        route_name="admin:certificate_ca:focus:x509_certificates_alt",
+        renderer="/admin/certificate_ca-focus-x509_certificates_alt.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_signeds_alt-paginated",
-        renderer="/admin/certificate_ca-focus-certificate_signeds_alt.mako",
+        route_name="admin:certificate_ca:focus:x509_certificates_alt-paginated",
+        renderer="/admin/certificate_ca-focus-x509_certificates_alt.mako",
     )
-    def related__CertificateSignedsAlt(self):
+    def related__X509CertificatesAlt(self):
         dbCertificateCA = self._focus()
-        items_count = lib_db.get.get__CertificateSigned__by_CertificateCAId__alt__count(
+        items_count = lib_db.get.get__X509Certificate__by_CertificateCAId__alt__count(
             self.request.api_context, dbCertificateCA.id
         )
-        url_template = "%s/certificate-signeds-alt/{0}" % self.focus_url
+        url_template = "%s/x509-certificates-alt/{0}" % self.focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = (
-            lib_db.get.get__CertificateSigned__by_CertificateCAId__alt__paginated(
+            lib_db.get.get__X509Certificate__by_CertificateCAId__alt__paginated(
                 self.request.api_context,
                 dbCertificateCA.id,
                 limit=items_per_page,
@@ -308,8 +308,8 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "CertificateCA": dbCertificateCA,
-            "CertificateSigneds_count": items_count,
-            "CertificateSigneds": items_paged,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
             "pager": pager,
         }
 

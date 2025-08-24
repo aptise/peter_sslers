@@ -61,7 +61,7 @@ This means the entire directory can be migrated across systems for installations
 
 * The Core Object for Certificates is a `RenewalConfiguration`:
     * The intersection of an Account[AcmeServer], Domains, Renewal Options [automatic renewal?, Private Key Technology, Private Key Cycling].
-    * Previous versions used a CertificateSigned and AcmeOrder
+    * Previous versions used a X509Certificate and AcmeOrder
 * A RenewalConfiguration's primary relations are:
     AcmeAccount - which account owns the configuration?
     UniqueFQDNSet - a simple listing of the domains, shorthand for compatible certificates
@@ -81,15 +81,15 @@ This has since changed.
 
 The normalized data structure used by the backend and object hierarchy is as follows:
 
-* `CertificateSigned`
+* `X509Certificate`
   * The "End Entity" Certificate
-* `CertificateSignedChain`
-  * One or more per `CertificateSigned`
-  * Maps a `CertificateSigned` to the ACME indicated `CertificateCAChain`
+* `X509CertificateChain`
+  * One or more per `X509Certificate`
+  * Maps a `X509Certificate` to the ACME indicated `CertificateCAChain`
   * Indicates if the association was the primary/default or an alterate
 * `CertificateCAChain`
   * Represents a chain of one or more `CertificateCA` Certificates
-  * item 0 signed the `CertificateSigned`
+  * item 0 signed the `X509Certificate`
   * item n is typically signed by the Trust store Certificate
 * `CertificateCA`
   * A root or intermediate Certificate

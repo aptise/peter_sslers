@@ -39,8 +39,8 @@ if TYPE_CHECKING:
 
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeDnsServer
-    from ...model.objects import CertificateSigned
     from ...model.objects import RenewalConfiguration
+    from ...model.objects import X509Certificate
 
 # ==============================================================================
 
@@ -361,7 +361,7 @@ def submit__edit(
 def submit__query(
     request: "Request",
     dbEnrollmentFactory: EnrollmentFactory,
-) -> Tuple["FormStash", Optional["RenewalConfiguration"], List["CertificateSigned"]]:
+) -> Tuple["FormStash", Optional["RenewalConfiguration"], List["X509Certificate"]]:
 
     (result, formStash) = formhandling.form_validate(
         request,
@@ -420,17 +420,17 @@ def submit__query(
             dbUniqueFQDNSet.id,
         )
     )
-    dbCertificateSigneds = []
+    dbX509Certificates = []
     if dbRenewalConfiguration:
-        dbCertificateSigneds = (
-            lib_db.get.get__CertificateSigned__by_RenewalConfigurationId__paginated(
+        dbX509Certificates = (
+            lib_db.get.get__X509Certificate__by_RenewalConfigurationId__paginated(
                 request.api_context,
                 dbRenewalConfiguration.id,
                 limit=5,
                 offset=0,
             )
         )
-    return formStash, dbRenewalConfiguration, dbCertificateSigneds
+    return formStash, dbRenewalConfiguration, dbX509Certificates
 
 
 class View_List(Handler):
@@ -691,7 +691,7 @@ class View_Focus(Handler):
     def _query__submit(self):
         assert self.dbEnrollmentFactory is not None
         try:
-            (formStash, dbRenewalConfiguration, dbCertificateSigneds) = submit__query(
+            (formStash, dbRenewalConfiguration, dbX509Certificates) = submit__query(
                 self.request,
                 self.dbEnrollmentFactory,
             )
@@ -704,7 +704,7 @@ class View_Focus(Handler):
                         if dbRenewalConfiguration
                         else None
                     ),
-                    "CertificateSigneds": [i.as_json for i in dbCertificateSigneds],
+                    "X509Certificates": [i.as_json for i in dbX509Certificates],
                 }
             return render_to_response(
                 "/admin/enrollment_factory-focus-query.mako",
@@ -712,7 +712,7 @@ class View_Focus(Handler):
                     "domain_name": formStash.results["domain_name"],
                     "EnrollmentFactory": self.dbEnrollmentFactory,
                     "RenewalConfiguration": dbRenewalConfiguration,
-                    "CertificateSigneds": dbCertificateSigneds,
+                    "X509Certificates": dbX509Certificates,
                 },
                 self.request,
             )
@@ -722,30 +722,30 @@ class View_Focus(Handler):
             return formhandling.form_reprint(self.request, self._query__print)
 
     @view_config(
-        route_name="admin:enrollment_factory:focus:certificate_signeds",
-        renderer="/admin/enrollment_factory-focus-certificate_signeds.mako",
+        route_name="admin:enrollment_factory:focus:x509_certificates",
+        renderer="/admin/enrollment_factory-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:enrollment_factory:focus:certificate_signeds-paginated",
-        renderer="/admin/enrollment_factory-focus-certificate_signeds.mako",
+        route_name="admin:enrollment_factory:focus:x509_certificates-paginated",
+        renderer="/admin/enrollment_factory-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:enrollment_factory:focus:certificate_signeds|json",
+        route_name="admin:enrollment_factory:focus:x509_certificates|json",
         renderer="json",
     )
     @view_config(
-        route_name="admin:enrollment_factory:focus:certificate_signeds-paginated|json",
+        route_name="admin:enrollment_factory:focus:x509_certificates-paginated|json",
         renderer="json",
     )
-    def related__CertificateSigneds(self):
+    def related__X509Certificates(self):
         dbEnrollmentFactory = self._focus()  # noqa: F841
-        items_count = lib_db.get.get__CertificateSigned__by_EnrollmentFactoryId__count(
+        items_count = lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__count(
             self.request.api_context, dbEnrollmentFactory.id
         )
-        url_template = "%s/certificate-signeds/{0}" % self._focus_url
+        url_template = "%s/x509-certificates/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = (
-            lib_db.get.get__CertificateSigned__by_EnrollmentFactoryId__paginated(
+            lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__paginated(
                 self.request.api_context,
                 dbEnrollmentFactory.id,
                 limit=items_per_page,
@@ -753,16 +753,16 @@ class View_Focus(Handler):
             )
         )
         if self.request.wants_json:
-            _CertificateSigneds = [k.as_json for k in items_paged]
+            _X509Certificates = [k.as_json for k in items_paged]
             return {
-                "CertificateSigneds": _CertificateSigneds,
+                "X509Certificates": _X509Certificates,
                 "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
             "EnrollmentFactory": dbEnrollmentFactory,
-            "CertificateSigneds_count": items_count,
-            "CertificateSigneds": items_paged,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
             "pager": pager,
         }
 

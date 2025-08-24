@@ -38,8 +38,8 @@ if TYPE_CHECKING:
     from pyramid.request import Request
     from pyramid_formencode_classic import FormStash
 
-    from ...model.objects import CertificateSigned
     from ...model.objects import EnrollmentFactory
+    from ...model.objects import X509Certificate
     from ...model.utils import DomainsChallenged
 
 # ==============================================================================
@@ -1011,45 +1011,45 @@ class View_List(Handler):
 class View_Focus(Handler):
     dbRenewalConfiguration: Optional[RenewalConfiguration] = None
     _competing_dbAcmeOrder: Optional[AcmeOrder] = None
-    _dbCertificateSigned_replaces_candidates__primary: Optional[
-        List["CertificateSigned"]
+    _dbX509Certificate_replaces_candidates__primary: Optional[
+        List["X509Certificate"]
     ] = None
-    _dbCertificateSigned_replaces_candidates__backup: Optional[
-        List["CertificateSigned"]
+    _dbX509Certificate_replaces_candidates__backup: Optional[
+        List["X509Certificate"]
     ] = None
 
     @property
-    def dbCertificateSigned_replaces_candidates__primary(
+    def dbX509Certificate_replaces_candidates__primary(
         self,
-    ) -> List["CertificateSigned"]:
+    ) -> List["X509Certificate"]:
         assert self.dbRenewalConfiguration
-        if self._dbCertificateSigned_replaces_candidates__primary is None:
-            self._dbCertificateSigned_replaces_candidates__primary = (
-                lib_db.get.get__CertificateSigned_replaces_candidates(
+        if self._dbX509Certificate_replaces_candidates__primary is None:
+            self._dbX509Certificate_replaces_candidates__primary = (
+                lib_db.get.get__X509Certificate_replaces_candidates(
                     self.request.api_context,
                     dbRenewalConfiguration=self.dbRenewalConfiguration,
                     certificate_type=model_utils.CertificateType_Enum.MANAGED_PRIMARY,
                 )
             )
-        return self._dbCertificateSigned_replaces_candidates__primary
+        return self._dbX509Certificate_replaces_candidates__primary
 
     @property
-    def dbCertificateSigned_replaces_candidates__backup(
+    def dbX509Certificate_replaces_candidates__backup(
         self,
-    ) -> List["CertificateSigned"]:
+    ) -> List["X509Certificate"]:
         assert self.dbRenewalConfiguration
 
-        if self._dbCertificateSigned_replaces_candidates__backup is None:
+        if self._dbX509Certificate_replaces_candidates__backup is None:
             if not self.dbRenewalConfiguration.acme_account_id__backup:
                 # don't bother with an impossible search
-                self._dbCertificateSigned_replaces_candidates__backup = []
+                self._dbX509Certificate_replaces_candidates__backup = []
             else:
-                self._dbCertificateSigned_replaces_candidates__backup = lib_db.get.get__CertificateSigned_replaces_candidates(
+                self._dbX509Certificate_replaces_candidates__backup = lib_db.get.get__X509Certificate_replaces_candidates(
                     self.request.api_context,
                     dbRenewalConfiguration=self.dbRenewalConfiguration,
                     certificate_type=model_utils.CertificateType_Enum.MANAGED_BACKUP,
                 )
-        return self._dbCertificateSigned_replaces_candidates__backup
+        return self._dbX509Certificate_replaces_candidates__backup
 
     def _focus(self) -> RenewalConfiguration:
         if self.dbRenewalConfiguration is None:
@@ -1088,13 +1088,13 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "RenewalConfiguration": dbRenewalConfiguration.as_json,
-                "CertificateSigned_replaces_candidates__primary": [
+                "X509Certificate_replaces_candidates__primary": [
                     i.as_json_replaces_candidate
-                    for i in self.dbCertificateSigned_replaces_candidates__primary
+                    for i in self.dbX509Certificate_replaces_candidates__primary
                 ],
-                "CertificateSigned_replaces_candidates__backup": [
+                "X509Certificate_replaces_candidates__backup": [
                     i.as_json_replaces_candidate
-                    for i in self.dbCertificateSigned_replaces_candidates__backup
+                    for i in self.dbX509Certificate_replaces_candidates__backup
                 ],
             }
         return {
@@ -1166,32 +1166,30 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:renewal_configuration:focus:certificate_signeds",
-        renderer="/admin/renewal_configuration-focus-certificate_signeds.mako",
+        route_name="admin:renewal_configuration:focus:x509_certificates",
+        renderer="/admin/renewal_configuration-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:renewal_configuration:focus:certificate_signeds-paginated",
-        renderer="/admin/renewal_configuration-focus-certificate_signeds.mako",
+        route_name="admin:renewal_configuration:focus:x509_certificates-paginated",
+        renderer="/admin/renewal_configuration-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:renewal_configuration:focus:certificate_signeds|json",
+        route_name="admin:renewal_configuration:focus:x509_certificates|json",
         renderer="json",
     )
     @view_config(
-        route_name="admin:renewal_configuration:focus:certificate_signeds-paginated|json",
+        route_name="admin:renewal_configuration:focus:x509_certificates-paginated|json",
         renderer="json",
     )
-    def related__CertificateSigneds(self):
+    def related__X509Certificates(self):
         dbRenewalConfiguration = self._focus()
-        items_count = (
-            lib_db.get.get__CertificateSigned__by_RenewalConfigurationId__count(
-                self.request.api_context, dbRenewalConfiguration.id
-            )
+        items_count = lib_db.get.get__X509Certificate__by_RenewalConfigurationId__count(
+            self.request.api_context, dbRenewalConfiguration.id
         )
-        url_template = "%s/certificate-signeds/{0}" % self._focus_url
+        url_template = "%s/x509-certificates/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = (
-            lib_db.get.get__CertificateSigned__by_RenewalConfigurationId__paginated(
+            lib_db.get.get__X509Certificate__by_RenewalConfigurationId__paginated(
                 self.request.api_context,
                 dbRenewalConfiguration.id,
                 limit=items_per_page,
@@ -1199,16 +1197,16 @@ class View_Focus(Handler):
             )
         )
         if self.request.wants_json:
-            _CertificateSigneds = [k.as_json for k in items_paged]
+            _X509Certificates = [k.as_json for k in items_paged]
             return {
-                "CertificateSigneds": _CertificateSigneds,
+                "X509Certificates": _X509Certificates,
                 "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
             "RenewalConfiguration": dbRenewalConfiguration,
-            "CertificateSigneds_count": items_count,
-            "CertificateSigneds": items_paged,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
             "pager": pager,
         }
 
@@ -1226,7 +1224,7 @@ class View_Focus(Handler):
         """
         dbRenewalConfiguration = self._focus()
         items_all = (
-            lib_db.get.get__CertificateSigned__by_RenewalConfigurationId__paginated(
+            lib_db.get.get__X509Certificate__by_RenewalConfigurationId__paginated(
                 self.request.api_context,
                 dbRenewalConfiguration.id,
                 limit=None,
@@ -1238,25 +1236,25 @@ class View_Focus(Handler):
         certId_2_certIdReplaces = {}
         # these certs are Desc, but this loop doesn't care
         for dbCert in items_all:
-            if dbCert.certificate_signed_id__replaced_by:
+            if dbCert.x509_certificate_id__replaced_by:
                 certId_2_certIdReplacedBy[dbCert.id] = (
-                    dbCert.certificate_signed_id__replaced_by
+                    dbCert.x509_certificate_id__replaced_by
                 )
-            if dbCert.certificate_signed_id__replaces:
+            if dbCert.x509_certificate_id__replaces:
                 certId_2_certIdReplaces[dbCert.id] = (
-                    dbCert.certificate_signed_id__replaces
+                    dbCert.x509_certificate_id__replaces
                 )
 
         Lineages = {}
         # this loop is easier asc
         for dbCert in reversed(items_all):
-            if not dbCert.certificate_signed_id__replaces:
+            if not dbCert.x509_certificate_id__replaces:
                 # this doesn't replace anything, it's a new lineage
                 Lineages[dbCert.id] = [
                     dbCert,
                 ]
             else:
-                _replaces_id = dbCert.certificate_signed_id__replaces
+                _replaces_id = dbCert.x509_certificate_id__replaces
                 while True:
                     _candidate = certId_2_certIdReplaces.get(_replaces_id)
                     if not _candidate:
@@ -1284,7 +1282,7 @@ class View_Focus(Handler):
 
 class View_Focus_New(View_Focus):
 
-    replaces_CertificateSigned: Optional["CertificateSigned"] = None
+    replaces_X509Certificate: Optional["X509Certificate"] = None
 
     @view_config(
         route_name="admin:renewal_configuration:focus:new_order", renderer=None
@@ -1348,8 +1346,8 @@ class View_Focus_New(View_Focus):
             "/admin/renewal_configuration-focus-new_order.mako",
             {
                 "RenewalConfiguration": dbRenewalConfiguration,
-                "CertificateSigned_replaces_candidates__primary": self.dbCertificateSigned_replaces_candidates__primary,
-                "CertificateSigned_replaces_candidates__backup": self.dbCertificateSigned_replaces_candidates__backup,
+                "X509Certificate_replaces_candidates__primary": self.dbX509Certificate_replaces_candidates__primary,
+                "X509Certificate_replaces_candidates__backup": self.dbX509Certificate_replaces_candidates__backup,
             },
             self.request,
         )

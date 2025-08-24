@@ -220,19 +220,19 @@ Most routes have support for JSON requests via a `.json` suffix.
 These are usually documented on the html version, and via "GET" requests to the
 json version.
 
-### `/.well-known/peter_sslers/certificate-signed/upload.json`
+### `/.well-known/peter_sslers/x509-certificate/upload.json`
 
 This can be used used to directly import Certificates already issued by LetsEncrypt
 
     curl --form "private_key_file=@privkey1.pem" \
          --form "certificate_file=@cert1.pem" \
          --form "chain_file=@chain1.pem" \
-         http://127.0.0.1:7201/.well-known/peter_sslers/certificate-signed/upload.json
+         http://127.0.0.1:7201/.well-known/peter_sslers/x509-certificate/upload.json
 
     curl --form "private_key_file=@privkey2.pem" \
          --form "certificate_file=@cert2.pem" \
          --form "chain_file=@chain2.pem" \
-         http://127.0.0.1:7201/.well-known/peter_sslers/certificate-signed/upload.json
+         http://127.0.0.1:7201/.well-known/peter_sslers/x509-certificate/upload.json
 
 Note the url is not `/upload` like the html form but `/upload.json`.
 
@@ -284,8 +284,8 @@ Will return a JSON document:
     {"domain": {"id": "1",
                 "domain_name": "a",
                 },
-     "certificate_signed__latest_single": null,
-     "certificate_signed__latest_multi": {"id": "1",
+     "x509_certificate__latest_single": null,
+     "x509_certificate__latest_multi": {"id": "1",
                                   "private_key": {"id": "1",
                                                   "pem": "a",
                                                   },
@@ -335,17 +335,17 @@ Notice that the numeric ids are returned as strings. This is by design.
 Need to get the Certificate data directly? NO SWEAT. Peter transforms this for you
 on the server, and sends it to you with the appropriate headers.
 
-* /.well-known/peter_sslers/certificate-signed/{ID}/cert.crt
-* /.well-known/peter_sslers/certificate-signed/{ID}/cert.pem
-* /.well-known/peter_sslers/certificate-signed/{ID}/cert.pem.txt
-* /.well-known/peter_sslers/certificate-signed/{ID}/chain.cer
-* /.well-known/peter_sslers/certificate-signed/{ID}/chain.crt
-* /.well-known/peter_sslers/certificate-signed/{ID}/chain.der
-* /.well-known/peter_sslers/certificate-signed/{ID}/chain.pem
-* /.well-known/peter_sslers/certificate-signed/{ID}/chain.pem.txt
-* /.well-known/peter_sslers/certificate-signed/{ID}/fullchain.pem
-* /.well-known/peter_sslers/certificate-signed/{ID}/fullchain.pem.txt
-* /.well-known/peter_sslers/certificate-signed/{ID}/privkey.key
-* /.well-known/peter_sslers/certificate-signed/{ID}/privkey.pem
-* /.well-known/peter_sslers/certificate-signed/{ID}/privkey.pem.txt
+* /.well-known/peter_sslers/x509-certificate/{ID}/cert.crt
+* /.well-known/peter_sslers/x509-certificate/{ID}/cert.pem
+* /.well-known/peter_sslers/x509-certificate/{ID}/cert.pem.txt
+* /.well-known/peter_sslers/x509-certificate/{ID}/chain.cer
+* /.well-known/peter_sslers/x509-certificate/{ID}/chain.crt
+* /.well-known/peter_sslers/x509-certificate/{ID}/chain.der
+* /.well-known/peter_sslers/x509-certificate/{ID}/chain.pem
+* /.well-known/peter_sslers/x509-certificate/{ID}/chain.pem.txt
+* /.well-known/peter_sslers/x509-certificate/{ID}/fullchain.pem
+* /.well-known/peter_sslers/x509-certificate/{ID}/fullchain.pem.txt
+* /.well-known/peter_sslers/x509-certificate/{ID}/privkey.key
+* /.well-known/peter_sslers/x509-certificate/{ID}/privkey.pem
+* /.well-known/peter_sslers/x509-certificate/{ID}/privkey.pem.txt
 

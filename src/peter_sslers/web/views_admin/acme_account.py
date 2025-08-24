@@ -922,21 +922,21 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_account:focus:certificate_signeds",
-        renderer="/admin/acme_account-focus-certificate_signeds.mako",
+        route_name="admin:acme_account:focus:x509_certificates",
+        renderer="/admin/acme_account-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:acme_account:focus:certificate_signeds-paginated",
-        renderer="/admin/acme_account-focus-certificate_signeds.mako",
+        route_name="admin:acme_account:focus:x509_certificates-paginated",
+        renderer="/admin/acme_account-focus-x509_certificates.mako",
     )
-    def related__CertificateSigneds(self):
+    def related__X509Certificates(self):
         dbAcmeAccount = self._focus()
-        items_count = lib_db.get.get__CertificateSigned__by_AcmeAccountId__count(
+        items_count = lib_db.get.get__X509Certificate__by_AcmeAccountId__count(
             self.request.api_context, dbAcmeAccount.id
         )
-        url_template = "%s/certificate-signeds/{0}" % self._focus_url
+        url_template = "%s/x509-certificates/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CertificateSigned__by_AcmeAccountId__paginated(
+        items_paged = lib_db.get.get__X509Certificate__by_AcmeAccountId__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
             limit=items_per_page,
@@ -945,8 +945,8 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "AcmeAccount": dbAcmeAccount,
-            "CertificateSigneds_count": items_count,
-            "CertificateSigneds": items_paged,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
             "pager": pager,
         }
 

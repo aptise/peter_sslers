@@ -54,7 +54,7 @@ test to property handle:
              While this is inherently tested by the route tests, a unittest will
              surface issues sooner.
 
-* CertificateSigned
+* X509Certificate
 	* TESTS
 	- test for a situation where the dbPrivateKey for a certificate is deactivated before deactivating a certificate
 	- test for a situation where the dbPrivateKey for a certificate is deactivated before queuring a renewal

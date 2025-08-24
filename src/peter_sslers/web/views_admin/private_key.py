@@ -208,21 +208,21 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:private_key:focus:certificate_signeds",
-        renderer="/admin/private_key-focus-certificate_signeds.mako",
+        route_name="admin:private_key:focus:x509_certificates",
+        renderer="/admin/private_key-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:private_key:focus:certificate_signeds-paginated",
-        renderer="/admin/private_key-focus-certificate_signeds.mako",
+        route_name="admin:private_key:focus:x509_certificates-paginated",
+        renderer="/admin/private_key-focus-x509_certificates.mako",
     )
-    def related__CertificateSigneds(self):
+    def related__X509Certificates(self):
         dbPrivateKey = self._focus()
-        items_count = lib_db.get.get__CertificateSigned__by_PrivateKeyId__count(
+        items_count = lib_db.get.get__X509Certificate__by_PrivateKeyId__count(
             self.request.api_context, dbPrivateKey.id
         )
-        url_template = "%s/certificate-signeds/{0}" % self._focus_url
+        url_template = "%s/x509-certificates/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CertificateSigned__by_PrivateKeyId__paginated(
+        items_paged = lib_db.get.get__X509Certificate__by_PrivateKeyId__paginated(
             self.request.api_context,
             dbPrivateKey.id,
             limit=items_per_page,
@@ -231,8 +231,8 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "PrivateKey": dbPrivateKey,
-            "CertificateSigneds_count": items_count,
-            "CertificateSigneds": items_paged,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
             "pager": pager,
         }
 

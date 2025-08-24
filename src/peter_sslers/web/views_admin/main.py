@@ -111,7 +111,7 @@ class ViewAdminMain(Handler):
             "CertificateCA": {"count": 0, "items": [], "next": False},
             "X509CertificateRequest": {"count": 0, "items": [], "next": False},
             "PrivateKey": {"count": 0, "items": [], "next": False},
-            "CertificateSigned": {"count": 0, "items": [], "next": False},
+            "X509Certificate": {"count": 0, "items": [], "next": False},
         }
 
         # lightweight pagination
@@ -199,14 +199,14 @@ class ViewAdminMain(Handler):
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # CertificateSigned
-            if show_only["CertificateSigned"]:
+            # X509Certificate
+            if show_only["X509Certificate"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.CertificateSigned
-                ).filter(model_objects.CertificateSigned.spki_sha256 == search_spki)
-                results["CertificateSigned"]["count"] = _base.count()
-                if results["CertificateSigned"]["count"]:
-                    results["CertificateSigned"]["items"] = (
+                    model_objects.X509Certificate
+                ).filter(model_objects.X509Certificate.spki_sha256 == search_spki)
+                results["X509Certificate"]["count"] = _base.count()
+                if results["X509Certificate"]["count"]:
+                    results["X509Certificate"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
@@ -243,19 +243,19 @@ class ViewAdminMain(Handler):
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # CertificateSigned
-            if show_only["CertificateSigned"]:
+            # X509Certificate
+            if show_only["X509Certificate"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.CertificateSigned
+                    model_objects.X509Certificate
                 ).filter(
                     sqlalchemy.or_(
-                        model_objects.CertificateSigned.cert_subject == search_text,
-                        model_objects.CertificateSigned.cert_issuer == search_text,
+                        model_objects.X509Certificate.cert_subject == search_text,
+                        model_objects.X509Certificate.cert_issuer == search_text,
                     )
                 )
-                results["CertificateSigned"]["count"] = _base.count()
-                if results["CertificateSigned"]["count"]:
-                    results["CertificateSigned"]["items"] = (
+                results["X509Certificate"]["count"] = _base.count()
+                if results["X509Certificate"]["count"]:
+                    results["X509Certificate"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 

@@ -271,7 +271,7 @@ class AcmeOrderValid(AcmeOrderCreatedError):
     """
 
     def __str__(self):
-        return "An AcmeOrder-{0} was created. The order is valid and the CertificateSigned can be downloaded.".format(
+        return "An AcmeOrder-{0} was created. The order is valid and the X509Certificate can be downloaded.".format(
             self.args[0]
         )
 

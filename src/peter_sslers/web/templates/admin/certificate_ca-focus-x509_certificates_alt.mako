@@ -14,18 +14,18 @@
 
 
 <%block name="page_header_col">
-    <h2>CertificateCA - Focus - CertificateSigneds</h2>
+    <h2>CertificateCA - Focus - X509Certificates = Alt</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if CertificateSigneds:
+            % if X509Certificates:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateSigneds(CertificateSigneds, show_domains=True)}
+                ${admin_partials.table_X509Certificates(X509Certificates, show_domains=True)}
             % else:
-                No known CertificateSigneds.
+                No known X509Certificates.
             % endif
         </div>
     </div>

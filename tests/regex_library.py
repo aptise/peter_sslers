@@ -170,29 +170,29 @@ RE_CertificateCAChain_uploaded = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/certificate-ca-chain/(\d+)\?result=success&is_created=\d$"""
 )
 
-# note: CertificateSigned
+# note: X509Certificate
 
-RE_CertificateSigned_main = re.compile(
-    r"""href="/\.well-known/peter_sslers/certificate-signed/(\d+)"""
+RE_X509Certificate_main = re.compile(
+    r"""href="/\.well-known/peter_sslers/x509-certificate/(\d+)"""
 )
 
-RE_CertificateSigned_operation_nginx_expire = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/certificate-signed/\d+\?result=success&operation=nginx-cache-expire&event\.id=\d+$"""
+RE_X509Certificate_operation_nginx_expire = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/x509-certificate/\d+\?result=success&operation=nginx-cache-expire&event\.id=\d+$"""
 )
 
-RE_CertificateSigned_operation_nginx_expire__GET = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/certificate-signed/\d+\?result=error&operation=nginx-cache-expire&message=POST\+required$"""
+RE_X509Certificate_operation_nginx_expire__GET = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/x509-certificate/\d+\?result=error&operation=nginx-cache-expire&message=POST\+required$"""
 )
 
 
-RE_CertificateSigned_button = re.compile(
+RE_X509Certificate_button = re.compile(
     r"""
     <a\s+
         class="label\ label-info"\s+
-        href="/.well-known/peter_sslers/certificate-signed/(\d+)"\s+
+        href="/.well-known/peter_sslers/x509-certificate/(\d+)"\s+
     >\s+
         <span\ class="glyphicon\ glyphicon-file"\ aria-hidden="true"></span>\s+
-        CertificateSigned-(\d+)\s+
+        X509Certificate-(\d+)\s+
     </a>""",
     re.X,
 )

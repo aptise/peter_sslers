@@ -108,8 +108,8 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:acme_account:focus:certificate_signeds",
-        "/acme-account/{@id}/certificate-signeds",
+        "admin:acme_account:focus:x509_certificates",
+        "/acme-account/{@id}/x509-certificates",
         paginate=True,
     )
     config.add_route_7(
@@ -595,13 +595,13 @@ def _admin_views(config: "Configurator") -> None:
         "/certificate-ca/{@id}/cert.{format:(cer|crt|der|pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:certificate_ca:focus:certificate_signeds",
-        "/certificate-ca/{@id}/certificate-signeds",
+        "admin:certificate_ca:focus:x509_certificates",
+        "/certificate-ca/{@id}/x509-certificates",
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_ca:focus:certificate_signeds_alt",
-        "/certificate-ca/{@id}/certificate-signeds-alt",
+        "admin:certificate_ca:focus:x509_certificates_alt",
+        "/certificate-ca/{@id}/x509-certificates-alt",
         paginate=True,
     )
     config.add_route_7(
@@ -694,138 +694,138 @@ def _admin_views(config: "Configurator") -> None:
         "/x509-certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}",
     )
 
-    # !!!: CertificateSigneds
+    # !!!: X509Certificates
     config.add_route_7(
-        "admin:certificate_signeds",
-        "/certificate-signeds",
+        "admin:x509_certificates",
+        "/x509-certificates",
         jsonify=True,
     )
 
     config.add_route_7(
-        "admin:certificate_signeds:all",
-        "/certificate-signeds/all",
+        "admin:x509_certificates:all",
+        "/x509-certificates/all",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_signeds:active",
-        "/certificate-signeds/active",
+        "admin:x509_certificates:active",
+        "/x509-certificates/active",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_signeds:active_expired",
-        "/certificate-signeds/active-expired",
+        "admin:x509_certificates:active_expired",
+        "/x509-certificates/active-expired",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_signeds:expiring",
-        "/certificate-signeds/expiring",
+        "admin:x509_certificates:expiring",
+        "/x509-certificates/expiring",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_signeds:inactive",
-        "/certificate-signeds/inactive",
+        "admin:x509_certificates:inactive",
+        "/x509-certificates/inactive",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_signeds:inactive_unexpired",
-        "/certificate-signeds/inactive-unexpired",
+        "admin:x509_certificates:inactive_unexpired",
+        "/x509-certificates/inactive-unexpired",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_signeds:active_duplicates",
-        "/certificate-signeds/active-duplicates",
+        "admin:x509_certificates:active_duplicates",
+        "/x509-certificates/active-duplicates",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_signeds:search",
-        "/certificate-signeds/search",
+        "admin:x509_certificates:search",
+        "/x509-certificates/search",
         jsonify=True,
     )
 
-    # !!!: CertificateSigned - Focus
+    # !!!: X509Certificate - Focus
     config.add_route_7(
-        "admin:certificate_signed:focus",
-        "/certificate-signed/{@id}",
+        "admin:x509_certificate:focus",
+        "/x509-certificate/{@id}",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:config|json",
-        "/certificate-signed/{@id}/config.json",
+        "admin:x509_certificate:focus:config|json",
+        "/x509-certificate/{@id}/config.json",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:config|zip",
-        "/certificate-signed/{@id}/config.zip",
+        "admin:x509_certificate:focus:config|zip",
+        "/x509-certificate/{@id}/config.zip",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:parse|json",
-        "/certificate-signed/{@id}/parse.json",
+        "admin:x509_certificate:focus:parse|json",
+        "/x509-certificate/{@id}/parse.json",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:cert:raw",
-        "/certificate-signed/{@id}/cert.{format:(cer|crt|der|pem|pem.txt)}",
+        "admin:x509_certificate:focus:cert:raw",
+        "/x509-certificate/{@id}/cert.{format:(cer|crt|der|pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:chain:raw",
-        "/certificate-signed/{@id}/chain.{format:(pem|pem.txt)}",
+        "admin:x509_certificate:focus:chain:raw",
+        "/x509-certificate/{@id}/chain.{format:(pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:fullchain:raw",
-        "/certificate-signed/{@id}/fullchain.{format:(pem|pem.txt)}",
+        "admin:x509_certificate:focus:fullchain:raw",
+        "/x509-certificate/{@id}/fullchain.{format:(pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:privatekey:raw",
-        "/certificate-signed/{@id}/privkey.{format:(key|pem|pem.txt)}",
+        "admin:x509_certificate:focus:privatekey:raw",
+        "/x509-certificate/{@id}/privkey.{format:(key|pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:ari_check",
-        r"/certificate-signed/{@id}/ari-check",
+        "admin:x509_certificate:focus:ari_check",
+        r"/x509-certificate/{@id}/ari-check",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:ari_check_history",
-        r"/certificate-signed/{@id}/ari-check-history",
+        "admin:x509_certificate:focus:ari_check_history",
+        r"/x509-certificate/{@id}/ari-check-history",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:nginx_cache_expire",
-        r"/certificate-signed/{@id}/nginx-cache-expire",
+        "admin:x509_certificate:focus:nginx_cache_expire",
+        r"/x509-certificate/{@id}/nginx-cache-expire",
         jsonify=True,
     )
     # via ca-cert routes
     config.add_route_7(
-        "admin:certificate_signed:focus:via_certificate_ca_chain:config|json",
-        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/config.json",
+        "admin:x509_certificate:focus:via_certificate_ca_chain:config|json",
+        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/config.json",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:via_certificate_ca_chain:config|zip",
-        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/config.zip",
+        "admin:x509_certificate:focus:via_certificate_ca_chain:config|zip",
+        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/config.zip",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:via_certificate_ca_chain:chain:raw",
-        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/chain.{format:(cer|crt|der|pem|pem.txt)}",
+        "admin:x509_certificate:focus:via_certificate_ca_chain:chain:raw",
+        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/chain.{format:(cer|crt|der|pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:via_certificate_ca_chain:fullchain:raw",
-        "/certificate-signed/{@id}/via-certificate-ca-chain/{id_cachain}/fullchain.{format:(pem|pem.txt)}",
+        "admin:x509_certificate:focus:via_certificate_ca_chain:fullchain:raw",
+        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/fullchain.{format:(pem|pem.txt)}",
     )
     # end via ca-cert
 
     config.add_route_7(
-        "admin:certificate_signed:upload",
-        "/certificate-signed/upload",
+        "admin:x509_certificate:upload",
+        "/x509-certificate/upload",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_signed:focus:mark",
-        "/certificate-signed/{@id}/mark",
+        "admin:x509_certificate:focus:mark",
+        "/x509-certificate/{@id}/mark",
         jsonify=True,
     )
 
@@ -942,27 +942,27 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:domain:focus:certificate_signeds",
-        "/domain/{domain_identifier}/certificate-signeds",
+        "admin:domain:focus:x509_certificates",
+        "/domain/{domain_identifier}/x509-certificates",
         paginate=True,
     )
     # -
     config.add_route_7(
-        "admin:domain:focus:certificate_signeds:all",
-        "/domain/{domain_identifier}/certificate-signeds/all",
+        "admin:domain:focus:x509_certificates:all",
+        "/domain/{domain_identifier}/x509-certificates/all",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:domain:focus:certificate_signeds:single",
-        "/domain/{domain_identifier}/certificate-signeds/single",
+        "admin:domain:focus:x509_certificates:single",
+        "/domain/{domain_identifier}/x509-certificates/single",
         jsonify=True,
         paginate=True,
     )
     # -
     config.add_route_7(
-        "admin:domain:focus:certificate_signeds:multi",
-        "/domain/{domain_identifier}/certificate-signeds/multi",
+        "admin:domain:focus:x509_certificates:multi",
+        "/domain/{domain_identifier}/x509-certificates/multi",
         jsonify=True,
         paginate=True,
     )
@@ -1065,8 +1065,8 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
     config.add_route_7(
-        "admin:enrollment_factory:focus:certificate_signeds",
-        "/enrollment-factory/{@id}/certificate-signeds",
+        "admin:enrollment_factory:focus:x509_certificates",
+        "/enrollment-factory/{@id}/x509-certificates",
         jsonify=True,
         paginate=True,
     )
@@ -1123,7 +1123,7 @@ def _admin_views(config: "Configurator") -> None:
     )
 
     # !!!: Private Keys
-    # used to sign CertificateSigneds
+    # used to sign X509Certificates
     config.add_route_7(
         "admin:private_keys",
         "/private-keys",
@@ -1150,8 +1150,8 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:private_key:focus:certificate_signeds",
-        "/private-key/{@id}/certificate-signeds",
+        "admin:private_key:focus:x509_certificates",
+        "/private-key/{@id}/x509-certificates",
         paginate=True,
     )
     config.add_route_7(
@@ -1239,8 +1239,8 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:renewal_configuration:focus:certificate_signeds",
-        "/renewal-configuration/{@id}/certificate-signeds",
+        "admin:renewal_configuration:focus:x509_certificates",
+        "/renewal-configuration/{@id}/x509-certificates",
         jsonify=True,
         paginate=True,
     )
@@ -1350,8 +1350,8 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:unique_fqdn_set:focus:certificate_signeds",
-        "/unique-fqdn-set/{@id}/certificate-signeds",
+        "admin:unique_fqdn_set:focus:x509_certificates",
+        "/unique-fqdn-set/{@id}/x509-certificates",
         paginate=True,
     )
     config.add_route_7(
@@ -1391,8 +1391,8 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:uniquely_challenged_fqdn_set:focus:certificate_signeds",
-        "/uniquely-challenged-fqdn-set/{@id}/certificate-signeds",
+        "admin:uniquely_challenged_fqdn_set:focus:x509_certificates",
+        "/uniquely-challenged-fqdn-set/{@id}/x509-certificates",
         paginate=True,
     )
     config.add_route_7(

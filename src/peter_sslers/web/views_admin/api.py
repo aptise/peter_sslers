@@ -90,7 +90,7 @@ class ViewAdminApi(Handler):
         )
         count_deactivated = operations_event.event_payload_json["count_deactivated"]
         rval = {
-            "CertificateSigned": {
+            "X509Certificate": {
                 "expired": count_deactivated,
             },
             "result": "success",
@@ -625,8 +625,8 @@ class ViewAdminApi_Domain(Handler):
                     "result": "error",
                     "notes": "new AcmeOrder, invalid",
                     "Domain": None,
-                    "certificate_signed__latest_single": None,
-                    "certificate_signed__latest_multi": None,
+                    "x509_certificate__latest_single": None,
+                    "x509_certificate__latest_multi": None,
                     "AcmeOrder": {
                         "id": dbAcmeOrder.id,
                     },
@@ -676,8 +676,8 @@ class ViewAdminApi_Domain(Handler):
                 "result": "error",
                 "form_errors": formStash.errors,
                 "Domain": None,
-                "certificate_signed__latest_single": None,
-                "certificate_signed__latest_multi": None,
+                "x509_certificate__latest_single": None,
+                "x509_certificate__latest_multi": None,
             }
 
         finally:

@@ -654,7 +654,7 @@ class View_Focus(Handler):
     def calendar(self) -> Dict:
         rval: Dict = {}
         dbDomain = self._focus()
-        weekly_certs = lib_db.get.get_CertificateSigned_weeklyData_by_domainId(
+        weekly_certs = lib_db.get.get_X509Certificate_weeklyData_by_domainId(
             self.request.api_context,
             dbDomain.id,
         )
@@ -881,157 +881,157 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds",
+        route_name="admin:domain:focus:x509_certificates",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds-paginated",
+        route_name="admin:domain:focus:x509_certificates-paginated",
     )
-    def related__CertificateSigneds(self):
+    def related__X509Certificates(self):
         dbDomain = self._focus()  # noqa: F841
-        url_redirect = "%s/certificate-signeds/all" % self._focus_url
+        url_redirect = "%s/x509-certificates/all" % self._focus_url
         if self.request.wants_json:
             url_redirect = "%s.json" % url_redirect
         return HTTPSeeOther(url_redirect)
 
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:all",
-        renderer="/admin/domain-focus-certificate_signeds.mako",
+        route_name="admin:domain:focus:x509_certificates:all",
+        renderer="/admin/domain-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:all-paginated",
-        renderer="/admin/domain-focus-certificate_signeds.mako",
+        route_name="admin:domain:focus:x509_certificates:all-paginated",
+        renderer="/admin/domain-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:all|json",
+        route_name="admin:domain:focus:x509_certificates:all|json",
         renderer="json",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:all-paginated|json",
+        route_name="admin:domain:focus:x509_certificates:all-paginated|json",
         renderer="json",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:single",
-        renderer="/admin/domain-focus-certificate_signeds.mako",
+        route_name="admin:domain:focus:x509_certificates:single",
+        renderer="/admin/domain-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:single-paginated",
-        renderer="/admin/domain-focus-certificate_signeds.mako",
+        route_name="admin:domain:focus:x509_certificates:single-paginated",
+        renderer="/admin/domain-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:single|json",
+        route_name="admin:domain:focus:x509_certificates:single|json",
         renderer="json",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:single-paginated|json",
+        route_name="admin:domain:focus:x509_certificates:single-paginated|json",
         renderer="json",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:multi",
-        renderer="/admin/domain-focus-certificate_signeds.mako",
+        route_name="admin:domain:focus:x509_certificates:multi",
+        renderer="/admin/domain-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:multi-paginated",
-        renderer="/admin/domain-focus-certificate_signeds.mako",
+        route_name="admin:domain:focus:x509_certificates:multi-paginated",
+        renderer="/admin/domain-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:multi|json",
+        route_name="admin:domain:focus:x509_certificates:multi|json",
         renderer="json",
     )
     @view_config(
-        route_name="admin:domain:focus:certificate_signeds:multi-paginated|json",
+        route_name="admin:domain:focus:x509_certificates:multi-paginated|json",
         renderer="json",
     )
     @docify(
         {
-            "endpoint": "/domain/{ID}/certificate-signeds/all.json",
+            "endpoint": "/domain/{ID}/x509-certificates/all.json",
             "section": "domain",
-            "about": """list Domain's CertificateSigned(s)""",
+            "about": """list Domain's X509Certificate(s)""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/domain/{ID}/certificate-signeds/all.json",
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/x509-certificates/all.json",
         }
     )
     @docify(
         {
-            "endpoint": "/domain/{ID}/certificate-signeds/all/{PAGE}.json",
-            "section": "certificate-signed",
-            "example": "curl {ADMIN_PREFIX}/domain/{domain}/certificate-signeds/all/1.json",
-            "variant_of": "/domain/{ID}/certificate-signeds/all.json",
+            "endpoint": "/domain/{ID}/x509-certificates/all/{PAGE}.json",
+            "section": "x509-certificate",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/x509-certificates/all/1.json",
+            "variant_of": "/domain/{ID}/x509-certificates/all.json",
         }
     )
     @docify(
         {
-            "endpoint": "/domain/{ID}/certificate-signeds/multi.json",
+            "endpoint": "/domain/{ID}/x509-certificates/multi.json",
             "section": "domain",
-            "about": """list Domain's CertificateSigned(s)""",
+            "about": """list Domain's X509Certificate(s)""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/domain/{ID}/certificate-signeds/multi.json",
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/x509-certificates/multi.json",
         }
     )
     @docify(
         {
-            "endpoint": "/domain/{ID}/certificate-signeds/multi/{PAGE}.json",
-            "section": "certificate-signed",
-            "example": "curl {ADMIN_PREFIX}/domain/{domain}/certificate-signeds/multi/1.json",
-            "variant_of": "/domain/{ID}/certificate-signeds/multi.json",
+            "endpoint": "/domain/{ID}/x509-certificates/multi/{PAGE}.json",
+            "section": "x509-certificate",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/x509-certificates/multi/1.json",
+            "variant_of": "/domain/{ID}/x509-certificates/multi.json",
         }
     )
     @docify(
         {
-            "endpoint": "/domain/{ID}/certificate-signeds/single.json",
+            "endpoint": "/domain/{ID}/x509-certificates/single.json",
             "section": "domain",
-            "about": """list Domain's CertificateSigned(s)""",
+            "about": """list Domain's X509Certificate(s)""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/domain/{ID}/certificate-signeds/single.json",
+            "example": "curl {ADMIN_PREFIX}/domain/{ID}/x509-certificates/single.json",
         }
     )
     @docify(
         {
-            "endpoint": "/domain/{ID}/certificate-signeds/single/{PAGE}.json",
-            "section": "certificate-signed",
-            "example": "curl {ADMIN_PREFIX}/domain/{domain}/certificate-signeds/single/1.json",
-            "variant_of": "/domain/{ID}/certificate-signeds/single.json",
+            "endpoint": "/domain/{ID}/x509-certificates/single/{PAGE}.json",
+            "section": "x509-certificate",
+            "example": "curl {ADMIN_PREFIX}/domain/{domain}/x509-certificates/single/1.json",
+            "variant_of": "/domain/{ID}/x509-certificates/single.json",
         }
     )
-    def related__CertificateSigneds_faceted(self):
+    def related__X509Certificates_faceted(self):
         dbDomain = self._focus()
         if self.request.matched_route.name in (
-            "admin:domain:focus:certificate_signeds:all",
-            "admin:domain:focus:certificate_signeds:all-paginated",
-            "admin:domain:focus:certificate_signeds:all|json",
-            "admin:domain:focus:certificate_signeds:all-paginated|json",
+            "admin:domain:focus:x509_certificates:all",
+            "admin:domain:focus:x509_certificates:all-paginated",
+            "admin:domain:focus:x509_certificates:all|json",
+            "admin:domain:focus:x509_certificates:all-paginated|json",
         ):
             sidenav_option = "all"
-            url_template = "%s/certificate-signeds/all/{0}" % self._focus_url
+            url_template = "%s/x509-certificates/all/{0}" % self._focus_url
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
-            items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
+            items_count = lib_db.get.get__X509Certificate__by_DomainId__count(
                 self.request.api_context, dbDomain.id
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
-            items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
+            items_paged = lib_db.get.get__X509Certificate__by_DomainId__paginated(
                 self.request.api_context,
                 dbDomain.id,
                 limit=items_per_page,
                 offset=offset,
             )
         elif self.request.matched_route.name in (
-            "admin:domain:focus:certificate_signeds:single",
-            "admin:domain:focus:certificate_signeds:single-paginated",
-            "admin:domain:focus:certificate_signeds:single|json",
-            "admin:domain:focus:certificate_signeds:single-paginated|json",
+            "admin:domain:focus:x509_certificates:single",
+            "admin:domain:focus:x509_certificates:single-paginated",
+            "admin:domain:focus:x509_certificates:single|json",
+            "admin:domain:focus:x509_certificates:single-paginated|json",
         ):
             sidenav_option = "single"
-            url_template = "%s/certificate-signeds/single/{0}" % self._focus_url
+            url_template = "%s/x509-certificates/single/{0}" % self._focus_url
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
-            items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
+            items_count = lib_db.get.get__X509Certificate__by_DomainId__count(
                 self.request.api_context, dbDomain.id, facet="single"
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
-            items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
+            items_paged = lib_db.get.get__X509Certificate__by_DomainId__paginated(
                 self.request.api_context,
                 dbDomain.id,
                 facet="single",
@@ -1039,20 +1039,20 @@ class View_Focus(Handler):
                 offset=offset,
             )
         elif self.request.matched_route.name in (
-            "admin:domain:focus:certificate_signeds:multi",
-            "admin:domain:focus:certificate_signeds:multi-paginated",
-            "admin:domain:focus:certificate_signeds:multi|json",
-            "admin:domain:focus:certificate_signeds:multi-paginated|json",
+            "admin:domain:focus:x509_certificates:multi",
+            "admin:domain:focus:x509_certificates:multi-paginated",
+            "admin:domain:focus:x509_certificates:multi|json",
+            "admin:domain:focus:x509_certificates:multi-paginated|json",
         ):
             sidenav_option = "multi"
-            url_template = "%s/certificate-signeds/multi/{0}" % self._focus_url
+            url_template = "%s/x509-certificates/multi/{0}" % self._focus_url
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
-            items_count = lib_db.get.get__CertificateSigned__by_DomainId__count(
+            items_count = lib_db.get.get__X509Certificate__by_DomainId__count(
                 self.request.api_context, dbDomain.id, facet="multi"
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
-            items_paged = lib_db.get.get__CertificateSigned__by_DomainId__paginated(
+            items_paged = lib_db.get.get__X509Certificate__by_DomainId__paginated(
                 self.request.api_context,
                 dbDomain.id,
                 facet="multi",
@@ -1066,15 +1066,15 @@ class View_Focus(Handler):
             _certificates = {c.id: c.as_json for c in items_paged}
             return {
                 "Domain": dbDomain.as_json,
-                "CertificateSigneds": _certificates,
-                "CertificateSigneds_count": items_count,
+                "X509Certificates": _certificates,
+                "X509Certificates_count": items_count,
                 "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,
-            "CertificateSigneds_count": items_count,
-            "CertificateSigneds": items_paged,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
             "pager": pager,
             "sidenav_option": sidenav_option,
         }
@@ -1164,7 +1164,7 @@ class View_Focus(Handler):
     @docify(
         {
             "endpoint": "/domain/{ID}/renewal-configurations/all/{PAGE}.json",
-            "section": "certificate-signed",
+            "section": "x509-certificate",
             "example": "curl {ADMIN_PREFIX}/domain/{domain}/renewal-configurations/all/1.json",
             "variant_of": "/domain/{ID}/renewal-configurations/all.json",
         }
@@ -1182,7 +1182,7 @@ class View_Focus(Handler):
     @docify(
         {
             "endpoint": "/domain/{ID}/renewal-configurations/multi/{PAGE}.json",
-            "section": "certificate-signed",
+            "section": "x509-certificate",
             "example": "curl {ADMIN_PREFIX}/domain/{domain}/renewal-configurations/multi/1.json",
             "variant_of": "/domain/{ID}/renewal-configurations/multi.json",
         }
@@ -1200,7 +1200,7 @@ class View_Focus(Handler):
     @docify(
         {
             "endpoint": "/domain/{ID}/renewal-configurations/single/{PAGE}.json",
-            "section": "certificate-signed",
+            "section": "x509-certificate",
             "example": "curl {ADMIN_PREFIX}/domain/{domain}/renewal-configurations/single/1.json",
             "variant_of": "/domain/{ID}/renewal-configurations/single.json",
         }

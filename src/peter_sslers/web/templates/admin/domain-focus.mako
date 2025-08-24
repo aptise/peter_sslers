@@ -186,22 +186,22 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>CertificateSigneds Recent</th>
+                        <th>X509Certificates Recent</th>
                         <td>
                             <table class="table table-striped table-condensed">
                                 <tr>
                                     <th>latest_single</th>
                                     <td>
-                                        % if Domain.certificate_signed_id__latest_single:
-                                            ${admin_partials.table_CertificateSigneds([Domain.certificate_signed__latest_single,], show_domains=True, show_days_to_expiry=True)}
+                                        % if Domain.x509_certificate_id__latest_single:
+                                            ${admin_partials.table_X509Certificates([Domain.x509_certificate__latest_single,], show_domains=True, show_days_to_expiry=True)}
                                         % endif
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>latest_multi</th>
                                     <td>
-                                        % if Domain.certificate_signed_id__latest_multi:
-                                            ${admin_partials.table_CertificateSigneds([Domain.certificate_signed__latest_multi,], show_domains=True, show_days_to_expiry=True)}
+                                        % if Domain.x509_certificate_id__latest_multi:
+                                            ${admin_partials.table_X509Certificates([Domain.x509_certificate__latest_multi,], show_domains=True, show_days_to_expiry=True)}
                                         % endif
                                     </td>
                                 </tr>
@@ -245,36 +245,36 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigneds ALL</th>
+                        <th>X509Certificates ALL</th>
                         <td>
-                            % if Domain.certificate_signeds__5:
-                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__5, show_domains=True, show_days_to_expiry=True)}
+                            % if Domain.x509_certificates__5:
+                            ${admin_partials.table_X509Certificates(Domain.x509_certificates__5, show_domains=True, show_days_to_expiry=True)}
                             % else:
                                 No ACTIVE recents; inactive items will not appear on this view.
                             % endif
-                            ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
+                            ${admin_partials.nav_pager("%s/domain/%s/x509-certificates" % (admin_prefix, Domain.id))}
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigneds Single Primary</th>
+                        <th>X509Certificates Single Primary</th>
                         <td>
-                            % if Domain.certificate_signeds__single_primary_5:
-                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__single_primary_5, show_domains=True, show_days_to_expiry=True)}
+                            % if Domain.x509_certificates__single_primary_5:
+                            ${admin_partials.table_X509Certificates(Domain.x509_certificates__single_primary_5, show_domains=True, show_days_to_expiry=True)}
                             % else:
                                 No ACTIVE recents; inactive items will not appear on this view.
                             % endif
-                            ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
+                            ${admin_partials.nav_pager("%s/domain/%s/x509-certificates" % (admin_prefix, Domain.id))}
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigneds Single Backup</th>
+                        <th>X509Certificates Single Backup</th>
                         <td>
-                            % if Domain.certificate_signeds__single_backup_5:
-                            ${admin_partials.table_CertificateSigneds(Domain.certificate_signeds__single_backup_5, show_domains=True, show_days_to_expiry=True)}
+                            % if Domain.x509_certificates__single_backup_5:
+                            ${admin_partials.table_X509Certificates(Domain.x509_certificates__single_backup_5, show_domains=True, show_days_to_expiry=True)}
                             % else:
                                 No ACTIVE recents; inactive items will not appear on this view.
                             % endif
-                            ${admin_partials.nav_pager("%s/domain/%s/certificate-signeds" % (admin_prefix, Domain.id))}
+                            ${admin_partials.nav_pager("%s/domain/%s/x509-certificates" % (admin_prefix, Domain.id))}
                         </td>
                     </tr>
                     <tr>

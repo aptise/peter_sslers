@@ -1,4 +1,4 @@
-"""name_contraints
+"""fix_unnamed_contraints
 
 Revision ID: feae28cb6dc2
 Revises: 0c3414079bfe

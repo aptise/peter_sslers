@@ -35,7 +35,7 @@ def main(argv=sys.argv):
     ctx = new_scripts_setup(config_uri, options=options)
     assert ctx.request
 
-    items_paged = lib_db.get.get_CertificateSigneds_duplicatePairs__paginated(
+    items_paged = lib_db.get.get_X509Certificates_duplicatePairs__paginated(
         ctx,
         limit=None,
         offset=0,
@@ -44,8 +44,8 @@ def main(argv=sys.argv):
     for pair in items_paged:
         # the item can be deactivated earlier in the loop if there are multiples
         if pair[1].is_active:
-            print("Deactiving CertificateSigned[%s]" % pair[1].id)
+            print("Deactiving X509Certificate[%s]" % pair[1].id)
             event_status = (  # noqa: F841
-                lib_db.update.update_CertificateSigned__unset_active(ctx, pair[1])
+                lib_db.update.update_X509Certificate__unset_active(ctx, pair[1])
             )
     ctx.pyramid_transaction_commit()

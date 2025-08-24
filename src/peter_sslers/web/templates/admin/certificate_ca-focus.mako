@@ -203,26 +203,26 @@
                 </tbody>
                 <tbody>
                     <tr>
-                        <th>CertificateSigneds</th>
+                        <th>X509Certificates</th>
                         <td>
-                            % if CertificateSigneds:
-                                ${admin_partials.table_CertificateSigneds(CertificateSigneds, show_domains=True)}
-                                ${admin_partials.nav_pager("%s/certificate-ca/%s/certificate-signeds" % (admin_prefix, CertificateCA.id))}
+                            % if X509Certificates:
+                                ${admin_partials.table_X509Certificates(X509Certificates, show_domains=True)}
+                                ${admin_partials.nav_pager("%s/certificate-ca/%s/x509-certificates" % (admin_prefix, CertificateCA.id))}
                             % else:
-                                No known CertificateSigneds.
+                                No known X509Certificates.
                             % endif
                         </td>
                     </tr>
                 </tbody>
                 <tbody>
                     <tr>
-                        <th>CertificateSigneds - Alt</th>
+                        <th>X509Certificates - Alt</th>
                         <td>
-                            % if CertificateSigneds_Alt:
-                                ${admin_partials.table_CertificateSigneds(CertificateSigneds_Alt, show_domains=True)}
-                                ${admin_partials.nav_pager("%s/certificate-ca/%s/certificate-signeds-alt" % (admin_prefix, CertificateCA.id))}
+                            % if X509Certificates_Alt:
+                                ${admin_partials.table_X509Certificates(X509Certificates_Alt, show_domains=True)}
+                                ${admin_partials.nav_pager("%s/certificate-ca/%s/x509-certificates-alt" % (admin_prefix, CertificateCA.id))}
                             % else:
-                                No known CertificateSigneds.
+                                No known X509Certificates.
                             % endif
                         </td>
                     </tr>

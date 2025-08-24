@@ -81,7 +81,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     count_acme_orders: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )
-    count_certificate_signeds: Mapped[int] = mapped_column(
+    count_x509_certificates: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )
     timestamp_last_x509_certificate_request: Mapped[Optional[datetime.datetime]] = (
@@ -1496,9 +1496,9 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
         sa.ForeignKey("x509_certificate_request.id", use_alter=True),
         nullable=True,
     )
-    certificate_signed_id: Mapped[Optional[int]] = mapped_column(
+    x509_certificate_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
-        sa.ForeignKey("certificate_signed.id", use_alter=True),
+        sa.ForeignKey("x509_certificate.id", use_alter=True),
         nullable=True,
     )
 
@@ -1531,7 +1531,7 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
             "acme_challenge_id": self.acme_challenge_id,
             "acme_order_id": self.acme_order_id,
             "x509_certificate_request_id": self.x509_certificate_request_id,
-            "certificate_signed_id": self.certificate_signed_id,
+            "x509_certificate_id": self.x509_certificate_id,
         }
 
 
@@ -1659,7 +1659,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False
     )  # see: `utils.AcmeOrder_ProcessingStatus`
     # utils.CertificateType.[RAW_IMPORTED, MANAGED_PRIMARY, MANAGED_BACKUP]
-    # AcmeOrder.certificate_type_id MUST never change; CertificateSigned.certificate_type_id MAY change
+    # AcmeOrder.certificate_type_id MUST never change; X509Certificate.certificate_type_id MAY change
     certificate_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     order_url: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=True
@@ -1695,9 +1695,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.ForeignKey("x509_certificate_request.id", use_alter=True),
         nullable=True,
     )
-    certificate_signed_id: Mapped[Optional[int]] = mapped_column(
+    x509_certificate_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
-        sa.ForeignKey("certificate_signed.id", use_alter=True),
+        sa.ForeignKey("x509_certificate.id", use_alter=True),
         nullable=True,
     )
     private_key_id: Mapped[int] = mapped_column(
@@ -1722,9 +1722,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     profile: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     replaces__requested: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
     replaces: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
-    certificate_signed_id__replaces: Mapped[Optional[int]] = mapped_column(
+    x509_certificate_id__replaces: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
-        sa.ForeignKey("certificate_signed.id"),
+        sa.ForeignKey("x509_certificate.id"),
         nullable=True,
     )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1768,15 +1768,15 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_orders",
     )
-    certificate_signed = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="AcmeOrder.certificate_signed_id==CertificateSigned.id",
+    x509_certificate = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="AcmeOrder.x509_certificate_id==X509Certificate.id",
         uselist=False,
         back_populates="acme_order",
     )
-    certificate_signed__replaces = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="AcmeOrder.certificate_signed_id__replaces==CertificateSigned.id",
+    x509_certificate__replaces = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="AcmeOrder.x509_certificate_id__replaces==X509Certificate.id",
         uselist=False,
     )
     operations_object_events = sa_orm_relationship(
@@ -1967,12 +1967,12 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     @property
     def is_can_acme_server_download_certificate(self) -> bool:
         """
-        can we download a CertificateSigned from the AcmeServer?
-        only works for VALID AcmeOrder if we do not have a CertificateSigned
+        can we download a X509Certificate from the AcmeServer?
+        only works for VALID AcmeOrder if we do not have a X509Certificate
         """
         if self.acme_status_order == "valid":
             if self.certificate_url:
-                if not self.certificate_signed_id:
+                if not self.x509_certificate_id:
                     return True
         return False
 
@@ -2075,8 +2075,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "acme_process_steps": self.acme_process_steps,
             "x509_certificate_request_id": self.x509_certificate_request_id,
             "certificate_type": self.certificate_type,
-            "certificate_signed_id": self.certificate_signed_id,
-            "certificate_signed_id__replaces": self.certificate_signed_id__replaces,
+            "x509_certificate_id": self.x509_certificate_id,
+            "x509_certificate_id__replaces": self.x509_certificate_id__replaces,
             "domains_as_list": self.domains_as_list,
             "domains_challenged": self.domains_challenged,
             "finalize_url": self.finalize_url,
@@ -2109,7 +2109,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 if self.is_can_acme_server_sync
                 else None
             ),
-            "url_acme_certificate_signed_download": (
+            "url_acme_x509_certificate_download": (
                 "%s/acme-order/%s/acme-server/download-certificate.json"
                 % (admin_url, self.id)
                 if self.is_can_acme_server_download_certificate
@@ -2516,9 +2516,9 @@ class AcmeServerConfiguration(Base, _Mixin_Timestamps_Pretty):
 class AriCheck(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "ari_check"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    certificate_signed_id: Mapped[int] = mapped_column(
+    x509_certificate_id: Mapped[int] = mapped_column(
         sa.Integer,
-        sa.ForeignKey("certificate_signed.id", use_alter=True),
+        sa.ForeignKey("x509_certificate.id", use_alter=True),
         nullable=False,
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
@@ -2546,9 +2546,9 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
     # we only use this on errors
     raw_response: Mapped[str] = mapped_column(sa.Text, nullable=True)
 
-    certificate_signed = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="AriCheck.certificate_signed_id==CertificateSigned.id",
+    x509_certificate = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="AriCheck.x509_certificate_id==X509Certificate.id",
         uselist=False,
         back_populates="ari_checks",
     )
@@ -2559,7 +2559,7 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             # - -
             "ari_check_status": self.ari_check_status,
-            "certificate_signed_id": self.certificate_signed_id,
+            "x509_certificate_id": self.x509_certificate_id,
             "raw_response": self.raw_response,
             "suggested_window_start": (
                 self.suggested_window_start.isoformat()
@@ -2588,7 +2588,7 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     These are trusted "Certificate Authority" Certificates from LetsEncrypt that
     are used to sign server certificates.
 
-    These are directly tied to a CertificateSigned and are needed to create a
+    These are directly tied to a X509Certificate and are needed to create a
     "fullchain" certificate for most deployments.
     """
 
@@ -2819,7 +2819,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
     # how many items are in the chain?
     chain_length: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
-    # this is the first item in the chain; what signs the CertificateSigned
+    # this is the first item in the chain; what signs the X509Certificate
     certificate_ca_0_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
     )
@@ -2944,7 +2944,7 @@ class CertificateCAPreferencePolicy(Base):
     These are trusted "Certificate Authority" Certificates from LetsEncrypt that
     are used to sign server certificates.
 
-    These are directly tied to a CertificateSigned and are needed to create a
+    These are directly tied to a X509Certificate and are needed to create a
     "fullchain" certificate for most deployments.
     """
 
@@ -2981,7 +2981,7 @@ class CertificateCAPreference(Base, _Mixin_Timestamps_Pretty):
     These are trusted "Certificate Authority" Certificates from LetsEncrypt that
     are used to sign server certificates.
 
-    These are directly tied to a CertificateSigned and are needed to create a
+    These are directly tied to a X509Certificate and are needed to create a
     "fullchain" certificate for most deployments.
     """
 
@@ -3059,770 +3059,15 @@ class CertificateCAReconciliation(Base):
 # ==============================================================================
 
 
-class X509CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
-    """
-    A X509CertificateRequest is submitted to the LetsEncrypt signing authority.
-    In goes your hope, out comes your dreams.
-
-    The domains will be stored in the UniqueFQDNSet table
-    * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
-    """
-
-    __tablename__ = "x509_certificate_request"
-
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        TZDateTime(timezone=True), nullable=False
-    )
-    x509_certificate_request_source_id: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
-    )  # see .utils.X509CertificateRequestSource
-    csr_pem: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    csr_pem_md5: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
-    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
-
-    key_technology_id: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
-    )  # see .utils.KeyTechnology
-    operations_event_id__created: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )
-    private_key_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("private_key.id", use_alter=True), nullable=True
-    )
-    unique_fqdn_set_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
-    )
-    discovery_type: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, default=None
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_orders = sa_orm_relationship(
-        "AcmeOrder",
-        primaryjoin="X509CertificateRequest.id==AcmeOrder.x509_certificate_request_id",
-        uselist=True,
-        back_populates="x509_certificate_request",
-    )
-    certificate_signeds = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="X509CertificateRequest.id==CertificateSigned.x509_certificate_request_id",
-        back_populates="x509_certificate_request",
-        uselist=True,
-    )
-    operations_object_events = sa_orm_relationship(
-        "OperationsObjectEvent",
-        primaryjoin="X509CertificateRequest.id==OperationsObjectEvent.x509_certificate_request_id",
-        back_populates="x509_certificate_request",
-    )
-    private_key = sa_orm_relationship(
-        "PrivateKey",
-        primaryjoin="X509CertificateRequest.private_key_id==PrivateKey.id",
-        uselist=False,
-        back_populates="x509_certificate_requests",
-    )
-    unique_fqdn_set = sa_orm_relationship(
-        "UniqueFQDNSet",
-        primaryjoin="X509CertificateRequest.unique_fqdn_set_id==UniqueFQDNSet.id",
-        uselist=False,
-        back_populates="x509_certificate_requests",
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @reify
-    def x509_certificate_request_source(self) -> str:
-        return model_utils.X509CertificateRequestSource.as_string(
-            self.x509_certificate_request_source_id
-        )
-
-    @property
-    def certificate_signed_id__latest(self) -> Optional[str]:
-        if self.certificate_signed__latest:
-            return self.certificate_signed__latest.id
-        return None
-
-    @reify
-    def csr_spki_search(self) -> str:
-        return (
-            "type=spki&spki=%s&source=x509_certificate_request&x509_certificate_request.id=%s"
-            % (self.spki_sha256, self.id)
-        )
-
-    @property
-    def domains_as_list(self) -> List[str]:
-        return self.unique_fqdn_set.domains_as_list
-
-    @property
-    def domains_as_string(self) -> List[str]:
-        return self.unique_fqdn_set.domains_as_string
-
-    @property
-    def key_technology(self) -> Optional[str]:
-        if self.key_technology_id is None:
-            return None
-        return model_utils.KeyTechnology.as_string(self.key_technology_id)
-
-    @property
-    def as_json(self) -> Dict:
-        return {
-            "id": self.id,
-            # - -
-            "x509_certificate_request_source": self.x509_certificate_request_source,
-            "csr_pem_md5": self.csr_pem_md5,
-            "private_key_id": self.private_key_id,
-            "spki_sha256": self.spki_sha256,
-            "timestamp_created": self.timestamp_created_isoformat,
-            "unique_fqdn_set_id": self.unique_fqdn_set_id,
-        }
-
-    @property
-    def as_json_extended(self) -> Dict:
-        return {
-            "id": self.id,
-            # - -
-            "x509_certificate_request_source": self.x509_certificate_request_source,
-            "certificate_signed_id__latest": self.certificate_signed_id__latest,
-            "csr_pem": self.csr_pem,
-            "csr_pem_md5": self.csr_pem_md5,
-            "domains": self.domains_as_list,
-            "key_technology": self.key_technology,
-            "private_key_id": self.private_key_id,
-            "spki_sha256": self.spki_sha256,
-            "timestamp_created": self.timestamp_created_isoformat,
-            "unique_fqdn_set_id": self.unique_fqdn_set_id,
-        }
-
-
-# ==============================================================================
-
-
-class CertificateSigned(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
-    """
-    A signed Server Certificate.
-    To install on a webserver, must be paired with the PrivateKey and Trusted CertificateCA.
-
-    The domains will be stored in:
-    * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
-    """
-
-    __tablename__ = "certificate_signed"
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        TZDateTime(timezone=True), nullable=False
-    )
-    timestamp_not_before: Mapped[datetime.datetime] = mapped_column(
-        TZDateTime(timezone=True), nullable=False
-    )
-    timestamp_not_after: Mapped[datetime.datetime] = mapped_column(
-        TZDateTime(timezone=True), nullable=False
-    )
-    is_single_domain_cert: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )
-    key_technology_id: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
-    )  # see .utils.KeyTechnology
-
-    cert_pem: Mapped[str] = mapped_column(sa.Text, nullable=False, unique=True)
-    cert_pem_md5: Mapped[str] = mapped_column(
-        sa.Unicode(32), nullable=False, unique=True
-    )
-    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
-    fingerprint_sha1: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    cert_subject: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    cert_issuer: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    # track the hours, because this may affect ARI
-    duration_hours: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
-    is_deactivated: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )  # used to determine `is_active` toggling; if "True" then `is_active` can-not be toggled.
-    is_revoked: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )  # used to determine is_active toggling. this will set 'is_deactivated' to True
-    is_compromised_private_key: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )  # used to determine is_active toggling. this will set 'is_deactivated' to True
-    unique_fqdn_set_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
-    )
-    timestamp_revoked_upstream: Mapped[Optional[datetime.datetime]] = mapped_column(
-        TZDateTime(timezone=True), nullable=True
-    )  # if set, the cert was reported revoked upstream and this is FINAL
-
-    cert_serial: Mapped[str] = mapped_column(
-        sa.Unicode(255), nullable=False, unique=False
-    )  # the serial is only unique within an acme-provider
-
-    # acme_order_id__generated_by: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
-
-    # this is the private key
-    private_key_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("private_key.id", use_alter=True), nullable=False
-    )
-
-    # tracking
-    # `use_alter=True` is needed for setup/drop
-    x509_certificate_request_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer,
-        sa.ForeignKey("x509_certificate_request.id", use_alter=True),
-        nullable=True,
-    )
-    # utils.CertificateType.[RAW_IMPORTED, MANAGED_PRIMARY, MANAGED_BACKUP]
-    # AcmeOrder.certificate_type_id MUST never change; CertificateSigned.certificate_type_id MAY change
-    certificate_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    operations_event_id__created: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )
-    discovery_type: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, default=None
-    )
-    # True if we parse the cert and detect a known ARI server
-    is_ari_supported__cert: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )
-    # True if we ordered the cert from a known ARI server
-    is_ari_supported__order: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )
-    ari_identifier: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, default=None
-    )
-
-    #
-    # store the ari identifier, in case the old cert is not here
-    # but also store the local ids, so we don't search for them
-    # storage is cheap
-    #
-    ari_identifier__replaces: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, default=None
-    )
-    certificate_signed_id__replaces: Mapped[Optional[int]] = mapped_column(
-        sa.Integer,
-        sa.ForeignKey("certificate_signed.id"),
-        nullable=True,
-    )
-    ari_identifier__replaced_by: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, default=None
-    )
-    certificate_signed_id__replaced_by: Mapped[Optional[int]] = mapped_column(
-        sa.Integer,
-        sa.ForeignKey("certificate_signed.id"),
-        nullable=True,
-    )
-    #
-    # end duplicated data
-    #
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    # this relationship is based on the AcmeOrder, not the PrivateKey
-    acme_account = sa_orm_relationship(
-        AcmeAccount,
-        primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id",
-        secondary="join(AcmeOrder, AcmeAccount, AcmeOrder.acme_account_id==AcmeAccount.id)",
-        uselist=False,
-        viewonly=True,
-    )
-    acme_order = sa_orm_relationship(
-        "AcmeOrder",
-        primaryjoin="CertificateSigned.id==AcmeOrder.certificate_signed_id",
-        uselist=False,
-        back_populates="certificate_signed",
-    )
-    ari_checks = sa_orm_relationship(
-        "AriCheck",
-        primaryjoin="CertificateSigned.id==AriCheck.certificate_signed_id",
-        back_populates="certificate_signed",
-        uselist=True,
-    )
-    x509_certificate_request = sa_orm_relationship(
-        "X509CertificateRequest",
-        primaryjoin="CertificateSigned.x509_certificate_request_id==X509CertificateRequest.id",
-        back_populates="certificate_signeds",
-        uselist=False,
-    )
-    certificate_signed_chains = sa_orm_relationship(
-        "CertificateSignedChain",
-        primaryjoin="CertificateSigned.id==CertificateSignedChain.certificate_signed_id",
-        uselist=True,
-        back_populates="certificate_signed",
-    )
-    coverage_assurance_events = sa_orm_relationship(
-        "CoverageAssuranceEvent",
-        primaryjoin="CertificateSigned.id==CoverageAssuranceEvent.certificate_signed_id",
-        back_populates="certificate_signed",
-        uselist=True,
-    )
-    operations_event__created = sa_orm_relationship(
-        "OperationsEvent",
-        primaryjoin="CertificateSigned.operations_event_id__created==OperationsEvent.id",
-        uselist=False,
-    )
-    operations_object_events = sa_orm_relationship(
-        "OperationsObjectEvent",
-        primaryjoin="CertificateSigned.id==OperationsObjectEvent.certificate_signed_id",
-        back_populates="certificate_signed",
-    )
-    private_key = sa_orm_relationship(
-        "PrivateKey",
-        primaryjoin="CertificateSigned.private_key_id==PrivateKey.id",
-        uselist=False,
-        back_populates="certificate_signeds",
-    )
-    unique_fqdn_set = sa_orm_relationship(
-        "UniqueFQDNSet",
-        primaryjoin="CertificateSigned.unique_fqdn_set_id==UniqueFQDNSet.id",
-        uselist=False,
-        back_populates="certificate_signeds",
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def cert_spki_search(self) -> str:
-        return "type=spki&spki=%s&source=certificate&certificate.id=%s" % (
-            self.spki_sha256,
-            self.id,
-        )
-
-    @property
-    def cert_subject_search(self) -> str:
-        return (
-            "type=cert_subject&cert_subject=%s&source=certificate&certificate.id=%s"
-            % (self.cert_subject, self.id)
-        )
-
-    @property
-    def cert_issuer_search(self) -> str:
-        return (
-            "type=cert_issuer&cert_issuer=%s&source=certificate&certificate.id=%s"
-            % (self.cert_issuer, self.id)
-        )
-
-    @property
-    def cert_chain_pem(self) -> Optional[str]:
-        if not self.certificate_ca_chain__preferred:
-            return None
-        return self.certificate_ca_chain__preferred.chain_pem
-
-    @property
-    def cert_fullchain_pem(self) -> Optional[str]:
-        if not self.certificate_ca_chain__preferred:
-            return None
-        # certs are standardized to have a newline
-        return "\n".join((self.cert_pem.strip(), self.cert_chain_pem))  # type: ignore[arg-type]
-
-    @reify
-    def certificate_ca_ids__upchain(self) -> List[int]:
-        # this loops `ORM:certificate_signed_chains`
-        # this is NOT in order of preference
-        _ids = set([])
-        for _to_certificate_ca_chain in self.certificate_signed_chains:
-            _chain = _to_certificate_ca_chain.certificate_ca_chain
-            _ids.add(_chain.certificate_ca_0_id)
-        ids = list(_ids)
-        return ids
-
-    @reify
-    def certificate_cas__upchain(self) -> List["CertificateCA"]:
-        # this loops `ORM:certificate_signed_chains`
-        # this is NOT in order of preference
-        _cas = set([])
-        for _to_certificate_ca_chain in self.certificate_signed_chains:
-            _chain = _to_certificate_ca_chain.certificate_ca_chain
-            _cas.add(_chain.certificate_ca_0)
-        cas = list(_cas)
-        return cas
-
-    @reify
-    def certificate_ca_chain_ids(self) -> List[int]:
-        # this loops `ORM:certificate_signed_chains`
-        # this is NOT in order of preference
-        _ids = [i.certificate_ca_chain_id for i in self.certificate_signed_chains]
-        return _ids
-
-    @reify
-    def certificate_ca_chain_id__preferred(self) -> Optional[int]:
-        # this invokes `certificate_ca_chain__preferred`
-        # which then loops `ORM:certificate_signed_chains`
-        if self.certificate_ca_chain__preferred:
-            return self.certificate_ca_chain__preferred.id
-        return None
-
-    @reify
-    def certificate_ca_chain__preferred(self) -> Optional["CertificateCAChain"]:
-        # this loops `ORM:certificate_signed_chains`
-        if not self.certificate_signed_chains:
-            return None
-        try:
-            dbSession = sa_Session.object_session(self)
-            if TYPE_CHECKING:
-                assert dbSession
-            request = dbSession.info.get("request")
-
-            # only search for a preference if they exist
-            if request and request.dbCertificateCAPreferencePolicy:
-                # TODO: first match or shortest match?
-                # first match for now!
-                # there are a lot of ways to compute this,
-                # this is not efficient. this is just a quick pass
-                preferred_ca_ids = [
-                    i.certificate_ca_id
-                    for i in request.dbCertificateCAPreferencePolicy.certificate_ca_preferences
-                ]
-                for _preferred_ca_id in preferred_ca_ids:
-                    for _csc in self.certificate_signed_chains:
-                        _ca_chain = _csc.certificate_ca_chain
-                        # right now we don't care WHERE in the chain the
-                        # certificate CA pref is, just that it is in the chain
-                        if _preferred_ca_id in _ca_chain.certificate_ca_ids:
-                            return _ca_chain
-
-            # we have None! so just return the first one we have
-            return self.certificate_signed_chains[0].certificate_ca_chain
-
-        except Exception as exc:
-            log.critical(exc)
-        return None
-
-    def custom_config_payload(
-        self,
-        certificate_ca_chain_id=None,
-        id_only=False,
-    ) -> Dict:
-        # if there is no `certificate_ca_chain_id` specified, use the default
-        if not certificate_ca_chain_id:
-            certificate_ca_chain_id = self.certificate_ca_chain_id__preferred
-
-        # invoke this to trigger a invalid error
-        dbCertificateCAChain = self.valid_certificate_ca_chain(  # noqa: F841
-            certificate_ca_chain_id=certificate_ca_chain_id
-        )
-
-        # the ids are strings so that the fullchain id can be split by a client without further processing
-
-        if id_only:
-            return {
-                "id": str(self.id),
-                "private_key": {"id": str(self.private_key.id)},
-                "certificate": {"id": str(self.id)},
-                "chain": {"id": str(certificate_ca_chain_id)},
-                "fullchain": {"id": "%s,%s" % (self.id, certificate_ca_chain_id)},
-            }
-
-        return {
-            "id": str(self.id),
-            "private_key": {
-                "id": str(self.private_key.id),
-                "pem": self.private_key.key_pem,
-            },
-            "certificate": {"id": str(self.id), "pem": self.cert_pem},
-            "chain": {
-                "id": str(certificate_ca_chain_id),
-                "pem": self.valid_cert_chain_pem(
-                    certificate_ca_chain_id=certificate_ca_chain_id
-                ),
-            },
-            "fullchain": {
-                "id": "%s,%s" % (self.id, certificate_ca_chain_id),
-                "pem": self.valid_cert_fullchain_pem(
-                    certificate_ca_chain_id=certificate_ca_chain_id
-                ),
-            },
-        }
-
-    @property
-    def config_payload(self) -> Dict:
-        return self.custom_config_payload(certificate_ca_chain_id=None, id_only=False)
-
-    @property
-    def config_payload_idonly(self) -> Dict:
-        return self.custom_config_payload(certificate_ca_chain_id=None, id_only=True)
-
-    @property
-    def certificate_type(self) -> str:
-        return model_utils.CertificateType.as_string(self.certificate_type_id)
-
-    @property
-    def domains_as_list(self) -> List[str]:
-        return self.unique_fqdn_set.domains_as_list
-
-    @property
-    def domains_as_string(self) -> str:
-        return self.unique_fqdn_set.domains_as_string
-
-    @reify
-    def days_to_expiry(self) -> Optional[int]:
-        return (
-            self.timestamp_not_after - datetime.datetime.now(datetime.timezone.utc)
-        ).days
-
-    @reify
-    def days_to_expiry__label(self) -> str:
-        if self.days_to_expiry <= 2:
-            return "danger"
-        elif self.days_to_expiry <= 7:
-            return "warning"
-        elif self.days_to_expiry > 7:
-            return "success"
-        return "danger"
-
-    @property
-    def fullchain(self) -> str:
-        return "\n".join((self.cert_pem.strip(), (self.cert_chain_pem or "")))
-
-    @property
-    def is_can_renew_letsencrypt(self) -> bool:
-        """only allow renew of LE certificates"""
-        # if self.acme_account_id:
-        #    return True
-        return False
-
-    def is_ari_checking_timely(
-        self,
-        ctx: "ApiContext",
-        datetime_now: Optional[datetime.datetime] = None,
-        context: Optional[Literal["dashboard"]] = None,
-    ) -> bool:
-        """Returns False if ARI Checking would not be timely.
-        ARI Checking should be done before the notAfter date.
-        Anything after notAfter is expired and not worth polling.
-        """
-        timestamp_max_expiry = datetime_ari_timely(
-            ctx,
-            datetime_now=datetime_now,
-            context=context,
-        )
-        if self.timestamp_not_after <= timestamp_max_expiry:
-            return False
-        return True
-
-    @property
-    def is_ari_supported(self) -> bool:
-        if self.is_ari_supported__cert or self.is_ari_supported__order:
-            return True
-        return False
-
-    @property
-    def key_technology(self) -> Optional[str]:
-        if self.key_technology_id is None:
-            return None
-        return model_utils.KeyTechnology.as_string(self.key_technology_id)
-
-    @overload
-    def remaining_hours(  # noqa: E704
-        self,
-        ctx: "ApiContext",
-        timestamp: Optional[datetime.datetime] = None,
-        as_float: Literal[True] = True,
-    ) -> int: ...
-
-    @overload
-    def remaining_hours(  # noqa: E704
-        self,
-        ctx: "ApiContext",
-        timestamp: Optional[datetime.datetime] = None,
-        as_float: Literal[False] = False,
-    ) -> float: ...
-
-    def remaining_hours(
-        self,
-        ctx: "ApiContext",
-        timestamp: Optional[datetime.datetime] = None,
-        as_float: Literal[True, False] = False,
-    ) -> Union[float, int]:
-        if not self.duration_hours:
-            return 0
-        if timestamp is None:
-            timestamp = ctx.timestamp
-        if self.timestamp_not_after <= timestamp:
-            return 0
-        computed = (self.timestamp_not_after - timestamp).total_seconds() / 60 / 60
-        return int(computed) if not as_float else computed
-
-    def remaining_percent(
-        self,
-        ctx: "ApiContext",
-        timestamp: Optional[datetime.datetime] = None,
-    ) -> float:
-        remaining_hours = self.remaining_hours(
-            ctx=ctx, timestamp=timestamp, as_float=True
-        )
-        if not remaining_hours:
-            return 0.0
-        return round((remaining_hours / self.duration_hours) * 100, 2)
-
-    @property
-    def renewal__private_key_strategy_id(self) -> int:
-        if self.acme_order:
-            _private_key_cycle = self.acme_order.private_key_cycle
-            if _private_key_cycle != "account_default":
-                _private_key_strategy = (
-                    model_utils.PrivateKeyStrategy.from_private_key_cycle(
-                        _private_key_cycle
-                    )
-                )
-            else:
-                _private_key_strategy = (
-                    model_utils.PrivateKeyStrategy.from_private_key_cycle(
-                        self.acme_order.acme_account.private_key_cycle
-                    )
-                )
-            return model_utils.PrivateKeyStrategy.from_string(_private_key_strategy)
-        else:
-            return model_utils.PrivateKeyStrategy.from_string(
-                model_utils.PrivateKeyStrategy._DEFAULT_system_renewal
-            )
-
-    def valid_certificate_ca_chain(self, certificate_ca_chain_id=None):
-        """return a single CertificateCA, or the default"""
-        for _to_upchain in self.certificate_signed_chains:
-            if _to_upchain.certificate_ca_chain_id == certificate_ca_chain_id:
-                return _to_upchain.certificate_ca_chain
-        raise ValueError("No CertificateCAChain available (?!?!)")
-
-    def valid_cert_chain_pem(self, certificate_ca_chain_id=None):
-        certificate_chain = self.valid_certificate_ca_chain(
-            certificate_ca_chain_id=certificate_ca_chain_id
-        )
-        return certificate_chain.chain_pem
-
-    def valid_cert_fullchain_pem(self, certificate_ca_chain_id=None):
-        certificate_chain = self.valid_certificate_ca_chain(
-            certificate_ca_chain_id=certificate_ca_chain_id
-        )
-        # certs are standardized to have a newline
-        return "\n".join((self.cert_pem.strip(), certificate_chain.chain_pem))
-
-    @property
-    def as_json(self) -> Dict:
-        _dbSession = sa_Session.object_session(self)
-        if TYPE_CHECKING:
-            assert _dbSession
-        _request = _dbSession.info.get("request")
-        if TYPE_CHECKING:
-            assert _request is not None
-
-        rval = {
-            "id": self.id,
-            # - -
-            # cert.acme_order.renewal_configuration.is_active
-            # "acme_account_id": self.acme_account_id,
-            "ari_check_latest_id": (
-                self.ari_check__latest.id if self.ari_check__latest else None
-            ),
-            "ari_identifier": self.ari_identifier,
-            "ari_identifier__replaced_by": self.ari_identifier__replaced_by,
-            "ari_identifier__replaces": self.ari_identifier__replaces,
-            "certificate_signed_id__replaced_by": self.certificate_signed_id__replaced_by,
-            "certificate_signed_id__replaces": self.certificate_signed_id__replaces,
-            "certificate_type": self.certificate_type,
-            "certificate_ca_chain_id__preferred": self.certificate_ca_chain_id__preferred,
-            "certificate_ca_chain_ids": self.certificate_ca_chain_ids,
-            "certificate_ca_ids__upchain": self.certificate_ca_ids__upchain,
-            "cert_pem": self.cert_pem,
-            "cert_pem_md5": self.cert_pem_md5,
-            "cert_subject": self.cert_subject,
-            "cert_issuer": self.cert_issuer,
-            "cert_serial": self.cert_serial,
-            "domains_as_list": self.domains_as_list,
-            "duration_hours": self.duration_hours,
-            "fingerprint_sha1": self.fingerprint_sha1,
-            "is_ari_supported": self.is_ari_supported,
-            "is_active": True if self.is_active else False,
-            "is_deactivated": True if self.is_deactivated else False,
-            "is_revoked": True if self.is_revoked else False,
-            "is_compromised_private_key": (
-                True if self.is_compromised_private_key else False
-            ),
-            "key_technology": self.key_technology,
-            "private_key_id": self.private_key_id,
-            "remaining_hours": self.remaining_hours(_request.api_context),
-            "remaining_percent": self.remaining_percent(_request.api_context),
-            "spki_sha256": self.spki_sha256,
-            "timestamp_not_after": self.timestamp_not_after_isoformat,
-            "timestamp_not_before": self.timestamp_not_before_isoformat,
-            "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
-            "unique_fqdn_set_id": self.unique_fqdn_set_id,
-        }
-        if self.acme_order:
-            rval["AcmeOrder"] = {
-                "id": self.acme_order.id,
-            }
-            if self.acme_order.renewal_configuration_id:
-                rval["AcmeOrder"]["RenewalConfiguration"] = {
-                    "id": self.acme_order.renewal_configuration_id,
-                    "is_active": self.acme_order.renewal_configuration.is_active,
-                }
-        return rval
-
-    @property
-    def as_json_replaces_candidate(self) -> Dict:
-        rval = {
-            "id": self.id,
-            "ari_identifier": self.ari_identifier,
-            "cert_pem_md5": self.cert_pem_md5,
-            "spki_sha256": self.spki_sha256,
-            "timestamp_not_after": self.timestamp_not_after_isoformat,
-            "timestamp_not_before": self.timestamp_not_before_isoformat,
-        }
-        return rval
-
-
-# ==============================================================================
-
-
-class CertificateSignedChain(Base):
-    """
-    It is possible for alternate chains to be provided for a CertificateSigned
-
-    ``is_upstream_default`` is a boolean used to track if the issuing ACME Server
-    presented the CertificateCAChain as the primary/default chain (``True``), or if
-    the upstream server provided the CertificateCA as an alternate chain.
-    """
-
-    __tablename__ = "certificate_signed_chain"
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    certificate_signed_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=False
-    )
-    certificate_ca_chain_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=False
-    )
-    is_upstream_default: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    certificate_ca_chain = sa_orm_relationship(
-        "CertificateCAChain",
-        primaryjoin="CertificateSignedChain.certificate_ca_chain_id==CertificateCAChain.id",
-        uselist=False,
-    )
-    certificate_signed = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="CertificateSignedChain.certificate_signed_id==CertificateSigned.id",
-        uselist=False,
-        back_populates="certificate_signed_chains",
-    )
-
-
-# ==============================================================================
-
-
 class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     """
-    A CoverageAssuranceEvent occurs when a CertificateSigned is deactivated
+    A CoverageAssuranceEvent occurs when a X509Certificate is deactivated
     """
 
     __tablename__ = "coverage_assurance_event"
     __table_args__ = (
         sa.CheckConstraint(
-            "(private_key_id IS NOT NULL OR certificate_signed_id IS NOT NULL)",
+            "(private_key_id IS NOT NULL OR x509_certificate_id IS NOT NULL)",
             name="check_pkey_andor_certs",
         ),
     )
@@ -3834,8 +3079,8 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     private_key_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
-    certificate_signed_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
+    x509_certificate_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate.id"), nullable=True
     )
     coverage_assurance_event_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
@@ -3852,9 +3097,9 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    certificate_signed = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="CoverageAssuranceEvent.certificate_signed_id==CertificateSigned.id",
+    x509_certificate = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="CoverageAssuranceEvent.x509_certificate_id==X509Certificate.id",
         back_populates="coverage_assurance_events",
         uselist=False,
     )
@@ -3902,7 +3147,7 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
         payload = {
             "id": self.id,
             # - -
-            "certificate_signed_id": self.private_key_id,
+            "x509_certificate_id": self.private_key_id,
             "coverage_assurance_event_type": self.coverage_assurance_event_type,
             "coverage_assurance_event_status": self.coverage_assurance_event_status,
             "coverage_assurance_resolution": self.coverage_assurance_resolution,
@@ -3954,11 +3199,11 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
-    certificate_signed_id__latest_single: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
+    x509_certificate_id__latest_single: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate.id"), nullable=True
     )
-    certificate_signed_id__latest_multi: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
+    x509_certificate_id__latest_multi: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate.id"), nullable=True
     )
     operations_event_id__created: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -4021,14 +3266,14 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         overlaps="acme_dns_server_accounts,domain",
         viewonly=True,  # the `AcmeDnsServerAccount.is_active` join complicates things
     )
-    certificate_signed__latest_single = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="Domain.certificate_signed_id__latest_single==CertificateSigned.id",
+    x509_certificate__latest_single = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="Domain.x509_certificate_id__latest_single==X509Certificate.id",
         uselist=False,
     )
-    certificate_signed__latest_multi = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="Domain.certificate_signed_id__latest_multi==CertificateSigned.id",
+    x509_certificate__latest_multi = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="Domain.x509_certificate_id__latest_multi==X509Certificate.id",
         uselist=False,
     )
     domain_autocerts = sa_orm_relationship(
@@ -4065,8 +3310,8 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         return (
             True
             if (
-                self.certificate_signed_id__latest_single
-                or self.certificate_signed_id__latest_multi
+                self.x509_certificate_id__latest_single
+                or self.x509_certificate_id__latest_multi
             )
             else False
         )
@@ -4080,47 +3325,47 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             "address_type": self.address_type,
             "certificate__latest_multi": {},
             "certificate__latest_single": {},
-            "certificate_signeds__single_primary_5": [],
-            "certificate_signeds__single_backup_5": [],
+            "x509_certificates__single_primary_5": [],
+            "x509_certificates__single_backup_5": [],
             "domain_name": self.domain_name,
         }
         if self.address_type == "hostname":
             payload["registered"] = self.registered
             payload["suffix"] = self.suffix
-        if self.certificate_signed_id__latest_multi:
+        if self.x509_certificate_id__latest_multi:
             payload["certificate__latest_multi"] = {
-                "id": self.certificate_signed_id__latest_multi,
-                "timestamp_not_after": self.certificate_signed__latest_multi.timestamp_not_after_isoformat,
-                "days_to_expiry": self.certificate_signed__latest_multi.days_to_expiry,
-                "is_active": self.certificate_signed__latest_multi.is_active,
+                "id": self.x509_certificate_id__latest_multi,
+                "timestamp_not_after": self.x509_certificate__latest_multi.timestamp_not_after_isoformat,
+                "days_to_expiry": self.x509_certificate__latest_multi.days_to_expiry,
+                "is_active": self.x509_certificate__latest_multi.is_active,
             }
-        if self.certificate_signed_id__latest_single:
+        if self.x509_certificate_id__latest_single:
             payload["certificate__latest_single"] = {
-                "id": self.certificate_signed_id__latest_single,
-                "timestamp_not_after": self.certificate_signed__latest_single.timestamp_not_after_isoformat,
-                "days_to_expiry": self.certificate_signed__latest_single.days_to_expiry,
-                "is_active": self.certificate_signed__latest_single.is_active,
+                "id": self.x509_certificate_id__latest_single,
+                "timestamp_not_after": self.x509_certificate__latest_single.timestamp_not_after_isoformat,
+                "days_to_expiry": self.x509_certificate__latest_single.days_to_expiry,
+                "is_active": self.x509_certificate__latest_single.is_active,
             }
 
-        if self.certificate_signeds__single_primary_5:
-            payload["certificate_signeds__single_primary_5"] = [
+        if self.x509_certificates__single_primary_5:
+            payload["x509_certificates__single_primary_5"] = [
                 {
                     "id": i.id,
                     "timestamp_not_after": i.timestamp_not_after_isoformat,
                     "days_to_expiry": i.days_to_expiry,
                     "is_active": i.is_active,
                 }
-                for i in self.certificate_signeds__single_primary_5
+                for i in self.x509_certificates__single_primary_5
             ]
-        if self.certificate_signeds__single_backup_5:
-            payload["certificate_signeds__single_backup_5"] = [
+        if self.x509_certificates__single_backup_5:
+            payload["x509_certificates__single_backup_5"] = [
                 {
                     "id": i.id,
                     "timestamp_not_after": i.timestamp_not_after_isoformat,
                     "days_to_expiry": i.days_to_expiry,
                     "is_active": i.is_active,
                 }
-                for i in self.certificate_signeds__single_backup_5
+                for i in self.x509_certificates__single_backup_5
             ]
         return payload
 
@@ -4150,26 +3395,26 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 "domain_name": self.domain_name,
             },
             # - -
-            "certificate_signed__latest_single": None,
-            "certificate_signed__latest_multi": None,
+            "x509_certificate__latest_single": None,
+            "x509_certificate__latest_multi": None,
         }
-        if self.certificate_signed_id__latest_single:
+        if self.x509_certificate_id__latest_single:
             if id_only:
-                rval["certificate_signed__latest_single"] = (
-                    self.certificate_signed__latest_single.config_payload_idonly
+                rval["x509_certificate__latest_single"] = (
+                    self.x509_certificate__latest_single.config_payload_idonly
                 )
             else:
-                rval["certificate_signed__latest_single"] = (
-                    self.certificate_signed__latest_single.config_payload
+                rval["x509_certificate__latest_single"] = (
+                    self.x509_certificate__latest_single.config_payload
                 )
-        if self.certificate_signed_id__latest_multi:
+        if self.x509_certificate_id__latest_multi:
             if id_only:
-                rval["certificate_signed__latest_multi"] = (
-                    self.certificate_signed__latest_multi.config_payload_idonly
+                rval["x509_certificate__latest_multi"] = (
+                    self.x509_certificate__latest_multi.config_payload_idonly
                 )
             else:
-                rval["certificate_signed__latest_multi"] = (
-                    self.certificate_signed__latest_multi.config_payload
+                rval["x509_certificate__latest_multi"] = (
+                    self.x509_certificate__latest_multi.config_payload
                 )
         return rval
 
@@ -4530,7 +3775,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN certificate_ca_chain_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "
-            " CASE WHEN certificate_signed_id IS NOT NULL THEN 1 ELSE 0 END "
+            " CASE WHEN x509_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN coverage_assurance_event_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
@@ -4581,8 +3826,8 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     certificate_ca_chain_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=True
     )
-    certificate_signed_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_signed.id"), nullable=True
+    x509_certificate_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate.id"), nullable=True
     )
     coverage_assurance_event_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("coverage_assurance_event.id"), nullable=True
@@ -4654,9 +3899,9 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="operations_object_events",
     )
-    certificate_signed = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="OperationsObjectEvent.certificate_signed_id==CertificateSigned.id",
+    x509_certificate = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="OperationsObjectEvent.x509_certificate_id==X509Certificate.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -4711,7 +3956,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
 
 class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
-    These keys are used to sign X509CertificateRequests and are the PrivateKey component to a CertificateSigned.
+    These keys are used to sign X509CertificateRequests and are the PrivateKey component to a X509Certificate.
 
     If `acme_account_id__owner` is specified, this key can only be used in combination with that key.
     """
@@ -4740,7 +3985,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     count_acme_orders: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )
-    count_certificate_signeds: Mapped[int] = mapped_column(
+    count_x509_certificates: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )
     timestamp_last_x509_certificate_request: Mapped[Optional[datetime.datetime]] = (
@@ -4794,10 +4039,10 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         order_by="X509CertificateRequest.id.desc()",
         back_populates="private_key",
     )
-    certificate_signeds = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="PrivateKey.id==CertificateSigned.private_key_id",
-        order_by="CertificateSigned.id.desc()",
+    x509_certificates = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="PrivateKey.id==X509Certificate.private_key_id",
+        order_by="X509Certificate.id.desc()",
         back_populates="private_key",
     )
     coverage_assurance_events = sa_orm_relationship(
@@ -5230,13 +4475,11 @@ class RenewalConfiguration(
         return {
             "id": self.id,
             # - -
-            "CertificateSigneds_5_primary": [
-                i.as_json_replaces_candidate
-                for i in self.certificate_signeds__primary__5
+            "X509Certificates_5_primary": [
+                i.as_json_replaces_candidate for i in self.x509_certificates__primary__5
             ],
-            "CertificateSigneds_5_backup": [
-                i.as_json_replaces_candidate
-                for i in self.certificate_signeds__backup__5
+            "X509Certificates_5_backup": [
+                i.as_json_replaces_candidate for i in self.x509_certificates__backup__5
             ],
             "AcmeChallenge_hints": {
                 "dns-01": self.uniquely_challenged_fqdn_set.as_json__dns01,
@@ -5622,9 +4865,9 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="UniqueFQDNSet.id==X509CertificateRequest.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
-    certificate_signeds = sa_orm_relationship(
-        "CertificateSigned",
-        primaryjoin="UniqueFQDNSet.id==CertificateSigned.unique_fqdn_set_id",
+    x509_certificates = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="UniqueFQDNSet.id==X509Certificate.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
     operations_object_events = sa_orm_relationship(
@@ -5928,7 +5171,760 @@ class UniquelyChallengedFQDNSet2Domain(Base):
         }
 
 
+class X509CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
+    """
+    A X509CertificateRequest is submitted to the LetsEncrypt signing authority.
+    In goes your hope, out comes your dreams.
+
+    The domains will be stored in the UniqueFQDNSet table
+    * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
+    """
+
+    __tablename__ = "x509_certificate_request"
+
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    x509_certificate_request_source_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.X509CertificateRequestSource
+    csr_pem: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    csr_pem_md5: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
+    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
+
+    key_technology_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+    operations_event_id__created: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+    private_key_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("private_key.id", use_alter=True), nullable=True
+    )
+    unique_fqdn_set_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
+    )
+    discovery_type: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_orders = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="X509CertificateRequest.id==AcmeOrder.x509_certificate_request_id",
+        uselist=True,
+        back_populates="x509_certificate_request",
+    )
+    x509_certificates = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="X509CertificateRequest.id==X509Certificate.x509_certificate_request_id",
+        back_populates="x509_certificate_request",
+        uselist=True,
+    )
+    operations_object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="X509CertificateRequest.id==OperationsObjectEvent.x509_certificate_request_id",
+        back_populates="x509_certificate_request",
+    )
+    private_key = sa_orm_relationship(
+        "PrivateKey",
+        primaryjoin="X509CertificateRequest.private_key_id==PrivateKey.id",
+        uselist=False,
+        back_populates="x509_certificate_requests",
+    )
+    unique_fqdn_set = sa_orm_relationship(
+        "UniqueFQDNSet",
+        primaryjoin="X509CertificateRequest.unique_fqdn_set_id==UniqueFQDNSet.id",
+        uselist=False,
+        back_populates="x509_certificate_requests",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @reify
+    def x509_certificate_request_source(self) -> str:
+        return model_utils.X509CertificateRequestSource.as_string(
+            self.x509_certificate_request_source_id
+        )
+
+    @property
+    def x509_certificate_id__latest(self) -> Optional[str]:
+        if self.x509_certificate__latest:
+            return self.x509_certificate__latest.id
+        return None
+
+    @reify
+    def csr_spki_search(self) -> str:
+        return (
+            "type=spki&spki=%s&source=x509_certificate_request&x509_certificate_request.id=%s"
+            % (self.spki_sha256, self.id)
+        )
+
+    @property
+    def domains_as_list(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def domains_as_string(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_string
+
+    @property
+    def key_technology(self) -> Optional[str]:
+        if self.key_technology_id is None:
+            return None
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "id": self.id,
+            # - -
+            "x509_certificate_request_source": self.x509_certificate_request_source,
+            "csr_pem_md5": self.csr_pem_md5,
+            "private_key_id": self.private_key_id,
+            "spki_sha256": self.spki_sha256,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
+        }
+
+    @property
+    def as_json_extended(self) -> Dict:
+        return {
+            "id": self.id,
+            # - -
+            "x509_certificate_request_source": self.x509_certificate_request_source,
+            "x509_certificate_id__latest": self.x509_certificate_id__latest,
+            "csr_pem": self.csr_pem,
+            "csr_pem_md5": self.csr_pem_md5,
+            "domains": self.domains_as_list,
+            "key_technology": self.key_technology,
+            "private_key_id": self.private_key_id,
+            "spki_sha256": self.spki_sha256,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
+        }
+
+
 # ==============================================================================
+
+
+class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
+    """
+    A signed Server Certificate.
+    To install on a webserver, must be paired with the PrivateKey and Trusted CertificateCA.
+
+    The domains will be stored in:
+    * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
+    """
+
+    __tablename__ = "x509_certificate"
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    timestamp_not_before: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    timestamp_not_after: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    is_single_domain_cert: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    key_technology_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+
+    cert_pem: Mapped[str] = mapped_column(sa.Text, nullable=False, unique=True)
+    cert_pem_md5: Mapped[str] = mapped_column(
+        sa.Unicode(32), nullable=False, unique=True
+    )
+    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
+    fingerprint_sha1: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    cert_subject: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    cert_issuer: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    # track the hours, because this may affect ARI
+    duration_hours: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+    is_deactivated: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )  # used to determine `is_active` toggling; if "True" then `is_active` can-not be toggled.
+    is_revoked: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )  # used to determine is_active toggling. this will set 'is_deactivated' to True
+    is_compromised_private_key: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )  # used to determine is_active toggling. this will set 'is_deactivated' to True
+    unique_fqdn_set_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
+    )
+    timestamp_revoked_upstream: Mapped[Optional[datetime.datetime]] = mapped_column(
+        TZDateTime(timezone=True), nullable=True
+    )  # if set, the cert was reported revoked upstream and this is FINAL
+
+    cert_serial: Mapped[str] = mapped_column(
+        sa.Unicode(255), nullable=False, unique=False
+    )  # the serial is only unique within an acme-provider
+
+    # acme_order_id__generated_by: Mapped[Optional[int]] = mapped_column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
+
+    # this is the private key
+    private_key_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("private_key.id", use_alter=True), nullable=False
+    )
+
+    # tracking
+    # `use_alter=True` is needed for setup/drop
+    x509_certificate_request_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("x509_certificate_request.id", use_alter=True),
+        nullable=True,
+    )
+    # utils.CertificateType.[RAW_IMPORTED, MANAGED_PRIMARY, MANAGED_BACKUP]
+    # AcmeOrder.certificate_type_id MUST never change; X509Certificate.certificate_type_id MAY change
+    certificate_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    operations_event_id__created: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+    discovery_type: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+    # True if we parse the cert and detect a known ARI server
+    is_ari_supported__cert: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    # True if we ordered the cert from a known ARI server
+    is_ari_supported__order: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    ari_identifier: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+
+    #
+    # store the ari identifier, in case the old cert is not here
+    # but also store the local ids, so we don't search for them
+    # storage is cheap
+    #
+    ari_identifier__replaces: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+    x509_certificate_id__replaces: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("x509_certificate.id"),
+        nullable=True,
+    )
+    ari_identifier__replaced_by: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+    x509_certificate_id__replaced_by: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("x509_certificate.id"),
+        nullable=True,
+    )
+    #
+    # end duplicated data
+    #
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # this relationship is based on the AcmeOrder, not the PrivateKey
+    acme_account = sa_orm_relationship(
+        AcmeAccount,
+        primaryjoin="X509Certificate.id==AcmeOrder.x509_certificate_id",
+        secondary="join(AcmeOrder, AcmeAccount, AcmeOrder.acme_account_id==AcmeAccount.id)",
+        uselist=False,
+        viewonly=True,
+    )
+    acme_order = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="X509Certificate.id==AcmeOrder.x509_certificate_id",
+        uselist=False,
+        back_populates="x509_certificate",
+    )
+    ari_checks = sa_orm_relationship(
+        "AriCheck",
+        primaryjoin="X509Certificate.id==AriCheck.x509_certificate_id",
+        back_populates="x509_certificate",
+        uselist=True,
+    )
+    x509_certificate_request = sa_orm_relationship(
+        "X509CertificateRequest",
+        primaryjoin="X509Certificate.x509_certificate_request_id==X509CertificateRequest.id",
+        back_populates="x509_certificates",
+        uselist=False,
+    )
+    x509_certificate_chains = sa_orm_relationship(
+        "X509CertificateChain",
+        primaryjoin="X509Certificate.id==X509CertificateChain.x509_certificate_id",
+        uselist=True,
+        back_populates="x509_certificate",
+    )
+    coverage_assurance_events = sa_orm_relationship(
+        "CoverageAssuranceEvent",
+        primaryjoin="X509Certificate.id==CoverageAssuranceEvent.x509_certificate_id",
+        back_populates="x509_certificate",
+        uselist=True,
+    )
+    operations_event__created = sa_orm_relationship(
+        "OperationsEvent",
+        primaryjoin="X509Certificate.operations_event_id__created==OperationsEvent.id",
+        uselist=False,
+    )
+    operations_object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="X509Certificate.id==OperationsObjectEvent.x509_certificate_id",
+        back_populates="x509_certificate",
+    )
+    private_key = sa_orm_relationship(
+        "PrivateKey",
+        primaryjoin="X509Certificate.private_key_id==PrivateKey.id",
+        uselist=False,
+        back_populates="x509_certificates",
+    )
+    unique_fqdn_set = sa_orm_relationship(
+        "UniqueFQDNSet",
+        primaryjoin="X509Certificate.unique_fqdn_set_id==UniqueFQDNSet.id",
+        uselist=False,
+        back_populates="x509_certificates",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def cert_spki_search(self) -> str:
+        return "type=spki&spki=%s&source=certificate&certificate.id=%s" % (
+            self.spki_sha256,
+            self.id,
+        )
+
+    @property
+    def cert_subject_search(self) -> str:
+        return (
+            "type=cert_subject&cert_subject=%s&source=certificate&certificate.id=%s"
+            % (self.cert_subject, self.id)
+        )
+
+    @property
+    def cert_issuer_search(self) -> str:
+        return (
+            "type=cert_issuer&cert_issuer=%s&source=certificate&certificate.id=%s"
+            % (self.cert_issuer, self.id)
+        )
+
+    @property
+    def cert_chain_pem(self) -> Optional[str]:
+        if not self.certificate_ca_chain__preferred:
+            return None
+        return self.certificate_ca_chain__preferred.chain_pem
+
+    @property
+    def cert_fullchain_pem(self) -> Optional[str]:
+        if not self.certificate_ca_chain__preferred:
+            return None
+        # certs are standardized to have a newline
+        return "\n".join((self.cert_pem.strip(), self.cert_chain_pem))  # type: ignore[arg-type]
+
+    @reify
+    def certificate_ca_ids__upchain(self) -> List[int]:
+        # this loops `ORM:x509_certificate_chains`
+        # this is NOT in order of preference
+        _ids = set([])
+        for _to_certificate_ca_chain in self.x509_certificate_chains:
+            _chain = _to_certificate_ca_chain.certificate_ca_chain
+            _ids.add(_chain.certificate_ca_0_id)
+        ids = list(_ids)
+        return ids
+
+    @reify
+    def certificate_cas__upchain(self) -> List["CertificateCA"]:
+        # this loops `ORM:x509_certificate_chains`
+        # this is NOT in order of preference
+        _cas = set([])
+        for _to_certificate_ca_chain in self.x509_certificate_chains:
+            _chain = _to_certificate_ca_chain.certificate_ca_chain
+            _cas.add(_chain.certificate_ca_0)
+        cas = list(_cas)
+        return cas
+
+    @reify
+    def certificate_ca_chain_ids(self) -> List[int]:
+        # this loops `ORM:x509_certificate_chains`
+        # this is NOT in order of preference
+        _ids = [i.certificate_ca_chain_id for i in self.x509_certificate_chains]
+        return _ids
+
+    @reify
+    def certificate_ca_chain_id__preferred(self) -> Optional[int]:
+        # this invokes `certificate_ca_chain__preferred`
+        # which then loops `ORM:x509_certificate_chains`
+        if self.certificate_ca_chain__preferred:
+            return self.certificate_ca_chain__preferred.id
+        return None
+
+    @reify
+    def certificate_ca_chain__preferred(self) -> Optional["CertificateCAChain"]:
+        # this loops `ORM:x509_certificate_chains`
+        if not self.x509_certificate_chains:
+            return None
+        try:
+            dbSession = sa_Session.object_session(self)
+            if TYPE_CHECKING:
+                assert dbSession
+            request = dbSession.info.get("request")
+
+            # only search for a preference if they exist
+            if request and request.dbCertificateCAPreferencePolicy:
+                # TODO: first match or shortest match?
+                # first match for now!
+                # there are a lot of ways to compute this,
+                # this is not efficient. this is just a quick pass
+                preferred_ca_ids = [
+                    i.certificate_ca_id
+                    for i in request.dbCertificateCAPreferencePolicy.certificate_ca_preferences
+                ]
+                for _preferred_ca_id in preferred_ca_ids:
+                    for _csc in self.x509_certificate_chains:
+                        _ca_chain = _csc.certificate_ca_chain
+                        # right now we don't care WHERE in the chain the
+                        # certificate CA pref is, just that it is in the chain
+                        if _preferred_ca_id in _ca_chain.certificate_ca_ids:
+                            return _ca_chain
+
+            # we have None! so just return the first one we have
+            return self.x509_certificate_chains[0].certificate_ca_chain
+
+        except Exception as exc:
+            log.critical(exc)
+        return None
+
+    def custom_config_payload(
+        self,
+        certificate_ca_chain_id=None,
+        id_only=False,
+    ) -> Dict:
+        # if there is no `certificate_ca_chain_id` specified, use the default
+        if not certificate_ca_chain_id:
+            certificate_ca_chain_id = self.certificate_ca_chain_id__preferred
+
+        # invoke this to trigger a invalid error
+        dbCertificateCAChain = self.valid_certificate_ca_chain(  # noqa: F841
+            certificate_ca_chain_id=certificate_ca_chain_id
+        )
+
+        # the ids are strings so that the fullchain id can be split by a client without further processing
+
+        if id_only:
+            return {
+                "id": str(self.id),
+                "private_key": {"id": str(self.private_key.id)},
+                "certificate": {"id": str(self.id)},
+                "chain": {"id": str(certificate_ca_chain_id)},
+                "fullchain": {"id": "%s,%s" % (self.id, certificate_ca_chain_id)},
+            }
+
+        return {
+            "id": str(self.id),
+            "private_key": {
+                "id": str(self.private_key.id),
+                "pem": self.private_key.key_pem,
+            },
+            "certificate": {"id": str(self.id), "pem": self.cert_pem},
+            "chain": {
+                "id": str(certificate_ca_chain_id),
+                "pem": self.valid_cert_chain_pem(
+                    certificate_ca_chain_id=certificate_ca_chain_id
+                ),
+            },
+            "fullchain": {
+                "id": "%s,%s" % (self.id, certificate_ca_chain_id),
+                "pem": self.valid_cert_fullchain_pem(
+                    certificate_ca_chain_id=certificate_ca_chain_id
+                ),
+            },
+        }
+
+    @property
+    def config_payload(self) -> Dict:
+        return self.custom_config_payload(certificate_ca_chain_id=None, id_only=False)
+
+    @property
+    def config_payload_idonly(self) -> Dict:
+        return self.custom_config_payload(certificate_ca_chain_id=None, id_only=True)
+
+    @property
+    def certificate_type(self) -> str:
+        return model_utils.CertificateType.as_string(self.certificate_type_id)
+
+    @property
+    def domains_as_list(self) -> List[str]:
+        return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def domains_as_string(self) -> str:
+        return self.unique_fqdn_set.domains_as_string
+
+    @reify
+    def days_to_expiry(self) -> Optional[int]:
+        return (
+            self.timestamp_not_after - datetime.datetime.now(datetime.timezone.utc)
+        ).days
+
+    @reify
+    def days_to_expiry__label(self) -> str:
+        if self.days_to_expiry <= 2:
+            return "danger"
+        elif self.days_to_expiry <= 7:
+            return "warning"
+        elif self.days_to_expiry > 7:
+            return "success"
+        return "danger"
+
+    @property
+    def fullchain(self) -> str:
+        return "\n".join((self.cert_pem.strip(), (self.cert_chain_pem or "")))
+
+    @property
+    def is_can_renew_letsencrypt(self) -> bool:
+        """only allow renew of LE certificates"""
+        # if self.acme_account_id:
+        #    return True
+        return False
+
+    def is_ari_checking_timely(
+        self,
+        ctx: "ApiContext",
+        datetime_now: Optional[datetime.datetime] = None,
+        context: Optional[Literal["dashboard"]] = None,
+    ) -> bool:
+        """Returns False if ARI Checking would not be timely.
+        ARI Checking should be done before the notAfter date.
+        Anything after notAfter is expired and not worth polling.
+        """
+        timestamp_max_expiry = datetime_ari_timely(
+            ctx,
+            datetime_now=datetime_now,
+            context=context,
+        )
+        if self.timestamp_not_after <= timestamp_max_expiry:
+            return False
+        return True
+
+    @property
+    def is_ari_supported(self) -> bool:
+        if self.is_ari_supported__cert or self.is_ari_supported__order:
+            return True
+        return False
+
+    @property
+    def key_technology(self) -> Optional[str]:
+        if self.key_technology_id is None:
+            return None
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+
+    @overload
+    def remaining_hours(  # noqa: E704
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+        as_float: Literal[True] = True,
+    ) -> int: ...
+
+    @overload
+    def remaining_hours(  # noqa: E704
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+        as_float: Literal[False] = False,
+    ) -> float: ...
+
+    def remaining_hours(
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+        as_float: Literal[True, False] = False,
+    ) -> Union[float, int]:
+        if not self.duration_hours:
+            return 0
+        if timestamp is None:
+            timestamp = ctx.timestamp
+        if self.timestamp_not_after <= timestamp:
+            return 0
+        computed = (self.timestamp_not_after - timestamp).total_seconds() / 60 / 60
+        return int(computed) if not as_float else computed
+
+    def remaining_percent(
+        self,
+        ctx: "ApiContext",
+        timestamp: Optional[datetime.datetime] = None,
+    ) -> float:
+        remaining_hours = self.remaining_hours(
+            ctx=ctx, timestamp=timestamp, as_float=True
+        )
+        if not remaining_hours:
+            return 0.0
+        return round((remaining_hours / self.duration_hours) * 100, 2)
+
+    @property
+    def renewal__private_key_strategy_id(self) -> int:
+        if self.acme_order:
+            _private_key_cycle = self.acme_order.private_key_cycle
+            if _private_key_cycle != "account_default":
+                _private_key_strategy = (
+                    model_utils.PrivateKeyStrategy.from_private_key_cycle(
+                        _private_key_cycle
+                    )
+                )
+            else:
+                _private_key_strategy = (
+                    model_utils.PrivateKeyStrategy.from_private_key_cycle(
+                        self.acme_order.acme_account.private_key_cycle
+                    )
+                )
+            return model_utils.PrivateKeyStrategy.from_string(_private_key_strategy)
+        else:
+            return model_utils.PrivateKeyStrategy.from_string(
+                model_utils.PrivateKeyStrategy._DEFAULT_system_renewal
+            )
+
+    def valid_certificate_ca_chain(self, certificate_ca_chain_id=None):
+        """return a single CertificateCA, or the default"""
+        for _to_upchain in self.x509_certificate_chains:
+            if _to_upchain.certificate_ca_chain_id == certificate_ca_chain_id:
+                return _to_upchain.certificate_ca_chain
+        raise ValueError("No CertificateCAChain available (?!?!)")
+
+    def valid_cert_chain_pem(self, certificate_ca_chain_id=None):
+        certificate_chain = self.valid_certificate_ca_chain(
+            certificate_ca_chain_id=certificate_ca_chain_id
+        )
+        return certificate_chain.chain_pem
+
+    def valid_cert_fullchain_pem(self, certificate_ca_chain_id=None):
+        certificate_chain = self.valid_certificate_ca_chain(
+            certificate_ca_chain_id=certificate_ca_chain_id
+        )
+        # certs are standardized to have a newline
+        return "\n".join((self.cert_pem.strip(), certificate_chain.chain_pem))
+
+    @property
+    def as_json(self) -> Dict:
+        _dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert _dbSession
+        _request = _dbSession.info.get("request")
+        if TYPE_CHECKING:
+            assert _request is not None
+
+        rval = {
+            "id": self.id,
+            # - -
+            # cert.acme_order.renewal_configuration.is_active
+            # "acme_account_id": self.acme_account_id,
+            "ari_check_latest_id": (
+                self.ari_check__latest.id if self.ari_check__latest else None
+            ),
+            "ari_identifier": self.ari_identifier,
+            "ari_identifier__replaced_by": self.ari_identifier__replaced_by,
+            "ari_identifier__replaces": self.ari_identifier__replaces,
+            "x509_certificate_id__replaced_by": self.x509_certificate_id__replaced_by,
+            "x509_certificate_id__replaces": self.x509_certificate_id__replaces,
+            "certificate_type": self.certificate_type,
+            "certificate_ca_chain_id__preferred": self.certificate_ca_chain_id__preferred,
+            "certificate_ca_chain_ids": self.certificate_ca_chain_ids,
+            "certificate_ca_ids__upchain": self.certificate_ca_ids__upchain,
+            "cert_pem": self.cert_pem,
+            "cert_pem_md5": self.cert_pem_md5,
+            "cert_subject": self.cert_subject,
+            "cert_issuer": self.cert_issuer,
+            "cert_serial": self.cert_serial,
+            "domains_as_list": self.domains_as_list,
+            "duration_hours": self.duration_hours,
+            "fingerprint_sha1": self.fingerprint_sha1,
+            "is_ari_supported": self.is_ari_supported,
+            "is_active": True if self.is_active else False,
+            "is_deactivated": True if self.is_deactivated else False,
+            "is_revoked": True if self.is_revoked else False,
+            "is_compromised_private_key": (
+                True if self.is_compromised_private_key else False
+            ),
+            "key_technology": self.key_technology,
+            "private_key_id": self.private_key_id,
+            "remaining_hours": self.remaining_hours(_request.api_context),
+            "remaining_percent": self.remaining_percent(_request.api_context),
+            "spki_sha256": self.spki_sha256,
+            "timestamp_not_after": self.timestamp_not_after_isoformat,
+            "timestamp_not_before": self.timestamp_not_before_isoformat,
+            "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
+        }
+        if self.acme_order:
+            rval["AcmeOrder"] = {
+                "id": self.acme_order.id,
+            }
+            if self.acme_order.renewal_configuration_id:
+                rval["AcmeOrder"]["RenewalConfiguration"] = {
+                    "id": self.acme_order.renewal_configuration_id,
+                    "is_active": self.acme_order.renewal_configuration.is_active,
+                }
+        return rval
+
+    @property
+    def as_json_replaces_candidate(self) -> Dict:
+        rval = {
+            "id": self.id,
+            "ari_identifier": self.ari_identifier,
+            "cert_pem_md5": self.cert_pem_md5,
+            "spki_sha256": self.spki_sha256,
+            "timestamp_not_after": self.timestamp_not_after_isoformat,
+            "timestamp_not_before": self.timestamp_not_before_isoformat,
+        }
+        return rval
+
+
+# ==============================================================================
+
+
+class X509CertificateChain(Base):
+    """
+    It is possible for alternate chains to be provided for a X509Certificate
+
+    ``is_upstream_default`` is a boolean used to track if the issuing ACME Server
+    presented the CertificateCAChain as the primary/default chain (``True``), or if
+    the upstream server provided the CertificateCA as an alternate chain.
+    """
+
+    __tablename__ = "x509_certificate_chain"
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    x509_certificate_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate.id"), nullable=False
+    )
+    certificate_ca_chain_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=False
+    )
+    is_upstream_default: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    certificate_ca_chain = sa_orm_relationship(
+        "CertificateCAChain",
+        primaryjoin="X509CertificateChain.certificate_ca_chain_id==CertificateCAChain.id",
+        uselist=False,
+    )
+    x509_certificate = sa_orm_relationship(
+        "X509Certificate",
+        primaryjoin="X509CertificateChain.x509_certificate_id==X509Certificate.id",
+        uselist=False,
+        back_populates="x509_certificate_chains",
+    )
+
+
+# ==============================================================================
+
 
 __all__ = (
     "AcmeAccount",
@@ -5956,8 +5952,6 @@ __all__ = (
     "CertificateCAPreference",
     "CertificateCAPreferencePolicy",
     "CertificateCAReconciliation",
-    "CertificateSigned",
-    "CertificateSignedChain",
     "CoverageAssuranceEvent",
     "Domain",
     "DomainAutocert",
@@ -5979,5 +5973,7 @@ __all__ = (
     "UniquelyChallengedFQDNSet2Domain",
     "UniqueFQDNSet",
     "UniqueFQDNSet2Domain",
+    "X509Certificate",
+    "X509CertificateChain",
     "X509CertificateRequest",
 )

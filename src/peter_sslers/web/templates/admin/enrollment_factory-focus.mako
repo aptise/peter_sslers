@@ -231,10 +231,10 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>CertificateSigneds</th>
+                        <th>X509Certificates</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(EnrollmentFactory.certificate_signeds__5, perspective='EnrollmentFactory')}
-                            ${admin_partials.nav_pager("%s/enrollment-factory/%s/certificate-signeds" % (admin_prefix, EnrollmentFactory.id))}
+                            ${admin_partials.table_X509Certificates(EnrollmentFactory.x509_certificates__5, perspective='EnrollmentFactory')}
+                            ${admin_partials.nav_pager("%s/enrollment-factory/%s/x509-certificates" % (admin_prefix, EnrollmentFactory.id))}
                         </td>
                     </tr>
                     <tr>

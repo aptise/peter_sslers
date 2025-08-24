@@ -56,9 +56,9 @@
                     <tr>
                         <th>is issued?</th>
                         <td>
-                            % if X509CertificateRequest.certificate_signeds__5:
+                            % if X509CertificateRequest.x509_certificates__5:
                                 <span class="label label-success">Yes</span>&nbsp;
-                                ${admin_partials.table_CertificateSigneds(X509CertificateRequest.certificate_signeds__5, perspective="X509CertificateRequest")}
+                                ${admin_partials.table_X509Certificates(X509CertificateRequest.x509_certificates__5, perspective="X509CertificateRequest")}
                             % else:
                                 <span class="label label-default">No</span>
                             % endif
