@@ -6,15 +6,15 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-requests">Certificate Requests</a></li>
-        <li><a href="${admin_prefix}/certificate-request/${CertificateRequest.id}">Focus [${CertificateRequest.id}]</a></li>
+        <li><a href="${admin_prefix}/x509-certificate-requests">X509 Certificate Requests</a></li>
+        <li><a href="${admin_prefix}/x509-certificate-request/${X509CertificateRequest.id}">Focus [${X509CertificateRequest.id}]</a></li>
         <li class="active">ACME Orders</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Certificate Request - Focus - ACME Orders</h2>
+    <h2>X509 Certificate Request - Focus - ACME Orders</h2>
 </%block>
 
 
@@ -27,7 +27,7 @@
         <div class="col-sm-12">
 
             ${admin_partials.nav_pagination(pager)}
-            ${admin_partials.table_AcmeOrders(AcmeOrders, perspective='CertificateRequest')}
+            ${admin_partials.table_AcmeOrders(AcmeOrders, perspective="X509CertificateRequest")}
 
         </div>
     </div>

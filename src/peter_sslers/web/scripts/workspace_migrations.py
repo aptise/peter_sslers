@@ -144,11 +144,11 @@ def search_RateLimited(ctx: "ApiContext") -> Literal[True]:
     return True
 
 
-def update_CertificateSigned_duration(ctx: "ApiContext") -> Literal[True]:
-    print("update_CertificateSigned_duration")
-    from ...model.objects import CertificateSigned
+def update_X509Certificate_duration(ctx: "ApiContext") -> Literal[True]:
+    print("update_X509Certificate_duration")
+    from ...model.objects import X509Certificate
 
-    cs = ctx.dbSession.query(CertificateSigned).all()
+    cs = ctx.dbSession.query(X509Certificate).all()
     for c in cs:
         _duration = c.timestamp_not_after - c.timestamp_not_before
         _duration_seconds = _duration.total_seconds()
@@ -173,7 +173,7 @@ def main(argv=sys.argv):
     ctx = new_scripts_setup(config_uri, options=options)
 
     if False:
-        update_CertificateSigned_duration(ctx)
+        update_X509Certificate_duration(ctx)
 
     # create_mocked_RateLimited(ctx)
     search_RateLimited(ctx)

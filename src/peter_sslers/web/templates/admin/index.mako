@@ -68,11 +68,11 @@
             <h3>Enrolled Records</h3>
             <ul class="nav nav-pills nav-stacked">
 
-                <li><a href="${admin_prefix}/certificate-signeds"
-                       title="CertificateSigneds"
+                <li><a href="${admin_prefix}/x509-certificates"
+                       title="X509Certificates"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-signeds</a></li>
+                    x509-certificates</a></li>
                 <li><a href="${admin_prefix}/domains"
                        title="Domains"
                     >
@@ -156,11 +156,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-polling-errors</a></li>
-                <li><a href="${admin_prefix}/certificate-requests"
-                       title="CertificateRequests"
+                <li><a href="${admin_prefix}/x509-certificate-requests"
+                       title="X509CertificateRequests"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-requests
+                    x509-certificate-requests
                     </a></li>
                 <li><a href="${admin_prefix}/domain-autocerts"
                        title="DomainAutocerts"
@@ -221,7 +221,7 @@
             </ul>
             <h3>Tools</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/certificate-signeds/search">
+                <li><a href="${admin_prefix}/x509-certificates/search">
                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                     search certificates</a></li>
                 <li><a href="${admin_prefix}/domains/search">
@@ -241,7 +241,7 @@
                                                 )}
         </div>
         <div class="col-sm-4">
-            <h3>New CertificateSigneds</h3>
+            <h3>New X509Certificates</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
                     <a  href="${admin_prefix}/renewal-configuration/new"
@@ -259,7 +259,7 @@
                     New ACME Order: Automated</a></li>
             </ul>
 
-            <h3>Existing CertificateSigneds</h3>
+            <h3>Existing X509Certificates</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
                     <a  href="${admin_prefix}/acme-account/upload"
@@ -274,8 +274,8 @@
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: CertificateCA</a></li>
                 <li>
-                    <a  href="${admin_prefix}/certificate-signed/upload"
-                        title="CertificateSigned - Upload"
+                    <a  href="${admin_prefix}/x509-certificate/upload"
+                        title="X509Certificate - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: Certificate (Existing)</a></li>

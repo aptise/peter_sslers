@@ -129,7 +129,7 @@ the format and headers.
 
 Peter shows you buttons for available formats on each page.
 
-#### CertificateSigned
+#### X509Certificate
 
 The Certificate Itself:
 
@@ -166,7 +166,7 @@ One or more CertificateAuthority Certificates
     chain.pem           PEM     application/x-pem-file
     chain.pem.txt       PEM     text/plain
 
-#### CertificateRequest
+#### X509CertificateRequest
 
     csr.pem             PEM     application/x-pem-file
     csr.pem.txt         PEM     text/plain
@@ -197,7 +197,7 @@ One or more CertificateAuthority Certificates
 If a Domain is "active", then it is actively managed and should be included in
 ACME Order renewals or generating `Nginx` configuration.
 
-#### CertificateSigned
+#### X509Certificate
 
 ##### `is_active`
 

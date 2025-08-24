@@ -240,7 +240,7 @@ for phonetic in mapping["RenewalConfiguration"].keys():
     rc_id = mapping["RenewalConfiguration"][phonetic]["id"]
 
     # only generate a primary cert; we can pull a backup via automated means
-    if not mapping["RenewalConfiguration"][phonetic]["CertificateSigneds_5_primary"]:
+    if not mapping["RenewalConfiguration"][phonetic]["X509Certificates_5_primary"]:
         # r = requests.get(URL_BASE + "/renewal-configuration/%s/new-order.json" % rc_id)
         # r_json = r.json()
         form_data = {

@@ -28,7 +28,7 @@
                 <th>provider</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
-                ## <th>count certificate requests</th>
+                ## <th>count x509 certificate requests</th>
                 <th>count certificates issued</th>
             </tr>
         </thead>
@@ -67,7 +67,7 @@
                     <td><timestamp>${account.timestamp_created}</timestamp></td>
                     <td><code>${account.acme_account_key.key_pem_md5}</code></td>
                     ## <td><span class="badge">${account.count_acme_orders or ''}</span></td>
-                    <td><span class="badge">${account.count_certificate_signeds or ''}</span></td>
+                    <td><span class="badge">${account.count_x509_certificates or ''}</span></td>
                 </tr>
             % endfor
         </tbody>
@@ -523,8 +523,8 @@
                 <th>acme_authorization_id</th>
                 <th>acme_challenge_id</th>
                 <th>acme_order_id</th>
-                <th>certificate_request_id</th>
-                <th>certificate_signed_id</th>
+                <th>x509_certificate_request_id</th>
+                <th>x509_certificate_id</th>
             </tr>
         </thead>
         <tbody>
@@ -581,22 +581,22 @@
                     % endif
                 </td>
                 <td>
-                    % if logged.certificate_request_id:
+                    % if logged.x509_certificate_request_id:
                         <a  class="label label-info"
-                            href="${admin_prefix}/certificate-request/${logged.certificate_request_id}"
+                            href="${admin_prefix}/x509-certificate-request/${logged.x509_certificate_request_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            CertificateRequest-${logged.certificate_request_id}
+                            X509CertificateRequest-${logged.x509_certificate_request_id}
                         </a>
                     % endif
                 </td>
                 <td>
-                    % if logged.certificate_signed_id:
+                    % if logged.x509_certificate_id:
                         <a  class="label label-info"
-                            href="${admin_prefix}/certificate-signed/${logged.certificate_signed_id}"
+                            href="${admin_prefix}/x509-certificate/${logged.x509_certificate_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            CertificateSigned-${logged.certificate_signed_id}
+                            X509Certificate-${logged.x509_certificate_id}
                         </a>
                     % endif
                 </td>
@@ -617,15 +617,15 @@
                 "timestamp_finalized",
                 "acme_account_id",
                 "renewal_configuration_id",
-                "certificate_request_id",
+                "x509_certificate_request_id",
                 "acme_order_types",
-                "certificate_signed_id",
+                "x509_certificate_id",
                 "unique_fqdn_set_id",
                )
         if perspective == 'AcmeOrders':
-            cols = [c for c in cols if c != 'certificate_request_id']
-        elif perspective == 'CertificateRequest':
-            cols = [c for c in cols if c != 'certificate_request_id']
+            cols = [c for c in cols if c != 'x509_certificate_request_id']
+        elif perspective == 'X509CertificateRequest':
+            cols = [c for c in cols if c != 'x509_certificate_request_id']
         elif perspective == 'Domain':
             cols = [c for c in cols]
         elif perspective == 'AcmeAuthorization':
@@ -686,11 +686,11 @@
                                         AcmeAccount-${acme_order.acme_account_id}
                                     </a>
                                 % endif
-                            % elif c == 'certificate_request_id':
-                                % if acme_order.certificate_request_id:
-                                    <a href="${admin_prefix}/certificate-request/${acme_order.certificate_request_id}" class="label label-info">
+                            % elif c == 'x509_certificate_request_id':
+                                % if acme_order.x509_certificate_request_id:
+                                    <a href="${admin_prefix}/x509-certificate-request/${acme_order.x509_certificate_request_id}" class="label label-info">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        CertificateRequest-${acme_order.certificate_request_id}
+                                        X509CertificateRequest-${acme_order.x509_certificate_request_id}
                                     </a>
                                 % endif
                             % elif c == 'acme_order_types':
@@ -704,11 +704,11 @@
                                 % endif
                                 
                                 
-                            % elif c == 'certificate_signed_id':
-                                % if acme_order.certificate_signed_id:
-                                    <a href="${admin_prefix}/certificate-signed/${acme_order.certificate_signed_id}" class="label label-info">
+                            % elif c == 'x509_certificate_id':
+                                % if acme_order.x509_certificate_id:
+                                    <a href="${admin_prefix}/x509-certificate/${acme_order.x509_certificate_id}" class="label label-info">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        CertificateSigned-${acme_order.certificate_signed_id}
+                                        X509Certificate-${acme_order.x509_certificate_id}
                                     </a>
                                 % endif
                             % elif c == 'renewal_configuration_id':
@@ -801,15 +801,15 @@
 <%def name="table_AriChecks(ari_checks, perspective=None)">
     <%
         cols = ("id",
-                "certificate_signed_id",
+                "x509_certificate_id",
                 "timestamp_created",
                 "suggested_window_start",
                 "suggested_window_end",
                 "timestamp_retry_after",
                 "ari_check_status",
                )
-        if perspective == 'CertificateSigned':
-            cols = [c for c in cols if c != 'certificate_signed_id']
+        if perspective == 'X509Certificate':
+            cols = [c for c in cols if c != 'x509_certificate_id']
         elif perspective == 'AriChecks':
             pass
         else:
@@ -833,10 +833,10 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AriCheck-${ari_check.id}
                                 </a>
-                            % elif c == 'certificate_signed_id':
-                                <a href="${admin_prefix}/certificate-signed/${ari_check.certificate_signed_id}" class="label label-info">
+                            % elif c == 'x509_certificate_id':
+                                <a href="${admin_prefix}/x509-certificate/${ari_check.x509_certificate_id}" class="label label-info">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateSigned-${ari_check.certificate_signed_id}
+                                    X509Certificate-${ari_check.x509_certificate_id}
                                 </a>
                             % elif c == 'timestamp_created':
                                 <timestamp>${ari_check.timestamp_created or ''}</timestamp>
@@ -905,10 +905,10 @@
 </%def>
 
 
-<%def name="table_CertificateRequests(certificate_requests, perspective=None)">
+<%def name="table_X509CertificateRequests(x509_certificate_requests, perspective=None)">
     <%
-        show_domains = True if perspective in ("PrivateKey", 'CertificateRequest', ) else False
-        show_certificate = True if perspective in ("CertificateSigned", 'CertificateRequest', ) else False
+        show_domains = True if perspective in ("PrivateKey", 'X509CertificateRequest', ) else False
+        show_certificate = True if perspective in ("X509Certificate", 'X509CertificateRequest', ) else False
     %>
     <%
         cols = ("id",
@@ -919,13 +919,13 @@
                )
         if perspective == 'AcmeAccount':
             cols = [c for c in cols]
-        elif perspective == 'CertificateRequest':
+        elif perspective == 'X509CertificateRequest':
             cols = [c for c in cols]
         elif perspective == 'Domain':
             cols = [c for c in cols]
         elif perspective == 'PrivateKey':
             cols = [c for c in cols if c != 'private_key_id']
-        elif perspective == 'CertificateSigned':
+        elif perspective == 'X509Certificate':
             cols = [c for c in cols]
         elif perspective == 'UniqueFQDNSet':
             cols = [c for c in cols if c != 'unique_fqdn_set_id']
@@ -944,44 +944,44 @@
             </tr>
         </thead>
         <tbody>
-            % for certificate_request in certificate_requests:
+            % for x509_certificate_request in x509_certificate_requests:
                 <tr>
                     % for c in cols:
                         % if c == 'id':
                             <td>
                                 <a  class="label label-info"
-                                    href="${admin_prefix}/certificate-request/${certificate_request.id}">
+                                    href="${admin_prefix}/x509-certificate-request/${x509_certificate_request.id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateRequest-${certificate_request.id}</a>
+                                    X509CertificateRequest-${x509_certificate_request.id}</a>
                             </td>
                         % elif c == 'type':
                             <td>
-                                <span class="label label-default">${certificate_request.certificate_request_source}</span>
+                                <span class="label label-default">${x509_certificate_request.x509_certificate_request_source}</span>
                             </td>
                         % elif c == 'timestamp_created':
                             <td>
-                                <timestamp>${certificate_request.timestamp_created}</timestamp>
+                                <timestamp>${x509_certificate_request.timestamp_created}</timestamp>
                             </td>
                         % elif c == 'AcmeOrder':
                             <td>
-                                % if certificate_request.certificate_request_source_id == model_websafe.CertificateRequestSource.ACME_ORDER:
+                                % if x509_certificate_request.x509_certificate_request_source_id == model_websafe.X509CertificateRequestSource.ACME_ORDER:
                                     <a  class="label label-info"
-                                    href="${admin_prefix}/acme-order/${certificate_request.acme_orders[0].id}">
+                                    href="${admin_prefix}/acme-order/${x509_certificate_request.acme_orders[0].id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeOrder-${certificate_request.acme_orders[0].id}</a>
+                                    AcmeOrder-${x509_certificate_request.acme_orders[0].id}</a>
                                 % endif
                             </td>
                         % elif c == 'unique_fqdn_set_id':
                             <td>
                                 <a  class="label label-info"
-                                href="${admin_prefix}/unique-fqdn-set/${certificate_request.unique_fqdn_set_id}">
+                                href="${admin_prefix}/unique-fqdn-set/${x509_certificate_request.unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFQDNSet-${certificate_request.unique_fqdn_set_id}</a>
+                                UniqueFQDNSet-${x509_certificate_request.unique_fqdn_set_id}</a>
                             </td>
                         % endif
                     % endfor
                     % if show_domains:
-                         <td><code>${certificate_request.domains_as_string}</code></td>
+                         <td><code>${x509_certificate_request.domains_as_string}</code></td>
                     % endif
                 </tr>
             % endfor
@@ -990,7 +990,7 @@
 </%def>
 
 
-<%def name="table_CertificateSigneds(certificates, perspective=None, show_domains=False, show_days_to_expiry=False, show_replace=False)">
+<%def name="table_X509Certificates(certificates, perspective=None, show_domains=False, show_days_to_expiry=False, show_replace=False)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
@@ -1015,9 +1015,9 @@
         <tbody>
         % for cert in certificates:
             <tr>
-                <td><a class="label label-info" href="${admin_prefix}/certificate-signed/${cert.id}">
+                <td><a class="label label-info" href="${admin_prefix}/x509-certificate/${cert.id}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    CertificateSigned-${cert.id}</a>
+                    X509Certificate-${cert.id}</a>
                 </td>
                 <td>
                     % if cert.is_revoked:
@@ -1050,11 +1050,11 @@
                                 <span class="label label-warning">Inactive</span>
                             % endif
                             
-                            % if cert.certificate_signed_id__replaces:
-                                <span class="label label-default">replaces ${cert.certificate_signed_id__replaces}</span>
+                            % if cert.x509_certificate_id__replaces:
+                                <span class="label label-default">replaces ${cert.x509_certificate_id__replaces}</span>
                             % endif
-                            % if cert.certificate_signed_id__replaced_by:
-                                <span class="label label-default">replaced by ${cert.certificate_signed_id__replaced_by}</span>
+                            % if cert.x509_certificate_id__replaced_by:
+                                <span class="label label-default">replaced by ${cert.x509_certificate_id__replaced_by}</span>
                             % endif
                     % else:
                         <span class="label label-warning">
@@ -1066,11 +1066,11 @@
                 % if (perspective == "RenewalConfiguration") and show_replace:
                     <td>
                         % if cert.acme_order:
-                            % if cert.certificate_signed_id__replaces:
-                                <span class="label label-default">replaces ${cert.certificate_signed_id__replaces}</span>
+                            % if cert.x509_certificate_id__replaces:
+                                <span class="label label-default">replaces ${cert.x509_certificate_id__replaces}</span>
                             % endif
-                            % if cert.certificate_signed_id__replaced_by:
-                                <span class="label label-default">replaced by ${cert.certificate_signed_id__replaced_by}</span>
+                            % if cert.x509_certificate_id__replaced_by:
+                                <span class="label label-default">replaced by ${cert.x509_certificate_id__replaced_by}</span>
                             % endif
                     % endif
                     </td>
@@ -1140,12 +1140,12 @@
                     % endif
                 </td>
                 <td>
-                    % if cae.certificate_signed_id:
+                    % if cae.x509_certificate_id:
                         <a  class="label label-info"
-                            href="${admin_prefix}/certificate-signed/${cae.certificate_signed_id}"
+                            href="${admin_prefix}/x509-certificate/${cae.x509_certificate_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            CertificateSigned-${cae.certificate_signed_id}</a>
+                            X509Certificate-${cae.x509_certificate_id}</a>
                     % endif
                 </td>
             </tr>
@@ -1388,7 +1388,7 @@
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
                 <th>count active certificates</th>
-                ## <th>count certificate requests</th>
+                ## <th>count x509 certificate requests</th>
                 <th>count certificates issued</th>
             </tr>
         </thead>
@@ -1415,7 +1415,7 @@
                 <td><code>${key.key_pem_md5}</code></td>
                 <td><span class="badge">${key.count_active_certificates or ''}</span></td>
                 ## <td><span class="badge">${key.count_acme_orders or ''}</span></td>
-                <td><span class="badge">${key.count_certificate_signeds or ''}</span></td>
+                <td><span class="badge">${key.count_x509_certificates or ''}</span></td>
             </tr>
         % endfor
     </table>
@@ -1724,7 +1724,7 @@
 
 
 <%def name="table_UniqueFQDNSet_Domains(unique_fqdn_set, perspective=None)">
-    % if perspective == 'CertificateRequest':
+    % if perspective == 'X509CertificateRequest':
         <table class="table table-striped table-condensed">
             <thead>
                 <tr>
@@ -1786,10 +1786,10 @@
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
             CertificateCA-${object_event.certificate_ca_id}
         </a>
-    % elif object_event.certificate_request_id:
-        <a class="label label-info" href="${admin_prefix}/certificate-request/${object_event.certificate_request_id}">
+    % elif object_event.x509_certificate_request_id:
+        <a class="label label-info" href="${admin_prefix}/x509-certificate-request/${object_event.x509_certificate_request_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            CertificateRequest-${object_event.certificate_request_id}
+            X509CertificateRequest-${object_event.x509_certificate_request_id}
         </a>
     % elif object_event.domain_id:
         <a class="label label-info" href="${admin_prefix}/domain/${object_event.domain_id}">
@@ -1812,10 +1812,10 @@
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
             PrivateKey-${object_event.private_key_id}
         </a>
-    % elif object_event.certificate_signed_id:
-        <a class="label label-info" href="${admin_prefix}/certificate-signed/${object_event.certificate_signed_id}">
+    % elif object_event.x509_certificate_id:
+        <a class="label label-info" href="${admin_prefix}/x509-certificate/${object_event.x509_certificate_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            CertificateSigned-${object_event.certificate_signed_id}
+            X509Certificate-${object_event.x509_certificate_id}
         </a>
     % elif object_event.unique_fqdn_set_id:
         <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${object_event.unique_fqdn_set_id}">
@@ -2758,7 +2758,7 @@
             <tr><td>
                 <p class="help-block">
                     Upload a RSA PrivateKey in PEM format.
-                    This will be used to sign CertificateRequests and is required for CertificateSigned deployment.
+                    This will be used to sign X509CertificateRequests and is required for X509Certificate deployment.
                     The key will be saved into the system.
                 </p>
                 <table class="table table-condensed table-striped">
@@ -2827,7 +2827,7 @@
             <form action="${admin_prefix}/api/deactivate-expired" method="POST">
                 <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
                     <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Deactivate Expired CertificateSigneds
+                    Deactivate Expired X509Certificates
                 </button>
             </form>
         </li>

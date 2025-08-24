@@ -316,24 +316,24 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>CertificateSigneds - ALL</th>
+                        <th>X509Certificates - ALL</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__5, perspective='RenewalConfiguration')}
-                            % if RenewalConfiguration.certificate_signeds__5:
-                                ${admin_partials.nav_pager("%s/renewal-configuration/%s/certificate-signeds" % (admin_prefix, RenewalConfiguration.id))}
+                            ${admin_partials.table_X509Certificates(RenewalConfiguration.x509_certificates__5, perspective='RenewalConfiguration')}
+                            % if RenewalConfiguration.x509_certificates__5:
+                                ${admin_partials.nav_pager("%s/renewal-configuration/%s/x509-certificates" % (admin_prefix, RenewalConfiguration.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigneds - Primary</th>
+                        <th>X509Certificates - Primary</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__primary__5, perspective='RenewalConfiguration')}
+                            ${admin_partials.table_X509Certificates(RenewalConfiguration.x509_certificates__primary__5, perspective='RenewalConfiguration')}
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigneds - Backup</th>
+                        <th>X509Certificates - Backup</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(RenewalConfiguration.certificate_signeds__backup__5, perspective='RenewalConfiguration')}
+                            ${admin_partials.table_X509Certificates(RenewalConfiguration.x509_certificates__backup__5, perspective='RenewalConfiguration')}
                         </td>
                     </tr>
                     <tr>

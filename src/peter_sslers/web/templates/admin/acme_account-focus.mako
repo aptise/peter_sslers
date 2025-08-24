@@ -254,8 +254,8 @@
                         <td><timestamp>${AcmeAccount.timestamp_created or ''}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>timestamp_last_certificate_request</th>
-                        <td><timestamp>${AcmeAccount.timestamp_last_certificate_request or ''}</timestamp></td>
+                        <th>timestamp_last_x509_certificate_request</th>
+                        <td><timestamp>${AcmeAccount.timestamp_last_x509_certificate_request or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_last_certificate_issue</th>
@@ -266,8 +266,8 @@
                         <td><span class="badge">${AcmeAccount.count_acme_orders or ''}</span></td>
                     </tr>
                     <tr>
-                        <th>count_certificate_signeds</th>
-                        <td><span class="badge">${AcmeAccount.count_certificate_signeds or ''}</span></td>
+                        <th>count_x509_certificates</th>
+                        <td><span class="badge">${AcmeAccount.count_x509_certificates or ''}</span></td>
                     </tr>
                     <tr>
                         <th>AcmeAccountKey</th>
@@ -417,11 +417,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigned(s)</th>
+                        <th>X509Certificate(s)</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(AcmeAccount.certificate_signeds__5, show_domains=True, show_days_to_expiry=True)}
-                            % if AcmeAccount.certificate_signeds__5:
-                                ${admin_partials.nav_pager("%s/acme-account/%s/certificate-signeds" % (admin_prefix, AcmeAccount.id))}
+                            ${admin_partials.table_X509Certificates(AcmeAccount.x509_certificates__5, show_domains=True, show_days_to_expiry=True)}
+                            % if AcmeAccount.x509_certificates__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/x509-certificates" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>

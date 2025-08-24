@@ -70,7 +70,7 @@ COMMANDS: Dict[str, List[str]] = {
     "acme-server": [
         "list",
     ],
-    "certificate-signed": [
+    "x509-certificate": [
         "list",
     ],
     "enrollment-factory": [
@@ -171,7 +171,7 @@ def main(argv=sys.argv):
             for _dbItem in dbItems:
                 print("-----")
                 if condensed:
-                    if isinstance(_dbItem, model_objects.CertificateSigned):
+                    if isinstance(_dbItem, model_objects.X509Certificate):
                         print("Certificate:", _dbItem.id)
                         print("\tnotAfter:", _dbItem.timestamp_not_after)
                         print("\tnotBefore:", _dbItem.timestamp_not_before)
@@ -383,13 +383,13 @@ def main(argv=sys.argv):
                     None,
                     lib_db.get.get__AcmeServer__paginated,
                 )
-        # !!!: distpatch[certificate-signed]
-        elif command == "certificate-signed":
+        # !!!: distpatch[x509-certificate]
+        elif command == "x509-certificate":
             if subcommand == "list":
-                print("CertificateSigneds:")
+                print("X509Certificates:")
                 _list_items(
-                    lib_db.get.get__CertificateSigned__count,
-                    lib_db.get.get__CertificateSigned__paginated,
+                    lib_db.get.get__X509Certificate__count,
+                    lib_db.get.get__X509Certificate__paginated,
                     condensed=True,
                 )
         # !!!: distpatch[enrollment-factory]
@@ -403,7 +403,7 @@ def main(argv=sys.argv):
                     if "help" in options:
                         render_data(Form_EnrollmentFactory_query.fields)
                         exit(0)
-                    (formStash, dbRenewalConfiguration, dbCertificateSigneds) = (
+                    (formStash, dbRenewalConfiguration, dbX509Certificates) = (
                         v_enrollment_factory.submit__query(
                             request,
                             dbEnrollmentFactory=_dbEnrollmentFactory,
@@ -417,7 +417,7 @@ def main(argv=sys.argv):
                             if dbRenewalConfiguration
                             else None
                         ),
-                        "CertificateSigneds": [i.as_json for i in dbCertificateSigneds],
+                        "X509Certificates": [i.as_json for i in dbX509Certificates],
                     }
                     render_data(_formatted)
                 else:

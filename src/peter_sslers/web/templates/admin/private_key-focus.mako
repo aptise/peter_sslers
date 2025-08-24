@@ -187,8 +187,8 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>timestamp_last_certificate_request</th>
-                        <td><timestamp>${PrivateKey.timestamp_last_certificate_request or ''}</timestamp></td>
+                        <th>timestamp_last_x509_certificate_request</th>
+                        <td><timestamp>${PrivateKey.timestamp_last_x509_certificate_request or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_last_certificate_issue</th>
@@ -203,8 +203,8 @@
                         <td><span class="badge">${PrivateKey.count_acme_orders or ''}</span></td>
                     </tr>
                     <tr>
-                        <th>count_certificate_signeds</th>
-                        <td><span class="badge">${PrivateKey.count_certificate_signeds or ''}</span></td>
+                        <th>count_x509_certificates</th>
+                        <td><span class="badge">${PrivateKey.count_x509_certificates or ''}</span></td>
                     </tr>
                     ${admin_partials.table_tr_OperationsEventCreated(PrivateKey)}
                     <tr>
@@ -239,20 +239,20 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>CertificateSigneds</th>
+                        <th>X509Certificates</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(PrivateKey.certificate_signeds__5, show_domains=True, show_days_to_expiry=True)}
-                            % if PrivateKey.certificate_signeds__5:
-                                ${admin_partials.nav_pager("%s/private-key/%s/certificate-signeds" % (admin_prefix, PrivateKey.id))}
+                            ${admin_partials.table_X509Certificates(PrivateKey.x509_certificates__5, show_domains=True, show_days_to_expiry=True)}
+                            % if PrivateKey.x509_certificates__5:
+                                ${admin_partials.nav_pager("%s/private-key/%s/x509-certificates" % (admin_prefix, PrivateKey.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateRequests</th>
+                        <th>X509CertificateRequests</th>
                         <td>
-                            ${admin_partials.table_CertificateRequests(PrivateKey.certificate_requests__5, perspective='PrivateKey')}
-                            % if PrivateKey.certificate_requests__5:
-                                ${admin_partials.nav_pager("%s/private-key/%s/certificate-requests" % (admin_prefix, PrivateKey.id))}
+                            ${admin_partials.table_X509CertificateRequests(PrivateKey.x509_certificate_requests__5, perspective='PrivateKey')}
+                            % if PrivateKey.x509_certificate_requests__5:
+                                ${admin_partials.nav_pager("%s/private-key/%s/x509-certificate-requests" % (admin_prefix, PrivateKey.id))}
                             % endif
                         </td>
                     </tr>

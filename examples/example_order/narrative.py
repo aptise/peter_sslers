@@ -75,7 +75,7 @@ _rjson = r.json()
 pprint.pprint(_rjson)
 
 # these are the last 5 certs for ONLY this domain
-domain_primary_certs = _rjson["Domain"]["certificate_signeds__single_primary_5"]
+domain_primary_certs = _rjson["Domain"]["x509_certificates__single_primary_5"]
 if not domain_primary_certs:
 
     # The globals can be grabbed from the main accounts page...
@@ -178,15 +178,15 @@ _rjson = r.json()
 pprint.pprint(_rjson)
 
 # these are the last 5 certs for ONLY this domain
-assert len(_rjson["Domain"]["certificate_signeds__single_primary_5"]) >= 1
+assert len(_rjson["Domain"]["x509_certificates__single_primary_5"]) >= 1
 
-cert_id = _rjson["Domain"]["certificate_signeds__single_primary_5"][0]["id"]
+cert_id = _rjson["Domain"]["x509_certificates__single_primary_5"][0]["id"]
 
-r = requests.get(URL_BASE + "/certificate-signed/%s.json" % cert_id)
+r = requests.get(URL_BASE + "/x509-certificate/%s.json" % cert_id)
 print("\n\nCert Record:")
 _rjson = r.json()
 pprint.pprint(_rjson)
-pkey_id = _rjson["CertificateSigned"]["private_key_id"]
+pkey_id = _rjson["X509Certificate"]["private_key_id"]
 
 r = requests.get(URL_BASE + "/private-key/%s.json" % pkey_id)
 print("\n\nPrivate Key Record:")
@@ -194,7 +194,7 @@ _rjson = r.json()
 pprint.pprint(_rjson)
 
 
-r = requests.get(URL_BASE + "/certificate-signed/%s/config.json" % cert_id)
+r = requests.get(URL_BASE + "/x509-certificate/%s/config.json" % cert_id)
 print("\n\nCert Config:")
 _rjson = r.json()
 pprint.pprint(_rjson)

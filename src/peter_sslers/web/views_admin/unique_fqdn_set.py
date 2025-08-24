@@ -142,7 +142,7 @@ class View_Focus(Handler):
     def calendar(self) -> Dict:
         rval: Dict = {}
         dbUniqueFQDNSet = self._focus()
-        weekly_certs = lib_db.get.get_CertificateSigned_weeklyData_by_uniqueFqdnSetId(
+        weekly_certs = lib_db.get.get_X509Certificate_weeklyData_by_uniqueFqdnSetId(
             self.request.api_context,
             dbUniqueFQDNSet.id,
         )
@@ -234,52 +234,54 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificate_requests",
-        renderer="/admin/unique_fqdn_set-focus-certificate_requests.mako",
+        route_name="admin:unique_fqdn_set:focus:x509_certificate_requests",
+        renderer="/admin/unique_fqdn_set-focus-x509_certificate_requests.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificate_requests-paginated",
-        renderer="/admin/unique_fqdn_set-focus-certificate_requests.mako",
+        route_name="admin:unique_fqdn_set:focus:x509_certificate_requests-paginated",
+        renderer="/admin/unique_fqdn_set-focus-x509_certificate_requests.mako",
     )
-    def related__CertificateRequests(self):
+    def related__X509CertificateRequests(self):
         dbUniqueFQDNSet = self._focus()
-        items_count = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__count(
+        items_count = lib_db.get.get__X509CertificateRequest__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
-        url_template = "%s/certificate-requests/{0}" % self._focus_url
+        url_template = "%s/x509-certificate-requests/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__paginated(
-            self.request.api_context,
-            dbUniqueFQDNSet.id,
-            limit=items_per_page,
-            offset=offset,
+        items_paged = (
+            lib_db.get.get__X509CertificateRequest__by_UniqueFQDNSetId__paginated(
+                self.request.api_context,
+                dbUniqueFQDNSet.id,
+                limit=items_per_page,
+                offset=offset,
+            )
         )
         return {
             "project": "peter_sslers",
             "UniqueFQDNSet": dbUniqueFQDNSet,
-            "CertificateRequests_count": items_count,
-            "CertificateRequests": items_paged,
+            "X509CertificateRequests_count": items_count,
+            "X509CertificateRequests": items_paged,
             "pager": pager,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificate_signeds",
-        renderer="/admin/unique_fqdn_set-focus-certificate_signeds.mako",
+        route_name="admin:unique_fqdn_set:focus:x509_certificates",
+        renderer="/admin/unique_fqdn_set-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificate_signeds-paginated",
-        renderer="/admin/unique_fqdn_set-focus-certificate_signeds.mako",
+        route_name="admin:unique_fqdn_set:focus:x509_certificates-paginated",
+        renderer="/admin/unique_fqdn_set-focus-x509_certificates.mako",
     )
-    def related__CertificateSigneds(self):
+    def related__X509Certificates(self):
         dbUniqueFQDNSet = self._focus()
-        items_count = lib_db.get.get__CertificateSigned__by_UniqueFQDNSetId__count(
+        items_count = lib_db.get.get__X509Certificate__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
-        url_template = "%s/certificate-signeds/{0}" % self._focus_url
+        url_template = "%s/x509-certificates/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CertificateSigned__by_UniqueFQDNSetId__paginated(
+        items_paged = lib_db.get.get__X509Certificate__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,
             limit=items_per_page,
@@ -288,8 +290,8 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "UniqueFQDNSet": dbUniqueFQDNSet,
-            "CertificateSigneds_count": items_count,
-            "CertificateSigneds": items_paged,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
             "pager": pager,
         }
 
@@ -308,7 +310,7 @@ class View_Focus(Handler):
                 self.request.api_context, dbUniqueFQDNSet.id
             )
         )
-        url_template = "%s/certificate-signeds/{0}" % self._focus_url
+        url_template = "%s/x509-certificates/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__UniquelyChallengedFQDNSet__by_UniqueFQDNSetId__paginated(

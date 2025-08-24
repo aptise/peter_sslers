@@ -38,11 +38,11 @@ currently only `redis.prime_style = 1` and `redis.prime_style = 2` are supported
 This prime style will store data into `Redis` in the following format:
 
 * `d:{DOMAIN_NAME}` a 3 element hash for
-  * CertificateSigned (c)
+  * X509Certificate (c)
   * PrivateKey (p)
   * CertificateCAChain (i)
   * Note: the leading colon is required
-* `c{ID}` the CertificateSigned in PEM format; (c)ert
+* `c{ID}` the X509Certificate in PEM format; (c)ert
 * `p{ID}` the PrivateKey in PEM format; (p)rivate
 * `i{ID}` the CertificateCAChain in PEM format; (i)ntermediate certs
 
@@ -69,7 +69,7 @@ to assemble the data for `foo.example.com`:
 This prime style will store data into `Redis` in the following format:
 
 * `{DOMAIN_NAME}` a 2 element hash for:
-  * FullChain [CertificateSigned+CertificateCAChain] (f)
+  * FullChain [X509Certificate+CertificateCAChain] (f)
   * PrivateKey (p)
 
 The `Redis` datastore might look something like this:

@@ -12,7 +12,7 @@ Client, a SQL based Certificate Manager, and an OpenResty plugin for dynamic
 certificate loading.
 
 ACME-V2 support involved a large rewrite of the Client and the Certificate
-Manager's design. The central object changed from a `CertificateSigned` to the
+Manager's design. The central object changed from a `X509Certificate` to the
 `AcmeOrder`, which caused a ripple effect.  The V1 release again changed the
 central object to a new `RenewalConfiguration` concept and streamlined operations.
 

@@ -6,20 +6,20 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-requests">Certificate Requests</a></li>
-        <li class="active">Focus [${CertificateRequest.id}]</li>
+        <li><a href="${admin_prefix}/x509-certificate-requests">X509 Certificate Requests</a></li>
+        <li class="active">Focus [${X509CertificateRequest.id}]</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Certificate Request - Focus</h2>
+    <h2>X509 Certificate Request - Focus</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate-request/${CertificateRequest.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/x509-certificate-request/${X509CertificateRequest.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -43,22 +43,22 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${CertificateRequest.id}
+                                ${X509CertificateRequest.id}
                             </span>
                         </td>
                     </tr>
                     <tr>
-                        <th>certificate_request_source</th>
+                        <th>x509_certificate_request_source</th>
                         <td>
-                            <span class="label label-default">${CertificateRequest.certificate_request_source}</span>
+                            <span class="label label-default">${X509CertificateRequest.x509_certificate_request_source}</span>
                         </td>
                     </tr>
                     <tr>
                         <th>is issued?</th>
                         <td>
-                            % if CertificateRequest.certificate_signeds__5:
+                            % if X509CertificateRequest.x509_certificates__5:
                                 <span class="label label-success">Yes</span>&nbsp;
-                                ${admin_partials.table_CertificateSigneds(CertificateRequest.certificate_signeds__5, perspective='CertificateRequest')}
+                                ${admin_partials.table_X509Certificates(X509CertificateRequest.x509_certificates__5, perspective="X509CertificateRequest")}
                             % else:
                                 <span class="label label-default">No</span>
                             % endif
@@ -72,35 +72,35 @@
                     <tr>
                         <th>PrivateKey</th>
                         <td>
-                            % if CertificateRequest.private_key_id:
-                                % if CertificateRequest.private_key.is_compromised:
-                                    <a class="label label-danger" href="${admin_prefix}/private-key/${CertificateRequest.private_key_id}">
+                            % if X509CertificateRequest.private_key_id:
+                                % if X509CertificateRequest.private_key.is_compromised:
+                                    <a class="label label-danger" href="${admin_prefix}/private-key/${X509CertificateRequest.private_key_id}">
                                         <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                        PrivateKey-${CertificateRequest.private_key_id}</a>
+                                        PrivateKey-${X509CertificateRequest.private_key_id}</a>
                                 % else:
-                                    <a class="label label-info" href="${admin_prefix}/private-key/${CertificateRequest.private_key_id}">
+                                    <a class="label label-info" href="${admin_prefix}/private-key/${X509CertificateRequest.private_key_id}">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        PrivateKey-${CertificateRequest.private_key_id}</a>
+                                        PrivateKey-${X509CertificateRequest.private_key_id}</a>
                                 % endif
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
-                        <td><timestamp>${CertificateRequest.timestamp_created}</timestamp></td>
+                        <td><timestamp>${X509CertificateRequest.timestamp_created}</timestamp></td>
                     </tr>
                     <tr>
                         <th>csr_pem_md5</th>
-                        <td><code>${CertificateRequest.csr_pem_md5 or ''}</code></td>
+                        <td><code>${X509CertificateRequest.csr_pem_md5 or ''}</code></td>
                     </tr>
                     <tr>
                         <th>spki_sha256</th>
                         <td>
-                            % if CertificateRequest.spki_sha256:
-                                <code>${CertificateRequest.spki_sha256}</code>
+                            % if X509CertificateRequest.spki_sha256:
+                                <code>${X509CertificateRequest.spki_sha256}</code>
                                 <a
                                     class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/search?${CertificateRequest.csr_spki_search}"
+                                    href="${admin_prefix}/search?${X509CertificateRequest.csr_spki_search}"
                                 >
                                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                                 </a>
@@ -110,11 +110,11 @@
                     <tr>
                         <th>csr_pem</th>
                         <td>
-                            % if CertificateRequest.csr_pem:
-                                ## <textarea class="form-control">${CertificateRequest.csr_pem}</textarea>
-                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.pem">csr.pem</a>
-                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
-                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
+                            % if X509CertificateRequest.csr_pem:
+                                ## <textarea class="form-control">${X509CertificateRequest.csr_pem}</textarea>
+                                <a class="label label-info" href="${admin_prefix}/x509-certificate-request/${X509CertificateRequest.id}/csr.pem">csr.pem</a>
+                                <a class="label label-info" href="${admin_prefix}/x509-certificate-request/${X509CertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
+                                <a class="label label-info" href="${admin_prefix}/x509-certificate-request/${X509CertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
                             % else:
                                 <em>pem is not tracked</em>
                             % endif
@@ -123,15 +123,15 @@
                     <tr>
                         <th>unique fqdn set</th>
                         <td>
-                            <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${CertificateRequest.unique_fqdn_set_id}">
+                            <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${X509CertificateRequest.unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFQDNSet-${CertificateRequest.unique_fqdn_set_id}</a>
+                                UniqueFQDNSet-${X509CertificateRequest.unique_fqdn_set_id}</a>
                         </td>
                     </tr>
                     <tr>
                         <th>domains (via UniqueFQDNSet)</th>
                         <td>
-                            ${admin_partials.table_UniqueFQDNSet_Domains(CertificateRequest.unique_fqdn_set, perspective='CertificateRequest')}
+                            ${admin_partials.table_UniqueFQDNSet_Domains(X509CertificateRequest.unique_fqdn_set, perspective="X509CertificateRequest")}
                         </td>
                     </tr>
                 </tbody>
@@ -151,13 +151,13 @@
                     <tr>
                         <th>latest acme order</th>
                         <td>
-                            % if CertificateRequest.latest_acme_order:
+                            % if X509CertificateRequest.latest_acme_order:
                                 <a
-                                    href="${admin_prefix}/acme-order/${CertificateRequest.latest_acme_order.id}"
+                                    href="${admin_prefix}/acme-order/${X509CertificateRequest.latest_acme_order.id}"
                                     class="label label-info"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeOrder-${CertificateRequest.latest_acme_order.id}
+                                    AcmeOrder-${X509CertificateRequest.latest_acme_order.id}
                                 </a>
                             % endif
                         </td>
@@ -166,7 +166,7 @@
                         <th>acme order history history</th>
                         <td>
                             <a
-                                href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-orders"
+                                href="${admin_prefix}/x509-certificate-request/${X509CertificateRequest.id}/acme-orders"
                                 class="label label-info"
                             >
                                 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>

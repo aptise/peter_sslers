@@ -520,7 +520,7 @@ class Form_Certificate_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
 
 
-class Form_CertificateSigned_mark(_Form_Schema_Base):
+class Form_X509Certificate_mark(_Form_Schema_Base):
     action = OneOf(
         (
             "active",
@@ -532,7 +532,7 @@ class Form_CertificateSigned_mark(_Form_Schema_Base):
     )
 
 
-class Form_CertificateSigned_search(_Form_Schema_Base):
+class Form_X509Certificate_search(_Form_Schema_Base):
     ari_identifier = UnicodeString(not_empty=False, if_missing=None, strip=True)
     serial = UnicodeString(not_empty=False, if_missing=None, strip=True)
 

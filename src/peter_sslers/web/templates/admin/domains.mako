@@ -50,8 +50,8 @@
                             <th>id</th>
                             <th>domain name</th>
                             <th>is active</th>
-                            <th>certificate_signed__latest_multi</th>
-                            <th>certificate_signed__latest_single</th>
+                            <th>x509_certificate__latest_multi</th>
+                            <th>x509_certificate__latest_single</th>
                         </tr>
                         <tr>
                             <th></th>
@@ -72,25 +72,25 @@
                             </td>
                             <td><code>${d.domain_name}</code></td>
                             <td>
-                                % if d.certificate_signed_id__latest_multi:
+                                % if d.x509_certificate_id__latest_multi:
                                     <a  class="label label-info"
-                                        href="${admin_prefix}/certificate-signed/${d.certificate_signed_id__latest_multi}"
+                                        href="${admin_prefix}/x509-certificate/${d.x509_certificate_id__latest_multi}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        CertificateSigned-${d.certificate_signed_id__latest_multi}</a>
-                                    <timestamp>${d.certificate_signed__latest_multi.timestamp_not_after}</timestamp>
-                                    <span class="label label-${d.certificate_signed__latest_multi.days_to_expiry__label}">${d.certificate_signed__latest_multi.days_to_expiry} days</span>
+                                        X509Certificate-${d.x509_certificate_id__latest_multi}</a>
+                                    <timestamp>${d.x509_certificate__latest_multi.timestamp_not_after}</timestamp>
+                                    <span class="label label-${d.x509_certificate__latest_multi.days_to_expiry__label}">${d.x509_certificate__latest_multi.days_to_expiry} days</span>
                                 % endif
                             </td>
                             <td>
-                                % if d.certificate_signed_id__latest_single:
+                                % if d.x509_certificate_id__latest_single:
                                     <a  class="label label-info"
-                                        href="${admin_prefix}/certificate-signed/${d.certificate_signed_id__latest_single}"
+                                        href="${admin_prefix}/x509-certificate/${d.x509_certificate_id__latest_single}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        CertificateSigned-${d.certificate_signed_id__latest_single}</a>
-                                    <timestamp>${d.certificate_signed__latest_single.timestamp_not_after}</timestamp>
-                                    <span class="label label-${d.certificate_signed__latest_single.days_to_expiry__label}">${d.certificate_signed__latest_single.days_to_expiry} days</span>
+                                        X509Certificate-${d.x509_certificate_id__latest_single}</a>
+                                    <timestamp>${d.x509_certificate__latest_single.timestamp_not_after}</timestamp>
+                                    <span class="label label-${d.x509_certificate__latest_single.days_to_expiry__label}">${d.x509_certificate__latest_single.days_to_expiry} days</span>
                                 % endif
                             </td>
                         </tr>

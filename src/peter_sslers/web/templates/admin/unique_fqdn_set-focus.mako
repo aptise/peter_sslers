@@ -140,7 +140,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>Latest CertificateSigneds</th>
+                        <th>Latest X509Certificates</th>
                         <td>
                             <%
                                 latest_certificate = UniqueFQDNSet.latest_certificate
@@ -160,10 +160,10 @@
                                         % if latest_certificate:
                                             <td>
                                                 <a  class="label label-info"
-                                                    href="${admin_prefix}/certificate-signed/${latest_certificate.id}"
+                                                    href="${admin_prefix}/x509-certificate/${latest_certificate.id}"
                                                 >
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    CertificateSigned-${latest_certificate.id}
+                                                    X509Certificate-${latest_certificate.id}
                                                 </a>
                                             </td>
                                             <td>
@@ -178,10 +178,10 @@
                                         % if latest_active_certificate:
                                             <td>
                                                 <a  class="label label-info"
-                                                    href="${admin_prefix}/certificate-signed/${latest_active_certificate.id}"
+                                                    href="${admin_prefix}/x509-certificate/${latest_active_certificate.id}"
                                                 >
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    CertificateSigned-${latest_active_certificate.id}
+                                                    X509Certificate-${latest_active_certificate.id}
                                                 </a>
                                             </td>
                                             <td>
@@ -196,11 +196,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigneds</th>
+                        <th>X509Certificates</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(UniqueFQDNSet.certificate_signeds__5, show_domains=False, show_days_to_expiry=True)}
-                            % if UniqueFQDNSet.certificate_signeds__5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-signeds" % (admin_prefix, UniqueFQDNSet.id))}
+                            ${admin_partials.table_X509Certificates(UniqueFQDNSet.x509_certificates__5, show_domains=False, show_days_to_expiry=True)}
+                            % if UniqueFQDNSet.x509_certificates__5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/x509-certificates" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>
@@ -214,11 +214,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateRequests</th>
+                        <th>X509CertificateRequests</th>
                         <td>
-                            ${admin_partials.table_CertificateRequests(UniqueFQDNSet.certificate_requests__5, perspective="UniqueFQDNSet")}
-                            % if UniqueFQDNSet.certificate_requests__5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-requests" % (admin_prefix, UniqueFQDNSet.id))}
+                            ${admin_partials.table_X509CertificateRequests(UniqueFQDNSet.x509_certificate_requests__5, perspective="UniqueFQDNSet")}
+                            % if UniqueFQDNSet.x509_certificate_requests__5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/x509-certificate-requests" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>

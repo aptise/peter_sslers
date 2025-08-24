@@ -38,7 +38,6 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeServer
     from ...model.objects import CertificateCAPreference
     from ...model.objects import CertificateCAPreferencePolicy
-    from ...model.objects import CertificateSigned
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import DomainAutocert
     from ...model.objects import EnrollmentFactory
@@ -47,6 +46,7 @@ if TYPE_CHECKING:
     from ...model.objects import PrivateKey
     from ...model.objects import RenewalConfiguration
     from ...model.objects import SystemConfiguration
+    from ...model.objects import X509Certificate
 
 # ==============================================================================
 
@@ -707,140 +707,6 @@ def update_CertificateCAPreferencePolicy_reprioritize(
     return True
 
 
-def update_CertificateSigned__mark_compromised(
-    ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
-    via_PrivateKey_compromised: Optional[bool] = None,
-) -> str:
-    # the PrivateKey has been compromised
-    dbCertificateSigned.is_compromised_private_key = True
-    dbCertificateSigned.is_revoked = True  # NOTE: this has nothing to do with the acme-server, it is just a local marking
-    if dbCertificateSigned.is_active:
-        dbCertificateSigned.is_active = False
-    ctx.dbSession.flush(objects=[dbCertificateSigned])
-    event_status = "CertificateSigned__mark__compromised"
-    return event_status
-
-
-def update_CertificateSigned__set_active(
-    ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
-) -> str:
-    if dbCertificateSigned.is_active:
-        raise errors.InvalidTransition("Already active.")
-
-    if dbCertificateSigned.is_revoked:
-        raise errors.InvalidTransition(
-            "Certificate is revoked; `active` status can not be changed."
-        )
-
-    if dbCertificateSigned.is_compromised_private_key:
-        raise errors.InvalidTransition(
-            "Certificate has a compromised PrivateKey; `active` status can not be changed."
-        )
-
-    if dbCertificateSigned.is_deactivated:
-        raise errors.InvalidTransition(
-            "Certificate was deactivated; `active` status can not be changed."
-        )
-
-    # now make it active!
-    dbCertificateSigned.is_active = True
-    ctx.dbSession.flush(objects=[dbCertificateSigned])
-
-    # cleanup options
-    event_status = "CertificateSigned__mark__active"
-    return event_status
-
-
-"""
-as of 1.0, AcmeOrders do not; must use a RenewalConfiguration
-as of .40, CertificateSigneds do not auto-renew. Instead, AcmeOrders do.
-
-def update_CertificateSigned__set_renew_auto(ctx, dbCertificateSigned,):
-    if dbCertificateSigned.renewals_managed_by == "AcmeOrder":
-        raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
-    if dbCertificateSigned.is_auto_renew:
-        raise errors.InvalidTransition("Already active.")
-    # activate!
-    dbCertificateSigned.is_auto_renew = True
-    event_status = "CertificateSigned__mark__renew_auto"
-    return event_status
-
-
-def update_CertificateSigned__set_renew_manual(ctx, dbCertificateSigned,):
-    if dbCertificateSigned.renewals_managed_by == "AcmeOrder":
-        raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
-    if not dbCertificateSigned.is_auto_renew:
-        raise errors.InvalidTransition("Already inactive.")
-    # deactivate!
-    dbCertificateSigned.is_auto_renew = False
-    event_status = "CertificateSigned__mark__renew_manual"
-    return event_status
-"""
-
-
-def update_CertificateSigned__set_revoked(
-    ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
-) -> str:
-    if dbCertificateSigned.is_revoked:
-        raise errors.InvalidTransition("Certificate is already revoked")
-
-    # mark revoked
-    dbCertificateSigned.is_revoked = True
-
-    # inactivate it
-    dbCertificateSigned.is_active = False
-
-    # deactivate it, permanently
-    dbCertificateSigned.is_deactivated = True
-
-    ctx.dbSession.flush(objects=[dbCertificateSigned])
-
-    # cleanup options
-    event_status = "CertificateSigned__mark__revoked"
-    return event_status
-
-
-def update_CertificateSigned__unset_active(
-    ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
-) -> str:
-    if not dbCertificateSigned.is_active:
-        raise errors.InvalidTransition("Already inactive.")
-
-    # inactivate it
-    dbCertificateSigned.is_active = False
-
-    ctx.dbSession.flush(objects=[dbCertificateSigned])
-
-    event_status = "CertificateSigned__mark__inactive"
-    return event_status
-
-
-def update_CertificateSigned__unset_revoked(
-    ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
-) -> str:
-    """
-    this is currently not supported
-    """
-
-    if not dbCertificateSigned.is_revoked:
-        raise errors.InvalidTransition("Certificate is not revoked")
-
-    # unset the revoke
-    dbCertificateSigned.is_revoked = False
-
-    ctx.dbSession.flush(objects=[dbCertificateSigned])
-
-    # lead is_active and is_deactivated as-is
-    # cleanup options
-    event_status = "CertificateSigned__mark__unrevoked"
-    return event_status
-
-
 def update_CoverageAssuranceEvent__set_resolution(
     ctx: "ApiContext",
     dbCoverageAssuranceEvent: "CoverageAssuranceEvent",
@@ -852,10 +718,10 @@ def update_CoverageAssuranceEvent__set_resolution(
     elif resolution == "abandoned":
         pass
     elif resolution == "PrivateKey_replaced":
-        if dbCoverageAssuranceEvent.certificate_signed_id:
+        if dbCoverageAssuranceEvent.x509_certificate_id:
             raise errors.InvalidTransition("incompatible `resolution`")
-    elif resolution == "CertificateSigned_replaced":
-        if not dbCoverageAssuranceEvent.certificate_signed_id:
+    elif resolution == "X509Certificate_replaced":
+        if not dbCoverageAssuranceEvent.x509_certificate_id:
             raise errors.InvalidTransition("incompatible `resolution`")
     if resolution_id == dbCoverageAssuranceEvent.coverage_assurance_resolution_id:
         raise errors.InvalidTransition("No Change")
@@ -1244,3 +1110,137 @@ def update_SystemConfiguration(
         ctx.dbSession.flush(objects=[dbSystemConfiguration])
 
     return True if changes else False
+
+
+def update_X509Certificate__mark_compromised(
+    ctx: "ApiContext",
+    dbX509Certificate: "X509Certificate",
+    via_PrivateKey_compromised: Optional[bool] = None,
+) -> str:
+    # the PrivateKey has been compromised
+    dbX509Certificate.is_compromised_private_key = True
+    dbX509Certificate.is_revoked = True  # NOTE: this has nothing to do with the acme-server, it is just a local marking
+    if dbX509Certificate.is_active:
+        dbX509Certificate.is_active = False
+    ctx.dbSession.flush(objects=[dbX509Certificate])
+    event_status = "X509Certificate__mark__compromised"
+    return event_status
+
+
+def update_X509Certificate__set_active(
+    ctx: "ApiContext",
+    dbX509Certificate: "X509Certificate",
+) -> str:
+    if dbX509Certificate.is_active:
+        raise errors.InvalidTransition("Already active.")
+
+    if dbX509Certificate.is_revoked:
+        raise errors.InvalidTransition(
+            "Certificate is revoked; `active` status can not be changed."
+        )
+
+    if dbX509Certificate.is_compromised_private_key:
+        raise errors.InvalidTransition(
+            "Certificate has a compromised PrivateKey; `active` status can not be changed."
+        )
+
+    if dbX509Certificate.is_deactivated:
+        raise errors.InvalidTransition(
+            "Certificate was deactivated; `active` status can not be changed."
+        )
+
+    # now make it active!
+    dbX509Certificate.is_active = True
+    ctx.dbSession.flush(objects=[dbX509Certificate])
+
+    # cleanup options
+    event_status = "X509Certificate__mark__active"
+    return event_status
+
+
+"""
+as of 1.0, AcmeOrders do not; must use a RenewalConfiguration
+as of .40, X509Certificates do not auto-renew. Instead, AcmeOrders do.
+
+def update_X509Certificate__set_renew_auto(ctx, dbX509Certificate,):
+    if dbX509Certificate.renewals_managed_by == "AcmeOrder":
+        raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
+    if dbX509Certificate.is_auto_renew:
+        raise errors.InvalidTransition("Already active.")
+    # activate!
+    dbX509Certificate.is_auto_renew = True
+    event_status = "X509Certificate__mark__renew_auto"
+    return event_status
+
+
+def update_X509Certificate__set_renew_manual(ctx, dbX509Certificate,):
+    if dbX509Certificate.renewals_managed_by == "AcmeOrder":
+        raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
+    if not dbX509Certificate.is_auto_renew:
+        raise errors.InvalidTransition("Already inactive.")
+    # deactivate!
+    dbX509Certificate.is_auto_renew = False
+    event_status = "X509Certificate__mark__renew_manual"
+    return event_status
+"""
+
+
+def update_X509Certificate__set_revoked(
+    ctx: "ApiContext",
+    dbX509Certificate: "X509Certificate",
+) -> str:
+    if dbX509Certificate.is_revoked:
+        raise errors.InvalidTransition("Certificate is already revoked")
+
+    # mark revoked
+    dbX509Certificate.is_revoked = True
+
+    # inactivate it
+    dbX509Certificate.is_active = False
+
+    # deactivate it, permanently
+    dbX509Certificate.is_deactivated = True
+
+    ctx.dbSession.flush(objects=[dbX509Certificate])
+
+    # cleanup options
+    event_status = "X509Certificate__mark__revoked"
+    return event_status
+
+
+def update_X509Certificate__unset_active(
+    ctx: "ApiContext",
+    dbX509Certificate: "X509Certificate",
+) -> str:
+    if not dbX509Certificate.is_active:
+        raise errors.InvalidTransition("Already inactive.")
+
+    # inactivate it
+    dbX509Certificate.is_active = False
+
+    ctx.dbSession.flush(objects=[dbX509Certificate])
+
+    event_status = "X509Certificate__mark__inactive"
+    return event_status
+
+
+def update_X509Certificate__unset_revoked(
+    ctx: "ApiContext",
+    dbX509Certificate: "X509Certificate",
+) -> str:
+    """
+    this is currently not supported
+    """
+
+    if not dbX509Certificate.is_revoked:
+        raise errors.InvalidTransition("Certificate is not revoked")
+
+    # unset the revoke
+    dbX509Certificate.is_revoked = False
+
+    ctx.dbSession.flush(objects=[dbX509Certificate])
+
+    # lead is_active and is_deactivated as-is
+    # cleanup options
+    event_status = "X509Certificate__mark__unrevoked"
+    return event_status

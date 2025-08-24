@@ -149,8 +149,8 @@
                     <tr>
                         <th>Certificates Signed</th>
                         <td>
-                            ${admin_partials.table_CertificateSigneds(UniquelyChallengedFQDNSet.certificate_signeds__5, perspective="UniquelyChallengedFQDNSet")}
-                            % if UniquelyChallengedFQDNSet.certificate_signeds__5:
+                            ${admin_partials.table_X509Certificates(UniquelyChallengedFQDNSet.x509_certificates__5, perspective="UniquelyChallengedFQDNSet")}
+                            % if UniquelyChallengedFQDNSet.x509_certificates__5:
                                 ${admin_partials.nav_pager("%s/uniquely-challenged-fqdn-set/%s/certificates-signed" % (admin_prefix, UniquelyChallengedFQDNSet.id))}
                             % endif
                         </td>

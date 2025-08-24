@@ -8,7 +8,7 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/renewal-configurations">RenewalConfiguration</a></li>
         <li><a href="${admin_prefix}/renewal-configuration/${RenewalConfiguration.id}">Focus [${RenewalConfiguration.id}]</a></li>
-        <li class="active">Certificate Signeds</li>
+        <li class="active">X509Certificates</li>
     </ol>
 </%block>
 
@@ -27,8 +27,8 @@
             </p>
         
             % for lineage_id in reversed(sorted(Lineages.keys())):
-                <% CertificateSigneds = reversed(Lineages[lineage_id]) %>
-                ${admin_partials.table_CertificateSigneds(CertificateSigneds, perspective='RenewalConfiguration', show_replace=True,)}
+                <% X509Certificates = reversed(Lineages[lineage_id]) %>
+                ${admin_partials.table_X509Certificates(X509Certificates, perspective='RenewalConfiguration', show_replace=True,)}
             % endfor
         </div>
     </div>

@@ -6,19 +6,21 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li>Certificate Requests</li>
+        <li><a href="${admin_prefix}/x509-certificates">Server Certificates</a></li>
+        <li><a href="${admin_prefix}/x509-certificate/${X509Certificate.id}">Focus [${X509Certificate.id}]</a></li>
+        <li class="active">ARI Checks</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Certificate Requests</h2>
+    <h2>X509Certificate Focus - ARI Checks</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate-requests.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/x509-certificate/${X509Certificate.id}/ari-check-history.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -27,17 +29,13 @@
 
 
 <%block name="content_main">
-    ${admin_partials.handle_querystring_result()}
-
     <div class="row">
         <div class="col-sm-12">
-            % if CertificateRequests:
+            % if AriChecks:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateRequests(CertificateRequests, perspective='CertificateRequest')}
+                ${admin_partials.table_AriChecks(AriChecks, perspective='X509Certificate')}
             % else:
-                <em>
-                    No Certificate Requests
-                </em>
+                No known ArRI Checks
             % endif
         </div>
     </div>

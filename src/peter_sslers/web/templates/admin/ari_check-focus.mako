@@ -47,14 +47,14 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateSigned</th>
+                        <th>X509Certificate</th>
                         <td>
-                            % if AriCheck.certificate_signed_id:
+                            % if AriCheck.x509_certificate_id:
                                 <a  class="label label-info"
-                                    href="${admin_prefix}/certificate-signed/${AriCheck.certificate_signed_id}"
+                                    href="${admin_prefix}/x509-certificate/${AriCheck.x509_certificate_id}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CertificateSigned-${AriCheck.certificate_signed_id}
+                                    X509Certificate-${AriCheck.x509_certificate_id}
                                 </a>
                             % endif
                         </td>

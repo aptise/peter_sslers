@@ -8,8 +8,8 @@ import warnings
 if TYPE_CHECKING:
     from pyramid.request import Request
 
-    from ..model.objects import CertificateSigned
     from ..model.objects import Domain
+    from ..model.objects import X509Certificate
 
 # pypi
 try:
@@ -143,15 +143,15 @@ def prime_redis_domain(
     try:
         if prime_style == "1":
             try:
-                dbCertificateSigned = redis_prime_logic__style_1_Domain(
+                dbX509Certificate = redis_prime_logic__style_1_Domain(
                     redis_client, dbDomain, redis_timeouts
                 )
                 redis_prime_logic__style_1_PrivateKey(
-                    redis_client, dbCertificateSigned.private_key, redis_timeouts
+                    redis_client, dbX509Certificate.private_key, redis_timeouts
                 )
                 redis_prime_logic__style_1_CertificateCAChain(
                     redis_client,
-                    dbCertificateSigned.certificate_ca_chain__preferred,
+                    dbX509Certificate.certificate_ca_chain__preferred,
                     redis_timeouts,
                 )
             except Exception as exc:
@@ -173,7 +173,7 @@ def redis_prime_logic__style_1_Domain(
     redis_client,
     dbDomain: "Domain",
     redis_timeouts,
-) -> "CertificateSigned":
+) -> "X509Certificate":
     """
     primes the domain, returns the certificate
 
@@ -193,11 +193,11 @@ def redis_prime_logic__style_1_Domain(
     r['c:1'] = CERT.PEM  # (c)ert
     r['c:2'] = CERT.PEM
     """
-    dbCertificateSigned = None
-    if dbDomain.certificate_signed_id__latest_multi:
-        dbCertificateSigned = dbDomain.certificate_signed__latest_multi
-    elif dbDomain.certificate_signed_id__latest_single:
-        dbCertificateSigned = dbDomain.certificate_signed__latest_single
+    dbX509Certificate = None
+    if dbDomain.x509_certificate_id__latest_multi:
+        dbX509Certificate = dbDomain.x509_certificate__latest_multi
+    elif dbDomain.x509_certificate_id__latest_single:
+        dbX509Certificate = dbDomain.x509_certificate__latest_single
     else:
         raise ValueError(
             "this domain does not have a certificate: `%s`" % dbDomain.domain_name
@@ -206,20 +206,20 @@ def redis_prime_logic__style_1_Domain(
     # first do the domain
     key_redis = "d1:%s" % dbDomain.domain_name
     value_redis = {
-        "c": "%s" % dbCertificateSigned.id,
-        "p": "%s" % dbCertificateSigned.private_key_id,
-        "i": "%s" % dbCertificateSigned.certificate_ca_chain_id__preferred,
+        "c": "%s" % dbX509Certificate.id,
+        "p": "%s" % dbX509Certificate.private_key_id,
+        "i": "%s" % dbX509Certificate.certificate_ca_chain_id__preferred,
     }
     redis_client.hset(key_redis, mapping=value_redis)
 
     # then do the cert
-    key_redis = "c:%s" % dbCertificateSigned.id
+    key_redis = "c:%s" % dbX509Certificate.id
     # only send over the wire if it doesn't exist
     if not redis_client.exists(key_redis):
-        value_redis = dbCertificateSigned.cert_pem
+        value_redis = dbX509Certificate.cert_pem
         redis_client.set(key_redis, value_redis, redis_timeouts["cert"])
 
-    return dbCertificateSigned
+    return dbX509Certificate
 
 
 def redis_prime_logic__style_1_PrivateKey(
@@ -258,7 +258,7 @@ def redis_prime_logic__style_2_domain(
     redis_client,
     dbDomain: "Domain",
     redis_timeouts,
-) -> "CertificateSigned":
+) -> "X509Certificate":
     """
     returns the certificate
 
@@ -270,19 +270,19 @@ def redis_prime_logic__style_2_domain(
 
         d2: domain
     """
-    dbCertificateSigned = None
-    if dbDomain.certificate_signed_id__latest_multi:
-        dbCertificateSigned = dbDomain.certificate_signed__latest_multi
-    elif dbDomain.certificate_signed_id__latest_single:
-        dbCertificateSigned = dbDomain.certificate_signed__latest_single
+    dbX509Certificate = None
+    if dbDomain.x509_certificate_id__latest_multi:
+        dbX509Certificate = dbDomain.x509_certificate__latest_multi
+    elif dbDomain.x509_certificate_id__latest_single:
+        dbX509Certificate = dbDomain.x509_certificate__latest_single
     else:
         raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)
 
     # the domain will hold the fullchain and private key
     key_redis = "d2:%s" % dbDomain.domain_name
     value_redis = {
-        "f": "%s" % dbCertificateSigned.cert_fullchain_pem,
-        "p": "%s" % dbCertificateSigned.private_key.key_pem,
+        "f": "%s" % dbX509Certificate.cert_fullchain_pem,
+        "p": "%s" % dbX509Certificate.private_key.key_pem,
     }
     redis_client.hset(key_redis, mapping=value_redis)
-    return dbCertificateSigned
+    return dbX509Certificate

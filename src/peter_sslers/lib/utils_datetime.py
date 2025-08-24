@@ -25,7 +25,7 @@ def datetime_ari_timely(
         Literal[
             "ari_check",
             "dashboard",
-            "get_CertificateSigneds_renew_now",
+            "get_X509Certificates_renew_now",
             "routine__run_ari_checks",
         ]
     ] = None,
@@ -36,7 +36,7 @@ def datetime_ari_timely(
     This function pads the current datetime with a clockdrift and an expected
     offset interval for polling.
 
-    See:: lib.db.get.get_CertificateSigneds_renew_now
+    See:: lib.db.get.get_X509Certificates_renew_now
     """
     # don't rely on ctx.timestamp, as it can be old
     assert ctx.application_settings

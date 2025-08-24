@@ -68,8 +68,8 @@ if TYPE_CHECKING:
     from ..model.objects import AcmeChallenge
     from ..model.objects import AcmeOrder
     from ..model.objects import AcmeServer
-    from ..model.objects import CertificateSigned
     from ..model.objects import UniqueFQDNSet
+    from ..model.objects import X509Certificate
     from ..model.utils import DomainsChallenged
 
     HEADERS_COMPAT = Union["HTTPMessage", "CaseInsensitiveDict", "Message"]
@@ -2885,7 +2885,7 @@ def _ari_query(
 
 def ari_check(
     ctx: "ApiContext",
-    dbCertificateSigned: "CertificateSigned",
+    dbX509Certificate: "X509Certificate",
     force_check: bool = False,
 ) -> Optional[AriCheckResult]:
     """
@@ -2895,13 +2895,13 @@ def ari_check(
             AriCheck[payload] will be null if there is an error
             AriCheck[headers] will always exist
     """
-    log.info("ari_check(CertificateSigned.id=%s", dbCertificateSigned.id)
+    log.info("ari_check(X509Certificate.id=%s", dbX509Certificate.id)
 
     # do not run ARI checks for certs that expire, or will expire before the
     # next proces is run
 
     datetime_now = datetime.datetime.now(datetime.timezone.utc)
-    if not dbCertificateSigned.is_ari_checking_timely(ctx, datetime_now=datetime_now):
+    if not dbX509Certificate.is_ari_checking_timely(ctx, datetime_now=datetime_now):
         if not force_check:
             # the expiry is a padded limit of the max time to rely on ARI checks
             timely_expiry = datetime_ari_timely(
@@ -2910,7 +2910,7 @@ def ari_check(
             raise errors.AcmeAriCheckDeclined(
                 "ARI Check Declined; Not Timely: %s<%s"
                 % (
-                    dbCertificateSigned.timestamp_not_after,
+                    dbX509Certificate.timestamp_not_after,
                     timely_expiry.replace(microsecond=0).isoformat(),
                 )
             )
@@ -2919,15 +2919,15 @@ def ari_check(
     check_ari_support: bool = True
     dbAcmeServer: Optional["AcmeServer"] = None
 
-    if dbCertificateSigned.acme_account:
-        if dbCertificateSigned.acme_account.acme_server:
-            dbAcmeServer = dbCertificateSigned.acme_account.acme_server
-            if dbCertificateSigned.acme_account.acme_server.is_supports_ari:
-                acme_directory = dbCertificateSigned.acme_account.acme_server.url
+    if dbX509Certificate.acme_account:
+        if dbX509Certificate.acme_account.acme_server:
+            dbAcmeServer = dbX509Certificate.acme_account.acme_server
+            if dbX509Certificate.acme_account.acme_server.is_supports_ari:
+                acme_directory = dbX509Certificate.acme_account.acme_server.url
                 check_ari_support = False
     else:
         # let's try to pull the cert info..
-        cert_data = cert_utils.parse_cert(cert_pem=dbCertificateSigned.cert_pem)
+        cert_data = cert_utils.parse_cert(cert_pem=dbX509Certificate.cert_pem)
         acme_directory = utils.issuer_to_endpoint(cert_data=cert_data)
 
     if not acme_directory:
@@ -2936,7 +2936,7 @@ def ari_check(
 
     # can we grab the ARI info off the cert?
     try:
-        ari_identifier = dbCertificateSigned.ari_identifier
+        ari_identifier = dbX509Certificate.ari_identifier
     except Exception as exc:
         raise exc
     if not ari_identifier:

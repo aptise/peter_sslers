@@ -105,7 +105,12 @@ for result in audit_results:
                 if (_api_result["result"][0]["type"] == "CNAME") and (
                     _api_result["result"][0]["content"] == _cname_target
                 ):
-                    print("Records match: (source, target);", _cname_source, ",", _cname_target)
+                    print(
+                        "Records match: (source, target);",
+                        _cname_source,
+                        ",",
+                        _cname_target,
+                    )
                     _write = False
                 else:
                     print("Deletng OLD record.")

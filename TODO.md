@@ -296,7 +296,7 @@ deferred tasks
 * add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
 * AcmeAccountKey
 	- letsencrypt_data - audit. refresh? log?
-* search expiring soon | note: isn't this the `/certificate-signeds/expiring` view?
+* search expiring soon | note: isn't this the `/x509-certificates/expiring` view?
 * log full actual results;
 	this happens to standard python logging
 	this could be formatted to a special logger though

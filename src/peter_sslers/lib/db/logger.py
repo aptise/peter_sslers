@@ -22,8 +22,6 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeServer
     from ...model.objects import CertificateCA
     from ...model.objects import CertificateCAChain
-    from ...model.objects import CertificateRequest
-    from ...model.objects import CertificateSigned
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import Domain
     from ...model.objects import EnrollmentFactory
@@ -33,6 +31,8 @@ if TYPE_CHECKING:
     from ...model.objects import RenewalConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.objects import UniquelyChallengedFQDNSet
+    from ...model.objects import X509Certificate
+    from ...model.objects import X509CertificateRequest
 
 # ==============================================================================
 
@@ -483,16 +483,16 @@ class AcmeLogger(object):
     def log_CertificateProcured(
         self,
         acme_version: str,
-        dbCertificateSigned: "CertificateSigned",
-        dbCertificateRequest: "CertificateRequest",
+        dbX509Certificate: "X509Certificate",
+        dbX509CertificateRequest: "X509CertificateRequest",
         transaction_commit: bool = True,
     ) -> "AcmeEventLog":
         """
         Logs an AcmeOrder as finalized
 
         :param acme_version: (required) The ACME version of the API we are using.
-        :param dbCertificateSigned: (required) The :class:`model.objects.CertificateSigned`
-        :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest`
+        :param dbX509Certificate: (required) The :class:`model.objects.X509Certificate`
+        :param dbX509CertificateRequest: (required) The :class:`model.objects.X509CertificateRequest`
         :param transaction_commit: (option) Boolean. If True, commit the transaction
         """
         if acme_version != "v2":
@@ -513,8 +513,8 @@ class AcmeLogger(object):
         dbAcmeEventLog.unique_fqdn_set_id = (
             self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         )
-        dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
-        dbAcmeEventLog.certificate_signed_id = dbCertificateSigned.id
+        dbAcmeEventLog.x509_certificate_request_id = dbX509CertificateRequest.id
+        dbAcmeEventLog.x509_certificate_id = dbX509Certificate.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -582,12 +582,12 @@ def _log_object_event(
     dbAcmeServer: Optional["AcmeServer"] = None,
     dbCertificateCA: Optional["CertificateCA"] = None,
     dbCertificateCAChain: Optional["CertificateCAChain"] = None,
-    dbCertificateRequest: Optional["CertificateRequest"] = None,
+    dbX509CertificateRequest: Optional["X509CertificateRequest"] = None,
     dbCoverageAssuranceEvent: Optional["CoverageAssuranceEvent"] = None,
     dbDomain: Optional["Domain"] = None,
     dbEnrollmentFactory: Optional["EnrollmentFactory"] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
-    dbCertificateSigned: Optional["CertificateSigned"] = None,
+    dbX509Certificate: Optional["X509Certificate"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
     dbUniquelyChallengedFQDNSet: Optional["UniquelyChallengedFQDNSet"] = None,
     dbRenewalConfiguration: Optional["RenewalConfiguration"] = None,
@@ -611,8 +611,10 @@ def _log_object_event(
         dbOperationsObjectEvent.certificate_ca_id = dbCertificateCA.id
     elif dbCertificateCAChain:
         dbOperationsObjectEvent.certificate_ca_chain_id = dbCertificateCAChain.id
-    elif dbCertificateRequest:
-        dbOperationsObjectEvent.certificate_request_id = dbCertificateRequest.id
+    elif dbX509CertificateRequest:
+        dbOperationsObjectEvent.x509_certificate_request_id = (
+            dbX509CertificateRequest.id
+        )
     elif dbCoverageAssuranceEvent:
         dbOperationsObjectEvent.coverage_assurance_event_id = (
             dbCoverageAssuranceEvent.id
@@ -623,8 +625,8 @@ def _log_object_event(
         dbOperationsObjectEvent.enrollment_factory_id = dbEnrollmentFactory.id
     elif dbPrivateKey:
         dbOperationsObjectEvent.private_key_id = dbPrivateKey.id
-    elif dbCertificateSigned:
-        dbOperationsObjectEvent.certificate_signed_id = dbCertificateSigned.id
+    elif dbX509Certificate:
+        dbOperationsObjectEvent.x509_certificate_id = dbX509Certificate.id
     elif dbRenewalConfiguration:
         dbOperationsObjectEvent.renewal_configuration_id = dbRenewalConfiguration.id
     elif dbUniqueFQDNSet:
