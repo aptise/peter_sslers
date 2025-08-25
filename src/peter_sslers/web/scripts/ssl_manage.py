@@ -70,7 +70,7 @@ COMMANDS: Dict[str, List[str]] = {
     "acme-server": [
         "list",
     ],
-    "x509-certificate": [
+    "domain": [
         "list",
     ],
     "enrollment-factory": [
@@ -94,6 +94,9 @@ COMMANDS: Dict[str, List[str]] = {
     "system-configuration": [
         "list",
         "edit",
+    ],
+    "x509-certificate": [
+        "list",
     ],
 }
 
@@ -383,14 +386,14 @@ def main(argv=sys.argv):
                     None,
                     lib_db.get.get__AcmeServer__paginated,
                 )
-        # !!!: distpatch[x509-certificate]
-        elif command == "x509-certificate":
+        # !!!: distpatch[domain]
+        elif command == "domain":
+            # !!!: - list
             if subcommand == "list":
-                print("X509Certificates:")
+                print("Domains:")
                 _list_items(
-                    lib_db.get.get__X509Certificate__count,
-                    lib_db.get.get__X509Certificate__paginated,
-                    condensed=True,
+                    None,
+                    lib_db.get.get__Domain__paginated,
                 )
         # !!!: distpatch[enrollment-factory]
         elif command == "enrollment-factory":
@@ -656,3 +659,12 @@ def main(argv=sys.argv):
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     render_data(exc.formStash.errors)
+        # !!!: distpatch[x509-certificate]
+        elif command == "x509-certificate":
+            if subcommand == "list":
+                print("X509Certificates:")
+                _list_items(
+                    lib_db.get.get__X509Certificate__count,
+                    lib_db.get.get__X509Certificate__paginated,
+                    condensed=True,
+                )
