@@ -1796,925 +1796,6 @@ def get__CertificateCAPreferencePolicy__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__X509CertificateRequest__count(ctx: "ApiContext") -> int:
-    counted = ctx.dbSession.query(X509CertificateRequest).count()
-    return counted
-
-
-def get__X509CertificateRequest__paginated(
-    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
-) -> List[X509CertificateRequest]:
-    items_paged = (
-        ctx.dbSession.query(X509CertificateRequest)
-        .options(
-            joinedload(X509CertificateRequest.x509_certificates).options(
-                subqueryload(X509Certificate.unique_fqdn_set)
-                .joinedload(UniqueFQDNSet.to_domains)
-                .joinedload(UniqueFQDNSet2Domain.domain),
-            ),
-        )
-        .order_by(X509CertificateRequest.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__X509CertificateRequest__by_id(
-    ctx: "ApiContext", x509_certificate_request_id: int
-) -> Optional[X509CertificateRequest]:
-    dbX509CertificateRequest = (
-        ctx.dbSession.query(X509CertificateRequest)
-        .filter(X509CertificateRequest.id == x509_certificate_request_id)
-        .options(
-            joinedload(X509CertificateRequest.x509_certificates__5).options(
-                subqueryload(X509Certificate.unique_fqdn_set)
-                .joinedload(UniqueFQDNSet.to_domains)
-                .joinedload(UniqueFQDNSet2Domain.domain),
-            ),
-        )
-        .first()
-    )
-    return dbX509CertificateRequest
-
-
-def get__X509CertificateRequest__by_pem_text(
-    ctx: "ApiContext", csr_pem: str
-) -> Optional[X509CertificateRequest]:
-    csr_pem = cert_utils.cleanup_pem_text(csr_pem)
-    csr_pem_md5 = cert_utils.utils.md5_text(csr_pem)
-    dbX509CertificateRequest = (
-        ctx.dbSession.query(X509CertificateRequest)
-        .filter(
-            X509CertificateRequest.csr_pem_md5 == csr_pem_md5,
-            X509CertificateRequest.csr_pem == csr_pem,
-        )
-        .first()
-    )
-    return dbX509CertificateRequest
-
-
-def get__X509CertificateRequest__by_DomainId__count(
-    ctx: "ApiContext", domain_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(X509CertificateRequest)
-        .join(
-            UniqueFQDNSet,
-            X509CertificateRequest.unique_fqdn_set_id == UniqueFQDNSet.id,
-        )
-        .join(
-            UniqueFQDNSet2Domain,
-            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
-        )
-        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-        .count()
-    )
-    return counted
-
-
-def get__X509CertificateRequest__by_DomainId__paginated(
-    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[X509CertificateRequest]:
-    items_paged = (
-        ctx.dbSession.query(X509CertificateRequest)
-        .join(
-            UniqueFQDNSet,
-            X509CertificateRequest.unique_fqdn_set_id == UniqueFQDNSet.id,
-        )
-        .join(
-            UniqueFQDNSet2Domain,
-            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
-        )
-        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-        .order_by(X509CertificateRequest.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__X509CertificateRequest__by_PrivateKeyId__count(
-    ctx: "ApiContext", key_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(X509CertificateRequest)
-        .filter(X509CertificateRequest.private_key_id == key_id)
-        .count()
-    )
-    return counted
-
-
-def get__X509CertificateRequest__by_PrivateKeyId__paginated(
-    ctx: "ApiContext", key_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[X509CertificateRequest]:
-    items_paged = (
-        ctx.dbSession.query(X509CertificateRequest)
-        .filter(X509CertificateRequest.private_key_id == key_id)
-        .options(
-            subqueryload(X509CertificateRequest.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet.to_domains)
-            .joinedload(UniqueFQDNSet2Domain.domain),
-        )
-        .order_by(X509CertificateRequest.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__X509CertificateRequest__by_UniqueFQDNSetId__count(
-    ctx: "ApiContext", unique_fqdn_set_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(X509CertificateRequest)
-        .filter(X509CertificateRequest.unique_fqdn_set_id == unique_fqdn_set_id)
-        .count()
-    )
-    return counted
-
-
-def get__X509CertificateRequest__by_UniqueFQDNSetId__paginated(
-    ctx: "ApiContext",
-    unique_fqdn_set_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[X509CertificateRequest]:
-    items_paged = (
-        ctx.dbSession.query(X509CertificateRequest)
-        .filter(X509CertificateRequest.unique_fqdn_set_id == unique_fqdn_set_id)
-        .order_by(X509CertificateRequest.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__X509Certificate__count(
-    ctx: "ApiContext",
-    days_to_expiry: Optional[int] = None,
-    is_active: Optional[bool] = None,
-    is_unexpired: Optional[bool] = None,
-) -> int:
-    if (days_to_expiry is not None) and (is_unexpired is not None):
-        raise ValueError("only submit one of: days_to_expiry, is_unexpired")
-    q = ctx.dbSession.query(X509Certificate)
-    if is_active is not None:
-        if is_active is True:
-            q = q.filter(X509Certificate.is_active.is_(True))
-        elif is_active is False:
-            q = q.filter(X509Certificate.is_active.is_(False))
-    if days_to_expiry is not None:
-        _until = ctx.timestamp + datetime.timedelta(days=days_to_expiry)
-        q = q.filter(
-            X509Certificate.timestamp_not_after <= _until,
-        )
-    elif is_unexpired:
-        q = q.filter(
-            X509Certificate.timestamp_not_after > ctx.timestamp,
-        )
-    counted = q.count()
-    return counted
-
-
-def get__X509Certificate__paginated(
-    ctx: "ApiContext",
-    days_to_expiry: Optional[int] = None,
-    is_active: Optional[bool] = None,
-    is_unexpired: Optional[bool] = None,
-    eagerload_web: bool = False,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[X509Certificate]:
-    if (days_to_expiry is not None) and (is_unexpired is not None):
-        raise ValueError("only submit one of: days_to_expiry, is_unexpired")
-    q = ctx.dbSession.query(X509Certificate)
-    if eagerload_web:
-        q = q.options(
-            joinedload(X509Certificate.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet.to_domains)
-            .joinedload(UniqueFQDNSet2Domain.domain)
-        )
-    if is_active is not None:
-        if is_active is True:
-            q = q.filter(X509Certificate.is_active.is_(True))
-        elif is_active is False:
-            q = q.filter(X509Certificate.is_active.is_(False))
-        # q = q.order_by(X509Certificate.timestamp_not_after.asc())
-        q = q.order_by(X509Certificate.id.desc())
-    if days_to_expiry is not None:
-        _until = ctx.timestamp + datetime.timedelta(days=days_to_expiry)
-        q = q.filter(
-            X509Certificate.timestamp_not_after <= _until,
-        ).order_by(X509Certificate.timestamp_not_after.asc())
-    elif is_unexpired:
-        q = q.filter(
-            X509Certificate.timestamp_not_after > ctx.timestamp,
-        ).order_by(X509Certificate.timestamp_not_after.asc())
-    else:
-        q = q.order_by(X509Certificate.id.desc())
-    q = q.limit(limit).offset(offset)
-    items_paged = q.all()
-    return items_paged
-
-
-def get__X509Certificate__by_id(
-    ctx: "ApiContext", cert_id: int
-) -> Optional[X509Certificate]:
-    dbX509Certificate = (
-        ctx.dbSession.query(X509Certificate)
-        .filter(X509Certificate.id == cert_id)
-        .options(
-            subqueryload(X509Certificate.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet.to_domains)
-            .joinedload(UniqueFQDNSet2Domain.domain)
-        )
-        .first()
-    )
-    return dbX509Certificate
-
-
-def get__X509Certificate__by_ariIdentifier(
-    ctx: "ApiContext", ari_identifier: str
-) -> Optional[X509Certificate]:
-    if not ari_identifier:
-        return None
-    dbX509Certificate = (
-        ctx.dbSession.query(X509Certificate)
-        .filter(X509Certificate.ari_identifier == ari_identifier)
-        .first()
-    )
-    return dbX509Certificate
-
-
-def get__X509Certificates__by_certSerial(
-    ctx: "ApiContext", cert_serial: str
-) -> List[X509Certificate]:
-    if not cert_serial:
-        return []
-    dbX509Certificates = (
-        ctx.dbSession.query(X509Certificate)
-        .filter(X509Certificate.cert_serial == cert_serial)
-        .all()
-    )
-    return dbX509Certificates
-
-
-def get__X509Certificate_replaces_candidates(
-    ctx: "ApiContext",
-    dbRenewalConfiguration: RenewalConfiguration,
-    certificate_type: Literal[
-        model_utils.CertificateType_Enum.MANAGED_PRIMARY,
-        model_utils.CertificateType_Enum.MANAGED_BACKUP,
-    ] = model_utils.CertificateType_Enum.MANAGED_PRIMARY,
-    timestamp_min_expiry: Optional[datetime.datetime] = None,
-) -> List[X509Certificate]:
-    """
-    relevant fields:
-        X509Certificate.ari_identifier__replaced_by
-        X509Certificate.x509_certificate_id__replaced_by
-    """
-    if not timestamp_min_expiry:
-        # how many days ago should we allow an attempted renewal?
-        TIMEDELTA_days = datetime.timedelta(days=10)
-        # maths: add these times from the current timestamp
-        timestamp_min_expiry = ctx.timestamp - TIMEDELTA_days
-
-    if certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
-        if not dbRenewalConfiguration.acme_account_id__backup:
-            return []
-    q = (
-        ctx.dbSession.query(X509Certificate)
-        .join(AcmeOrder, X509Certificate.id == AcmeOrder.x509_certificate_id)
-        .join(AcmeAccount, AcmeOrder.acme_account_id == AcmeAccount.id)
-        .filter(
-            sqlalchemy.or_(
-                # !!!: Filter- Start with all AcmeOrders for this RenewalConfiguration
-                AcmeOrder.renewal_configuration_id == dbRenewalConfiguration.id,
-                # !!!: Add in Certs with no Order (imports) that have the same FQDNs
-                sqlalchemy.and_(
-                    X509Certificate.unique_fqdn_set_id == AcmeOrder.unique_fqdn_set_id,
-                    AcmeOrder.renewal_configuration_id.is_(None),
-                ),
-            ),
-            # !!!: Filter- narrow down certificates that have not yet been replacd
-            X509Certificate.ari_identifier__replaced_by.is_(None),
-            X509Certificate.ari_identifier.is_not(None),
-            # !!!: Filter- the Cert needs to be timely
-            X509Certificate.timestamp_not_after > timestamp_min_expiry,
-        )
-    )
-    if certificate_type == model_utils.CertificateType_Enum.MANAGED_PRIMARY:
-        # !!!: Filter- lock down to the same AcmeServer
-        q = q.filter(
-            AcmeAccount.acme_server_id
-            == dbRenewalConfiguration.acme_account__primary.acme_server_id,
-        )
-    elif certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
-        # !!!: Filter- lock down to the same AcmeServer
-        q = q.filter(
-            AcmeAccount.acme_server_id
-            == dbRenewalConfiguration.acme_account__backup.acme_server_id,
-        )
-    else:
-        raise ValueError("unknown `certificate_type`")
-    q = q.order_by(X509Certificate.id.desc())
-    candidates = q.all()
-    return candidates
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__X509Certificate__by_AcmeAccountId__count(
-    ctx: "ApiContext", acme_account_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            AcmeOrder,
-            X509Certificate.id == AcmeOrder.x509_certificate_id,
-        )
-        .filter(AcmeOrder.acme_account_id == acme_account_id)
-        .count()
-    )
-    return counted
-
-
-def get__X509Certificate__by_AcmeAccountId__paginated(
-    ctx: "ApiContext",
-    acme_account_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[X509Certificate]:
-    items_paged = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            AcmeOrder,
-            X509Certificate.id == AcmeOrder.x509_certificate_id,
-        )
-        .filter(AcmeOrder.acme_account_id == acme_account_id)
-        .options(
-            joinedload(X509Certificate.unique_fqdn_set)
-            .joinedload(UniqueFQDNSet.to_domains)
-            .joinedload(UniqueFQDNSet2Domain.domain)
-        )
-        .order_by(X509Certificate.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def _get__X509Certificate__by_CertificateCAId__primary(
-    ctx: "ApiContext", cert_ca_id: int
-):
-    """
-    we no longer track the Certificate to the CertificateCA directly, but instead
-    through the CertificateCAChain
-        Certificate > CertificateChains > CertificateCAChain > CertificateCA
-    """
-    query_core = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            X509CertificateChain,
-            X509Certificate.id == X509CertificateChain.x509_certificate_id,
-        )
-        .join(
-            CertificateCAChain,
-            X509CertificateChain.certificate_ca_chain_id == CertificateCAChain.id,
-        )
-        .filter(CertificateCAChain.certificate_ca_0_id == cert_ca_id)
-        .filter(X509CertificateChain.is_upstream_default.is_(True))
-    )
-    return query_core
-
-
-def get__X509Certificate__by_CertificateCAId__primary__count(
-    ctx: "ApiContext", cert_ca_id: int
-) -> int:
-    query_core = _get__X509Certificate__by_CertificateCAId__primary(ctx, cert_ca_id)
-    counted = query_core.count()
-    return counted
-
-
-def get__X509Certificate__by_CertificateCAId__primary__paginated(
-    ctx: "ApiContext", cert_ca_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[X509Certificate]:
-    query_core = _get__X509Certificate__by_CertificateCAId__primary(ctx, cert_ca_id)
-    items_paged = (
-        query_core.order_by(X509Certificate.id.desc()).limit(limit).offset(offset).all()
-    )
-    return items_paged
-
-
-def _get__X509Certificate__by_CertificateCAId__alt(ctx: "ApiContext", cert_ca_id: int):
-    """
-    we no longer track the Certificate to the CertificateCA directly, but instead
-    through the CertificateCAChain
-        Certificate > CertificateChains > CertificateCAChain > CertificateCA
-    """
-    query_core = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            X509CertificateChain,
-            X509Certificate.id == X509CertificateChain.x509_certificate_id,
-        )
-        .join(
-            CertificateCAChain,
-            X509CertificateChain.certificate_ca_chain_id == CertificateCAChain.id,
-        )
-        .filter(CertificateCAChain.certificate_ca_0_id == cert_ca_id)
-        .filter(X509CertificateChain.is_upstream_default.isnot(True))
-    )
-    return query_core
-
-
-def get__X509Certificate__by_CertificateCAId__alt__count(
-    ctx: "ApiContext", cert_ca_id: int
-) -> int:
-    query_core = _get__X509Certificate__by_CertificateCAId__alt(ctx, cert_ca_id)
-    counted = query_core.count()
-    return counted
-
-
-def get__X509Certificate__by_CertificateCAId__alt__paginated(
-    ctx: "ApiContext", cert_ca_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[X509Certificate]:
-    query_core = _get__X509Certificate__by_CertificateCAId__alt(ctx, cert_ca_id)
-    items_paged = (
-        query_core.order_by(X509Certificate.id.desc()).limit(limit).offset(offset).all()
-    )
-    return items_paged
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__X509Certificate__by_DomainId__count(
-    ctx: "ApiContext",
-    domain_id: int,
-    facet: Literal["all", "single", "multi"] = "all",
-) -> int:
-    q = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            UniqueFQDNSet,
-            X509Certificate.unique_fqdn_set_id == UniqueFQDNSet.id,
-        )
-        .join(
-            UniqueFQDNSet2Domain,
-            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
-        )
-        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-    )
-    if facet == "all":
-        pass
-    elif facet == "single":
-        q = q.filter(UniqueFQDNSet.count_domains == 1)
-    elif facet == "multi":
-        q = q.filter(UniqueFQDNSet.count_domains > 1)
-    counted = q.count()
-    return counted
-
-
-def get__X509Certificate__by_DomainId__paginated(
-    ctx: "ApiContext",
-    domain_id: int,
-    facet: Literal["all", "single", "multi"] = "all",
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[X509Certificate]:
-    q = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            UniqueFQDNSet,
-            X509Certificate.unique_fqdn_set_id == UniqueFQDNSet.id,
-        )
-        .join(
-            UniqueFQDNSet2Domain,
-            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
-        )
-        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-    )
-    if facet == "all":
-        pass
-    elif facet == "single":
-        q = q.filter(UniqueFQDNSet.count_domains == 1)
-    elif facet == "multi":
-        q = q.filter(UniqueFQDNSet.count_domains > 1)
-    items_paged = (
-        q.order_by(X509Certificate.id.desc()).limit(limit).offset(offset).all()
-    )
-    return items_paged
-
-
-def get__X509Certificate__by_DomainId__latest(
-    ctx: "ApiContext", domain_id: int
-) -> Optional[X509Certificate]:
-    first = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            UniqueFQDNSet,
-            X509Certificate.unique_fqdn_set_id == UniqueFQDNSet.id,
-        )
-        .join(
-            UniqueFQDNSet2Domain,
-            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
-        )
-        .filter(
-            UniqueFQDNSet2Domain.domain_id == domain_id,
-            X509Certificate.is_active.is_(True),
-        )
-        .order_by(X509Certificate.id.desc())
-        .first()
-    )
-    return first
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__X509Certificate__by_EnrollmentFactoryId__count(
-    ctx: "ApiContext", enrollment_factory_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            AcmeOrder,
-            X509Certificate.id == AcmeOrder.x509_certificate_id,
-        )
-        .join(
-            RenewalConfiguration,
-            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
-        )
-        .filter(
-            RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
-        )
-        .count()
-    )
-    return counted
-
-
-def get__X509Certificate__by_EnrollmentFactoryId__paginated(
-    ctx: "ApiContext",
-    enrollment_factory_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[X509Certificate]:
-    items_paged = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            AcmeOrder,
-            X509Certificate.id == AcmeOrder.x509_certificate_id,
-        )
-        .join(
-            RenewalConfiguration,
-            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
-        )
-        .filter(
-            RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
-        )
-        .order_by(X509Certificate.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__X509Certificate__by_PrivateKeyId__count(ctx: "ApiContext", key_id: int) -> int:
-    counted = (
-        ctx.dbSession.query(X509Certificate)
-        .filter(X509Certificate.private_key_id == key_id)
-        .count()
-    )
-    return counted
-
-
-def get__X509Certificate__by_PrivateKeyId__paginated(
-    ctx: "ApiContext", key_id: int, limit: Optional[int] = None, offset: int = 0
-) -> List[X509Certificate]:
-    items_paged = (
-        ctx.dbSession.query(X509Certificate)
-        .filter(X509Certificate.private_key_id == key_id)
-        .order_by(X509Certificate.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__X509Certificate__by_RenewalConfigurationId__count(
-    ctx: "ApiContext", renewal_configuration_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            AcmeOrder,
-            X509Certificate.id == AcmeOrder.x509_certificate_id,
-        )
-        .join(
-            RenewalConfiguration,
-            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
-        )
-        .filter(AcmeOrder.renewal_configuration_id == renewal_configuration_id)
-        .count()
-    )
-    return counted
-
-
-def get__X509Certificate__by_RenewalConfigurationId__paginated(
-    ctx: "ApiContext",
-    renewal_configuration_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[X509Certificate]:
-    items_paged = (
-        ctx.dbSession.query(X509Certificate)
-        .join(
-            AcmeOrder,
-            X509Certificate.id == AcmeOrder.x509_certificate_id,
-        )
-        .join(
-            RenewalConfiguration,
-            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
-        )
-        .filter(AcmeOrder.renewal_configuration_id == renewal_configuration_id)
-        .order_by(X509Certificate.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__X509Certificate__by_UniqueFQDNSetId__count(
-    ctx: "ApiContext", unique_fqdn_set_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(X509Certificate)
-        .filter(X509Certificate.unique_fqdn_set_id == unique_fqdn_set_id)
-        .count()
-    )
-    return counted
-
-
-def get__X509Certificate__by_UniqueFQDNSetId__paginated(
-    ctx: "ApiContext",
-    unique_fqdn_set_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[X509Certificate]:
-    items_paged = (
-        ctx.dbSession.query(X509Certificate)
-        .filter(X509Certificate.unique_fqdn_set_id == unique_fqdn_set_id)
-        .order_by(X509Certificate.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__X509Certificate__by_UniqueFQDNSetId__latest_active(
-    ctx: "ApiContext", unique_fqdn_set_id: int
-) -> Optional[X509Certificate]:
-    item = (
-        ctx.dbSession.query(X509Certificate)
-        .filter(X509Certificate.unique_fqdn_set_id == unique_fqdn_set_id)
-        .filter(X509Certificate.is_active.is_(True))
-        .order_by(X509Certificate.timestamp_not_after.desc())
-        .first()
-    )
-    return item
-
-
-def get__X509Certificates__by_UniquelyChallengedFQDNSetId__count(
-    ctx: "ApiContext", uniquely_challenged_fqdn_set_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(X509Certificate)
-        .join(AcmeOrder, X509Certificate.id == AcmeOrder.x509_certificate_id)
-        .filter(
-            AcmeOrder.uniquely_challenged_fqdn_set_id == uniquely_challenged_fqdn_set_id
-        )
-        .count()
-    )
-    return counted
-
-
-def get__X509Certificates__by_UniquelyChallengedFQDNSetId__paginated(
-    ctx: "ApiContext",
-    uniquely_challenged_fqdn_set_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[X509Certificate]:
-    items_paged = (
-        ctx.dbSession.query(X509Certificate)
-        .join(AcmeOrder, X509Certificate.id == AcmeOrder.x509_certificate_id)
-        .filter(
-            AcmeOrder.uniquely_challenged_fqdn_set_id == uniquely_challenged_fqdn_set_id
-        )
-        .order_by(X509Certificate.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get_X509Certificate_weeklyData_by_domainId(
-    ctx: "ApiContext",
-    domain_id: int,
-) -> List[Any]:
-    weekly_certs = (
-        ctx.dbSession.query(
-            model_utils.year_week(X509Certificate.timestamp_not_before).label(
-                "week_num"
-            ),
-            sqlalchemy.func.count(X509Certificate.id),
-        )
-        .join(
-            UniqueFQDNSet2Domain,
-            X509Certificate.unique_fqdn_set_id
-            == UniqueFQDNSet2Domain.unique_fqdn_set_id,
-        )
-        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
-        .group_by("week_num")
-        .order_by(sqlalchemy.asc("week_num"))
-        .all()
-    )
-    return weekly_certs
-
-
-def get_X509Certificate_weeklyData_by_uniqueFqdnSetId(
-    ctx: "ApiContext",
-    unique_fqdn_set_id: int,
-) -> List[Any]:
-    weekly_certs = (
-        ctx.dbSession.query(
-            model_utils.year_week(X509Certificate.timestamp_not_before).label(
-                "week_num"
-            ),
-            sqlalchemy.func.count(X509Certificate.id),
-        )
-        .filter(X509Certificate.unique_fqdn_set_id == unique_fqdn_set_id)
-        .group_by("week_num")
-        .order_by(sqlalchemy.asc("week_num"))
-        .all()
-    )
-    return weekly_certs
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def _get_X509Certificates_duplicatePairs__core(
-    ctx: "ApiContext",
-):
-    q = (
-        ctx.dbSession.query(X509Certificate, X509Certificate_Alt)
-        .join(AcmeOrder, X509Certificate.id == AcmeOrder.x509_certificate_id)
-        .join(
-            RenewalConfiguration,
-            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
-        )
-        .join(
-            AcmeOrder_Alt,
-            RenewalConfiguration.id == AcmeOrder_Alt.renewal_configuration_id,
-        )
-        .join(
-            X509Certificate_Alt,
-            AcmeOrder_Alt.x509_certificate_id == X509Certificate_Alt.id,
-        )
-        .filter(
-            AcmeOrder.id != AcmeOrder_Alt.id,
-            AcmeOrder.certificate_type_id == AcmeOrder_Alt.certificate_type_id,
-            X509Certificate.is_active.is_(True),
-            X509Certificate_Alt.is_active.is_(True),
-            X509Certificate.id > X509Certificate_Alt.id,
-        )
-    )
-    return q
-
-
-def get_X509Certificates_duplicatePairs__count(
-    ctx: "ApiContext",
-) -> int:
-    q = _get_X509Certificates_duplicatePairs__core(ctx)
-    return q.count()
-
-
-def get_X509Certificates_duplicatePairs__paginated(
-    ctx: "ApiContext",
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[Tuple[X509Certificate, X509Certificate]]:
-    q = _get_X509Certificates_duplicatePairs__core(ctx)
-    q = (
-        q.order_by(
-            X509Certificate.id.desc(),
-            X509Certificate_Alt.id.desc(),
-        )
-        .limit(limit)
-        .offset(offset)
-    )
-    pairs = q.all()
-    return pairs
-
-
-def get_X509Certificates_renew_now(
-    ctx: "ApiContext",
-    timestamp_max_expiry: Optional[datetime.datetime] = None,
-    limit: Optional[int] = None,
-) -> List[X509Certificate]:
-    if not timestamp_max_expiry:
-        timestamp_max_expiry = datetime_ari_timely(
-            ctx, context="get_X509Certificates_renew_now"
-        )
-
-    # print("get_X509Certificates_renew_now(")
-    # print("\tctx.timestamp:", ctx.timestamp)
-    # print("\ttimestamp_max_expiry:", timestamp_max_expiry)
-
-    q = (
-        ctx.dbSession.query(X509Certificate)
-        # joinpath 1: X509Certificate>AriCheck
-        .outerjoin(
-            AriCheck,
-            X509Certificate.id == AriCheck.x509_certificate_id,
-        )
-        # joinpath 1: X509Certificate>AcmeOrder>RenewalConfiguration
-        .join(
-            AcmeOrder,
-            X509Certificate.id == AcmeOrder.x509_certificate_id,
-        )
-        .join(
-            RenewalConfiguration,
-            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
-        )
-        .filter(
-            # this is MANAGED_PRIMARY & MANAGED_BACKUP
-            AcmeOrder.certificate_type_id.in_(
-                model_utils.CertificateType._options_AcmeOrder_id
-            ),
-            # Do not renew deactivated certs
-            X509Certificate.is_active.is_(True),
-            # Do not renew deactivated certs
-            RenewalConfiguration.is_active.is_(True),
-            # this is the same info as `AcmeOrder.certificate_type_id`
-            # the cert role might change though; the order role will never change
-            # X509Certificate.certificate_type_id.in_(model_utils.CertificateType._options_AcmeOrder_id),
-            # only need one of these; ari_identifier is not guaranteed
-            X509Certificate.x509_certificate_id__replaced_by.is_(None),
-            # X509Certificate.ari_identifier__replaced_by.is_(None),
-            # again, ARI is not guaranteed - but it also might be in the future like pebble
-            sqlalchemy.or_(
-                X509Certificate.timestamp_not_after <= timestamp_max_expiry,
-                AriCheck.suggested_window_end <= timestamp_max_expiry,
-                sqlalchemy.and_(
-                    AriCheck.suggested_window_end.is_(None),
-                    sqlalchemy.func.datetime(
-                        X509Certificate.timestamp_not_after,
-                        "- "
-                        + sqlalchemy.type_coerce(  # remove 1/3 the hours
-                            (X509Certificate.duration_hours / 3), sqlalchemy.String
-                        )
-                        + " hours",
-                    )
-                    < timestamp_max_expiry,
-                ),
-            ),
-        )
-    )
-    if limit:
-        q = q.order_by(X509Certificate.id.asc())
-        q = q.limit(limit)
-    # print(q.statement.compile(ctx.dbSession.connection().engine))
-    # print(q.statement.compile())
-    expiring_certs = q.all()
-    return expiring_certs
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
 def get__CoverageAssuranceEvent__count(
     ctx: "ApiContext", unresolved_only: Optional[bool] = None
 ) -> int:
@@ -4197,3 +3278,922 @@ def get__UniquelyChallengedFQDNSet__by_UniqueFQDNSetId__paginated(
         .all()
     )
     return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__X509CertificateRequest__count(ctx: "ApiContext") -> int:
+    counted = ctx.dbSession.query(X509CertificateRequest).count()
+    return counted
+
+
+def get__X509CertificateRequest__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[X509CertificateRequest]:
+    items_paged = (
+        ctx.dbSession.query(X509CertificateRequest)
+        .options(
+            joinedload(X509CertificateRequest.x509_certificates).options(
+                subqueryload(X509Certificate.unique_fqdn_set)
+                .joinedload(UniqueFQDNSet.to_domains)
+                .joinedload(UniqueFQDNSet2Domain.domain),
+            ),
+        )
+        .order_by(X509CertificateRequest.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__X509CertificateRequest__by_id(
+    ctx: "ApiContext", x509_certificate_request_id: int
+) -> Optional[X509CertificateRequest]:
+    dbX509CertificateRequest = (
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(X509CertificateRequest.id == x509_certificate_request_id)
+        .options(
+            joinedload(X509CertificateRequest.x509_certificates__5).options(
+                subqueryload(X509Certificate.unique_fqdn_set)
+                .joinedload(UniqueFQDNSet.to_domains)
+                .joinedload(UniqueFQDNSet2Domain.domain),
+            ),
+        )
+        .first()
+    )
+    return dbX509CertificateRequest
+
+
+def get__X509CertificateRequest__by_pem_text(
+    ctx: "ApiContext", csr_pem: str
+) -> Optional[X509CertificateRequest]:
+    csr_pem = cert_utils.cleanup_pem_text(csr_pem)
+    csr_pem_md5 = cert_utils.utils.md5_text(csr_pem)
+    dbX509CertificateRequest = (
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(
+            X509CertificateRequest.csr_pem_md5 == csr_pem_md5,
+            X509CertificateRequest.csr_pem == csr_pem,
+        )
+        .first()
+    )
+    return dbX509CertificateRequest
+
+
+def get__X509CertificateRequest__by_DomainId__count(
+    ctx: "ApiContext", domain_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(X509CertificateRequest)
+        .join(
+            UniqueFQDNSet,
+            X509CertificateRequest.unique_fqdn_set_id == UniqueFQDNSet.id,
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
+        .count()
+    )
+    return counted
+
+
+def get__X509CertificateRequest__by_DomainId__paginated(
+    ctx: "ApiContext", domain_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[X509CertificateRequest]:
+    items_paged = (
+        ctx.dbSession.query(X509CertificateRequest)
+        .join(
+            UniqueFQDNSet,
+            X509CertificateRequest.unique_fqdn_set_id == UniqueFQDNSet.id,
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
+        .order_by(X509CertificateRequest.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__X509CertificateRequest__by_PrivateKeyId__count(
+    ctx: "ApiContext", key_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(X509CertificateRequest.private_key_id == key_id)
+        .count()
+    )
+    return counted
+
+
+def get__X509CertificateRequest__by_PrivateKeyId__paginated(
+    ctx: "ApiContext", key_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[X509CertificateRequest]:
+    items_paged = (
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(X509CertificateRequest.private_key_id == key_id)
+        .options(
+            subqueryload(X509CertificateRequest.unique_fqdn_set)
+            .joinedload(UniqueFQDNSet.to_domains)
+            .joinedload(UniqueFQDNSet2Domain.domain),
+        )
+        .order_by(X509CertificateRequest.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__X509CertificateRequest__by_UniqueFQDNSetId__count(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(X509CertificateRequest.unique_fqdn_set_id == unique_fqdn_set_id)
+        .count()
+    )
+    return counted
+
+
+def get__X509CertificateRequest__by_UniqueFQDNSetId__paginated(
+    ctx: "ApiContext",
+    unique_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[X509CertificateRequest]:
+    items_paged = (
+        ctx.dbSession.query(X509CertificateRequest)
+        .filter(X509CertificateRequest.unique_fqdn_set_id == unique_fqdn_set_id)
+        .order_by(X509CertificateRequest.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__X509Certificate__count(
+    ctx: "ApiContext",
+    days_to_expiry: Optional[int] = None,
+    is_active: Optional[bool] = None,
+    is_unexpired: Optional[bool] = None,
+) -> int:
+    if (days_to_expiry is not None) and (is_unexpired is not None):
+        raise ValueError("only submit one of: days_to_expiry, is_unexpired")
+    q = ctx.dbSession.query(X509Certificate)
+    if is_active is not None:
+        if is_active is True:
+            q = q.filter(X509Certificate.is_active.is_(True))
+        elif is_active is False:
+            q = q.filter(X509Certificate.is_active.is_(False))
+    if days_to_expiry is not None:
+        _until = ctx.timestamp + datetime.timedelta(days=days_to_expiry)
+        q = q.filter(
+            X509Certificate.timestamp_not_after <= _until,
+        )
+    elif is_unexpired:
+        q = q.filter(
+            X509Certificate.timestamp_not_after > ctx.timestamp,
+        )
+    counted = q.count()
+    return counted
+
+
+def get__X509Certificate__paginated(
+    ctx: "ApiContext",
+    days_to_expiry: Optional[int] = None,
+    is_active: Optional[bool] = None,
+    is_unexpired: Optional[bool] = None,
+    eagerload_web: bool = False,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[X509Certificate]:
+    if (days_to_expiry is not None) and (is_unexpired is not None):
+        raise ValueError("only submit one of: days_to_expiry, is_unexpired")
+    q = ctx.dbSession.query(X509Certificate)
+    if eagerload_web:
+        q = q.options(
+            joinedload(X509Certificate.unique_fqdn_set)
+            .joinedload(UniqueFQDNSet.to_domains)
+            .joinedload(UniqueFQDNSet2Domain.domain)
+        )
+    if is_active is not None:
+        if is_active is True:
+            q = q.filter(X509Certificate.is_active.is_(True))
+        elif is_active is False:
+            q = q.filter(X509Certificate.is_active.is_(False))
+        # q = q.order_by(X509Certificate.timestamp_not_after.asc())
+        q = q.order_by(X509Certificate.id.desc())
+    if days_to_expiry is not None:
+        _until = ctx.timestamp + datetime.timedelta(days=days_to_expiry)
+        q = q.filter(
+            X509Certificate.timestamp_not_after <= _until,
+        ).order_by(X509Certificate.timestamp_not_after.asc())
+    elif is_unexpired:
+        q = q.filter(
+            X509Certificate.timestamp_not_after > ctx.timestamp,
+        ).order_by(X509Certificate.timestamp_not_after.asc())
+    else:
+        q = q.order_by(X509Certificate.id.desc())
+    q = q.limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+def get__X509Certificate__by_id(
+    ctx: "ApiContext", cert_id: int
+) -> Optional[X509Certificate]:
+    dbX509Certificate = (
+        ctx.dbSession.query(X509Certificate)
+        .filter(X509Certificate.id == cert_id)
+        .options(
+            subqueryload(X509Certificate.unique_fqdn_set)
+            .joinedload(UniqueFQDNSet.to_domains)
+            .joinedload(UniqueFQDNSet2Domain.domain)
+        )
+        .first()
+    )
+    return dbX509Certificate
+
+
+def get__X509Certificate__by_ariIdentifier(
+    ctx: "ApiContext", ari_identifier: str
+) -> Optional[X509Certificate]:
+    if not ari_identifier:
+        return None
+    dbX509Certificate = (
+        ctx.dbSession.query(X509Certificate)
+        .filter(X509Certificate.ari_identifier == ari_identifier)
+        .first()
+    )
+    return dbX509Certificate
+
+
+def get__X509Certificates__by_certSerial(
+    ctx: "ApiContext", cert_serial: str
+) -> List[X509Certificate]:
+    if not cert_serial:
+        return []
+    dbX509Certificates = (
+        ctx.dbSession.query(X509Certificate)
+        .filter(X509Certificate.cert_serial == cert_serial)
+        .all()
+    )
+    return dbX509Certificates
+
+
+def get__X509Certificate_replaces_candidates(
+    ctx: "ApiContext",
+    dbRenewalConfiguration: RenewalConfiguration,
+    certificate_type: Literal[
+        model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+        model_utils.CertificateType_Enum.MANAGED_BACKUP,
+    ] = model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+    timestamp_min_expiry: Optional[datetime.datetime] = None,
+) -> List[X509Certificate]:
+    """
+    relevant fields:
+        X509Certificate.ari_identifier__replaced_by
+        X509Certificate.x509_certificate_id__replaced_by
+    """
+    if not timestamp_min_expiry:
+        # how many days ago should we allow an attempted renewal?
+        TIMEDELTA_days = datetime.timedelta(days=10)
+        # maths: add these times from the current timestamp
+        timestamp_min_expiry = ctx.timestamp - TIMEDELTA_days
+
+    if certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
+        if not dbRenewalConfiguration.acme_account_id__backup:
+            return []
+    q = (
+        ctx.dbSession.query(X509Certificate)
+        .join(AcmeOrder, X509Certificate.id == AcmeOrder.x509_certificate_id)
+        .join(AcmeAccount, AcmeOrder.acme_account_id == AcmeAccount.id)
+        .filter(
+            sqlalchemy.or_(
+                # !!!: Filter- Start with all AcmeOrders for this RenewalConfiguration
+                AcmeOrder.renewal_configuration_id == dbRenewalConfiguration.id,
+                # !!!: Add in Certs with no Order (imports) that have the same FQDNs
+                sqlalchemy.and_(
+                    X509Certificate.unique_fqdn_set_id == AcmeOrder.unique_fqdn_set_id,
+                    AcmeOrder.renewal_configuration_id.is_(None),
+                ),
+            ),
+            # !!!: Filter- narrow down certificates that have not yet been replacd
+            X509Certificate.ari_identifier__replaced_by.is_(None),
+            X509Certificate.ari_identifier.is_not(None),
+            # !!!: Filter- the Cert needs to be timely
+            X509Certificate.timestamp_not_after > timestamp_min_expiry,
+        )
+    )
+    if certificate_type == model_utils.CertificateType_Enum.MANAGED_PRIMARY:
+        # !!!: Filter- lock down to the same AcmeServer
+        q = q.filter(
+            AcmeAccount.acme_server_id
+            == dbRenewalConfiguration.acme_account__primary.acme_server_id,
+        )
+    elif certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
+        # !!!: Filter- lock down to the same AcmeServer
+        q = q.filter(
+            AcmeAccount.acme_server_id
+            == dbRenewalConfiguration.acme_account__backup.acme_server_id,
+        )
+    else:
+        raise ValueError("unknown `certificate_type`")
+    q = q.order_by(X509Certificate.id.desc())
+    candidates = q.all()
+    return candidates
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__X509Certificate__by_AcmeAccountId__count(
+    ctx: "ApiContext", acme_account_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            AcmeOrder,
+            X509Certificate.id == AcmeOrder.x509_certificate_id,
+        )
+        .filter(AcmeOrder.acme_account_id == acme_account_id)
+        .count()
+    )
+    return counted
+
+
+def get__X509Certificate__by_AcmeAccountId__paginated(
+    ctx: "ApiContext",
+    acme_account_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[X509Certificate]:
+    items_paged = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            AcmeOrder,
+            X509Certificate.id == AcmeOrder.x509_certificate_id,
+        )
+        .filter(AcmeOrder.acme_account_id == acme_account_id)
+        .options(
+            joinedload(X509Certificate.unique_fqdn_set)
+            .joinedload(UniqueFQDNSet.to_domains)
+            .joinedload(UniqueFQDNSet2Domain.domain)
+        )
+        .order_by(X509Certificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def _get__X509Certificate__by_CertificateCAId__primary(
+    ctx: "ApiContext", cert_ca_id: int
+):
+    """
+    we no longer track the Certificate to the CertificateCA directly, but instead
+    through the CertificateCAChain
+        Certificate > CertificateChains > CertificateCAChain > CertificateCA
+    """
+    query_core = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            X509CertificateChain,
+            X509Certificate.id == X509CertificateChain.x509_certificate_id,
+        )
+        .join(
+            CertificateCAChain,
+            X509CertificateChain.certificate_ca_chain_id == CertificateCAChain.id,
+        )
+        .filter(CertificateCAChain.certificate_ca_0_id == cert_ca_id)
+        .filter(X509CertificateChain.is_upstream_default.is_(True))
+    )
+    return query_core
+
+
+def get__X509Certificate__by_CertificateCAId__primary__count(
+    ctx: "ApiContext", cert_ca_id: int
+) -> int:
+    query_core = _get__X509Certificate__by_CertificateCAId__primary(ctx, cert_ca_id)
+    counted = query_core.count()
+    return counted
+
+
+def get__X509Certificate__by_CertificateCAId__primary__paginated(
+    ctx: "ApiContext", cert_ca_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[X509Certificate]:
+    query_core = _get__X509Certificate__by_CertificateCAId__primary(ctx, cert_ca_id)
+    items_paged = (
+        query_core.order_by(X509Certificate.id.desc()).limit(limit).offset(offset).all()
+    )
+    return items_paged
+
+
+def _get__X509Certificate__by_CertificateCAId__alt(ctx: "ApiContext", cert_ca_id: int):
+    """
+    we no longer track the Certificate to the CertificateCA directly, but instead
+    through the CertificateCAChain
+        Certificate > CertificateChains > CertificateCAChain > CertificateCA
+    """
+    query_core = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            X509CertificateChain,
+            X509Certificate.id == X509CertificateChain.x509_certificate_id,
+        )
+        .join(
+            CertificateCAChain,
+            X509CertificateChain.certificate_ca_chain_id == CertificateCAChain.id,
+        )
+        .filter(CertificateCAChain.certificate_ca_0_id == cert_ca_id)
+        .filter(X509CertificateChain.is_upstream_default.isnot(True))
+    )
+    return query_core
+
+
+def get__X509Certificate__by_CertificateCAId__alt__count(
+    ctx: "ApiContext", cert_ca_id: int
+) -> int:
+    query_core = _get__X509Certificate__by_CertificateCAId__alt(ctx, cert_ca_id)
+    counted = query_core.count()
+    return counted
+
+
+def get__X509Certificate__by_CertificateCAId__alt__paginated(
+    ctx: "ApiContext", cert_ca_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[X509Certificate]:
+    query_core = _get__X509Certificate__by_CertificateCAId__alt(ctx, cert_ca_id)
+    items_paged = (
+        query_core.order_by(X509Certificate.id.desc()).limit(limit).offset(offset).all()
+    )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__X509Certificate__by_DomainId__count(
+    ctx: "ApiContext",
+    domain_id: int,
+    facet: Literal["all", "single", "multi"] = "all",
+) -> int:
+    q = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            UniqueFQDNSet,
+            X509Certificate.unique_fqdn_set_id == UniqueFQDNSet.id,
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
+    )
+    if facet == "all":
+        pass
+    elif facet == "single":
+        q = q.filter(UniqueFQDNSet.count_domains == 1)
+    elif facet == "multi":
+        q = q.filter(UniqueFQDNSet.count_domains > 1)
+    counted = q.count()
+    return counted
+
+
+def get__X509Certificate__by_DomainId__paginated(
+    ctx: "ApiContext",
+    domain_id: int,
+    facet: Literal["all", "single", "multi"] = "all",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[X509Certificate]:
+    q = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            UniqueFQDNSet,
+            X509Certificate.unique_fqdn_set_id == UniqueFQDNSet.id,
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
+    )
+    if facet == "all":
+        pass
+    elif facet == "single":
+        q = q.filter(UniqueFQDNSet.count_domains == 1)
+    elif facet == "multi":
+        q = q.filter(UniqueFQDNSet.count_domains > 1)
+    items_paged = (
+        q.order_by(X509Certificate.id.desc()).limit(limit).offset(offset).all()
+    )
+    return items_paged
+
+
+def get__X509Certificate__by_DomainId__latest(
+    ctx: "ApiContext", domain_id: int
+) -> Optional[X509Certificate]:
+    first = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            UniqueFQDNSet,
+            X509Certificate.unique_fqdn_set_id == UniqueFQDNSet.id,
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            UniqueFQDNSet.id == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(
+            UniqueFQDNSet2Domain.domain_id == domain_id,
+            X509Certificate.is_active.is_(True),
+        )
+        .order_by(X509Certificate.id.desc())
+        .first()
+    )
+    return first
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__X509Certificate__by_EnrollmentFactoryId__count(
+    ctx: "ApiContext", enrollment_factory_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            AcmeOrder,
+            X509Certificate.id == AcmeOrder.x509_certificate_id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(
+            RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__X509Certificate__by_EnrollmentFactoryId__paginated(
+    ctx: "ApiContext",
+    enrollment_factory_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[X509Certificate]:
+    items_paged = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            AcmeOrder,
+            X509Certificate.id == AcmeOrder.x509_certificate_id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(
+            RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+        )
+        .order_by(X509Certificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__X509Certificate__by_PrivateKeyId__count(ctx: "ApiContext", key_id: int) -> int:
+    counted = (
+        ctx.dbSession.query(X509Certificate)
+        .filter(X509Certificate.private_key_id == key_id)
+        .count()
+    )
+    return counted
+
+
+def get__X509Certificate__by_PrivateKeyId__paginated(
+    ctx: "ApiContext", key_id: int, limit: Optional[int] = None, offset: int = 0
+) -> List[X509Certificate]:
+    items_paged = (
+        ctx.dbSession.query(X509Certificate)
+        .filter(X509Certificate.private_key_id == key_id)
+        .order_by(X509Certificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__X509Certificate__by_RenewalConfigurationId__count(
+    ctx: "ApiContext", renewal_configuration_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            AcmeOrder,
+            X509Certificate.id == AcmeOrder.x509_certificate_id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(AcmeOrder.renewal_configuration_id == renewal_configuration_id)
+        .count()
+    )
+    return counted
+
+
+def get__X509Certificate__by_RenewalConfigurationId__paginated(
+    ctx: "ApiContext",
+    renewal_configuration_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[X509Certificate]:
+    items_paged = (
+        ctx.dbSession.query(X509Certificate)
+        .join(
+            AcmeOrder,
+            X509Certificate.id == AcmeOrder.x509_certificate_id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(AcmeOrder.renewal_configuration_id == renewal_configuration_id)
+        .order_by(X509Certificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__X509Certificate__by_UniqueFQDNSetId__count(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(X509Certificate)
+        .filter(X509Certificate.unique_fqdn_set_id == unique_fqdn_set_id)
+        .count()
+    )
+    return counted
+
+
+def get__X509Certificate__by_UniqueFQDNSetId__paginated(
+    ctx: "ApiContext",
+    unique_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[X509Certificate]:
+    items_paged = (
+        ctx.dbSession.query(X509Certificate)
+        .filter(X509Certificate.unique_fqdn_set_id == unique_fqdn_set_id)
+        .order_by(X509Certificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__X509Certificate__by_UniqueFQDNSetId__latest_active(
+    ctx: "ApiContext", unique_fqdn_set_id: int
+) -> Optional[X509Certificate]:
+    item = (
+        ctx.dbSession.query(X509Certificate)
+        .filter(X509Certificate.unique_fqdn_set_id == unique_fqdn_set_id)
+        .filter(X509Certificate.is_active.is_(True))
+        .order_by(X509Certificate.timestamp_not_after.desc())
+        .first()
+    )
+    return item
+
+
+def get__X509Certificates__by_UniquelyChallengedFQDNSetId__count(
+    ctx: "ApiContext", uniquely_challenged_fqdn_set_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(X509Certificate)
+        .join(AcmeOrder, X509Certificate.id == AcmeOrder.x509_certificate_id)
+        .filter(
+            AcmeOrder.uniquely_challenged_fqdn_set_id == uniquely_challenged_fqdn_set_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__X509Certificates__by_UniquelyChallengedFQDNSetId__paginated(
+    ctx: "ApiContext",
+    uniquely_challenged_fqdn_set_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[X509Certificate]:
+    items_paged = (
+        ctx.dbSession.query(X509Certificate)
+        .join(AcmeOrder, X509Certificate.id == AcmeOrder.x509_certificate_id)
+        .filter(
+            AcmeOrder.uniquely_challenged_fqdn_set_id == uniquely_challenged_fqdn_set_id
+        )
+        .order_by(X509Certificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get_X509Certificate_weeklyData_by_domainId(
+    ctx: "ApiContext",
+    domain_id: int,
+) -> List[Any]:
+    weekly_certs = (
+        ctx.dbSession.query(
+            model_utils.year_week(X509Certificate.timestamp_not_before).label(
+                "week_num"
+            ),
+            sqlalchemy.func.count(X509Certificate.id),
+        )
+        .join(
+            UniqueFQDNSet2Domain,
+            X509Certificate.unique_fqdn_set_id
+            == UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(UniqueFQDNSet2Domain.domain_id == domain_id)
+        .group_by("week_num")
+        .order_by(sqlalchemy.asc("week_num"))
+        .all()
+    )
+    return weekly_certs
+
+
+def get_X509Certificate_weeklyData_by_uniqueFqdnSetId(
+    ctx: "ApiContext",
+    unique_fqdn_set_id: int,
+) -> List[Any]:
+    weekly_certs = (
+        ctx.dbSession.query(
+            model_utils.year_week(X509Certificate.timestamp_not_before).label(
+                "week_num"
+            ),
+            sqlalchemy.func.count(X509Certificate.id),
+        )
+        .filter(X509Certificate.unique_fqdn_set_id == unique_fqdn_set_id)
+        .group_by("week_num")
+        .order_by(sqlalchemy.asc("week_num"))
+        .all()
+    )
+    return weekly_certs
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def _get_X509Certificates_duplicatePairs__core(
+    ctx: "ApiContext",
+):
+    q = (
+        ctx.dbSession.query(X509Certificate, X509Certificate_Alt)
+        .join(AcmeOrder, X509Certificate.id == AcmeOrder.x509_certificate_id)
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .join(
+            AcmeOrder_Alt,
+            RenewalConfiguration.id == AcmeOrder_Alt.renewal_configuration_id,
+        )
+        .join(
+            X509Certificate_Alt,
+            AcmeOrder_Alt.x509_certificate_id == X509Certificate_Alt.id,
+        )
+        .filter(
+            AcmeOrder.id != AcmeOrder_Alt.id,
+            AcmeOrder.certificate_type_id == AcmeOrder_Alt.certificate_type_id,
+            X509Certificate.is_active.is_(True),
+            X509Certificate_Alt.is_active.is_(True),
+            X509Certificate.id > X509Certificate_Alt.id,
+        )
+    )
+    return q
+
+
+def get_X509Certificates_duplicatePairs__count(
+    ctx: "ApiContext",
+) -> int:
+    q = _get_X509Certificates_duplicatePairs__core(ctx)
+    return q.count()
+
+
+def get_X509Certificates_duplicatePairs__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[Tuple[X509Certificate, X509Certificate]]:
+    q = _get_X509Certificates_duplicatePairs__core(ctx)
+    q = (
+        q.order_by(
+            X509Certificate.id.desc(),
+            X509Certificate_Alt.id.desc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    pairs = q.all()
+    return pairs
+
+
+def get_X509Certificates_renew_now(
+    ctx: "ApiContext",
+    timestamp_max_expiry: Optional[datetime.datetime] = None,
+    limit: Optional[int] = None,
+) -> List[X509Certificate]:
+    if not timestamp_max_expiry:
+        timestamp_max_expiry = datetime_ari_timely(
+            ctx, context="get_X509Certificates_renew_now"
+        )
+
+    # print("get_X509Certificates_renew_now(")
+    # print("\tctx.timestamp:", ctx.timestamp)
+    # print("\ttimestamp_max_expiry:", timestamp_max_expiry)
+
+    q = (
+        ctx.dbSession.query(X509Certificate)
+        # joinpath 1: X509Certificate>AriCheck
+        .outerjoin(
+            AriCheck,
+            X509Certificate.id == AriCheck.x509_certificate_id,
+        )
+        # joinpath 1: X509Certificate>AcmeOrder>RenewalConfiguration
+        .join(
+            AcmeOrder,
+            X509Certificate.id == AcmeOrder.x509_certificate_id,
+        )
+        .join(
+            RenewalConfiguration,
+            AcmeOrder.renewal_configuration_id == RenewalConfiguration.id,
+        )
+        .filter(
+            # this is MANAGED_PRIMARY & MANAGED_BACKUP
+            AcmeOrder.certificate_type_id.in_(
+                model_utils.CertificateType._options_AcmeOrder_id
+            ),
+            # Do not renew deactivated certs
+            X509Certificate.is_active.is_(True),
+            # Do not renew deactivated certs
+            RenewalConfiguration.is_active.is_(True),
+            # this is the same info as `AcmeOrder.certificate_type_id`
+            # the cert role might change though; the order role will never change
+            # X509Certificate.certificate_type_id.in_(model_utils.CertificateType._options_AcmeOrder_id),
+            # only need one of these; ari_identifier is not guaranteed
+            X509Certificate.x509_certificate_id__replaced_by.is_(None),
+            # X509Certificate.ari_identifier__replaced_by.is_(None),
+            # again, ARI is not guaranteed - but it also might be in the future like pebble
+            sqlalchemy.or_(
+                X509Certificate.timestamp_not_after <= timestamp_max_expiry,
+                AriCheck.suggested_window_end <= timestamp_max_expiry,
+                sqlalchemy.and_(
+                    AriCheck.suggested_window_end.is_(None),
+                    sqlalchemy.func.datetime(
+                        X509Certificate.timestamp_not_after,
+                        "- "
+                        + sqlalchemy.type_coerce(  # remove 1/3 the hours
+                            (X509Certificate.duration_hours / 3), sqlalchemy.String
+                        )
+                        + " hours",
+                    )
+                    < timestamp_max_expiry,
+                ),
+            ),
+        )
+    )
+    if limit:
+        q = q.order_by(X509Certificate.id.asc())
+        q = q.limit(limit)
+    # print(q.statement.compile(ctx.dbSession.connection().engine))
+    # print(q.statement.compile())
+    expiring_certs = q.all()
+    return expiring_certs
