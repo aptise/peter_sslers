@@ -418,6 +418,17 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     RenewalConfiguration-${AcmeOrder.renewal_configuration_id}
                                 </a>
+                                % if AcmeOrder.renewal_configuration.enrollment_factory_id__via:
+                                    <a
+                                        class="label label-info"
+                                        href="${admin_prefix}/enrollment-factory/${AcmeOrder.renewal_configuration.enrollment_factory_id__via}"
+                                    >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        EnrollmentFactory-${AcmeOrder.renewal_configuration.enrollment_factory_id__via}
+                                    </a>
+                                
+                                
+                                % endif
                             % endif
                         </td>
                     </tr>

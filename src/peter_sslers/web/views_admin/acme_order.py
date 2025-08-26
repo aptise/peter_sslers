@@ -246,6 +246,9 @@ def submit__new_freeform(
                 note=note,
             )
             is_duplicate_renewal_configuration = False
+        except errors.FieldError as exc:
+            formStash.fatal_field(exc.args[0], exc.args[1])
+
         except errors.DuplicateRenewalConfiguration as exc:
             is_duplicate_renewal_configuration = True
             # we could raise exc to abort, but this is likely preferred

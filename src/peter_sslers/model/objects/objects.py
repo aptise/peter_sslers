@@ -2066,6 +2066,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 ),
             },
             "RenewalConfiguration": self.renewal_configuration.as_json,
+            "X509Certificate": (
+                self.x509_certificate.as_json if self.x509_certificate_id else None
+            ),
             # - -
             "acme_authorization_ids": self.acme_authorization_ids,
             "acme_status_order": self.acme_status_order,
@@ -2075,8 +2078,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "acme_process_steps": self.acme_process_steps,
             "x509_certificate_request_id": self.x509_certificate_request_id,
             "certificate_type": self.certificate_type,
-            "x509_certificate_id": self.x509_certificate_id,
-            "x509_certificate_id__replaces": self.x509_certificate_id__replaces,
             "domains_as_list": self.domains_as_list,
             "domains_challenged": self.domains_challenged,
             "finalize_url": self.finalize_url,
@@ -2131,6 +2132,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 if self.is_can_acme_server_deactivate_authorizations
                 else None
             ),
+            "x509_certificate_id": self.x509_certificate_id,
+            "x509_certificate_id__replaces": self.x509_certificate_id__replaces,
         }
 
 
@@ -5819,6 +5822,8 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             assert _request is not None
 
         rval = {
+            "AcmeOrder": None,
+            # - - - - -
             "id": self.id,
             # - -
             # cert.acme_order.renewal_configuration.is_active

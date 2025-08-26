@@ -157,6 +157,16 @@ def validate_label(label: str) -> bool:
     return False
 
 
+def is_template_variable(
+    template: str,
+) -> bool:
+    if "{DOMAIN}" in template:
+        return True
+    if "{NIAMOD}" in template:
+        return True
+    return False
+
+
 def apply_domain_template(
     template: str,
     domain_name: str,

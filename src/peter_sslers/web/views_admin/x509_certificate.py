@@ -3,7 +3,9 @@ import tempfile
 import time
 from typing import Dict
 from typing import List
+from typing import Literal
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 import zipfile
@@ -33,6 +35,9 @@ from ...lib import utils
 from ...lib import utils_nginx
 from ...model import utils as model_utils
 from ...model.objects import X509Certificate
+
+if TYPE_CHECKING:
+    from pyramid.request import Request
 
 
 # ==============================================================================
@@ -81,6 +86,123 @@ def archive_zipfile(
         archive.writestr(info, dbX509Certificate.private_key.key_pem)
     tmpfile.seek(0)
     return tmpfile
+
+
+def submit__mark(
+    request: "Request",
+    dbX509Certificate: "X509Certificate",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple["X509Certificate", str]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_X509Certificate_mark,
+        validate_get=False,
+        # validate_post=False
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+
+    action = formStash.results["action"]
+    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict["x509_certificate.id"] = dbX509Certificate.id
+    event_payload_dict["action"] = action
+
+    event_type = "X509Certificate__mark"
+
+    update_recents = False
+    unactivated = False
+    activated = False
+    event_status: Optional[str] = None
+
+    try:
+
+        if action == "active":
+            event_status = lib_db.update.update_X509Certificate__set_active(
+                request.api_context, dbX509Certificate
+            )
+            update_recents = True
+            activated = True
+
+        elif action == "inactive":
+            event_status = lib_db.update.update_X509Certificate__unset_active(
+                request.api_context, dbX509Certificate
+            )
+            update_recents = True
+            unactivated = True
+
+        elif action == "revoked":
+            event_status = lib_db.update.update_X509Certificate__set_revoked(
+                request.api_context, dbX509Certificate
+            )
+            update_recents = True
+            unactivated = True
+            event_type = "X509Certificate__revoke"
+
+        # elif action == "renew_manual":
+        #    event_status = lib_db.update.update_X509Certificate__set_renew_manual(
+        #        request.api_context, dbX509Certificate
+        #    )
+
+        # elif action == "renew_auto":
+        #    event_status = lib_db.update.update_X509Certificate__set_renew_auto(
+        #        request.api_context, dbX509Certificate
+        #    )
+
+        elif action == "unrevoke":
+            raise errors.InvalidTransition("Invalid option: `unrevoke`")
+            """
+            event_status = lib_db.update.update_X509Certificate__unset_revoked(
+                request.api_context, dbX509Certificate
+            )
+            update_recents = True
+            activated = None
+            """
+
+        else:
+            raise errors.InvalidTransition("Invalid option")
+
+    except errors.InvalidTransition as exc:
+        formStash.fatal_form(error_main=exc.args[0])
+
+    if TYPE_CHECKING:
+        assert isinstance(event_status, str)
+
+    request.api_context.dbSession.flush(objects=[dbX509Certificate])
+    request.api_context.pyramid_transaction_commit()
+
+    # bookkeeping
+    event_type_id = model_utils.OperationsEventType.from_string(event_type)
+    dbOperationsEvent = lib_db.logger.log__OperationsEvent(
+        request.api_context, event_type_id, event_payload_dict
+    )
+    lib_db.logger._log_object_event(
+        request.api_context,
+        dbOperationsEvent=dbOperationsEvent,
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+            event_status
+        ),
+        dbX509Certificate=dbX509Certificate,
+    )
+
+    if update_recents:
+        event_update = lib_db.actions.operations_update_recents__global(
+            request.api_context
+        )
+        event_update.operations_event_id__child_of = dbOperationsEvent.id
+        request.api_context.dbSession.flush(objects=[event_update])
+
+    if unactivated:
+        # this will handle requeuing
+        events.Certificate_unactivated(request.api_context, dbX509Certificate)
+
+    if activated:
+        # nothing to do?
+        pass
+
+    return dbX509Certificate, action
 
 
 class View_List(Handler):
@@ -1456,7 +1578,7 @@ class View_Focus_Manipulate(View_Focus):
     def mark(self):
         dbX509Certificate = self._focus()
         if self.request.method == "POST":
-            return self._mark__submit(dbX509Certificate)
+            return self._focus_mark__submit(dbX509Certificate)
         return self._mark__print(dbX509Certificate)
 
     def _mark__print(self, dbX509Certificate):
@@ -1467,116 +1589,23 @@ class View_Focus_Manipulate(View_Focus):
         )
         return HTTPSeeOther(url_post_required)
 
-    def _mark__submit(self, dbX509Certificate):
-        action = None
+    def _focus_mark__submit(self):
+        dbX509Certificate = self._focus()  # noqa: F841
         try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_X509Certificate_mark, validate_get=False
+            action = self.request.params.get(  # needed in case exception is raised
+                "action"
             )
-            if not result:
-                raise formhandling.FormInvalid(formStash)
-
-            action = formStash.results["action"]
-            event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["x509_certificate.id"] = dbX509Certificate.id
-            event_payload_dict["action"] = action
-
-            event_type = "X509Certificate__mark"
-
-            update_recents = False
-            unactivated = False
-            activated = False
-            event_status: Optional[str] = None
-
-            try:
-                if action == "active":
-                    event_status = lib_db.update.update_X509Certificate__set_active(
-                        self.request.api_context, dbX509Certificate
-                    )
-                    update_recents = True
-                    activated = True
-
-                elif action == "inactive":
-                    event_status = lib_db.update.update_X509Certificate__unset_active(
-                        self.request.api_context, dbX509Certificate
-                    )
-                    update_recents = True
-                    unactivated = True
-
-                elif action == "revoked":
-                    event_status = lib_db.update.update_X509Certificate__set_revoked(
-                        self.request.api_context, dbX509Certificate
-                    )
-                    update_recents = True
-                    unactivated = True
-                    event_type = "X509Certificate__revoke"
-
-                # elif action == "renew_manual":
-                #    event_status = lib_db.update.update_X509Certificate__set_renew_manual(
-                #        self.request.api_context, dbX509Certificate
-                #    )
-
-                # elif action == "renew_auto":
-                #    event_status = lib_db.update.update_X509Certificate__set_renew_auto(
-                #        self.request.api_context, dbX509Certificate
-                #    )
-
-                elif action == "unrevoke":
-                    raise errors.InvalidTransition("Invalid option: `unrevoke`")
-                    """
-                    event_status = lib_db.update.update_X509Certificate__unset_revoked(
-                        self.request.api_context, dbX509Certificate
-                    )
-                    update_recents = True
-                    activated = None
-                    """
-
-                else:
-                    raise errors.InvalidTransition("Invalid option")
-
-            except errors.InvalidTransition as exc:
-                formStash.fatal_form(error_main=exc.args[0])
-
-            if TYPE_CHECKING:
-                assert isinstance(event_status, str)
-
-            self.request.api_context.dbSession.flush(objects=[dbX509Certificate])
-
-            # bookkeeping
-            event_type_id = model_utils.OperationsEventType.from_string(event_type)
-            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
-                self.request.api_context, event_type_id, event_payload_dict
-            )
-            lib_db.logger._log_object_event(
-                self.request.api_context,
-                dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    event_status
-                ),
+            dbX509Certificate, action = submit__mark(
+                self.request,
                 dbX509Certificate=dbX509Certificate,
+                acknowledge_transaction_commits=True,
             )
-
-            if update_recents:
-                event_update = lib_db.actions.operations_update_recents__global(
-                    self.request.api_context
-                )
-                event_update.operations_event_id__child_of = dbOperationsEvent.id
-                self.request.api_context.dbSession.flush(objects=[event_update])
-
-            if unactivated:
-                # this will handle requeuing
-                events.Certificate_unactivated(
-                    self.request.api_context, dbX509Certificate
-                )
-
-            if activated:
-                # nothing to do?
-                pass
-
             if self.request.wants_json:
                 return {
                     "result": "success",
                     "X509Certificate": dbX509Certificate.as_json,
+                    "operation": "mark",
+                    "action": action,
                 }
             url_success = "%s?result=success&operation=mark&action=%s" % (
                 self._focus_url,
@@ -1584,15 +1613,12 @@ class View_Focus_Manipulate(View_Focus):
             )
             return HTTPSeeOther(url_success)
 
-        except formhandling.FormInvalid as exc:  # noqa: F841
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s?&result=error&error=%s&operation=mark" % (
+                return {"result": "error", "form_errors": exc.formStash.errors}
+            url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
-                formStash.errors["Error_Main"].replace("\n", "+").replace(" ", "+"),
+                errors.formstash_to_querystring(exc.formStash),
+                action,
             )
-            if action:
-                url_failure = "%s&action=%s" % (url_failure, action)
             raise HTTPSeeOther(url_failure)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

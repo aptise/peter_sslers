@@ -3647,6 +3647,20 @@ def get__RenewalConfiguration__by_label(
     return item
 
 
+def get__RenewalConfiguration__by_enrollmentFactoryId_label(
+    ctx: "ApiContext",
+    enrollment_factory_id: int,
+    label: str,
+) -> Optional[RenewalConfiguration]:
+    label = lib_utils.normalize_unique_text(label)
+    q = ctx.dbSession.query(RenewalConfiguration).filter(
+        RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id,
+        sqlalchemy.func.lower(RenewalConfiguration.label) == label,
+    )
+    item = q.first()
+    return item
+
+
 def get__RenewalConfiguration__count(
     ctx: "ApiContext",
     active_status: Optional[bool] = None,

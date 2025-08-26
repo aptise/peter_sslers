@@ -101,7 +101,7 @@ def submit__mark(
 ) -> Tuple["RenewalConfiguration", str]:
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
-    action = request.params.get("action")
+
     (result, formStash) = formhandling.form_validate(
         request,
         schema=Form_RenewalConfiguration_mark,
@@ -145,6 +145,7 @@ def submit__mark(
         assert event_status is not None
 
     request.api_context.dbSession.flush(objects=[dbRenewalConfiguration])
+    request.api_context.pyramid_transaction_commit()
 
     # bookkeeping
     dbOperationsEvent = lib_db.logger.log__OperationsEvent(
@@ -158,6 +159,7 @@ def submit__mark(
         ),
         dbRenewalConfiguration=dbRenewalConfiguration,
     )
+    request.api_context.pyramid_transaction_commit()
 
     return dbRenewalConfiguration, action
 
@@ -295,6 +297,9 @@ def submit__new(
             )
 
             request.api_context.pyramid_transaction_commit()
+
+        except errors.FieldError as exc:
+            formStash.fatal_field(exc.args[0], exc.args[1])
 
         except errors.DuplicateRenewalConfiguration as exc:
             is_duplicate_renewal = True
@@ -508,6 +513,9 @@ def submit__new_configuration(
                         request.api_context,
                         dbRenewalConfiguration,
                     )
+
+            except errors.FieldError as exc:
+                formStash.fatal_field(exc.args[0], exc.args[1])
 
             except errors.DuplicateRenewalConfiguration as exc:
                 is_duplicate_renewal = True
@@ -745,6 +753,9 @@ def submit__new_enrollment(
             )
 
             request.api_context.pyramid_transaction_commit()
+
+        except errors.FieldError as exc:
+            formStash.fatal_field(exc.args[0], exc.args[1])
 
         except errors.DuplicateRenewalConfiguration as exc:
             is_duplicate_renewal = True  # noqa: F841
