@@ -670,165 +670,6 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
 
-    # !!!: X509 Certificate Requests
-    config.add_route_7(
-        "admin:x509_certificate_requests",
-        "/x509-certificate-requests",
-        jsonify=True,
-        paginate=True,
-    )
-
-    # !!!: X509 Certificate Request - Focus
-    config.add_route_7(
-        "admin:x509_certificate_request:focus",
-        "/x509-certificate-request/{@id}",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificate_request:focus:acme_orders",
-        "/x509-certificate-request/{@id}/acme-orders",
-        paginate=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificate_request:focus:raw",
-        "/x509-certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}",
-    )
-
-    # !!!: X509Certificates
-    config.add_route_7(
-        "admin:x509_certificates",
-        "/x509-certificates",
-        jsonify=True,
-    )
-
-    config.add_route_7(
-        "admin:x509_certificates:all",
-        "/x509-certificates/all",
-        jsonify=True,
-        paginate=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificates:active",
-        "/x509-certificates/active",
-        jsonify=True,
-        paginate=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificates:active_expired",
-        "/x509-certificates/active-expired",
-        jsonify=True,
-        paginate=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificates:expiring",
-        "/x509-certificates/expiring",
-        jsonify=True,
-        paginate=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificates:inactive",
-        "/x509-certificates/inactive",
-        jsonify=True,
-        paginate=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificates:inactive_unexpired",
-        "/x509-certificates/inactive-unexpired",
-        jsonify=True,
-        paginate=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificates:active_duplicates",
-        "/x509-certificates/active-duplicates",
-        jsonify=True,
-        paginate=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificates:search",
-        "/x509-certificates/search",
-        jsonify=True,
-    )
-
-    # !!!: X509Certificate - Focus
-    config.add_route_7(
-        "admin:x509_certificate:focus",
-        "/x509-certificate/{@id}",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:config|json",
-        "/x509-certificate/{@id}/config.json",
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:config|zip",
-        "/x509-certificate/{@id}/config.zip",
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:parse|json",
-        "/x509-certificate/{@id}/parse.json",
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:cert:raw",
-        "/x509-certificate/{@id}/cert.{format:(cer|crt|der|pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:chain:raw",
-        "/x509-certificate/{@id}/chain.{format:(pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:fullchain:raw",
-        "/x509-certificate/{@id}/fullchain.{format:(pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:privatekey:raw",
-        "/x509-certificate/{@id}/privkey.{format:(key|pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:ari_check",
-        r"/x509-certificate/{@id}/ari-check",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:ari_check_history",
-        r"/x509-certificate/{@id}/ari-check-history",
-        jsonify=True,
-        paginate=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:nginx_cache_expire",
-        r"/x509-certificate/{@id}/nginx-cache-expire",
-        jsonify=True,
-    )
-    # via ca-cert routes
-    config.add_route_7(
-        "admin:x509_certificate:focus:via_certificate_ca_chain:config|json",
-        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/config.json",
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:via_certificate_ca_chain:config|zip",
-        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/config.zip",
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:via_certificate_ca_chain:chain:raw",
-        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/chain.{format:(cer|crt|der|pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:via_certificate_ca_chain:fullchain:raw",
-        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/fullchain.{format:(pem|pem.txt)}",
-    )
-    # end via ca-cert
-
-    config.add_route_7(
-        "admin:x509_certificate:upload",
-        "/x509-certificate/upload",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:x509_certificate:focus:mark",
-        "/x509-certificate/{@id}/mark",
-        jsonify=True,
-    )
-
     # !!!: CoverageAssuranceEvents
     config.add_route_7("admin:coverage_assurance_events", "/coverage-assurance-events")
     config.add_route_7(
@@ -1399,6 +1240,165 @@ def _admin_views(config: "Configurator") -> None:
         "admin:uniquely_challenged_fqdn_set:focus:renewal_configurations",
         "/uniquely-challenged-fqdn-set/{@id}/renewal-configurations",
         paginate=True,
+    )
+
+    # !!!: X509 Certificate Requests
+    config.add_route_7(
+        "admin:x509_certificate_requests",
+        "/x509-certificate-requests",
+        jsonify=True,
+        paginate=True,
+    )
+
+    # !!!: X509 Certificate Request - Focus
+    config.add_route_7(
+        "admin:x509_certificate_request:focus",
+        "/x509-certificate-request/{@id}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificate_request:focus:acme_orders",
+        "/x509-certificate-request/{@id}/acme-orders",
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificate_request:focus:raw",
+        "/x509-certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}",
+    )
+
+    # !!!: X509Certificates
+    config.add_route_7(
+        "admin:x509_certificates",
+        "/x509-certificates",
+        jsonify=True,
+    )
+
+    config.add_route_7(
+        "admin:x509_certificates:all",
+        "/x509-certificates/all",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificates:active",
+        "/x509-certificates/active",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificates:active_expired",
+        "/x509-certificates/active-expired",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificates:expiring",
+        "/x509-certificates/expiring",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificates:inactive",
+        "/x509-certificates/inactive",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificates:inactive_unexpired",
+        "/x509-certificates/inactive-unexpired",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificates:active_duplicates",
+        "/x509-certificates/active-duplicates",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificates:search",
+        "/x509-certificates/search",
+        jsonify=True,
+    )
+
+    # !!!: X509Certificate - Focus
+    config.add_route_7(
+        "admin:x509_certificate:focus",
+        "/x509-certificate/{@id}",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:config|json",
+        "/x509-certificate/{@id}/config.json",
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:config|zip",
+        "/x509-certificate/{@id}/config.zip",
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:parse|json",
+        "/x509-certificate/{@id}/parse.json",
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:cert:raw",
+        "/x509-certificate/{@id}/cert.{format:(cer|crt|der|pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:chain:raw",
+        "/x509-certificate/{@id}/chain.{format:(pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:fullchain:raw",
+        "/x509-certificate/{@id}/fullchain.{format:(pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:privatekey:raw",
+        "/x509-certificate/{@id}/privkey.{format:(key|pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:ari_check",
+        r"/x509-certificate/{@id}/ari-check",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:ari_check_history",
+        r"/x509-certificate/{@id}/ari-check-history",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:nginx_cache_expire",
+        r"/x509-certificate/{@id}/nginx-cache-expire",
+        jsonify=True,
+    )
+    # via ca-cert routes
+    config.add_route_7(
+        "admin:x509_certificate:focus:via_certificate_ca_chain:config|json",
+        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/config.json",
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:via_certificate_ca_chain:config|zip",
+        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/config.zip",
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:via_certificate_ca_chain:chain:raw",
+        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/chain.{format:(cer|crt|der|pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:via_certificate_ca_chain:fullchain:raw",
+        "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/fullchain.{format:(pem|pem.txt)}",
+    )
+    # end via ca-cert
+
+    config.add_route_7(
+        "admin:x509_certificate:upload",
+        "/x509-certificate/upload",
+        jsonify=True,
+    )
+    config.add_route_7(
+        "admin:x509_certificate:focus:mark",
+        "/x509-certificate/{@id}/mark",
+        jsonify=True,
     )
 
     config.scan("peter_sslers.web.views_admin")
