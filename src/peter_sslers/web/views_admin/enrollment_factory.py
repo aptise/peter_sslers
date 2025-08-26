@@ -722,51 +722,6 @@ class View_Focus(Handler):
             return formhandling.form_reprint(self.request, self._query__print)
 
     @view_config(
-        route_name="admin:enrollment_factory:focus:x509_certificates",
-        renderer="/admin/enrollment_factory-focus-x509_certificates.mako",
-    )
-    @view_config(
-        route_name="admin:enrollment_factory:focus:x509_certificates-paginated",
-        renderer="/admin/enrollment_factory-focus-x509_certificates.mako",
-    )
-    @view_config(
-        route_name="admin:enrollment_factory:focus:x509_certificates|json",
-        renderer="json",
-    )
-    @view_config(
-        route_name="admin:enrollment_factory:focus:x509_certificates-paginated|json",
-        renderer="json",
-    )
-    def related__X509Certificates(self):
-        dbEnrollmentFactory = self._focus()  # noqa: F841
-        items_count = lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__count(
-            self.request.api_context, dbEnrollmentFactory.id
-        )
-        url_template = "%s/x509-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = (
-            lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__paginated(
-                self.request.api_context,
-                dbEnrollmentFactory.id,
-                limit=items_per_page,
-                offset=offset,
-            )
-        )
-        if self.request.wants_json:
-            _X509Certificates = [k.as_json for k in items_paged]
-            return {
-                "X509Certificates": _X509Certificates,
-                "pagination": json_pagination(items_count, pager),
-            }
-        return {
-            "project": "peter_sslers",
-            "EnrollmentFactory": dbEnrollmentFactory,
-            "X509Certificates_count": items_count,
-            "X509Certificates": items_paged,
-            "pager": pager,
-        }
-
-    @view_config(
         route_name="admin:enrollment_factory:focus:renewal_configurations",
         renderer="/admin/enrollment_factory-focus-renewal_configurations.mako",
     )
@@ -810,6 +765,51 @@ class View_Focus(Handler):
             "EnrollmentFactory": dbEnrollmentFactory,
             "RenewalConfigurations_count": items_count,
             "RenewalConfigurations": items_paged,
+            "pager": pager,
+        }
+
+    @view_config(
+        route_name="admin:enrollment_factory:focus:x509_certificates",
+        renderer="/admin/enrollment_factory-focus-x509_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:x509_certificates-paginated",
+        renderer="/admin/enrollment_factory-focus-x509_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:x509_certificates|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:x509_certificates-paginated|json",
+        renderer="json",
+    )
+    def related__X509Certificates(self):
+        dbEnrollmentFactory = self._focus()  # noqa: F841
+        items_count = lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__count(
+            self.request.api_context, dbEnrollmentFactory.id
+        )
+        url_template = "%s/x509-certificates/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = (
+            lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__paginated(
+                self.request.api_context,
+                dbEnrollmentFactory.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        )
+        if self.request.wants_json:
+            _X509Certificates = [k.as_json for k in items_paged]
+            return {
+                "X509Certificates": _X509Certificates,
+                "pagination": json_pagination(items_count, pager),
+            }
+        return {
+            "project": "peter_sslers",
+            "EnrollmentFactory": dbEnrollmentFactory,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
             "pager": pager,
         }
 
