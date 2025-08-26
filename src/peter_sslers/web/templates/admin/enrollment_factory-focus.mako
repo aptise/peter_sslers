@@ -231,6 +231,13 @@
                 </thead>
                 <tbody>
                     <tr>
+                        <th>Domains</th>
+                        <td>
+                            ${admin_partials.table_Domains(EnrollmentFactory.domains__5, perspective='EnrollmentFactory')}
+                            ${admin_partials.nav_pager("%s/enrollment-factory/%s/domains" % (admin_prefix, EnrollmentFactory.id))}
+                        </td>
+                    </tr>
+                    <tr>
                         <th>X509Certificates</th>
                         <td>
                             ${admin_partials.table_X509Certificates(EnrollmentFactory.x509_certificates__5, perspective='EnrollmentFactory')}

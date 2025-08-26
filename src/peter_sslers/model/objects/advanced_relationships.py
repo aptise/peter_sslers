@@ -873,6 +873,51 @@ Domain.renewal_configurations__5 = sa.orm.relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+# note: EnrollmentFactory.domains__5
+"""
+    EnrollmentFactory > RenewalConfiguration > UniqueFQDNSet > Domain
+"""
+join_Domain_RenewalConfiguration = sa.join(
+    Domain,
+    UniqueFQDNSet2Domain,
+    Domain.id == UniqueFQDNSet2Domain.domain_id,
+).join(
+    RenewalConfiguration,
+    UniqueFQDNSet2Domain.unique_fqdn_set_id == RenewalConfiguration.unique_fqdn_set_id,
+)
+Domain_via_RenewalConfiguration = sa.orm.aliased(
+    Domain, join_Domain_RenewalConfiguration, flat=True
+)
+EnrollmentFactory.domains__5 = sa_orm_relationship(
+    Domain_via_RenewalConfiguration,
+    primaryjoin=(
+        sa.and_(
+            EnrollmentFactory.id
+            == join_Domain_RenewalConfiguration.c.renewal_configuration_enrollment_factory_id__via,
+            Domain.id.in_(
+                sa.select((Domain.id))
+                .join(UniqueFQDNSet2Domain, Domain.id == UniqueFQDNSet2Domain.domain_id)
+                .join(
+                    RenewalConfiguration,
+                    UniqueFQDNSet2Domain.unique_fqdn_set_id
+                    == RenewalConfiguration.unique_fqdn_set_id,
+                )
+                .where(
+                    RenewalConfiguration.enrollment_factory_id__via
+                    == EnrollmentFactory.id
+                )
+                .order_by(sa.func.lower(Domain.domain_name).asc())
+                .limit(5)
+                .distinct()
+                .correlate()
+            ),
+        )
+    ),
+    order_by=sa.func.lower(Domain.domain_name).asc(),
+    viewonly=True,
+)
+
+
 # note: EnrollmentFactory.x509_certificates__5
 """
     EnrollmentFactory > X509Certificate

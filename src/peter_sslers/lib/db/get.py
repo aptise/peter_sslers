@@ -2122,6 +2122,56 @@ def get__Domains_authz_potential__paginated(
     return items_paged
 
 
+def get__Domain__by_EnrollmentFactoryId__count(
+    ctx: "ApiContext", enrollment_factory_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(Domain)
+        .join(
+            UniqueFQDNSet2Domain,
+            Domain.id == UniqueFQDNSet2Domain.domain_id,
+        )
+        .join(
+            RenewalConfiguration,
+            UniqueFQDNSet2Domain.unique_fqdn_set_id
+            == RenewalConfiguration.unique_fqdn_set_id,
+        )
+        .filter(
+            RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__Domain__by_EnrollmentFactoryId__paginated(
+    ctx: "ApiContext",
+    enrollment_factory_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[Domain]:
+    items_paged = (
+        ctx.dbSession.query(Domain)
+        .join(
+            UniqueFQDNSet2Domain,
+            Domain.id == UniqueFQDNSet2Domain.domain_id,
+        )
+        .join(
+            RenewalConfiguration,
+            UniqueFQDNSet2Domain.unique_fqdn_set_id
+            == RenewalConfiguration.unique_fqdn_set_id,
+        )
+        .filter(
+            RenewalConfiguration.enrollment_factory_id__via == enrollment_factory_id
+        )
+        .order_by(sqlalchemy.func.lower(Domain.domain_name).asc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

@@ -6394,10 +6394,12 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         (
             "admin:enrollment_factory:focus",
             "admin:enrollment_factory:focus:edit",
-            "admin:enrollment_factory:focus:x509_certificates",
-            "admin:enrollment_factory:focus:x509_certificates-paginated",
+            "admin:enrollment_factory:focus:domains",
+            "admin:enrollment_factory:focus:domains-paginated",
             "admin:enrollment_factory:focus:renewal_configurations",
             "admin:enrollment_factory:focus:renewal_configurations-paginated",
+            "admin:enrollment_factory:focus:x509_certificates",
+            "admin:enrollment_factory:focus:x509_certificates-paginated",
             "admin:enrollment_factory:focus:query",
         )
     )
@@ -6420,11 +6422,11 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         res3 = self.testapp.get(res2.location, status=200)
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates",
+            "/.well-known/peter_sslers/enrollment-factory/1/domains",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates/1",
+            "/.well-known/peter_sslers/enrollment-factory/1/domains/1",
             status=200,
         )
         res = self.testapp.get(
@@ -6433,6 +6435,14 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         )
         res = self.testapp.get(
             "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations/1",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates/1",
             status=200,
         )
 
@@ -6449,10 +6459,12 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         (
             "admin:enrollment_factory:focus|json",
             "admin:enrollment_factory:focus:edit|json",
-            "admin:enrollment_factory:focus:x509_certificates|json",
-            "admin:enrollment_factory:focus:x509_certificates-paginated|json",
+            "admin:enrollment_factory:focus:domains|json",
+            "admin:enrollment_factory:focus:domains-paginated|json",
             "admin:enrollment_factory:focus:renewal_configurations|json",
             "admin:enrollment_factory:focus:renewal_configurations-paginated|json",
+            "admin:enrollment_factory:focus:x509_certificates|json",
+            "admin:enrollment_factory:focus:x509_certificates-paginated|json",
             "admin:enrollment_factory:focus:query|json",
         )
     )
@@ -6513,13 +6525,13 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         assert "EnrollmentFactory" in res3.json
 
         res4 = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates.json"
+            "/.well-known/peter_sslers/enrollment-factory/1/domains.json"
         )
-        assert "X509Certificates" in res4.json
+        assert "Domains" in res4.json
         res4 = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates.json"
+            "/.well-known/peter_sslers/enrollment-factory/1/domains.json"
         )
-        assert "X509Certificates" in res4.json
+        assert "Domains" in res4.json
 
         res5 = self.testapp.get(
             "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations.json"
@@ -6529,6 +6541,15 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
             "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations.json"
         )
         assert "RenewalConfigurations" in res5.json
+
+        res4 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates.json"
+        )
+        assert "X509Certificates" in res4.json
+        res4 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates.json"
+        )
+        assert "X509Certificates" in res4.json
 
         resQ = self.testapp.get(
             "/.well-known/peter_sslers/enrollment-factory/1/query.json"

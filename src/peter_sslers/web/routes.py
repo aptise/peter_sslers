@@ -912,6 +912,12 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
+        "admin:enrollment_factory:focus:domains",
+        "/enrollment-factory/{@id}/domains",
+        jsonify=True,
+        paginate=True,
+    )
+    config.add_route_7(
         "admin:enrollment_factory:focus:renewal_configurations",
         "/enrollment-factory/{@id}/renewal-configurations",
         jsonify=True,
