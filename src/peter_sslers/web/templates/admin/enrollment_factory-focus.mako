@@ -80,9 +80,15 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>label_template</th>
+                        <td>
+                            <code>${EnrollmentFactory.label_template}</code>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>onboard</th>
                         <td>
-                            <a href="${admin_prefix}/renewal-configuration/new-enrollment?enrollment_factory_id=${EnrollmentFactory.id}" class="btn btn-xs btn-primary">
+                            <a href="${admin_prefix}/enrollment-factory/${EnrollmentFactory.id}/onboard" class="btn btn-xs btn-primary">
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                 Onboard
                             </a>

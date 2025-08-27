@@ -592,6 +592,11 @@ class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
     )
 
 
+class Form_EnrollmentFactory_onboard(_Form_Schema_Base):
+    domain_name = UnicodeString(not_empty=True, strip=True)
+    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
+
+
 class Form_EnrollmentFactory_query(_Form_Schema_Base):
     domain_name = UnicodeString(not_empty=True, strip=True)
 
@@ -801,18 +806,6 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
         acme_profile__primary = UnicodeString(
             not_empty=False, if_missing=None, strip=True, max=64
         )
-
-
-class Form_RenewalConfig_new_enrollment(_Form_Schema_Base):
-    enrollment_factory_id = Int(not_empty=True)
-    domain_name = UnicodeString(not_empty=True, strip=True)
-    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
-    is_export_filesystem = OneOf(
-        model_utils.OptionsOnOff._options_RenewalConfigurationFactory_isExportFilesystem,
-        not_empty=False,
-        if_missing="enrollment_factory_default",
-    )
 
 
 class Form_RenewalConfiguration_mark(_Form_Schema_Base):

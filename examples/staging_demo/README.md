@@ -540,16 +540,14 @@ This should pass.  Confirm the DB storage with::
 As explained above, RenewalConfigurations drive automatic orders.
 
     ssl_manage data_staging renewal-configuration list
-    ssl_manage data_staging renewal-configuration new-enrollment help=1
+    ssl_manage data_staging enrollment-factory onboard help=1
 
-By selecting `new-enrollment`, instead of `new`, we can leverage most options from the
+By selecting `enrollment-factory onboard`, instead of ` renewal-configuration new`, we can leverage most options from the
 EnrollmentFactory::
 
-    ssl_manage data_staging renewal-configuration new-enrollment \
-        enrollment_factory_id=1 \
+    ssl_manage data_staging enrollment-factory onboard \
+        id=1 \
         domain_name="a.peter-sslers.testing.opensource.aptise.com" \
-        label="chall_prefix-{DOMAIN}" \
-        is_export_filesystem=enrollment_factory_default
 
 The above should be sel-explanatory.  We are using the `1` EnrollmentFactory created above and applying it to the domain name `a.peter-sslers.testing.opensource.aptise.com` 
 
@@ -562,14 +560,13 @@ While the web interface will pre-fill the `label` and `is_export_filesystem` fie
 
 Let's quickly create several more RenewalConfigurations for b, c, d and e::
 
-    ssl_manage data_staging renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="b.peter-sslers.testing.opensource.aptise.com"
+    ssl_manage data_staging enrollment-factory onboard id=1 domain_name="b.peter-sslers.testing.opensource.aptise.com"
 
-    ssl_manage data_staging renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="c.peter-sslers.testing.opensource.aptise.com"
+    ssl_manage data_staging enrollment-factory onboard id=1 domain_name="c.peter-sslers.testing.opensource.aptise.com"
 
-    ssl_manage data_staging renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="d.peter-sslers.testing.opensource.aptise.com"
+    ssl_manage data_staging enrollment-factory onboard id=1 domain_name="d.peter-sslers.testing.opensource.aptise.com"
 
-    ssl_manage data_staging renewal-configuration new-enrollment enrollment_factory_id=1 is_export_filesystem=enrollment_factory_default label="chall_prefix-{DOMAIN}" domain_name="e.peter-sslers.testing.opensource.aptise.com"
-
+    ssl_manage data_staging enrollment-factory onboard id=1 domain_name="e.peter-sslers.testing.opensource.aptise.com"
 
 Again, this will only create a RenewalConfiguration - we need to do the initial setup of the delegated `_acme-dns` records before obtaining certificates.  This could be done by registering the domains with the PeterSSLers BEFORE creating a RenewalConfiguration as well; this tutorial is simply doing things in this order.
 

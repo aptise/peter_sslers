@@ -6565,6 +6565,63 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         assert "RenewalConfiguration" in resQ2.json
         assert "X509Certificates" in resQ2.json
 
+    @routes_tested(("admin:renewal_configuration:new_enrollment",))
+    def test_new_enrollment_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration.test_new_enrollment_html
+        """
+        eFactory_id = self._ensureOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/%s/onboard" % eFactory_id,
+            status=200,
+        )
+
+        note = generate_random_domain(testCase=self)
+
+        form = res.form
+        form["domain_name"] = generate_random_domain(testCase=self)
+        form["note"] = note
+
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        matched = RE_RenewalConfiguration.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+        res3 = self.testapp.get(res2.location)
+        assert "<code>%s</code>" % note in res3.text
+
+    @routes_tested(("admin:renewal_configuration:new_enrollment|json",))
+    def test_new_enrollment_json(self):
+        eFactory_id = self._ensureOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/%s/onboard.json"
+            % eFactory_id,
+            status=200,
+        )
+        assert "form_fields" in res.json
+
+        account_key_global__primary = res.json["valid_options"]["SystemConfigurations"][
+            "global"
+        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
+
+        note = generate_random_domain(testCase=self)
+
+        form: Dict[str, Union[int, str]] = {}
+        form["domain_name"] = generate_random_domain(testCase=self)
+        form["note"] = note
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/enrollment-factory/%s/onboard.json",
+            form,
+        )
+        assert res2.json["result"] == "success"
+        assert "RenewalConfiguration" in res2.json
+        assert res2.json["RenewalConfiguration"]["note"] == note
+
 
 class FunctionalTests_Operations(AppTest):
     """
@@ -7577,64 +7634,6 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
 
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/renewal-configuration/new.json",
-            form,
-        )
-        assert res2.json["result"] == "success"
-        assert "RenewalConfiguration" in res2.json
-        assert res2.json["RenewalConfiguration"]["note"] == note
-
-    @routes_tested(("admin:renewal_configuration:new_enrollment",))
-    def test_new_enrollment_html(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration.test_new_enrollment_html
-        """
-        eFactory_id = self._makeOne__EnrollmentFactory()
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/renewal-configuration/new-enrollment?enrollment_factory_id=%s"
-            % eFactory_id,
-            status=200,
-        )
-
-        note = generate_random_domain(testCase=self)
-
-        form = res.form
-        form["domain_name"] = generate_random_domain(testCase=self)
-        form["note"] = note
-
-        res2 = form.submit()
-        assert res2.status_code == 303
-
-        matched = RE_RenewalConfiguration.match(res2.location)
-        assert matched
-        obj_id = matched.groups()[0]
-
-        res3 = self.testapp.get(res2.location)
-        assert "<code>%s</code>" % note in res3.text
-
-    @routes_tested(("admin:renewal_configuration:new_enrollment|json",))
-    def test_new_enrollment_json(self):
-        eFactory_id = self._makeOne__EnrollmentFactory()
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/renewal-configuration/new-enrollment.json",
-            status=200,
-        )
-        assert "form_fields" in res.json
-
-        account_key_global__primary = res.json["valid_options"]["SystemConfigurations"][
-            "global"
-        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
-
-        note = generate_random_domain(testCase=self)
-
-        form: Dict[str, Union[int, str]] = {}
-        form["enrollment_factory_id"] = eFactory_id
-        form["domain_name"] = generate_random_domain(testCase=self)
-        form["note"] = note
-
-        res2 = self.testapp.post(
-            "/.well-known/peter_sslers/renewal-configuration/new-enrollment.json",
             form,
         )
         assert res2.json["result"] == "success"

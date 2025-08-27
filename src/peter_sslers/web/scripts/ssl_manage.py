@@ -22,10 +22,10 @@ from webob.multidict import MultiDict
 from ..lib import formhandling
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeDnsServer_new
+from ..lib.forms import Form_EnrollmentFactory_onboard
 from ..lib.forms import Form_EnrollmentFactory_query
 from ..lib.forms import Form_RenewalConfig_new
 from ..lib.forms import Form_RenewalConfig_new_configuration
-from ..lib.forms import Form_RenewalConfig_new_enrollment
 from ..lib.forms import Form_RenewalConfig_new_order
 from ..lib.forms import Form_RenewalConfiguration_mark
 from ..lib.forms import Form_SystemConfiguration_edit
@@ -78,6 +78,7 @@ COMMANDS: Dict[str, List[str]] = {
     ],
     "enrollment-factory": [
         "focus",
+        "onboard",
         "list",
         "new",
     ],
@@ -91,7 +92,6 @@ COMMANDS: Dict[str, List[str]] = {
         "mark",
         "new",
         "new-configuration",
-        "new-enrollment",
         "new-order",
     ],
     "system-configuration": [
@@ -291,9 +291,15 @@ def main(argv=sys.argv):
                 exit(1)
             return _dbX509Certificate
 
+        # scoping
+        _dbAcmeAccount: Optional["AcmeAccount"]
+        _dbAcmeDnsServer: Optional["AcmeDnsServer"]
+        _dbEnrollmentFactory: Optional["EnrollmentFactory"]
+        _dbRenewalConfiguration: Optional["RenewalConfiguration"]
+        _dbX509Certificate: Optional["X509Certificate"]
+
         # !!!: distpatch[acme-account]
         if command == "acme-account":
-            _dbAcmeAccount: Optional["AcmeAccount"]
             # !!!: focus
             if subcommand == "focus":
                 _dbAcmeAccount = _get_AcmeAccount()
@@ -352,7 +358,6 @@ def main(argv=sys.argv):
 
         # !!!: distpatch[acme-dns-server]
         elif command == "acme-dns-server":
-            _dbAcmeDnsServer: Optional["AcmeDnsServer"]
             # !!!: - list
             if subcommand == "list":
                 if not RENDER_JSON:
@@ -428,7 +433,6 @@ def main(argv=sys.argv):
                 )
         # !!!: distpatch[enrollment-factory]
         elif command == "enrollment-factory":
-            _dbEnrollmentFactory: Optional["EnrollmentFactory"]
             # !!!: focus
             if subcommand == "focus":
                 _dbEnrollmentFactory = _get_EnrollmentFactory()
@@ -456,6 +460,27 @@ def main(argv=sys.argv):
                     render_data(_formatted)
                 else:
                     render_data(_dbEnrollmentFactory.as_json)
+            # !!!: - onboard
+            elif subcommand == "onboard":
+                # !!!: - onboard - help
+                if "help" in options:
+                    print("MUST submit `id`")
+                    render_data(Form_EnrollmentFactory_onboard.fields)
+                    exit(0)
+                _dbEnrollmentFactory = _get_EnrollmentFactory()
+                try:
+                    _dbRenewalConfiguration, _is_duplicate = (
+                        v_enrollment_factory.submit__onboard(
+                            request,
+                            dbEnrollmentFactory=_dbEnrollmentFactory,
+                            acknowledge_transaction_commits=True,
+                        )
+                    )
+                    print("success", "[DUPLICATE]" if _is_duplicate else "")
+                    render_data(_dbRenewalConfiguration.as_json)
+                except formhandling.FormInvalid as exc:
+                    print("Errors:")
+                    render_data(exc.formStash.errors)
             # !!!: - list
             elif subcommand == "list":
                 if not RENDER_JSON:
@@ -531,7 +556,6 @@ def main(argv=sys.argv):
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
-            _dbRenewalConfiguration: Optional["RenewalConfiguration"]
             # !!!: focus
             if subcommand == "focus":
                 _dbRenewalConfiguration = _get_RenewalConfiguration()
@@ -606,29 +630,6 @@ def main(argv=sys.argv):
                     if not RENDER_JSON:
                         print("success", "[DUPLICATE]" if _is_duplicate else "")
                     render_data(_dbRenewalConfigurationNew.as_json)
-                except formhandling.FormInvalid as exc:
-                    print("Errors:")
-                    render_data(exc.formStash.errors)
-            # !!!: - new-enrollment
-            elif subcommand == "new-enrollment":
-                # !!!: - new-enrollment - help
-                if "help" in options:
-                    print("MUST submit `enrollment_factory_id`")
-                    render_data(Form_RenewalConfig_new_enrollment.fields)
-                    exit(0)
-                _dbEnrollmentFactory = _get_EnrollmentFactory(
-                    arg="enrollment_factory_id"
-                )
-                try:
-                    _dbRenewalConfiguration, _is_duplicate = (
-                        v_renewal_configuration.submit__new_enrollment(
-                            request,
-                            dbEnrollmentFactory=_dbEnrollmentFactory,
-                            acknowledge_transaction_commits=True,
-                        )
-                    )
-                    print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    render_data(_dbRenewalConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     render_data(exc.formStash.errors)
@@ -707,7 +708,6 @@ def main(argv=sys.argv):
                     render_data(exc.formStash.errors)
         # !!!: distpatch[x509-certificate]
         elif command == "x509-certificate":
-            _dbX509Certificate: Optional["X509Certificate"]
             # !!!: focus
             if subcommand == "focus":
                 _dbX509Certificate = _get_X509Certificate()

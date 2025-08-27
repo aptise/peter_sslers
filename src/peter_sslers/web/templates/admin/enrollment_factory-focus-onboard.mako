@@ -1,24 +1,24 @@
 <%inherit file="/admin/-site_template.mako"/>
 <%namespace name="admin_partials" file="/admin/-partials.mako"/>
 
-
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/renewal-configurations">RenewalConfiguration</a></li>
-        <li class="active">New Enrollment</li>
+        <li><a href="${admin_prefix}/enrollment-factorys">EnrollmentFactorys</a></li>
+        <li><a href="${admin_prefix}/enrollment-factory/${EnrollmentFactory.id}">Focus [${EnrollmentFactory.id}-`${EnrollmentFactory.name}`]</a></li>
+        <li class="active">Onboard</li>
     </ol>
 </%block>
 
-
 <%block name="page_header_col">
-    <h2>RenewalConfiguration - New Enrollment</h2>
+    <h2>EnrollmentFactory - Focus - [${EnrollmentFactory.id}-`${EnrollmentFactory.name}`] | Onboard</h2>
 </%block>
+
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/renewal-configuration/new-enrollment.json?enrollment_factory_id=${EnrollmentFactory.id}" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/enrollment-factory/${EnrollmentFactory.id}/onboard.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -32,16 +32,13 @@
         <div class="col-sm-6">
 
             <form
-                action="${admin_prefix}/renewal-configuration/new-enrollment"
+                action="${admin_prefix}/enrollment-factory/${EnrollmentFactory.id}/onboard"
                 method="POST"
                 enctype="multipart/form-data"
-                id="form-renewal_configuration-new_enrollment"
+                id="form-enrollment_factory-onboard"
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
-
-
-
 
                 <table class="table table-striped table-condenesed">
                     <tr>
@@ -51,7 +48,6 @@
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             EnrollmentFactory-${EnrollmentFactory.id}</a>
                             <span class="label label-default">${EnrollmentFactory.name}</span>
-                            <input type="hidden" name="enrollment_factory_id" value="${EnrollmentFactory.id}"/>
                         </td>
                     </tr>
                     <tr>
@@ -75,15 +71,11 @@
                     </tr>
                     <tr>
                         <th>Label</th>
-                        <td>
-${admin_partials.formgroup__label(default=EnrollmentFactory.label_template, context_enrollment_factory=True)}
-                        </td>
+                        <td><code>${EnrollmentFactory.label_template}</code></td>
                     </tr>
                     <tr>
                         <th>is_export_filesystem</th>
-                       <td>
-                           <code>${model_websafe.OptionsOnOff.as_string(model_websafe.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT)}</code>
-                           </td>
+                        <td><code>${EnrollmentFactory.is_export_filesystem}</code></td>
                     </tr>
                     <tr>
                         <th>Domain Name</th>
@@ -196,8 +188,6 @@ ${admin_partials.formgroup__label(default=EnrollmentFactory.label_template, cont
             <p>This route supports JSON and is self-documenting on GET requests.</p>
 
             <p>A Factory Enrollment only accepts a DOMAIN and a Note.</p>
-
-
         </div>
     </div>
 </%block>

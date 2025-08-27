@@ -901,6 +901,11 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
     config.add_route_7(
+        "admin:enrollment_factory:focus:onboard",
+        "/enrollment-factory/{@id}/onboard",
+        jsonify=True,
+    )
+    config.add_route_7(
         "admin:enrollment_factory:focus:query",
         "/enrollment-factory/{@id}/query",
         jsonify=True,
@@ -1066,11 +1071,6 @@ def _admin_views(config: "Configurator") -> None:
     config.add_route_7(
         "admin:renewal_configuration:new",
         "/renewal-configuration/new",
-        jsonify=True,
-    )
-    config.add_route_7(
-        "admin:renewal_configuration:new_enrollment",
-        "/renewal-configuration/new-enrollment",
         jsonify=True,
     )
 

@@ -3533,7 +3533,9 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
 
-    label_template: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
+    label_template: Mapped[str] = mapped_column(
+        sa.Unicode(64), nullable=False, default="{NIAMOD}"
+    )
 
     domain_template_http01: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, default=None
@@ -4296,6 +4298,11 @@ class RenewalConfiguration(
             ")",
             name="check_rc_backup_account",
         ),
+        sa.UniqueConstraint(
+            "label",
+            "enrollment_factory_id__via",
+            name="unique_rc_label",
+        ),
     )
 
     __tablename__ = "renewal_configuration"
@@ -4306,7 +4313,7 @@ class RenewalConfiguration(
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
 
     label: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(64), nullable=True, unique=True
+        sa.Unicode(64), nullable=True, unique=False
     )
 
     # this should always be true; maybe one day it will be a toggle
