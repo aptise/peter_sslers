@@ -6268,6 +6268,7 @@ class _MixinEnrollmentFactory:
             "is_export_filesystem": "off",
             "name": domain,
             "note": note,
+            "label_template": "{DOMAIN}",
             "private_key_cycle__backup": "account_default",
             "private_key_cycle__primary": "account_default",
             "private_key_technology__backup": "account_default",
@@ -6347,6 +6348,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         form["domain_template_http01"] = "mail.{DOMAIN}, %s.{DOMAIN}" % domain
         form["name"] = domain
         form["note"] = note
+        form["label_template"] = "{DOMAIN}"
         form["is_export_filesystem"] = "off"
         res2 = form.submit()
 
