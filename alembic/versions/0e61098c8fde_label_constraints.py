@@ -33,6 +33,12 @@ def upgrade() -> None:
         )
 
     with op.batch_alter_table("renewal_configuration", schema=None) as batch_op:
+        batch_op.alter_column(
+            "label",
+            existing_type=sa.VARCHAR(length=64),
+            type_=sa.Unicode(length=128),
+            existing_nullable=True,
+        )
         batch_op.drop_constraint(
             batch_op.f("uq_renewal_configuration_label"), type_="unique"
         )
@@ -50,6 +56,12 @@ def downgrade() -> None:
         batch_op.drop_constraint("unique_rc_label", type_="unique")
         batch_op.create_unique_constraint(
             batch_op.f("uq_renewal_configuration_label"), ["label"]
+        )
+        batch_op.alter_column(
+            "label",
+            existing_type=sa.Unicode(length=128),
+            type_=sa.VARCHAR(length=64),
+            existing_nullable=True,
         )
 
     with op.batch_alter_table("enrollment_factory", schema=None) as batch_op:

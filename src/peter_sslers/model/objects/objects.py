@@ -4313,7 +4313,7 @@ class RenewalConfiguration(
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
 
     label: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(64), nullable=True, unique=False
+        sa.Unicode(128), nullable=True, unique=False
     )
 
     # this should always be true; maybe one day it will be a toggle
