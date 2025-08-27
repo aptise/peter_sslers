@@ -4922,7 +4922,7 @@ class FunctionalTests_X509Certificate(AppTest):
         assert res.status_code == 303
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate/%s?&result=error&error=There+was+an+error+with+your+form.+Already+active.&operation=mark&action=active"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate/%s?&result=error&error=Error_Main--There+was+an+error+with+your+form.+Already+active.&operation=mark&action=active"
             % focus_id
         )
 
