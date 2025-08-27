@@ -1576,12 +1576,12 @@ class View_Focus_Manipulate(View_Focus):
         }
     )
     def mark(self):
-        dbX509Certificate = self._focus()
+        dbX509Certificate = self._focus()  # noqa: F841
         if self.request.method == "POST":
-            return self._focus_mark__submit(dbX509Certificate)
-        return self._mark__print(dbX509Certificate)
+            return self._focus_mark__submit()
+        return self._mark__print()
 
-    def _mark__print(self, dbX509Certificate):
+    def _mark__print(self):
         if self.request.wants_json:
             return formatted_get_docs(self, "/x509-certificate/{ID}/mark.json")
         url_post_required = (
