@@ -156,6 +156,11 @@ For example, a directory structure might look like this:
 
 ## Scripts
 
+### ssl_manage
+
+The `ssl_manage` tool tries to implement all core operations.
+
+
 ### acme_dns_audit
     audit acme-dns accounts
     checks credentials and cnames

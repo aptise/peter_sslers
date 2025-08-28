@@ -176,7 +176,12 @@ The ACME protocol requires a web server to respond to HTTP-01 validation request
 A web server is a great choice for an admin interface, and to provide a programmatic
 API.
 
-The `Pyramid` framework has a wonderful utility called
+The `Pyramid` framework utilizes Python entry points to faciliate making commandline
+scripts. Many of the web endpoints to manage the installation are implemented
+via commandline scripts.  The `ssl_manage` tool handles all core opreations.
+
+
+To utilize the full API, the `Pyramid` framework has a wonderful utility called
 [`prequest`](https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/prequest.html)
 which allows users to invoke web requests from the commandline.
 
