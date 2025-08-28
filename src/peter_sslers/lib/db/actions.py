@@ -675,16 +675,18 @@ def operations_reconcile_cas(
                     _reconciled_uris = " ".join(reconciled_uris)
                     _dbCertificateCAReconciled.reconciled_uris = _reconciled_uris
 
-                dbCertificateCAReconciliation = (
-                    model_objects.CertificateCAReconciliation()
+                dbX509CertificateTrustReconciliation = (
+                    model_objects.X509CertificateTrustReconciliation()
                 )
-                dbCertificateCAReconciliation.timestamp_operation = ctx.timestamp
-                dbCertificateCAReconciliation.certificate_ca_id = dbCertificateCA.id
-                dbCertificateCAReconciliation.certificate_ca_id__issuer__reconciled = (
+                dbX509CertificateTrustReconciliation.timestamp_operation = ctx.timestamp
+                dbX509CertificateTrustReconciliation.certificate_ca_id = (
+                    dbCertificateCA.id
+                )
+                dbX509CertificateTrustReconciliation.certificate_ca_id__issuer__reconciled = (
                     _dbCertificateCAReconciled.id
                 )
-                dbCertificateCAReconciliation.result = True
-                ctx.dbSession.add(dbCertificateCAReconciliation)
+                dbX509CertificateTrustReconciliation.result = True
+                ctx.dbSession.add(dbX509CertificateTrustReconciliation)
         except Exception as exc:
             log.debug("EXCEPTION - could not reconcile CA %s", dbCertificateCA.id)
             _certificate_ca_ids_fail.append(dbCertificateCA.id)
