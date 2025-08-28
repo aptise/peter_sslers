@@ -1,5 +1,9 @@
 # stdlib
 import logging
+from typing import Dict
+from typing import Literal
+from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # import json
@@ -26,11 +30,210 @@ from ...lib import utils_nginx
 from ...lib import utils_redis
 from ...model import utils as model_utils
 
+if TYPE_CHECKING:
+    from pyramid.request import Request
+
+    from ...model.objects import OperationsEvent
+
+
 # ==============================================================================
 
 log = logging.getLogger("peter_sslers.web")
 
 # ------------------------------------------------------------------------------
+
+
+def actual__deactivate_expired(
+    request: "Request",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Dict:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    operations_event = lib_db.actions.operations_deactivate_expired(request.api_context)
+    count_deactivated = operations_event.event_payload_json["count_deactivated"]
+    rval = {
+        "X509Certificate": {
+            "expired": count_deactivated,
+        },
+        "result": "success",
+        "operations_event_id": operations_event.id,
+    }
+    request.api_context.pyramid_transaction_commit()
+    return rval
+
+
+def actual__prime_redis(
+    request: "Request",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple["OperationsEvent", Dict]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    # could raise `errors.InvalidRequest("redis is not enabled")`
+    request.api_context._ensure_redis()
+    prime_style = utils_redis.redis_prime_style(request)
+    if not prime_style:
+        raise errors.InvalidRequest("invalid `redis.prime_style`")
+    redis_client = utils_redis.redis_connection_from_registry(request)
+    redis_timeouts = utils_redis.redis_timeouts_from_registry(request)
+
+    total_primed = {"certcachain": 0, "cert": 0, "pkey": 0, "domain": 0}
+
+    dbEvent = None
+    if prime_style == "1":
+        """
+        first priming style
+        --
+        the redis datastore will look like this:
+
+            r['d:foo.example.com'] = {'c': '1', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
+            r['d:foo2.example.com'] = {'c': '2', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
+            r['c1'] = CERT.PEM  # (c)ert
+            r['c2'] = CERT.PEM
+            r['p2'] = PKEY.PEM  # (p)rivate
+            r['i99'] = CHAIN.PEM  # (i)ntermediate certs
+
+        to assemble the data for `foo.example.com`:
+
+            * (c, p, i) = r.hmget('d:foo.example.com', 'c', 'p', 'i')
+            ** returns {'c': '1', 'p': '1', 'i': '99'}
+            * cert = r.get('c1')
+            * pkey = r.get('p1')
+            * chain = r.get('i99')
+            * fullchain = cert + "\n" + chain
+        """
+        # prime the X509CertificateTrusteds that are active
+        offset = 0
+        limit = 100
+        while True:
+            active_chains = lib_db.get.get__X509CertificateTrustChain__paginated(
+                request.api_context,
+                offset=offset,
+                limit=limit,
+                active_only=True,
+            )
+            if not active_chains:
+                # no certs
+                break
+            for dbX509CertificateTrustChain in active_chains:
+                total_primed["certcachain"] += 1
+                is_primed = (
+                    utils_redis.redis_prime_logic__style_1_X509CertificateTrustChain(
+                        redis_client, dbX509CertificateTrustChain, redis_timeouts
+                    )
+                )
+            if len(active_chains) < limit:
+                # no more
+                break
+            offset += limit
+
+        # prime PrivateKeys that are active
+        offset = 0
+        limit = 100
+        while True:
+            lib_db.get.get__PrivateKey__paginated(
+                request.api_context,
+                offset=0,
+                limit=100,
+                active_usage_only=False,
+            )
+            active_keys = lib_db.get.get__PrivateKey__paginated(
+                request.api_context,
+                offset=offset,
+                limit=limit,
+                active_usage_only=True,
+            )
+            if not active_keys:
+                # no keys
+                break
+            for dbPrivateKey in active_keys:
+                total_primed["pkey"] += 1
+                is_primed = utils_redis.redis_prime_logic__style_1_PrivateKey(
+                    redis_client, dbPrivateKey, redis_timeouts
+                )
+
+            if len(active_keys) < limit:
+                # no more
+                break
+            offset += limit
+
+        # prime Domains
+        offset = 0
+        limit = 100
+        while True:
+            active_domains = lib_db.get.get__Domain__paginated(
+                request.api_context,
+                offset=offset,
+                limit=limit,
+                active_certs_only=True,
+            )
+            if not active_domains:
+                # no domains
+                break
+            for dbDomain in active_domains:
+                # favor the multi:
+                total_primed["domain"] += 1
+                total_primed["cert"] += 1
+                is_primed = utils_redis.redis_prime_logic__style_1_Domain(
+                    redis_client, dbDomain, redis_timeouts
+                )
+
+            if len(active_domains) < limit:
+                # no more
+                break
+            offset += limit
+
+    elif prime_style == "2":
+        """
+        first priming style
+        --
+        the redis datastore will look like this:
+
+            r['foo.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
+            r['foo2.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
+
+        to assemble the data for `foo.example.com`:
+
+            * (f, p) = r.hmget('foo.example.com', 'f', 'p')
+        """
+
+        # prime Domains
+        offset = 0
+        limit = 100
+        while True:
+            active_domains = lib_db.get.get__Domain__paginated(
+                request.api_context,
+                offset=offset,
+                limit=limit,
+                active_certs_only=True,
+            )
+            if not active_domains:
+                # no domains
+                break
+            for dbDomain in active_domains:
+                # favor the multi:
+                total_primed["domain"] += 1
+                total_primed["cert"] += 1
+                is_primed = utils_redis.redis_prime_logic__style_2_domain(  # noqa: F841
+                    redis_client, dbDomain, redis_timeouts
+                )
+
+            if len(active_domains) < limit:
+                # no more
+                break
+            offset += limit
+
+    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict["prime_style"] = prime_style
+    event_payload_dict["total_primed"] = total_primed
+    dbEvent = lib_db.logger.log__OperationsEvent(
+        request.api_context,
+        model_utils.OperationsEventType.from_string("operations__redis_prime"),
+        event_payload_dict,
+    )
+    request.api_context.pyramid_transaction_commit()
+    return dbEvent, total_primed
 
 
 class ViewAdminApi(Handler):
@@ -85,18 +288,11 @@ class ViewAdminApi(Handler):
                 "%s/operations/log?result=error&operation=api--deactivate-expired&error=POST+required"
                 % (self.request.api_context.application_settings["admin_prefix"],)
             )
-        operations_event = lib_db.actions.operations_deactivate_expired(
-            self.request.api_context
-        )
-        count_deactivated = operations_event.event_payload_json["count_deactivated"]
-        rval = {
-            "X509Certificate": {
-                "expired": count_deactivated,
-            },
-            "result": "success",
-            "operations_event": operations_event.id,
-        }
 
+        rval = actual__deactivate_expired(
+            self.request,
+            acknowledge_transaction_commits=True,
+        )
         if self.request.wants_json:
             return rval
 
@@ -104,7 +300,7 @@ class ViewAdminApi(Handler):
             "%s/operations/log?result=success&operation=api--deactivate-expired&event.id=%s"
             % (
                 self.request.api_context.application_settings["admin_prefix"],
-                operations_event.id,
+                rval["operations_event_id"],  # is the `operations_event.id`
             )
         )
 
@@ -725,170 +921,11 @@ class ViewAdminApi_Redis(Handler):
             )
 
         try:
-            # could raise `errors.InvalidRequest("redis is not enabled")`
-            self.request.api_context._ensure_redis()
-            prime_style = utils_redis.redis_prime_style(self.request)
-            if not prime_style:
-                raise errors.InvalidRequest("invalid `redis.prime_style`")
-            redis_client = utils_redis.redis_connection_from_registry(self.request)
-            redis_timeouts = utils_redis.redis_timeouts_from_registry(self.request)
-
-            total_primed = {"certcachain": 0, "cert": 0, "pkey": 0, "domain": 0}
-
-            dbEvent = None
-            if prime_style == "1":
-                """
-                first priming style
-                --
-                the redis datastore will look like this:
-
-                    r['d:foo.example.com'] = {'c': '1', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
-                    r['d:foo2.example.com'] = {'c': '2', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
-                    r['c1'] = CERT.PEM  # (c)ert
-                    r['c2'] = CERT.PEM
-                    r['p2'] = PKEY.PEM  # (p)rivate
-                    r['i99'] = CHAIN.PEM  # (i)ntermediate certs
-
-                to assemble the data for `foo.example.com`:
-
-                    * (c, p, i) = r.hmget('d:foo.example.com', 'c', 'p', 'i')
-                    ** returns {'c': '1', 'p': '1', 'i': '99'}
-                    * cert = r.get('c1')
-                    * pkey = r.get('p1')
-                    * chain = r.get('i99')
-                    * fullchain = cert + "\n" + chain
-                """
-                # prime the X509CertificateTrusteds that are active
-                offset = 0
-                limit = 100
-                while True:
-                    active_chains = (
-                        lib_db.get.get__X509CertificateTrustChain__paginated(
-                            self.request.api_context,
-                            offset=offset,
-                            limit=limit,
-                            active_only=True,
-                        )
-                    )
-                    if not active_chains:
-                        # no certs
-                        break
-                    for dbX509CertificateTrustChain in active_chains:
-                        total_primed["certcachain"] += 1
-                        is_primed = utils_redis.redis_prime_logic__style_1_X509CertificateTrustChain(
-                            redis_client, dbX509CertificateTrustChain, redis_timeouts
-                        )
-                    if len(active_chains) < limit:
-                        # no more
-                        break
-                    offset += limit
-
-                # prime PrivateKeys that are active
-                offset = 0
-                limit = 100
-                while True:
-                    lib_db.get.get__PrivateKey__paginated(
-                        self.request.api_context,
-                        offset=0,
-                        limit=100,
-                        active_usage_only=False,
-                    )
-                    active_keys = lib_db.get.get__PrivateKey__paginated(
-                        self.request.api_context,
-                        offset=offset,
-                        limit=limit,
-                        active_usage_only=True,
-                    )
-                    if not active_keys:
-                        # no keys
-                        break
-                    for dbPrivateKey in active_keys:
-                        total_primed["pkey"] += 1
-                        is_primed = utils_redis.redis_prime_logic__style_1_PrivateKey(
-                            redis_client, dbPrivateKey, redis_timeouts
-                        )
-
-                    if len(active_keys) < limit:
-                        # no more
-                        break
-                    offset += limit
-
-                # prime Domains
-                offset = 0
-                limit = 100
-                while True:
-                    active_domains = lib_db.get.get__Domain__paginated(
-                        self.request.api_context,
-                        offset=offset,
-                        limit=limit,
-                        active_certs_only=True,
-                    )
-                    if not active_domains:
-                        # no domains
-                        break
-                    for dbDomain in active_domains:
-                        # favor the multi:
-                        total_primed["domain"] += 1
-                        total_primed["cert"] += 1
-                        is_primed = utils_redis.redis_prime_logic__style_1_Domain(
-                            redis_client, dbDomain, redis_timeouts
-                        )
-
-                    if len(active_domains) < limit:
-                        # no more
-                        break
-                    offset += limit
-
-            elif prime_style == "2":
-                """
-                first priming style
-                --
-                the redis datastore will look like this:
-
-                    r['foo.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
-                    r['foo2.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
-
-                to assemble the data for `foo.example.com`:
-
-                    * (f, p) = r.hmget('foo.example.com', 'f', 'p')
-                """
-
-                # prime Domains
-                offset = 0
-                limit = 100
-                while True:
-                    active_domains = lib_db.get.get__Domain__paginated(
-                        self.request.api_context,
-                        offset=offset,
-                        limit=limit,
-                        active_certs_only=True,
-                    )
-                    if not active_domains:
-                        # no domains
-                        break
-                    for dbDomain in active_domains:
-                        # favor the multi:
-                        total_primed["domain"] += 1
-                        total_primed["cert"] += 1
-                        is_primed = (  # noqa: F841
-                            utils_redis.redis_prime_logic__style_2_domain(
-                                redis_client, dbDomain, redis_timeouts
-                            )
-                        )
-
-                    if len(active_domains) < limit:
-                        # no more
-                        break
-                    offset += limit
-
-            event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["prime_style"] = prime_style
-            event_payload_dict["total_primed"] = total_primed
-            dbEvent = lib_db.logger.log__OperationsEvent(
-                self.request.api_context,
-                model_utils.OperationsEventType.from_string("operations__redis_prime"),
-                event_payload_dict,
+            (dbEvent, rval) = actual__prime_redis(
+                self.request,
+                acknowledge_transaction_commits=True,
             )
+
             if self.request.wants_json:
                 return {
                     "result": "success",

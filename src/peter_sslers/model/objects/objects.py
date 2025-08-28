@@ -3229,7 +3229,9 @@ class Notification(Base, _Mixin_Timestamps_Pretty):
         }
 
 
-class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
+class OperationsEvent(
+    Base, _Mixin_Timestamps_Pretty, model_utils._mixin_OperationsEventType
+):
     """
     Certain events are tracked for bookkeeping
     """
@@ -3280,6 +3282,16 @@ class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
 
     def set_event_payload(self, payload_dict) -> None:
         self.event_payload = json.dumps(payload_dict, sort_keys=True)
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "id": self.id,
+            "operations_event_type_id": self.operations_event_type_id,
+            "operations_event_id__child_of": self.operations_event_id__child_of,
+            "timestamp_event": self.timestamp_event_isoformat,
+            "event_payload": self.event_payload,
+        }
 
 
 # ==============================================================================

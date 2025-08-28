@@ -939,6 +939,9 @@ def create__EnrollmentFactory(
     ):
         raise ValueError("`is_export_filesystem_id` not valid for EnrollmentFactory")
 
+    if label_template is None:
+        raise ValueError("`label_template` is required")
+
     dbEnrollmentFactory = model_objects.EnrollmentFactory()
     dbEnrollmentFactory.name = name  # uniqueness on lower(name)
     # p
