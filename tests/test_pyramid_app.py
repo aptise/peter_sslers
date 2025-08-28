@@ -6377,6 +6377,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
             "domain_template_dns01": "",
             "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
             "is_export_filesystem": "off",
+            "label_template": "{DOMAIN}",
             "name": domain,
             "note": note,
             "private_key_cycle__backup": "account_default",
@@ -6567,10 +6568,10 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         assert "RenewalConfiguration" in resQ2.json
         assert "X509Certificates" in resQ2.json
 
-    @routes_tested(("admin:renewal_configuration:new_enrollment",))
-    def test_new_enrollment_html(self):
+    @routes_tested(("admin:enrollment_factory:focus:onboard",))
+    def test_onboard_html(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration.test_new_enrollment_html
+        python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration.test_onboard_html
         """
         eFactory_id = self._ensureOne__EnrollmentFactory()
 
@@ -6595,8 +6596,8 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         res3 = self.testapp.get(res2.location)
         assert "<code>%s</code>" % note in res3.text
 
-    @routes_tested(("admin:renewal_configuration:new_enrollment|json",))
-    def test_new_enrollment_json(self):
+    @routes_tested(("admin:enrollment_factory:focus:onboard|json",))
+    def test_onboard_json(self):
         eFactory_id = self._ensureOne__EnrollmentFactory()
 
         res = self.testapp.get(
@@ -6617,7 +6618,8 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         form["note"] = note
 
         res2 = self.testapp.post(
-            "/.well-known/peter_sslers/enrollment-factory/%s/onboard.json",
+            "/.well-known/peter_sslers/enrollment-factory/%s/onboard.json"
+            % eFactory_id,
             form,
         )
         assert res2.json["result"] == "success"
