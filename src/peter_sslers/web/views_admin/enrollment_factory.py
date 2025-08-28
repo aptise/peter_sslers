@@ -19,7 +19,8 @@ from ..lib import form_utils as form_utils
 from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
-from ..lib.forms import Form_EnrollmentFactory_edit_new
+from ..lib.forms import Form_EnrollmentFactory_edit
+from ..lib.forms import Form_EnrollmentFactory_new
 from ..lib.forms import Form_EnrollmentFactory_onboard
 from ..lib.forms import Form_EnrollmentFactory_query
 from ..lib.handler import Handler
@@ -147,7 +148,7 @@ def submit__new(
 
     (result, formStash) = formhandling.form_validate(
         request,
-        schema=Form_EnrollmentFactory_edit_new,
+        schema=Form_EnrollmentFactory_new,
         validate_get=False,
     )
     if not result:
@@ -301,7 +302,7 @@ def submit__edit(
 
     (result, formStash) = formhandling.form_validate(
         request,
-        schema=Form_EnrollmentFactory_edit_new,
+        schema=Form_EnrollmentFactory_edit,
         validate_get=False,
     )
     if not result:
@@ -315,12 +316,6 @@ def submit__edit(
             dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
         )
     )
-    label_template = formStash.results["label_template"]
-    if label_template:
-        _valid, _err = validate_label_template(label_template)
-        if not _valid:
-            formStash.fatal_field(field="label_template", error_field=_err)
-
     try:
 
         is_export_filesystem = formStash.results["is_export_filesystem"]
@@ -331,7 +326,9 @@ def submit__edit(
         result = lib_db.update.update_EnrollmentFactory(
             request.api_context,
             dbEnrollmentFactory,
-            name=formStash.results["name"],
+            # these do not support edit
+            name=dbEnrollmentFactory.name,
+            label_template=dbEnrollmentFactory.label_template,
             # primary
             acme_account_id__primary=formStash.results["acme_account_id__primary"],
             private_key_cycle__primary=formStash.results["private_key_cycle__primary"],
@@ -349,7 +346,6 @@ def submit__edit(
             is_export_filesystem_id=is_export_filesystem_id,
             # misc
             note=formStash.results["note"],
-            label_template=label_template,
             domain_template_http01=domain_template_http01,
             domain_template_dns01=domain_template_dns01,
         )
@@ -540,7 +536,7 @@ def submit__onboard(
                 # misc
                 note=note,
                 label=label,
-                is_export_filesystem_id=dbEnrollmentFactory.is_export_filesystem_id,
+                is_export_filesystem_id=model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT,
                 dbEnrollmentFactory=dbEnrollmentFactory,
             )
 
@@ -772,19 +768,19 @@ class View_Focus(Handler):
             },
             "valid_options": {
                 "AcmeAccounts": "{RENDER_ON_REQUEST::as_json_label}",
-                "private_key_cycle__primary": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_cycle__primary": Form_EnrollmentFactory_edit.fields[
                     "private_key_cycle__primary"
                 ].list,
-                "private_key_cycle__backup": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_cycle__backup": Form_EnrollmentFactory_edit.fields[
                     "private_key_cycle__backup"
                 ].list,
-                "private_key_technology__primary": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_technology__primary": Form_EnrollmentFactory_edit.fields[
                     "private_key_technology__primary"
                 ].list,
-                "private_key_technology__backup": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_technology__backup": Form_EnrollmentFactory_edit.fields[
                     "private_key_technology__backup"
                 ].list,
-                "is_export_filesystem": Form_EnrollmentFactory_edit_new.fields[
+                "is_export_filesystem": Form_EnrollmentFactory_edit.fields[
                     "is_export_filesystem"
                 ].list,
             },
@@ -1172,19 +1168,19 @@ class View_New(Handler):
             },
             "valid_options": {
                 "AcmeAccounts": "{RENDER_ON_REQUEST::as_json_label}",
-                "private_key_cycle__primary": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_cycle__primary": Form_EnrollmentFactory_new.fields[
                     "private_key_cycle__primary"
                 ].list,
-                "private_key_cycle__backup": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_cycle__backup": Form_EnrollmentFactory_new.fields[
                     "private_key_cycle__backup"
                 ].list,
-                "private_key_technology__primary": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_technology__primary": Form_EnrollmentFactory_new.fields[
                     "private_key_technology__primary"
                 ].list,
-                "private_key_technology__backup": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_technology__backup": Form_EnrollmentFactory_new.fields[
                     "private_key_technology__backup"
                 ].list,
-                "is_export_filesystem": Form_EnrollmentFactory_edit_new.fields[
+                "is_export_filesystem": Form_EnrollmentFactory_new.fields[
                     "is_export_filesystem"
                 ].list,
             },

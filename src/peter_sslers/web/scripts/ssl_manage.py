@@ -22,6 +22,7 @@ from webob.multidict import MultiDict
 from ..lib import formhandling
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeDnsServer_new
+from ..lib.forms import Form_EnrollmentFactory_new
 from ..lib.forms import Form_EnrollmentFactory_onboard
 from ..lib.forms import Form_EnrollmentFactory_query
 from ..lib.forms import Form_RenewalConfig_new
@@ -491,6 +492,10 @@ def main(argv=sys.argv):
                 )
             # !!!: - new
             elif subcommand == "new":
+                # !!!: - new - help
+                if "help" in options:
+                    render_data(Form_EnrollmentFactory_new.fields)
+                    exit(0)
                 try:
                     _dbEnrollmentFactory = v_enrollment_factory.submit__new(
                         request,

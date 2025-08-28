@@ -546,13 +546,7 @@ class Form_Domain_AcmeDnsServer_new(_Form_Schema_Base):
     acme_dns_server_id = Int(not_empty=True)
 
 
-class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
-
-    # do not update on edit
-    name = UnicodeString(not_empty=True, strip=True, max=64)
-
-    label_template = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
-
+class Form_EnrollmentFactory_edit(_Form_Schema_Base):
     domain_template_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_template_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
@@ -590,6 +584,13 @@ class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
     acme_profile__backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True, max=64
     )
+
+
+class Form_EnrollmentFactory_new(Form_EnrollmentFactory_edit):
+
+    # do not update on edit
+    name = UnicodeString(not_empty=True, strip=True, max=64)
+    label_template = UnicodeString(not_empty=True, if_missing=None, strip=True, max=64)
 
 
 class Form_EnrollmentFactory_onboard(_Form_Schema_Base):

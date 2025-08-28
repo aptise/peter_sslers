@@ -6504,7 +6504,6 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
                 "domain_template_dns01"
             ],
             "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
-            "name": res.json["EnrollmentFactory"]["name"],
             "note": res.json["EnrollmentFactory"]["note"],
             "is_export_filesystem": "off",
             "private_key_cycle__backup": res.json["EnrollmentFactory"][
