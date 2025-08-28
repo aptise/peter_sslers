@@ -197,11 +197,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-cas</a></li>
-                <li><a href="${admin_prefix}/certificate-ca-chains"
-                       title="CertificateCAChains"
+                <li><a href="${admin_prefix}/x509-certificate-trust-chain"
+                       title="X509CertificateTrustChains"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-ca-chains</a></li>
+                    x509-certificate-trust-chain</a></li>
                 <li><a href="${admin_prefix}/x509-certificate-trust-preference-policys"
                        title="X509CertificateTrustPreferencePolicys"
                     >

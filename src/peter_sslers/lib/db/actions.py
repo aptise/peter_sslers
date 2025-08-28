@@ -880,8 +880,12 @@ def operations_update_recents__global(
     X509CertificateChain1 = sqlalchemy.orm.aliased(model_objects.X509CertificateChain)
     X509CertificateChain2 = sqlalchemy.orm.aliased(model_objects.X509CertificateChain)
 
-    CertificateCAChain1 = sqlalchemy.orm.aliased(model_objects.CertificateCAChain)
-    CertificateCAChain2 = sqlalchemy.orm.aliased(model_objects.CertificateCAChain)
+    X509CertificateTrustChain1 = sqlalchemy.orm.aliased(
+        model_objects.X509CertificateTrustChain
+    )
+    X509CertificateTrustChain2 = sqlalchemy.orm.aliased(
+        model_objects.X509CertificateTrustChain
+    )
 
     _q_sub = (
         (
@@ -905,21 +909,21 @@ def operations_update_recents__global(
                 X509CertificateChain2.id == X509CertificateChain2.x509_certificate_id,
             )
             .outerjoin(
-                CertificateCAChain1,
-                X509CertificateChain1.certificate_ca_chain_id
-                == CertificateCAChain1.certificate_ca_0_id,
+                X509CertificateTrustChain1,
+                X509CertificateChain1.x509_certificate_trust_chain_id
+                == X509CertificateTrustChain1.certificate_ca_0_id,
             )
             .outerjoin(
-                CertificateCAChain2,
-                X509CertificateChain1.certificate_ca_chain_id
-                == CertificateCAChain2.certificate_ca_0_id,
+                X509CertificateTrustChain2,
+                X509CertificateChain1.x509_certificate_trust_chain_id
+                == X509CertificateTrustChain2.certificate_ca_0_id,
             )
             .filter(
                 sqlalchemy.or_(
                     model_objects.CertificateCA.id
-                    == CertificateCAChain1.certificate_ca_0_id,
+                    == X509CertificateTrustChain1.certificate_ca_0_id,
                     model_objects.CertificateCA.id
-                    == CertificateCAChain2.certificate_ca_0_id,
+                    == X509CertificateTrustChain2.certificate_ca_0_id,
                 )
             )
         )

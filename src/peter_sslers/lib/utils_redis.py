@@ -149,9 +149,9 @@ def prime_redis_domain(
                 redis_prime_logic__style_1_PrivateKey(
                     redis_client, dbX509Certificate.private_key, redis_timeouts
                 )
-                redis_prime_logic__style_1_CertificateCAChain(
+                redis_prime_logic__style_1_X509CertificateTrustChain(
                     redis_client,
-                    dbX509Certificate.certificate_ca_chain__preferred,
+                    dbX509Certificate.x509_certificate_trust_chain__preferred,
                     redis_timeouts,
                 )
             except Exception as exc:
@@ -208,7 +208,7 @@ def redis_prime_logic__style_1_Domain(
     value_redis = {
         "c": "%s" % dbX509Certificate.id,
         "p": "%s" % dbX509Certificate.private_key_id,
-        "i": "%s" % dbX509Certificate.certificate_ca_chain_id__preferred,
+        "i": "%s" % dbX509Certificate.x509_certificate_trust_chain_id__preferred,
     }
     redis_client.hset(key_redis, mapping=value_redis)
 
@@ -237,19 +237,19 @@ def redis_prime_logic__style_1_PrivateKey(
     return True
 
 
-def redis_prime_logic__style_1_CertificateCAChain(
-    redis_client, dbCertificateCAChain, redis_timeouts
+def redis_prime_logic__style_1_X509CertificateTrustChain(
+    redis_client, dbX509CertificateTrustChain, redis_timeouts
 ) -> bool:
     """
     :param redis_client:
-    :param dbCertificateCAChain: A :class:`model.objects.CertificateCAChain`
+    :param dbX509CertificateTrustChain: A :class:`model.objects.X509CertificateTrustChain`
     :param redis_timeouts:
 
     r['i99'] = CHAIN.PEM  # (i)ntermediate certs
     """
-    key_redis = "i:%s" % dbCertificateCAChain.id
+    key_redis = "i:%s" % dbX509CertificateTrustChain.id
     redis_client.set(
-        key_redis, dbCertificateCAChain.chain_pem, redis_timeouts["certcachain"]
+        key_redis, dbX509CertificateTrustChain.chain_pem, redis_timeouts["certcachain"]
     )
     return True
 

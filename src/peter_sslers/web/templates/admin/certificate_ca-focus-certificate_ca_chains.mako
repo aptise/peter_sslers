@@ -8,24 +8,24 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/certificate-cas">CertificateCAs</a></li>
         <li><a href="${admin_prefix}/certificate-ca/${CertificateCA.id}">Focus [${CertificateCA.id}]</a></li>
-        <li class="active">CertificateCAChains - ${accessor}</li>
+        <li class="active">X509CertificateTrustChains - ${accessor}</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CertificateCA - Focus - CertificateCAChains = ${accessor}</h2>
+    <h2>CertificateCA - Focus - X509CertificateTrustChains = ${accessor}</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if CertificateCAChains:
+            % if X509CertificateTrustChains:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateCAChains(CertificateCAChains)}
+                ${admin_partials.table_X509CertificateTrustChains(X509CertificateTrustChains)}
             % else:
-                No known CertificateCAChains.
+                No known X509CertificateTrustChains.
             % endif
         </div>
     </div>

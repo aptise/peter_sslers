@@ -46,7 +46,6 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeServerConfiguration
     from ...model.objects import AriCheck
     from ...model.objects import CertificateCA
-    from ...model.objects import CertificateCAChain
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import Domain
     from ...model.objects import DomainAutocert
@@ -61,6 +60,7 @@ if TYPE_CHECKING:
     from ...model.objects import X509Certificate
     from ...model.objects import X509CertificatePreferencePolicyItem
     from ...model.objects import X509CertificateRequest
+    from ...model.objects import X509CertificateTrustChain
     from ...model.objects import X509CertificateTrustPreferencePolicy
     from ...model.utils import DomainsChallenged
 
@@ -1425,12 +1425,14 @@ def create__X509Certificate(
     ctx: "ApiContext",
     cert_pem: str,
     cert_domains_expected: List[str],
-    dbCertificateCAChain: "CertificateCAChain",
+    dbX509CertificateTrustChain: "X509CertificateTrustChain",
     certificate_type_id: int,
     # optionals
     is_active: bool = False,
     dbAcmeOrder: Optional["AcmeOrder"] = None,
-    dbCertificateCAChains_alt: Optional[List["CertificateCAChain"]] = None,
+    dbX509CertificateTrustChains_alt: Optional[
+        List["X509CertificateTrustChain"]
+    ] = None,
     dbX509CertificateRequest: Optional["X509CertificateRequest"] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
@@ -1443,15 +1445,15 @@ def create__X509Certificate(
     :param cert_pem: (required) The certificate in PEM encoding
     :param cert_domains_expected: (required) a list of domains in the cert we
       expect to see
-    :param dbCertificateCAChain: (required) The :class:`model.objects.CertificateCAChain`
+    :param dbX509CertificateTrustChain: (required) The :class:`model.objects.X509CertificateTrustChain`
       that signed this certificate.
     :param certificate_type_id: (required) The :class:`model.utils.CertifcateType`
       corresponding to this Certificate
 
     :param is_active: (optional) default `False`; do not activate a certificate
       when uploading unless specified.
-    :param dbCertificateCAChains_alt: (optional) Iterable. Alternate
-      :class:`model.objects.CertificateCAChain`s that signed this certificate
+    :param dbX509CertificateTrustChains_alt: (optional) Iterable. Alternate
+      :class:`model.objects.X509CertificateTrustChain`s that signed this certificate
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
         if provivded, do not submit `dbX509CertificateRequest` or `dbPrivateKey`
     :param dbX509CertificateRequest: (optional) The :class:`model.objects.X509CertificateRequest` the certificate was generated through.
@@ -1479,8 +1481,8 @@ def create__X509Certificate(
             raise ValueError(
                 "getcreate__X509Certificate must not be provided with `dbX509CertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
             )
-    if not dbCertificateCAChain:
-        raise ValueError("must submit `dbCertificateCAChain`")
+    if not dbX509CertificateTrustChain:
+        raise ValueError("must submit `dbX509CertificateTrustChain`")
 
     if certificate_type_id not in model_utils.CertificateType._mapping:
         raise ValueError("invalid `certificate_type_id`")
@@ -1620,7 +1622,9 @@ def create__X509Certificate(
 
     dbX509CertificateChain = model_objects.X509CertificateChain()
     dbX509CertificateChain.x509_certificate_id = dbX509Certificate.id
-    dbX509CertificateChain.certificate_ca_chain_id = dbCertificateCAChain.id
+    dbX509CertificateChain.x509_certificate_trust_chain_id = (
+        dbX509CertificateTrustChain.id
+    )
     dbX509CertificateChain.is_upstream_default = True
 
     ctx.dbSession.add(dbX509CertificateChain)
@@ -1676,11 +1680,13 @@ def create__X509Certificate(
         # final, just to be safe
         ctx.dbSession.flush()
 
-    if dbCertificateCAChains_alt:
-        for _dbCertificateCAChain in dbCertificateCAChains_alt:
+    if dbX509CertificateTrustChains_alt:
+        for _dbX509CertificateTrustChain in dbX509CertificateTrustChains_alt:
             dbX509CertificateChain = model_objects.X509CertificateChain()
             dbX509CertificateChain.x509_certificate_id = dbX509Certificate.id
-            dbX509CertificateChain.certificate_ca_chain_id = _dbCertificateCAChain.id
+            dbX509CertificateChain.x509_certificate_trust_chain_id = (
+                _dbX509CertificateTrustChain.id
+            )
             dbX509CertificateChain.is_upstream_default = False
             ctx.dbSession.add(dbX509CertificateChain)
             ctx.dbSession.flush(objects=[dbX509CertificateChain])

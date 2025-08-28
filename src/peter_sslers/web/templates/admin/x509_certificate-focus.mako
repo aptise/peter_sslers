@@ -482,13 +482,13 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateCAChains</th>
+                        <th>X509CertificateTrustChains</th>
                         <td>
                             % if X509Certificate.x509_certificate_chains:
                                 <em>Available Signing Chains:</em>
                                 <ul>
                                     % for _chain in X509Certificate.x509_certificate_chains:
-                                        <li>${_chain.certificate_ca_chain.button_view|n}</li>
+                                        <li>${_chain.x509_certificate_trust_chain.button_view|n}</li>
                                     % endfor
                                 </ul>
                             % endif
@@ -741,9 +741,9 @@
                             <em>designed for http server config</em>
                             <hr/>
 
-                            % if X509Certificate.certificate_ca_chain__preferred:
+                            % if X509Certificate.x509_certificate_trust_chain__preferred:
                                 <em>Default Chain</em><br/>
-                                The Default Chain is ${X509Certificate.certificate_ca_chain__preferred.button_view|n}
+                                The Default Chain is ${X509Certificate.x509_certificate_trust_chain__preferred.button_view|n}
                                 </p>
 
                                 <a class="label label-info" href="${admin_prefix}/x509-certificate/${X509Certificate.id}/config.json">
@@ -754,11 +754,11 @@
 
                             <em>all chains</em><br/>
                             <ul class="list list-unstyled">
-                                % for _to_certificate_ca_chain in X509Certificate.x509_certificate_chains:
+                                % for _to_x509_certificate_trust_chain in X509Certificate.x509_certificate_chains:
                                     <li>
-                                        <a class="label label-info" href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain.id}/config.json">
+                                        <a class="label label-info" href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}/config.json">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                            CertificateCAChain-${_to_certificate_ca_chain.certificate_ca_chain.id}
+                                            X509CertificateTrustChain-${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}
                                             config.json</a>
                                     </li>
                                 % endfor
@@ -772,19 +772,19 @@
                             <em>designed for http server config</em>
                             <hr/>
 
-                            % if X509Certificate.certificate_ca_chain__preferred:
+                            % if X509Certificate.x509_certificate_trust_chain__preferred:
                                 <em>Default Chain</em><br/>
-                                The Default Chain is ${X509Certificate.certificate_ca_chain__preferred.button_view|n}
+                                The Default Chain is ${X509Certificate.x509_certificate_trust_chain__preferred.button_view|n}
                                 </p>
 
                                 <a
                                     class="label label-info"
                                     href="${admin_prefix}/x509-certificate/${X509Certificate.id}/config.zip"
-                                    data-certificate_ca_chain-id="${X509Certificate.certificate_ca_chain__preferred.id}"
-                                    data-certificate_ca_chain-certificate_ca_0-id="${X509Certificate.certificate_ca_chain__preferred.certificate_ca_0.id}"
-                                    data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${X509Certificate.certificate_ca_chain__preferred.certificate_ca_0.fingerprint_sha1}"
-                                    data-certificate_ca_chain-certificate_ca_n-id="${X509Certificate.certificate_ca_chain__preferred.certificate_ca_n.id}"
-                                    data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${X509Certificate.certificate_ca_chain__preferred.certificate_ca_n.fingerprint_sha1}"
+                                    data-x509_certificate_trust_chain-id="${X509Certificate.x509_certificate_trust_chain__preferred.id}"
+                                    data-x509_certificate_trust_chain-certificate_ca_0-id="${X509Certificate.x509_certificate_trust_chain__preferred.certificate_ca_0.id}"
+                                    data-x509_certificate_trust_chain-certificate_ca_0-fingerprint_sha1="${X509Certificate.x509_certificate_trust_chain__preferred.certificate_ca_0.fingerprint_sha1}"
+                                    data-x509_certificate_trust_chain-certificate_ca_n-id="${X509Certificate.x509_certificate_trust_chain__preferred.certificate_ca_n.id}"
+                                    data-x509_certificate_trust_chain-certificate_ca_n-fingerprint_sha1="${X509Certificate.x509_certificate_trust_chain__preferred.certificate_ca_n.fingerprint_sha1}"
                                 >
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     config.zip</a><br/>
@@ -793,19 +793,19 @@
 
                             <em>all chains</em><br/>
                             <ul class="list list-unstyled">
-                                % for _to_certificate_ca_chain in X509Certificate.x509_certificate_chains:
+                                % for _to_x509_certificate_trust_chain in X509Certificate.x509_certificate_chains:
                                     <li>
                                         <a
                                             class="label label-info"
-                                            href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain.id}/config.zip"
-                                            data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain.id}"
-                                            data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
-                                            data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.fingerprint_sha1}"
-                                            data-certificate_ca_chain-certificate_ca_n-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.id}"
-                                            data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.fingerprint_sha1}"
+                                            href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}/config.zip"
+                                            data-x509_certificate_trust_chain-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}"
+                                            data-x509_certificate_trust_chain-certificate_ca_0-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_0.id}"
+                                            data-x509_certificate_trust_chain-certificate_ca_0-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_0.fingerprint_sha1}"
+                                            data-x509_certificate_trust_chain-certificate_ca_n-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_n.id}"
+                                            data-x509_certificate_trust_chain-certificate_ca_n-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_n.fingerprint_sha1}"
                                         >
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                            CertificateCAChain-${_to_certificate_ca_chain.certificate_ca_chain.id}
+                                            X509CertificateTrustChain-${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}
                                             config.zip</a>
                                     </li>
                                 % endfor
@@ -842,31 +842,31 @@
                                         <tr>
                                             <th colspan="2">Certificate Chains</th>
                                         </tr>
-                                        % for _to_certificate_ca_chain in X509Certificate.x509_certificate_chains:
+                                        % for _to_x509_certificate_trust_chain in X509Certificate.x509_certificate_chains:
                                             <tr>
                                                 <th>chain (upstream)
-                                                    <span class="label label-default">CertificateCAChain-${_to_certificate_ca_chain.certificate_ca_chain_id}</span>
+                                                    <span class="label label-default">X509CertificateTrustChain-${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}</span>
                                                 </th>
                                                 <td>
                                                     <a
                                                         class="label label-info"
-                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.pem.txt"
-                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
-                                                        data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.fingerprint_sha1}"
-                                                        data-certificate_ca_chain-certificate_ca_n-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.id}"
-                                                        data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.fingerprint_sha1}"
+                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/chain.pem.txt"
+                                                        data-x509_certificate_trust_chain-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_0-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_0.id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_0-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_0.fingerprint_sha1}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_n-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_n.id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_n-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_n.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem.txt</a>
                                                     <a
                                                         class="label label-info"
-                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/chain.pem"
-                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
-                                                        data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.fingerprint_sha1}"
-                                                        data-certificate_ca_chain-certificate_ca_n-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.id}"
-                                                        data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.fingerprint_sha1}"
+                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/chain.pem"
+                                                        data-x509_certificate_trust_chain-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_0-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_0.id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_0-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_0.fingerprint_sha1}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_n-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_n.id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_n-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_n.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         chain.pem</a>
@@ -874,28 +874,28 @@
                                             </tr>
                                             <tr>
                                                 <th>fullchain (cert+upstream chain)
-                                                    <span class="label label-default">CertificateCA-${_to_certificate_ca_chain.certificate_ca_chain_id}</span>
+                                                    <span class="label label-default">CertificateCA-${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}</span>
                                                 </th>
                                                 <td>
                                                     <a
                                                         class="label label-info"
-                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/fullchain.pem.txt"
-                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
-                                                        data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.fingerprint_sha1}"
-                                                        data-certificate_ca_chain-certificate_ca_n-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.id}"
-                                                        data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.fingerprint_sha1}"
+                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/fullchain.pem.txt"
+                                                        data-x509_certificate_trust_chain-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_0-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_0.id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_0-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_0.fingerprint_sha1}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_n-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_n.id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_n-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_n.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem.txt</a>
                                                     <a
                                                         class="label label-info"
-                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_certificate_ca_chain.certificate_ca_chain_id}/fullchain.pem"
-                                                        data-certificate_ca_chain-id="${_to_certificate_ca_chain.certificate_ca_chain_id}"
-                                                        data-certificate_ca_chain-certificate_ca_0-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.id}"
-                                                        data-certificate_ca_chain-certificate_ca_0-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_0.fingerprint_sha1}"
-                                                        data-certificate_ca_chain-certificate_ca_n-id="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.id}"
-                                                        data-certificate_ca_chain-certificate_ca_n-fingerprint_sha1="${_to_certificate_ca_chain.certificate_ca_chain.certificate_ca_n.fingerprint_sha1}"
+                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/fullchain.pem"
+                                                        data-x509_certificate_trust_chain-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_0-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_0.id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_0-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_0.fingerprint_sha1}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_n-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_n.id}"
+                                                        data-x509_certificate_trust_chain-certificate_ca_n-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.certificate_ca_n.fingerprint_sha1}"
                                                     >
                                                         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                         fullchain.pem</a>

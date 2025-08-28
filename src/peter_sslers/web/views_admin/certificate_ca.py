@@ -129,11 +129,15 @@ class View_Focus(Handler):
                 self.request.api_context, dbCertificateCA.id, limit=10, offset=0
             )
         )
-        chains_0 = lib_db.get.get__CertificateCAChain__by_CertificateCAId0__paginated(
-            self.request.api_context, dbCertificateCA.id, limit=10, offset=0
+        chains_0 = (
+            lib_db.get.get__X509CertificateTrustChain__by_CertificateCAId0__paginated(
+                self.request.api_context, dbCertificateCA.id, limit=10, offset=0
+            )
         )
-        chains_n = lib_db.get.get__CertificateCAChain__by_CertificateCAIdN__paginated(
-            self.request.api_context, dbCertificateCA.id, limit=10, offset=0
+        chains_n = (
+            lib_db.get.get__X509CertificateTrustChain__by_CertificateCAIdN__paginated(
+                self.request.api_context, dbCertificateCA.id, limit=10, offset=0
+            )
         )
         if self.request.wants_json:
             return {
@@ -145,8 +149,8 @@ class View_Focus(Handler):
             "X509Certificates_count": items_count,
             "X509Certificates": items_paged,
             "X509Certificates_Alt": items_paged_alt,
-            "CertificateCAChains0": chains_0,
-            "CertificateCAChainsN": chains_n,
+            "X509CertificateTrustChains0": chains_0,
+            "X509CertificateTrustChainsN": chains_n,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -316,40 +320,44 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_ca_chains_0",
-        renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
+        route_name="admin:certificate_ca:focus:x509_certificate_trust_chains_0",
+        renderer="/admin/certificate_ca-focus-x509_certificate_trust_chains.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_ca_chains_0-paginated",
-        renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
+        route_name="admin:certificate_ca:focus:x509_certificate_trust_chains_0-paginated",
+        renderer="/admin/certificate_ca-focus-x509_certificate_trust_chains.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_ca_chains_n",
-        renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
+        route_name="admin:certificate_ca:focus:x509_certificate_trust_chains_n",
+        renderer="/admin/certificate_ca-focus-x509_certificate_trust_chains.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:certificate_ca_chains_n-paginated",
-        renderer="/admin/certificate_ca-focus-certificate_ca_chains.mako",
+        route_name="admin:certificate_ca:focus:x509_certificate_trust_chains_n-paginated",
+        renderer="/admin/certificate_ca-focus-x509_certificate_trust_chains.mako",
     )
-    def related__CertificateCAChains(self):
+    def related__X509CertificateTrustChains(self):
         dbCertificateCA = self._focus()
 
         accessor = None
         if self.request.matched_route.name in (
-            "admin:certificate_ca:focus:certificate_ca_chains_0",
-            "admin:certificate_ca:focus:certificate_ca_chains_0-paginated",
+            "admin:certificate_ca:focus:x509_certificate_trust_chains_0",
+            "admin:certificate_ca:focus:x509_certificate_trust_chains_0-paginated",
         ):
-            url_template = "%s/certificate-ca-chains-0/{0}" % self.focus_url
-            func_count = lib_db.get.get__CertificateCAChain__by_CertificateCAId0__count
+            url_template = "%s/x509-certificate-trust-chain-0/{0}" % self.focus_url
+            func_count = (
+                lib_db.get.get__X509CertificateTrustChain__by_CertificateCAId0__count
+            )
             func_paginated = (
-                lib_db.get.get__CertificateCAChain__by_CertificateCAId0__paginated
+                lib_db.get.get__X509CertificateTrustChain__by_CertificateCAId0__paginated
             )
             accessor = "0"
         else:
-            url_template = "%s/certificate-ca-chains-n/{0}" % self.focus_url
-            func_count = lib_db.get.get__CertificateCAChain__by_CertificateCAIdN__count
+            url_template = "%s/x509-certificate-trust-chain-n/{0}" % self.focus_url
+            func_count = (
+                lib_db.get.get__X509CertificateTrustChain__by_CertificateCAIdN__count
+            )
             func_paginated = (
-                lib_db.get.get__CertificateCAChain__by_CertificateCAIdN__paginated
+                lib_db.get.get__X509CertificateTrustChain__by_CertificateCAIdN__paginated
             )
             accessor = "n"
 
@@ -364,8 +372,8 @@ class View_Focus(Handler):
         return {
             "project": "peter_sslers",
             "CertificateCA": dbCertificateCA,
-            "CertificateCAChains_count": items_count,
-            "CertificateCAChains": items_paged,
+            "X509CertificateTrustChains_count": items_count,
+            "X509CertificateTrustChains": items_paged,
             "accessor": accessor,
             "pager": pager,
         }

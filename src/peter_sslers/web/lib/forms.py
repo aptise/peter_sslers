@@ -509,7 +509,7 @@ class Form_CertificateCA_Upload_Cert__file(_Form_Schema_Base):
     cert_file_name = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
 
-class Form_CertificateCAChain_Upload__file(_Form_Schema_Base):
+class Form_X509CertificateTrustChain_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
     chain_file_name = UnicodeString(not_empty=False, if_missing=None, strip=True)
 

@@ -35,9 +35,9 @@ from .get import get__X509Certificate_replaces_candidates
 from .getcreate import getcreate__AcmeAuthorization
 from .getcreate import getcreate__AcmeAuthorizationUrl
 from .getcreate import getcreate__AcmeChallenges_via_payload
-from .getcreate import getcreate__CertificateCAChain__by_pem_text
 from .getcreate import getcreate__PrivateKey_for_AcmeAccount
 from .getcreate import getcreate__X509Certificate
+from .getcreate import getcreate__X509CertificateTrustChain__by_pem_text
 from .getcreate import process__AcmeAuthorization_payload
 from .logger import AcmeLogger
 from .logger import log__OperationsEvent
@@ -2145,7 +2145,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         # we may have downloaded the alternate chains
         # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
         certificate_pem = None
-        dbCertificateCAChains_all = []
+        dbX509CertificateTrustChains_all = []
         for fullchain_pem in fullchain_pems:
             (
                 _certificate_pem,
@@ -2159,16 +2159,16 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
             # get/create the CertificateCA
             (
-                dbCertificateCAChain,
-                is_created__CertificateCAChain,
-            ) = getcreate__CertificateCAChain__by_pem_text(
+                dbX509CertificateTrustChain,
+                is_created__X509CertificateTrustChain,
+            ) = getcreate__X509CertificateTrustChain__by_pem_text(
                 ctx,
                 _ca_chain_pem,
                 discovery_type="ACME Order",
             )
-            if is_created__CertificateCAChain:
+            if is_created__X509CertificateTrustChain:
                 ctx.pyramid_transaction_commit()
-            dbCertificateCAChains_all.append(dbCertificateCAChain)
+            dbX509CertificateTrustChains_all.append(dbX509CertificateTrustChain)
 
         if certificate_pem is None:
             raise ValueError("Could not derive certificate_pem")
@@ -2177,11 +2177,11 @@ def _do__AcmeV2_AcmeOrder__finalize(
             ctx,
             cert_pem=certificate_pem,
             cert_domains_expected=domain_names,
-            dbCertificateCAChain=dbCertificateCAChains_all[0],
+            dbX509CertificateTrustChain=dbX509CertificateTrustChains_all[0],
             # optionals
             is_active=True,
             dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
+            dbX509CertificateTrustChains_alt=dbX509CertificateTrustChains_all[1:],
             dbX509CertificateRequest=dbX509CertificateRequest,
             discovery_type="ACME Order",
             certificate_type_id=dbAcmeOrder.certificate_type_id,
@@ -2486,7 +2486,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
     # we may have downloaded the alternate chains
     # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
     certificate_pem = None
-    dbCertificateCAChains_all = []
+    dbX509CertificateTrustChains_all = []
     for fullchain_pem in fullchain_pems:
         (
             _certificate_pem,
@@ -2500,16 +2500,16 @@ def do__AcmeV2_AcmeOrder__download_certificate(
 
         # get/create the CertificateCA
         (
-            dbCertificateCAChain,
-            is_created__CertificateCAChain,
-        ) = getcreate__CertificateCAChain__by_pem_text(
+            dbX509CertificateTrustChain,
+            is_created__X509CertificateTrustChain,
+        ) = getcreate__X509CertificateTrustChain__by_pem_text(
             ctx,
             _ca_chain_pem,
             discovery_type="ACME Order",
         )
-        if is_created__CertificateCAChain:
+        if is_created__X509CertificateTrustChain:
             ctx.pyramid_transaction_commit()
-        dbCertificateCAChains_all.append(dbCertificateCAChain)
+        dbX509CertificateTrustChains_all.append(dbX509CertificateTrustChain)
 
     if certificate_pem is None:
         raise ValueError("Could not derive certificate_pem")
@@ -2521,12 +2521,12 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         ctx,
         cert_pem=certificate_pem,
         cert_domains_expected=dbAcmeOrder.domains_as_list,
-        dbCertificateCAChain=dbCertificateCAChains_all[0],
+        dbX509CertificateTrustChain=dbX509CertificateTrustChains_all[0],
         dbPrivateKey=dbAcmeOrder.private_key,
         certificate_type_id=dbAcmeOrder.certificate_type_id,
         # optionals
         dbAcmeOrder=dbAcmeOrder,
-        dbCertificateCAChains_alt=dbCertificateCAChains_all[1:],
+        dbX509CertificateTrustChains_alt=dbX509CertificateTrustChains_all[1:],
         discovery_type="ACME Order",
         is_active=True,
     )

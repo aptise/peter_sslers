@@ -40,7 +40,6 @@ from ...model.objects import AcmeServer
 from ...model.objects import AcmeServerConfiguration
 from ...model.objects import AriCheck
 from ...model.objects import CertificateCA
-from ...model.objects import CertificateCAChain
 from ...model.objects import CoverageAssuranceEvent
 from ...model.objects import Domain
 from ...model.objects import DomainAutocert
@@ -64,6 +63,7 @@ from ...model.objects import X509Certificate
 from ...model.objects import X509CertificateChain
 from ...model.objects import X509CertificatePreferencePolicyItem
 from ...model.objects import X509CertificateRequest
+from ...model.objects import X509CertificateTrustChain
 from ...model.objects import X509CertificateTrustPreferencePolicy
 from ...model.objects.aliases import UniqueFQDNSet2DomainAlt
 
@@ -1615,116 +1615,124 @@ def get__CertificateCA__by_pem_text(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CertificateCAChain__count(ctx: "ApiContext") -> int:
-    counted = ctx.dbSession.query(CertificateCAChain).count()
+def get__X509CertificateTrustChain__count(ctx: "ApiContext") -> int:
+    counted = ctx.dbSession.query(X509CertificateTrustChain).count()
     return counted
 
 
-def get__CertificateCAChain__paginated(
+def get__X509CertificateTrustChain__paginated(
     ctx: "ApiContext",
     limit: Optional[int] = None,
     offset: int = 0,
     active_only: bool = False,
-) -> List[CertificateCAChain]:
-    q = ctx.dbSession.query(CertificateCAChain)
+) -> List[X509CertificateTrustChain]:
+    q = ctx.dbSession.query(X509CertificateTrustChain)
     if active_only:
         q = q.join(
             CertificateCA,
-            CertificateCAChain.certificate_ca_0_id == CertificateCA.id,
+            X509CertificateTrustChain.certificate_ca_0_id == CertificateCA.id,
         ).filter(CertificateCA.count_active_certificates >= 1)
-    q = q.order_by(CertificateCAChain.id.desc()).limit(limit).offset(offset)
+    q = q.order_by(X509CertificateTrustChain.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged
 
 
-def get__CertificateCAChain__by_id(
+def get__X509CertificateTrustChain__by_id(
     ctx: "ApiContext", chain_id: int
-) -> Optional[CertificateCAChain]:
-    dbCertificateCAChain = (
-        ctx.dbSession.query(CertificateCAChain)
-        .filter(CertificateCAChain.id == chain_id)
+) -> Optional[X509CertificateTrustChain]:
+    dbX509CertificateTrustChain = (
+        ctx.dbSession.query(X509CertificateTrustChain)
+        .filter(X509CertificateTrustChain.id == chain_id)
         .first()
     )
-    return dbCertificateCAChain
+    return dbX509CertificateTrustChain
 
 
-def get__CertificateCAChain__by_pem_text(
+def get__X509CertificateTrustChain__by_pem_text(
     ctx: "ApiContext", chain_pem: str
-) -> Optional[CertificateCAChain]:
+) -> Optional[X509CertificateTrustChain]:
     chain_pem = cert_utils.cleanup_pem_text(chain_pem)
     chain_pem_md5 = cert_utils.utils.md5_text(chain_pem)
-    dbCertificateCAChain = (
-        ctx.dbSession.query(CertificateCAChain)
+    dbX509CertificateTrustChain = (
+        ctx.dbSession.query(X509CertificateTrustChain)
         .filter(
-            CertificateCAChain.chain_pem_md5 == chain_pem_md5,
-            CertificateCAChain.chain_pem == chain_pem,
+            X509CertificateTrustChain.chain_pem_md5 == chain_pem_md5,
+            X509CertificateTrustChain.chain_pem == chain_pem,
         )
         .first()
     )
-    return dbCertificateCAChain
+    return dbX509CertificateTrustChain
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _get__CertificateCAChain__by_certificateCaId__core(
+def _get__X509CertificateTrustChain__by_certificateCaId__core(
     ctx: "ApiContext",
     certificate_ca_id: int,
     column: InstrumentedAttribute[int],
 ):
     """
     column is either
-        * CertificateCAChain.certificate_ca_0_id
-        * CertificateCAChain.certificate_ca_n_id
+        * X509CertificateTrustChain.certificate_ca_0_id
+        * X509CertificateTrustChain.certificate_ca_n_id
     """
-    query = ctx.dbSession.query(CertificateCAChain).filter(column == certificate_ca_id)
+    query = ctx.dbSession.query(X509CertificateTrustChain).filter(
+        column == certificate_ca_id
+    )
     return query
 
 
-def get__CertificateCAChain__by_CertificateCAId0__count(
+def get__X509CertificateTrustChain__by_CertificateCAId0__count(
     ctx: "ApiContext", certificate_ca_id: int
 ) -> int:
-    query = _get__CertificateCAChain__by_certificateCaId__core(
-        ctx, certificate_ca_id, CertificateCAChain.certificate_ca_0_id
+    query = _get__X509CertificateTrustChain__by_certificateCaId__core(
+        ctx, certificate_ca_id, X509CertificateTrustChain.certificate_ca_0_id
     )
     return query.count()
 
 
-def get__CertificateCAChain__by_CertificateCAId0__paginated(
+def get__X509CertificateTrustChain__by_CertificateCAId0__paginated(
     ctx: "ApiContext",
     certificate_ca_id: int,
     limit: Optional[int] = None,
     offset: int = 0,
-) -> List[CertificateCAChain]:
-    query = _get__CertificateCAChain__by_certificateCaId__core(
-        ctx, certificate_ca_id, CertificateCAChain.certificate_ca_0_id
+) -> List[X509CertificateTrustChain]:
+    query = _get__X509CertificateTrustChain__by_certificateCaId__core(
+        ctx, certificate_ca_id, X509CertificateTrustChain.certificate_ca_0_id
     )
     items_paged = (
-        query.order_by(CertificateCAChain.id.desc()).limit(limit).offset(offset).all()
+        query.order_by(X509CertificateTrustChain.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
     )
     return items_paged
 
 
-def get__CertificateCAChain__by_CertificateCAIdN__count(
+def get__X509CertificateTrustChain__by_CertificateCAIdN__count(
     ctx: "ApiContext", certificate_ca_id: int
 ) -> int:
-    query = _get__CertificateCAChain__by_certificateCaId__core(
-        ctx, certificate_ca_id, CertificateCAChain.certificate_ca_n_id
+    query = _get__X509CertificateTrustChain__by_certificateCaId__core(
+        ctx, certificate_ca_id, X509CertificateTrustChain.certificate_ca_n_id
     )
     return query.count()
 
 
-def get__CertificateCAChain__by_CertificateCAIdN__paginated(
+def get__X509CertificateTrustChain__by_CertificateCAIdN__paginated(
     ctx: "ApiContext",
     certificate_ca_id: int,
     limit: Optional[int] = None,
     offset: int = 0,
-) -> List[CertificateCAChain]:
-    query = _get__CertificateCAChain__by_certificateCaId__core(
-        ctx, certificate_ca_id, CertificateCAChain.certificate_ca_n_id
+) -> List[X509CertificateTrustChain]:
+    query = _get__X509CertificateTrustChain__by_certificateCaId__core(
+        ctx, certificate_ca_id, X509CertificateTrustChain.certificate_ca_n_id
     )
     items_paged = (
-        query.order_by(CertificateCAChain.id.desc()).limit(limit).offset(offset).all()
+        query.order_by(X509CertificateTrustChain.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
     )
     return items_paged
 
@@ -3658,8 +3666,8 @@ def _get__X509Certificate__by_CertificateCAId__primary(
 ):
     """
     we no longer track the Certificate to the CertificateCA directly, but instead
-    through the CertificateCAChain
-        Certificate > CertificateChains > CertificateCAChain > CertificateCA
+    through the X509CertificateTrustChain
+        Certificate > CertificateChains > X509CertificateTrustChain > CertificateCA
     """
     query_core = (
         ctx.dbSession.query(X509Certificate)
@@ -3668,10 +3676,11 @@ def _get__X509Certificate__by_CertificateCAId__primary(
             X509Certificate.id == X509CertificateChain.x509_certificate_id,
         )
         .join(
-            CertificateCAChain,
-            X509CertificateChain.certificate_ca_chain_id == CertificateCAChain.id,
+            X509CertificateTrustChain,
+            X509CertificateChain.x509_certificate_trust_chain_id
+            == X509CertificateTrustChain.id,
         )
-        .filter(CertificateCAChain.certificate_ca_0_id == cert_ca_id)
+        .filter(X509CertificateTrustChain.certificate_ca_0_id == cert_ca_id)
         .filter(X509CertificateChain.is_upstream_default.is_(True))
     )
     return query_core
@@ -3698,8 +3707,8 @@ def get__X509Certificate__by_CertificateCAId__primary__paginated(
 def _get__X509Certificate__by_CertificateCAId__alt(ctx: "ApiContext", cert_ca_id: int):
     """
     we no longer track the Certificate to the CertificateCA directly, but instead
-    through the CertificateCAChain
-        Certificate > CertificateChains > CertificateCAChain > CertificateCA
+    through the X509CertificateTrustChain
+        Certificate > CertificateChains > X509CertificateTrustChain > CertificateCA
     """
     query_core = (
         ctx.dbSession.query(X509Certificate)
@@ -3708,10 +3717,11 @@ def _get__X509Certificate__by_CertificateCAId__alt(ctx: "ApiContext", cert_ca_id
             X509Certificate.id == X509CertificateChain.x509_certificate_id,
         )
         .join(
-            CertificateCAChain,
-            X509CertificateChain.certificate_ca_chain_id == CertificateCAChain.id,
+            X509CertificateTrustChain,
+            X509CertificateChain.x509_certificate_trust_chain_id
+            == X509CertificateTrustChain.id,
         )
-        .filter(CertificateCAChain.certificate_ca_0_id == cert_ca_id)
+        .filter(X509CertificateTrustChain.certificate_ca_0_id == cert_ca_id)
         .filter(X509CertificateChain.is_upstream_default.isnot(True))
     )
     return query_core

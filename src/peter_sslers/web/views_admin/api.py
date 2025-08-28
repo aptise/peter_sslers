@@ -762,21 +762,21 @@ class ViewAdminApi_Redis(Handler):
                 offset = 0
                 limit = 100
                 while True:
-                    active_chains = lib_db.get.get__CertificateCAChain__paginated(
-                        self.request.api_context,
-                        offset=offset,
-                        limit=limit,
-                        active_only=True,
+                    active_chains = (
+                        lib_db.get.get__X509CertificateTrustChain__paginated(
+                            self.request.api_context,
+                            offset=offset,
+                            limit=limit,
+                            active_only=True,
+                        )
                     )
                     if not active_chains:
                         # no certs
                         break
-                    for dbCertificateCAChain in active_chains:
+                    for dbX509CertificateTrustChain in active_chains:
                         total_primed["certcachain"] += 1
-                        is_primed = (
-                            utils_redis.redis_prime_logic__style_1_CertificateCAChain(
-                                redis_client, dbCertificateCAChain, redis_timeouts
-                            )
+                        is_primed = utils_redis.redis_prime_logic__style_1_X509CertificateTrustChain(
+                            redis_client, dbX509CertificateTrustChain, redis_timeouts
                         )
                     if len(active_chains) < limit:
                         # no more

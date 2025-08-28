@@ -6,14 +6,14 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-ca-chains">CertificateCAChains</a></li>
+        <li><a href="${admin_prefix}/x509-certificate-trust-chain">X509CertificateTrustChains</a></li>
         <li class="active">Upload Chain</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CertificateCAChains | Upload Chain</h2>
+    <h2>X509CertificateTrustChains | Upload Chain</h2>
 </%block>
 
 

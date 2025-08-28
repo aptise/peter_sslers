@@ -865,7 +865,7 @@
     </table>
 </%def>
 
-<%def name="table_CertificateCAChains(certificate_ca_chains, perspective=None)">
+<%def name="table_X509CertificateTrustChains(x509_certificate_trust_chains, perspective=None)">
     <%
         cols = ("id",
                 "display_name",
@@ -884,17 +884,17 @@
             </tr>
         </thead>
         <tbody>
-            % for certificate_ca_chain in certificate_ca_chains:
+            % for x509_certificate_trust_chain in x509_certificate_trust_chains:
                 <tr>
                     % for c in cols:
                         <td>
                             % if c == 'id':
                                 <a  class="label label-info"
-                                    href="${admin_prefix}/certificate-ca-chain/${certificate_ca_chain.id}">
-                                    <span class="glyphicon certificate_ca_chain-file" aria-hidden="true"></span>
-                                    CertificateCAChain-${certificate_ca_chain.id}</a>
+                                    href="${admin_prefix}/certificate-ca-chain/${x509_certificate_trust_chain.id}">
+                                    <span class="glyphicon x509_certificate_trust_chain-file" aria-hidden="true"></span>
+                                    X509CertificateTrustChain-${x509_certificate_trust_chain.id}</a>
                                 % else:
-                                    ${getattr(certificate_ca_chain, c)}
+                                    ${getattr(x509_certificate_trust_chain, c)}
                                 % endif
                         </td>
                     % endfor

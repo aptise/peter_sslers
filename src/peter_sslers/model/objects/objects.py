@@ -2658,14 +2658,14 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    certificate_ca_chains_0 = sa_orm_relationship(
-        "CertificateCAChain",
-        primaryjoin="CertificateCA.id==CertificateCAChain.certificate_ca_0_id",
+    x509_certificate_trust_chains_0 = sa_orm_relationship(
+        "X509CertificateTrustChain",
+        primaryjoin="CertificateCA.id==X509CertificateTrustChain.certificate_ca_0_id",
         back_populates="certificate_ca_0",
     )
-    certificate_ca_chains_n = sa_orm_relationship(
-        "CertificateCAChain",
-        primaryjoin="CertificateCA.id==CertificateCAChain.certificate_ca_n_id",
+    x509_certificate_trust_chains_n = sa_orm_relationship(
+        "X509CertificateTrustChain",
+        primaryjoin="CertificateCA.id==X509CertificateTrustChain.certificate_ca_n_id",
         back_populates="certificate_ca_n",
     )
     cert_issuer__certificate_ca = sa_orm_relationship(
@@ -2797,12 +2797,12 @@ class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         }
 
 
-class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
+class X509CertificateTrustChain(Base, _Mixin_Timestamps_Pretty):
     """
     These are pre-assembled chains of CertificateCA objects.
     """
 
-    __tablename__ = "certificate_ca_chain"
+    __tablename__ = "x509_certificate_trust_chain"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     display_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     discovery_type: Mapped[Optional[str]] = mapped_column(
@@ -2844,16 +2844,16 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
 
     certificate_ca_0 = sa_orm_relationship(
         "CertificateCA",
-        primaryjoin="CertificateCAChain.certificate_ca_0_id==CertificateCA.id",
+        primaryjoin="X509CertificateTrustChain.certificate_ca_0_id==CertificateCA.id",
         uselist=False,
-        back_populates="certificate_ca_chains_0",
+        back_populates="x509_certificate_trust_chains_0",
     )
 
     certificate_ca_n = sa_orm_relationship(
         "CertificateCA",
-        primaryjoin="CertificateCAChain.certificate_ca_n_id==CertificateCA.id",
+        primaryjoin="X509CertificateTrustChain.certificate_ca_n_id==CertificateCA.id",
         uselist=False,
-        back_populates="certificate_ca_chains_n",
+        back_populates="x509_certificate_trust_chains_n",
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2871,7 +2871,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         button = (
             """<a class="label label-info" href="%(admin_prefix)s/certificate-ca-chain/%(id)s">"""
             """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
-            """CertificateCAChain-%(id)s</a>"""
+            """X509CertificateTrustChain-%(id)s</a>"""
             % {
                 "admin_prefix": request.api_context.application_settings[
                     "admin_prefix"
@@ -2894,7 +2894,7 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
         button = (
             """<a class="label label-info" href="%(admin_prefix)s/certificate-ca-chain/%(id)s">"""
             """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
-            """CertificateCAChain-%(id)s</a>"""
+            """X509CertificateTrustChain-%(id)s</a>"""
             % {
                 "admin_prefix": request.api_context.application_settings[
                     "admin_prefix"
@@ -3678,7 +3678,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN certificate_ca_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "
-            " CASE WHEN certificate_ca_chain_id IS NOT NULL THEN 1 ELSE 0 END"
+            " CASE WHEN x509_certificate_trust_chain_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "
             " CASE WHEN x509_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
@@ -3728,8 +3728,8 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     certificate_ca_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
     )
-    certificate_ca_chain_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=True
+    x509_certificate_trust_chain_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_trust_chain.id"), nullable=True
     )
     x509_certificate_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("x509_certificate.id"), nullable=True
@@ -5431,13 +5431,13 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def cert_chain_pem(self) -> Optional[str]:
-        if not self.certificate_ca_chain__preferred:
+        if not self.x509_certificate_trust_chain__preferred:
             return None
-        return self.certificate_ca_chain__preferred.chain_pem
+        return self.x509_certificate_trust_chain__preferred.chain_pem
 
     @property
     def cert_fullchain_pem(self) -> Optional[str]:
-        if not self.certificate_ca_chain__preferred:
+        if not self.x509_certificate_trust_chain__preferred:
             return None
         # certs are standardized to have a newline
         return "\n".join((self.cert_pem.strip(), self.cert_chain_pem))  # type: ignore[arg-type]
@@ -5447,8 +5447,8 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         # this loops `ORM:x509_certificate_chains`
         # this is NOT in order of preference
         _ids = set([])
-        for _to_certificate_ca_chain in self.x509_certificate_chains:
-            _chain = _to_certificate_ca_chain.certificate_ca_chain
+        for _to_x509_certificate_trust_chain in self.x509_certificate_chains:
+            _chain = _to_x509_certificate_trust_chain.x509_certificate_trust_chain
             _ids.add(_chain.certificate_ca_0_id)
         ids = list(_ids)
         return ids
@@ -5458,29 +5458,31 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         # this loops `ORM:x509_certificate_chains`
         # this is NOT in order of preference
         _cas = set([])
-        for _to_certificate_ca_chain in self.x509_certificate_chains:
-            _chain = _to_certificate_ca_chain.certificate_ca_chain
+        for _to_x509_certificate_trust_chain in self.x509_certificate_chains:
+            _chain = _to_x509_certificate_trust_chain.x509_certificate_trust_chain
             _cas.add(_chain.certificate_ca_0)
         cas = list(_cas)
         return cas
 
     @reify
-    def certificate_ca_chain_ids(self) -> List[int]:
+    def x509_certificate_trust_chain_ids(self) -> List[int]:
         # this loops `ORM:x509_certificate_chains`
         # this is NOT in order of preference
-        _ids = [i.certificate_ca_chain_id for i in self.x509_certificate_chains]
+        _ids = [i.x509_certificate_trust_chain_id for i in self.x509_certificate_chains]
         return _ids
 
     @reify
-    def certificate_ca_chain_id__preferred(self) -> Optional[int]:
-        # this invokes `certificate_ca_chain__preferred`
+    def x509_certificate_trust_chain_id__preferred(self) -> Optional[int]:
+        # this invokes `x509_certificate_trust_chain__preferred`
         # which then loops `ORM:x509_certificate_chains`
-        if self.certificate_ca_chain__preferred:
-            return self.certificate_ca_chain__preferred.id
+        if self.x509_certificate_trust_chain__preferred:
+            return self.x509_certificate_trust_chain__preferred.id
         return None
 
     @reify
-    def certificate_ca_chain__preferred(self) -> Optional["CertificateCAChain"]:
+    def x509_certificate_trust_chain__preferred(
+        self,
+    ) -> Optional["X509CertificateTrustChain"]:
         # this loops `ORM:x509_certificate_chains`
         if not self.x509_certificate_chains:
             return None
@@ -5502,14 +5504,14 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
                 ]
                 for _preferred_ca_id in preferred_ca_ids:
                     for _csc in self.x509_certificate_chains:
-                        _ca_chain = _csc.certificate_ca_chain
+                        _ca_chain = _csc.x509_certificate_trust_chain
                         # right now we don't care WHERE in the chain the
                         # certificate CA pref is, just that it is in the chain
                         if _preferred_ca_id in _ca_chain.certificate_ca_ids:
                             return _ca_chain
 
             # we have None! so just return the first one we have
-            return self.x509_certificate_chains[0].certificate_ca_chain
+            return self.x509_certificate_chains[0].x509_certificate_trust_chain
 
         except Exception as exc:
             log.critical(exc)
@@ -5517,16 +5519,20 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     def custom_config_payload(
         self,
-        certificate_ca_chain_id=None,
+        x509_certificate_trust_chain_id=None,
         id_only=False,
     ) -> Dict:
-        # if there is no `certificate_ca_chain_id` specified, use the default
-        if not certificate_ca_chain_id:
-            certificate_ca_chain_id = self.certificate_ca_chain_id__preferred
+        # if there is no `x509_certificate_trust_chain_id` specified, use the default
+        if not x509_certificate_trust_chain_id:
+            x509_certificate_trust_chain_id = (
+                self.x509_certificate_trust_chain_id__preferred
+            )
 
         # invoke this to trigger a invalid error
-        dbCertificateCAChain = self.valid_certificate_ca_chain(  # noqa: F841
-            certificate_ca_chain_id=certificate_ca_chain_id
+        dbX509CertificateTrustChain = (  # noqa: F841
+            self.valid_x509_certificate_trust_chain(
+                x509_certificate_trust_chain_id=x509_certificate_trust_chain_id
+            )
         )
 
         # the ids are strings so that the fullchain id can be split by a client without further processing
@@ -5536,8 +5542,10 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
                 "id": str(self.id),
                 "private_key": {"id": str(self.private_key.id)},
                 "certificate": {"id": str(self.id)},
-                "chain": {"id": str(certificate_ca_chain_id)},
-                "fullchain": {"id": "%s,%s" % (self.id, certificate_ca_chain_id)},
+                "chain": {"id": str(x509_certificate_trust_chain_id)},
+                "fullchain": {
+                    "id": "%s,%s" % (self.id, x509_certificate_trust_chain_id)
+                },
             }
 
         return {
@@ -5548,26 +5556,30 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             },
             "certificate": {"id": str(self.id), "pem": self.cert_pem},
             "chain": {
-                "id": str(certificate_ca_chain_id),
+                "id": str(x509_certificate_trust_chain_id),
                 "pem": self.valid_cert_chain_pem(
-                    certificate_ca_chain_id=certificate_ca_chain_id
+                    x509_certificate_trust_chain_id=x509_certificate_trust_chain_id
                 ),
             },
             "fullchain": {
-                "id": "%s,%s" % (self.id, certificate_ca_chain_id),
+                "id": "%s,%s" % (self.id, x509_certificate_trust_chain_id),
                 "pem": self.valid_cert_fullchain_pem(
-                    certificate_ca_chain_id=certificate_ca_chain_id
+                    x509_certificate_trust_chain_id=x509_certificate_trust_chain_id
                 ),
             },
         }
 
     @property
     def config_payload(self) -> Dict:
-        return self.custom_config_payload(certificate_ca_chain_id=None, id_only=False)
+        return self.custom_config_payload(
+            x509_certificate_trust_chain_id=None, id_only=False
+        )
 
     @property
     def config_payload_idonly(self) -> Dict:
-        return self.custom_config_payload(certificate_ca_chain_id=None, id_only=True)
+        return self.custom_config_payload(
+            x509_certificate_trust_chain_id=None, id_only=True
+        )
 
     @property
     def certificate_type(self) -> str:
@@ -5704,22 +5716,25 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
                 model_utils.PrivateKeyStrategy._DEFAULT_system_renewal
             )
 
-    def valid_certificate_ca_chain(self, certificate_ca_chain_id=None):
+    def valid_x509_certificate_trust_chain(self, x509_certificate_trust_chain_id=None):
         """return a single CertificateCA, or the default"""
         for _to_upchain in self.x509_certificate_chains:
-            if _to_upchain.certificate_ca_chain_id == certificate_ca_chain_id:
-                return _to_upchain.certificate_ca_chain
-        raise ValueError("No CertificateCAChain available (?!?!)")
+            if (
+                _to_upchain.x509_certificate_trust_chain_id
+                == x509_certificate_trust_chain_id
+            ):
+                return _to_upchain.x509_certificate_trust_chain
+        raise ValueError("No X509CertificateTrustChain available (?!?!)")
 
-    def valid_cert_chain_pem(self, certificate_ca_chain_id=None):
-        certificate_chain = self.valid_certificate_ca_chain(
-            certificate_ca_chain_id=certificate_ca_chain_id
+    def valid_cert_chain_pem(self, x509_certificate_trust_chain_id=None):
+        certificate_chain = self.valid_x509_certificate_trust_chain(
+            x509_certificate_trust_chain_id=x509_certificate_trust_chain_id
         )
         return certificate_chain.chain_pem
 
-    def valid_cert_fullchain_pem(self, certificate_ca_chain_id=None):
-        certificate_chain = self.valid_certificate_ca_chain(
-            certificate_ca_chain_id=certificate_ca_chain_id
+    def valid_cert_fullchain_pem(self, x509_certificate_trust_chain_id=None):
+        certificate_chain = self.valid_x509_certificate_trust_chain(
+            x509_certificate_trust_chain_id=x509_certificate_trust_chain_id
         )
         # certs are standardized to have a newline
         return "\n".join((self.cert_pem.strip(), certificate_chain.chain_pem))
@@ -5749,8 +5764,8 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "x509_certificate_id__replaced_by": self.x509_certificate_id__replaced_by,
             "x509_certificate_id__replaces": self.x509_certificate_id__replaces,
             "certificate_type": self.certificate_type,
-            "certificate_ca_chain_id__preferred": self.certificate_ca_chain_id__preferred,
-            "certificate_ca_chain_ids": self.certificate_ca_chain_ids,
+            "x509_certificate_trust_chain_id__preferred": self.x509_certificate_trust_chain_id__preferred,
+            "x509_certificate_trust_chain_ids": self.x509_certificate_trust_chain_ids,
             "certificate_ca_ids__upchain": self.certificate_ca_ids__upchain,
             "cert_pem": self.cert_pem,
             "cert_pem_md5": self.cert_pem_md5,
@@ -5809,7 +5824,7 @@ class X509CertificateChain(Base):
     It is possible for alternate chains to be provided for a X509Certificate
 
     ``is_upstream_default`` is a boolean used to track if the issuing ACME Server
-    presented the CertificateCAChain as the primary/default chain (``True``), or if
+    presented the X509CertificateTrustChain as the primary/default chain (``True``), or if
     the upstream server provided the CertificateCA as an alternate chain.
     """
 
@@ -5818,8 +5833,8 @@ class X509CertificateChain(Base):
     x509_certificate_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("x509_certificate.id"), nullable=False
     )
-    certificate_ca_chain_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca_chain.id"), nullable=False
+    x509_certificate_trust_chain_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_trust_chain.id"), nullable=False
     )
     is_upstream_default: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
@@ -5827,9 +5842,9 @@ class X509CertificateChain(Base):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    certificate_ca_chain = sa_orm_relationship(
-        "CertificateCAChain",
-        primaryjoin="X509CertificateChain.certificate_ca_chain_id==CertificateCAChain.id",
+    x509_certificate_trust_chain = sa_orm_relationship(
+        "X509CertificateTrustChain",
+        primaryjoin="X509CertificateChain.x509_certificate_trust_chain_id==X509CertificateTrustChain.id",
         uselist=False,
     )
     x509_certificate = sa_orm_relationship(
@@ -5965,7 +5980,7 @@ __all__ = (
     "AcmePollingError",
     "AriCheck",
     "CertificateCA",
-    "CertificateCAChain",
+    "X509CertificateTrustChain",
     "CertificateCAReconciliation",
     "CoverageAssuranceEvent",
     "Domain",

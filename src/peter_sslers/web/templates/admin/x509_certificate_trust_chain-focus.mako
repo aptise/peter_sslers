@@ -6,20 +6,20 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-ca-chains">CertificateCAChains</a></li>
-        <li class="active">Focus [${CertificateCAChain.id}]</li>
+        <li><a href="${admin_prefix}/x509-certificate-trust-chain">X509CertificateTrustChains</a></li>
+        <li class="active">Focus [${X509CertificateTrustChain.id}]</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CertificateCAChain - Focus</h2>
+    <h2>X509CertificateTrustChain - Focus</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate-ca-chain/${CertificateCAChain.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/certificate-ca-chain/${X509CertificateTrustChain.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -43,36 +43,36 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${CertificateCAChain.id}
+                                ${X509CertificateTrustChain.id}
                             </span>
                         </td>
                     </tr>
                     <tr>
                         <th>chain_pem_md5</th>
-                        <td><code>${CertificateCAChain.chain_pem_md5}</code></td>
+                        <td><code>${X509CertificateTrustChain.chain_pem_md5}</code></td>
                     </tr>
 
                     <tr>
                         <th>certificate_ca_0</th>
                         <td>
                             The first item in the chain (signed a cert)<br/>
-                            ${CertificateCAChain.certificate_ca_0.button_view|n}
+                            ${X509CertificateTrustChain.certificate_ca_0.button_view|n}
                         </td>
                     </tr>
                     <tr>
                         <th>certificate_ca_n</th>
                         <td>
                             The last item in the chain (signed by a root)<br/>
-                            ${CertificateCAChain.certificate_ca_n.button_view|n}
+                            ${X509CertificateTrustChain.certificate_ca_n.button_view|n}
                         </td>
                     </tr>
                     <tr>
                         <th>chain item ids</th>
                         <td>
                             ids of CertificateCAs in this chain<br/>
-                            <code>${CertificateCAChain.certificate_ca_ids_string}</code>
+                            <code>${X509CertificateTrustChain.certificate_ca_ids_string}</code>
                             <ul style="list list-unstyled">
-                                % for certificate_ca in CertificateCAChain.certificate_cas_all:
+                                % for certificate_ca in X509CertificateTrustChain.certificate_cas_all:
                                     <li>${certificate_ca.button_view|n}</li>
                                 % endfor
                             </ul>
@@ -81,8 +81,8 @@
                     <tr>
                         <th>download</th>
                         <td>
-                            <a class="label label-info" href="${admin_prefix}/certificate-ca-chain/${CertificateCAChain.id}/chain.pem.txt">chain.pem.txt</a>
-                            <a class="label label-info" href="${admin_prefix}/certificate-ca-chain/${CertificateCAChain.id}/chain.pem">chain.pem</a>
+                            <a class="label label-info" href="${admin_prefix}/certificate-ca-chain/${X509CertificateTrustChain.id}/chain.pem.txt">chain.pem.txt</a>
+                            <a class="label label-info" href="${admin_prefix}/certificate-ca-chain/${X509CertificateTrustChain.id}/chain.pem">chain.pem</a>
                         </td>
                     </tr>
                 </tbody>

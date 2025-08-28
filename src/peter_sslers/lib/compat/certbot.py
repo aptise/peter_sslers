@@ -283,9 +283,9 @@ def import_certbot(
             with open("%s/chain%s.pem" % (_lineage_dir, _version_int), "r") as fh:
                 ca_chain_pem = fh.read()
             (
-                dbCertificateCAChain,
+                dbX509CertificateTrustChain,
                 chain_is_created,
-            ) = lib_db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+            ) = lib_db.getcreate.getcreate__X509CertificateTrustChain__by_pem_text(
                 ctx,
                 ca_chain_pem,
                 discovery_type="Certbot Import",
@@ -315,7 +315,7 @@ def import_certbot(
                 ctx,
                 certificate_pem,
                 cert_domains_expected=_certificate_domain_names,
-                dbCertificateCAChain=dbCertificateCAChain,
+                dbX509CertificateTrustChain=dbX509CertificateTrustChain,
                 certificate_type_id=CertificateType.RAW_IMPORTED,
                 # optionals
                 dbUniqueFQDNSet=dbUniqueFQDNSet,

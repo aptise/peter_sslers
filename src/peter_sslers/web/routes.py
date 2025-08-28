@@ -605,13 +605,13 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_ca:focus:certificate_ca_chains_0",
-        "/certificate-ca/{@id}/certificate-ca-chains-0",
+        "admin:certificate_ca:focus:x509_certificate_trust_chains_0",
+        "/certificate-ca/{@id}/x509-certificate-trust-chain-0",
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_ca:focus:certificate_ca_chains_n",
-        "/certificate-ca/{@id}/certificate-ca-chains-n",
+        "admin:certificate_ca:focus:x509_certificate_trust_chains_n",
+        "/certificate-ca/{@id}/x509-certificate-trust-chain-n",
         paginate=True,
     )
     config.add_route_7(
@@ -620,24 +620,24 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
 
-    # !!!: CertificateCAChains (Certificate Authority)
+    # !!!: X509CertificateTrustChains (Certificate Authority)
     config.add_route_7(
-        "admin:certificate_ca_chains",
-        "/certificate-ca-chains",
+        "admin:x509_certificate_trust_chains",
+        "/x509-certificate-trust-chain",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_ca_chain:focus",
+        "admin:x509_certificate_trust_chain:focus",
         "/certificate-ca-chain/{@id}",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_ca_chain:focus:raw",
+        "admin:x509_certificate_trust_chain:focus:raw",
         "/certificate-ca-chain/{@id}/chain.{format:(pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:certificate_ca_chain:upload_chain",
+        "admin:x509_certificate_trust_chain:upload_chain",
         "/certificate-ca-chain/upload-chain",
         jsonify=True,
     )
@@ -1379,19 +1379,19 @@ def _admin_views(config: "Configurator") -> None:
     )
     # via ca-cert routes
     config.add_route_7(
-        "admin:x509_certificate:focus:via_certificate_ca_chain:config|json",
+        "admin:x509_certificate:focus:via_x509_certificate_trust_chain:config|json",
         "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/config.json",
     )
     config.add_route_7(
-        "admin:x509_certificate:focus:via_certificate_ca_chain:config|zip",
+        "admin:x509_certificate:focus:via_x509_certificate_trust_chain:config|zip",
         "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/config.zip",
     )
     config.add_route_7(
-        "admin:x509_certificate:focus:via_certificate_ca_chain:chain:raw",
+        "admin:x509_certificate:focus:via_x509_certificate_trust_chain:chain:raw",
         "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/chain.{format:(cer|crt|der|pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:x509_certificate:focus:via_certificate_ca_chain:fullchain:raw",
+        "admin:x509_certificate:focus:via_x509_certificate_trust_chain:fullchain:raw",
         "/x509-certificate/{@id}/via-certificate-ca-chain/{id_cachain}/fullchain.{format:(pem|pem.txt)}",
     )
     # end via ca-cert

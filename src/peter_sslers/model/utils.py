@@ -319,7 +319,7 @@ class _OperationsUnified(_mixin_mapping):
         2017: "ApiDomains__certificate_if_needed__certificate_new_fail",
         200: "CertificateCA__letsencrypt_sync",  # DEPRECATED
         210: "CertificateCA__insert",
-        230: "CertificateCAChain__insert",
+        230: "X509CertificateTrustChain__insert",
         610: "X509CertificateRequest__insert",
         620: "X509CertificateRequest__new",
         621: "X509CertificateRequest__new__imported",

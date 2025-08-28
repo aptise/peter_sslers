@@ -26,9 +26,9 @@
                 <ul>
                     <li>PrivateKey</li>
                     <li>X509Certificate</li>
-                    <li>CertificateCAChain</li>
+                    <li>X509CertificateTrustChain</li>
                 </ul>
-                Some webservers require the X509Certificate and CertificateCAChain be joined in PEM format as a "fullchain" certificate.
+                Some webservers require the X509Certificate and X509CertificateTrustChain be joined in PEM format as a "fullchain" certificate.
             </p>
 
              <p>Most pages have documentation on them</p>
@@ -77,7 +77,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>CertificateCAChain</th>
+                    <th>X509CertificateTrustChain</th>
                     <td>A collection of or more <em>CertificateCA</em> Certificates that provide a path from the EndEntity
                         <em>X509Certificate</em> to a Trusted Root Certificate..
                     </td>

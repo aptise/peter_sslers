@@ -177,26 +177,26 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>CertificateCAChains0</th>
+                        <th>X509CertificateTrustChains0</th>
                         <td>
-                            % if CertificateCAChains0:
-                                ${admin_partials.table_CertificateCAChains(CertificateCAChains0)}
-                                ${admin_partials.nav_pager("%s/certificate-ca/%s/certificate-ca-chains-0" % (admin_prefix, CertificateCA.id))}
+                            % if X509CertificateTrustChains0:
+                                ${admin_partials.table_X509CertificateTrustChains(X509CertificateTrustChains0)}
+                                ${admin_partials.nav_pager("%s/certificate-ca/%s/x509-certificate-trust-chain-0" % (admin_prefix, CertificateCA.id))}
                             % else:
-                                No known CertificateCAChains.
+                                No known X509CertificateTrustChains.
                             % endif
                         </td>
                     </tr>
                 </tbody>
                 <tbody>
                     <tr>
-                        <th>CertificateCAChainsN</th>
+                        <th>X509CertificateTrustChainsN</th>
                         <td>
-                            % if CertificateCAChainsN:
-                                ${admin_partials.table_CertificateCAChains(CertificateCAChainsN)}
-                                ${admin_partials.nav_pager("%s/certificate-ca/%s/certificate-ca-chains-n" % (admin_prefix, CertificateCA.id))}
+                            % if X509CertificateTrustChainsN:
+                                ${admin_partials.table_X509CertificateTrustChains(X509CertificateTrustChainsN)}
+                                ${admin_partials.nav_pager("%s/certificate-ca/%s/x509-certificate-trust-chain-n" % (admin_prefix, CertificateCA.id))}
                             % else:
-                                No known CertificateCAChains.
+                                No known X509CertificateTrustChains.
                             % endif
                         </td>
                     </tr>

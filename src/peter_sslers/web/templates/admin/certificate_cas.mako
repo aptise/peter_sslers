@@ -23,12 +23,12 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a  href="${admin_prefix}/certificate-ca-chains"
-            title="CertificateCAChains"
+        <a  href="${admin_prefix}/x509-certificate-trust-chain"
+            title="X509CertificateTrustChains"
             class="btn btn-xs btn-info"
         >
             <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-            CertificateCAChains</a>
+            X509CertificateTrustChains</a>
         <a  href="${admin_prefix}/certificate-ca/upload-cert"
             title="CertificateCA - Upload Cert"
             class="btn btn-xs btn-primary"
