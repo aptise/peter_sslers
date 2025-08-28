@@ -6,14 +6,14 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-cas">CertificateCAs</a></li>
+        <li><a href="${admin_prefix}/certificate-cas">X509CertificateTrusteds</a></li>
         <li class="active">Upload Cert</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CertificateCAs | Upload Cert</h2>
+    <h2>X509CertificateTrusteds | Upload Cert</h2>
 </%block>
 
 
@@ -41,7 +41,7 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                ${admin_partials.formgroup__CertificateCA_Cert_file(show_text=show_text)}
+                ${admin_partials.formgroup__X509CertificateTrusted_Cert_file(show_text=show_text)}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
@@ -49,7 +49,7 @@
             </form>
         </div>
         <div class="col-sm-6">
-            ${admin_partials.info_CertificateCA()}
+            ${admin_partials.info_X509CertificateTrusted()}
 
             <h3>This form is JSON capable</h3>
             <p>
@@ -60,7 +60,7 @@
                 You can upload a certificate chain on this form: <br/>
                 <a  class="btn btn-primary"
                     href="${admin_prefix}/certificate-ca-chain/upload-chain"
-                >Upload CertificateCA Chain</a>
+                >Upload X509CertificateTrusted Chain</a>
             </p>
         </div>
     </div>

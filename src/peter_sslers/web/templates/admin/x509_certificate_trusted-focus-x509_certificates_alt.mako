@@ -6,15 +6,15 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-cas">CertificateCAs</a></li>
-        <li><a href="${admin_prefix}/certificate-ca/${CertificateCA.id}">Focus [${CertificateCA.id}]</a></li>
-        <li class="active">CertificateCAs</li>
+        <li><a href="${admin_prefix}/certificate-cas">X509CertificateTrusteds</a></li>
+        <li><a href="${admin_prefix}/certificate-ca/${X509CertificateTrusted.id}">Focus [${X509CertificateTrusted.id}]</a></li>
+        <li class="active">X509CertificateTrusteds</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CertificateCA - Focus - X509Certificates</h2>
+    <h2>X509CertificateTrusted - Focus - X509Certificates = Alt</h2>
 </%block>
 
 

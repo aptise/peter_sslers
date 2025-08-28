@@ -504,7 +504,7 @@ class Form_X509CertificatePreferencePolicyItem__prioritize(_Form_Schema_Base):
     priority = OneOf(("increase", "decrease"), not_empty=True)
 
 
-class Form_CertificateCA_Upload_Cert__file(_Form_Schema_Base):
+class Form_X509CertificateTrusted_Upload_Cert__file(_Form_Schema_Base):
     cert_file = FieldStorageUploadConverter(not_empty=True)
     cert_file_name = UnicodeString(not_empty=False, if_missing=None, strip=True)
 

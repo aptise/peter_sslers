@@ -158,9 +158,9 @@ RE_AcmeOrder_btn_deactive_authorizations__off = re.compile(
 RE_AcmeOrder_status = re.compile(r"<th>status</th>\s*<td><code>(\w+)</code>")
 
 
-# note: CertificateCA
+# note: X509CertificateTrusted
 
-RE_CertificateCA_uploaded = re.compile(
+RE_X509CertificateTrusted_uploaded = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/certificate-ca/(\d+)\?result=success&is_created=\d$"""
 )
 

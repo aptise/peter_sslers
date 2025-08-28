@@ -178,7 +178,7 @@ class View_Preferred(View_Focus):
         ) in (
             self.dbX509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
         ):
-            if _dbPref.certificate_ca.fingerprint_sha1 == cert_fingerprint:
+            if _dbPref.x509_certificate_trusted.fingerprint_sha1 == cert_fingerprint:
                 dbPreference = _dbPref
                 break
 
@@ -196,7 +196,7 @@ class View_Preferred(View_Focus):
         {
             "endpoint": "/x509-certificate-trust-preference-policy/{id}/add.json",
             "section": "x509-certificate-trust-preference-policy",
-            "about": """add preferred CertificateCA""",
+            "about": """add preferred X509CertificateTrusted""",
             "POST": True,
             "GET": False,
             "instructions": "curl {ADMIN_PREFIX}/x509-certificate-trust-preference-policy/{id}/add.json",
@@ -240,31 +240,31 @@ class View_Preferred(View_Focus):
 
             fingerprint_sha1 = formStash.results["fingerprint_sha1"]
             if len(fingerprint_sha1) == 8:
-                matching_certs = (
-                    lib_db.get.get__CertificateCAs__by_fingerprint_sha1_substring(
-                        self.request.api_context,
-                        fingerprint_sha1_substring=fingerprint_sha1,
-                    )
+                matching_certs = lib_db.get.get__X509CertificateTrusteds__by_fingerprint_sha1_substring(
+                    self.request.api_context,
+                    fingerprint_sha1_substring=fingerprint_sha1,
                 )
                 if not len(matching_certs):
                     formStash.fatal_field(
                         field="fingerprint_sha1",
-                        error_field="No matching CertificateCAs.",
+                        error_field="No matching X509CertificateTrusteds.",
                     )
                 elif len(matching_certs) > 1:
                     formStash.fatal_field(
                         field="fingerprint_sha1",
-                        error_field="Too many matching CertificateCAs.",
+                        error_field="Too many matching X509CertificateTrusteds.",
                     )
-                dbCertificateCA = matching_certs[0]
+                dbX509CertificateTrusted = matching_certs[0]
             else:
-                dbCertificateCA = lib_db.get.get__CertificateCA__by_fingerprint_sha1(
-                    self.request.api_context, fingerprint_sha1=fingerprint_sha1
+                dbX509CertificateTrusted = (
+                    lib_db.get.get__X509CertificateTrusted__by_fingerprint_sha1(
+                        self.request.api_context, fingerprint_sha1=fingerprint_sha1
+                    )
                 )
-                if not dbCertificateCA:
+                if not dbX509CertificateTrusted:
                     formStash.fatal_field(
                         field="fingerprint_sha1",
-                        error_field="No matching CertificateCA.",
+                        error_field="No matching X509CertificateTrusted.",
                     )
 
             for (
@@ -272,10 +272,10 @@ class View_Preferred(View_Focus):
             ) in (
                 self.dbX509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
             ):
-                if dbPref.certificate_ca_id == dbCertificateCA.id:
+                if dbPref.x509_certificate_trusted_id == dbX509CertificateTrusted.id:
                     formStash.fatal_field(
                         field="fingerprint_sha1",
-                        error_field="CertificateCA already in the list",
+                        error_field="X509CertificateTrusted already in the list",
                     )
 
             dbPreferencePolicy = (
@@ -294,7 +294,7 @@ class View_Preferred(View_Focus):
                 lib_db.create.create__X509CertificatePreferencePolicyItem(
                     self.request.api_context,
                     dbX509CertificateTrustPreferencePolicy=dbPreferencePolicy,
-                    dbCertificateCA=dbCertificateCA,
+                    dbX509CertificateTrusted=dbX509CertificateTrusted,
                 )
             )
 
@@ -327,7 +327,7 @@ class View_Preferred(View_Focus):
         {
             "endpoint": "/x509-certificate-trust-preference-policy/{id}/delete.json",
             "section": "x509-certificate-trust-preference-policy",
-            "about": """delete preferred CertificateCA""",
+            "about": """delete preferred X509CertificateTrusted""",
             "POST": True,
             "GET": False,
             "instructions": "curl {ADMIN_PREFIX}/x509-certificate-trust-preference-policy/{id}/delete.json",
@@ -411,7 +411,7 @@ class View_Preferred(View_Focus):
         {
             "endpoint": "/x509-certificate-trust-preference-policy/{id}/prioritize.json",
             "section": "x509-certificate-trust-preference-policy",
-            "about": """prioritize preferred CertificateCA""",
+            "about": """prioritize preferred X509CertificateTrusted""",
             "POST": True,
             "GET": False,
             "instructions": "curl {ADMIN_PREFIX}/x509-certificate-trust-preference-policy/{id}/prioritize.json",

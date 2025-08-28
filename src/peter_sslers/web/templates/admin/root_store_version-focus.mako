@@ -68,13 +68,13 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateCAs</th>
+                        <th>X509CertificateTrusteds</th>
                         <td>
-                            % if RootStoreVersion.to_certificate_cas:
+                            % if RootStoreVersion.to_x509_certificate_trusteds:
                                 <ul class="list list-unstyled">
-                                    % for to_certificate_ca in RootStoreVersion.to_certificate_cas:
+                                    % for to_x509_certificate_trusted in RootStoreVersion.to_x509_certificate_trusteds:
                                         <li>
-                                            ${to_certificate_ca.certificate_ca.button_view|n}
+                                            ${to_x509_certificate_trusted.x509_certificate_trusted.button_view|n}
                                         </li>
                                     % endfor
                                 </ul>

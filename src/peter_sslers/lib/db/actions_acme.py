@@ -2157,7 +2157,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 if certificate_pem != _certificate_pem:
                     raise ValueError("certificate mismatch!")
 
-            # get/create the CertificateCA
+            # get/create the X509CertificateTrusted
             (
                 dbX509CertificateTrustChain,
                 is_created__X509CertificateTrustChain,
@@ -2498,7 +2498,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             if certificate_pem != _certificate_pem:
                 raise ValueError("certificate mismatch!")
 
-        # get/create the CertificateCA
+        # get/create the X509CertificateTrusted
         (
             dbX509CertificateTrustChain,
             is_created__X509CertificateTrustChain,

@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeServer
     from ...model.objects import AcmeServerConfiguration
     from ...model.objects import AriCheck
-    from ...model.objects import CertificateCA
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import Domain
     from ...model.objects import DomainAutocert
@@ -61,6 +60,7 @@ if TYPE_CHECKING:
     from ...model.objects import X509CertificatePreferencePolicyItem
     from ...model.objects import X509CertificateRequest
     from ...model.objects import X509CertificateTrustChain
+    from ...model.objects import X509CertificateTrusted
     from ...model.objects import X509CertificateTrustPreferencePolicy
     from ...model.utils import DomainsChallenged
 
@@ -731,7 +731,7 @@ def create__X509CertificateTrustPreferencePolicy(
     Create a new X509CertificatePreferencePolicyItem entry
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbCertificateCA: (required) a `model_objects.CertificateCA` object
+    :param dbX509CertificateTrusted: (required) a `model_objects.X509CertificateTrusted` object
     :param slot_id: (optional) The id, if any. defaults to db managing the id
     """
     name = lib_utils.normalize_unique_text(name)
@@ -747,14 +747,14 @@ def create__X509CertificateTrustPreferencePolicy(
 def create__X509CertificatePreferencePolicyItem(
     ctx: "ApiContext",
     dbX509CertificateTrustPreferencePolicy: "X509CertificateTrustPreferencePolicy",
-    dbCertificateCA: "CertificateCA",
+    dbX509CertificateTrusted: "X509CertificateTrusted",
     slot_id: Optional[int] = None,
 ) -> "X509CertificatePreferencePolicyItem":
     """
     Create a new X509CertificatePreferencePolicyItem entry
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbCertificateCA: (required) a `model_objects.CertificateCA` object
+    :param dbX509CertificateTrusted: (required) a `model_objects.X509CertificateTrusted` object
     :param slot_id: (optional) The id, if any. defaults to db managing the id
     """
     dbX509CertificatePreferencePolicyItem = (
@@ -763,7 +763,9 @@ def create__X509CertificatePreferencePolicyItem(
     dbX509CertificatePreferencePolicyItem.x509_certificate_trust_preference_policy_id = (
         dbX509CertificateTrustPreferencePolicy.id
     )
-    dbX509CertificatePreferencePolicyItem.certificate_ca_id = dbCertificateCA.id
+    dbX509CertificatePreferencePolicyItem.x509_certificate_trusted_id = (
+        dbX509CertificateTrusted.id
+    )
     if slot_id is None:
         slot_id = (
             ctx.dbSession.query(model_objects.X509CertificatePreferencePolicyItem)

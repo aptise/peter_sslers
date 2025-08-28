@@ -73,9 +73,9 @@ This means the entire directory can be migrated across systems for installations
 * An EnrollmentPolicy sets the default AcmeAccounts and Private Key options when using this system
 
 
-### CertificateCAs and Certificate Chains
+### X509CertificateTrusteds and Certificate Chains
 
-Earlier versions of this library treated the entire chain as a unique CertificateCA.
+Earlier versions of this library treated the entire chain as a unique X509CertificateTrusted.
 
 This has since changed.
 
@@ -88,18 +88,18 @@ The normalized data structure used by the backend and object hierarchy is as fol
   * Maps a `X509Certificate` to the ACME indicated `X509CertificateTrustChain`
   * Indicates if the association was the primary/default or an alterate
 * `X509CertificateTrustChain`
-  * Represents a chain of one or more `CertificateCA` Certificates
+  * Represents a chain of one or more `X509CertificateTrusted` Certificates
   * item 0 signed the `X509Certificate`
   * item n is typically signed by the Trust store Certificate
-* `CertificateCA`
+* `X509CertificateTrusted`
   * A root or intermediate Certificate
 
 When Alternate Chains are offered by the ACME server, the system will download
 all chains and associate them to the Certificate.
 
-PeterSSLers also has a tool/endpoint to handle CertificateCA "Reconciliation".
+PeterSSLers also has a tool/endpoint to handle X509CertificateTrusted "Reconciliation".
 
-With Reconciliation, CertificateCAs with an issuer URI (aka "Authority Information
+With Reconciliation, X509CertificateTrusteds with an issuer URI (aka "Authority Information
 Access" URI) will have that URI downloaded, processed and enrolled into the system.
 The record pertaining to the downloaded Certificate - which may have already been
 in the system, will be noted with the URI the Certificate was downloaded from.
@@ -332,7 +332,7 @@ PeterSSLers will track/enroll EVERY Certificate Chain presented by the upstream
 ACME Server. There is no facility to disable this functionality, and there are
 no plans to disable this functionality.
 
-The Default Certificate Chains can only be pinned globally. The "CertificateCA"
+The Default Certificate Chains can only be pinned globally. The "X509CertificateTrusted"
 Administration Panel has an option to set a hierarchy of upstream CA Certificates.
 When a default chain is needed, Peter will iterate the list of preferred upstream
 CAs and return the first signing chain that matches. If no match is found, the

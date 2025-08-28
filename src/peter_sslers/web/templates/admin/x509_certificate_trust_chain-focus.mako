@@ -53,27 +53,27 @@
                     </tr>
 
                     <tr>
-                        <th>certificate_ca_0</th>
+                        <th>x509_certificate_trusted_0</th>
                         <td>
                             The first item in the chain (signed a cert)<br/>
-                            ${X509CertificateTrustChain.certificate_ca_0.button_view|n}
+                            ${X509CertificateTrustChain.x509_certificate_trusted_0.button_view|n}
                         </td>
                     </tr>
                     <tr>
-                        <th>certificate_ca_n</th>
+                        <th>x509_certificate_trusted_n</th>
                         <td>
                             The last item in the chain (signed by a root)<br/>
-                            ${X509CertificateTrustChain.certificate_ca_n.button_view|n}
+                            ${X509CertificateTrustChain.x509_certificate_trusted_n.button_view|n}
                         </td>
                     </tr>
                     <tr>
                         <th>chain item ids</th>
                         <td>
-                            ids of CertificateCAs in this chain<br/>
-                            <code>${X509CertificateTrustChain.certificate_ca_ids_string}</code>
+                            ids of X509CertificateTrusteds in this chain<br/>
+                            <code>${X509CertificateTrustChain.x509_certificate_trusted_ids_string}</code>
                             <ul style="list list-unstyled">
-                                % for certificate_ca in X509CertificateTrustChain.certificate_cas_all:
-                                    <li>${certificate_ca.button_view|n}</li>
+                                % for x509_certificate_trusted in X509CertificateTrustChain.x509_certificate_trusteds_all:
+                                    <li>${x509_certificate_trusted.button_view|n}</li>
                                 % endfor
                             </ul>
                         </td>

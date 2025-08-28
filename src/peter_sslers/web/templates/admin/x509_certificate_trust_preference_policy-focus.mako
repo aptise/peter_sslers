@@ -68,7 +68,7 @@
                             id="form-preferred-delete-${dbPreference.slot_id}"
                         >
                             <input type="hidden" name="slot" value="${dbPreference.slot_id}" data-formencode-ignore="1"/>
-                            <input type="hidden" name="fingerprint_sha1" value="${dbPreference.certificate_ca.fingerprint_sha1}" data-formencode-ignore="1"/>
+                            <input type="hidden" name="fingerprint_sha1" value="${dbPreference.x509_certificate_trusted.fingerprint_sha1}" data-formencode-ignore="1"/>
                             <button class="btn btn-xs btn-danger" type="submit">
                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                 Delete
@@ -81,7 +81,7 @@
                             id="form-preferred-prioritize_increase-${dbPreference.slot_id}"
                         >
                             <input type="hidden" name="slot" value="${dbPreference.slot_id}" data-formencode-ignore="1"/>
-                            <input type="hidden" name="fingerprint_sha1" value="${dbPreference.certificate_ca.fingerprint_sha1}" data-formencode-ignore="1"/>
+                            <input type="hidden" name="fingerprint_sha1" value="${dbPreference.x509_certificate_trusted.fingerprint_sha1}" data-formencode-ignore="1"/>
                             <input type="hidden" name="priority" value="increase" data-formencode-ignore="1"/>
                             <button class="btn btn-xs btn-primary ${"disabled" if idx == 0 else ""}" type="submit">
                                 <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
@@ -95,7 +95,7 @@
                             id="form-preferred-prioritize_decrease-${dbPreference.slot_id}"
                         >
                             <input type="hidden" name="slot" value="${dbPreference.slot_id}" data-formencode-ignore="1"/>
-                            <input type="hidden" name="fingerprint_sha1" value="${dbPreference.certificate_ca.fingerprint_sha1}" data-formencode-ignore="1"/>
+                            <input type="hidden" name="fingerprint_sha1" value="${dbPreference.x509_certificate_trusted.fingerprint_sha1}" data-formencode-ignore="1"/>
                             <input type="hidden" name="priority" value="decrease" data-formencode-ignore="1"/>
                             <button class="btn btn-xs btn-primary ${"disabled" if idx == idx_n else ""}" type="submit">
                                 <span class="glyphicon glyphicon-download" aria-hidden="true"></span>
@@ -103,13 +103,13 @@
                             </button>
                         </form>
                         <span class="label label-default">${dbPreference.slot_id}</span>
-                        ${dbPreference.certificate_ca.button_view|n}
+                        ${dbPreference.x509_certificate_trusted.button_view|n}
                     </li>
                 % endfor
             </ul>
             
             <h3>Add an Item</h3>
-            <p>Add a CertificateCA to the preference list by entering the fingerprint_sha1.</p>
+            <p>Add a X509CertificateTrusted to the preference list by entering the fingerprint_sha1.</p>
             <p>You may enter the initial few characters of the fingerprint_sha1.</p>
             <p>Items will be added to the end of the list.</p>
             <form

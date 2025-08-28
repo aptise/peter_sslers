@@ -146,15 +146,15 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
         cert_data = certs[cert_id]
         assert cert_data["cert_pem"]
         _is_created = False
-        dbCertificateCA = db_get.get__CertificateCA__by_pem_text(
+        dbX509CertificateTrusted = db_get.get__X509CertificateTrusted__by_pem_text(
             ctx, cert_data["cert_pem"]
         )
-        if not dbCertificateCA:
+        if not dbX509CertificateTrusted:
             is_trusted_root = cert_data.get("is_trusted_root")
             (
-                dbCertificateCA,
+                dbX509CertificateTrusted,
                 _is_created,
-            ) = db_getcreate.getcreate__CertificateCA__by_pem_text(
+            ) = db_getcreate.getcreate__X509CertificateTrusted__by_pem_text(
                 ctx,
                 cert_data["cert_pem"],
                 display_name=cert_data["display_name"],
@@ -162,19 +162,19 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
                 discovery_type="initial setup",
             )
             if _is_created:
-                certs_discovered.append(dbCertificateCA)
+                certs_discovered.append(dbX509CertificateTrusted)
         if "is_trusted_root" in cert_data:
-            if dbCertificateCA.is_trusted_root != cert_data["is_trusted_root"]:
-                dbCertificateCA.is_trusted_root = cert_data["is_trusted_root"]
-                if dbCertificateCA not in certs_discovered:
-                    certs_modified.append(dbCertificateCA)
+            if dbX509CertificateTrusted.is_trusted_root != cert_data["is_trusted_root"]:
+                dbX509CertificateTrusted.is_trusted_root = cert_data["is_trusted_root"]
+                if dbX509CertificateTrusted not in certs_discovered:
+                    certs_modified.append(dbX509CertificateTrusted)
         else:
             attrs = ("display_name",)
             for _k in attrs:
-                if getattr(dbCertificateCA, _k) is None:
-                    setattr(dbCertificateCA, _k, cert_data[_k])  # type: ignore[literal-required]
-                    if dbCertificateCA not in certs_discovered:
-                        certs_modified.append(dbCertificateCA)
+                if getattr(dbX509CertificateTrusted, _k) is None:
+                    setattr(dbX509CertificateTrusted, _k, cert_data[_k])  # type: ignore[literal-required]
+                    if dbX509CertificateTrusted not in certs_discovered:
+                        certs_modified.append(dbX509CertificateTrusted)
 
         if ("compatibility" in cert_data) and (cert_data["compatibility"] is not None):
             # TODO: migrate to getcreate
@@ -221,33 +221,35 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
                         ]
                     )
 
-                dbRootStoreVersion2CertificateCA = (
-                    ctx.dbSession.query(model_objects.RootStoreVersion_2_CertificateCA)
+                dbRootStoreVersion2X509CertificateTrusted = (
+                    ctx.dbSession.query(
+                        model_objects.RootStoreVersion_2_X509CertificateTrusted
+                    )
                     .filter(
-                        model_objects.RootStoreVersion_2_CertificateCA.root_store_version_id
+                        model_objects.RootStoreVersion_2_X509CertificateTrusted.root_store_version_id
                         == dbRootStoreVersion.id,
-                        model_objects.RootStoreVersion_2_CertificateCA.certificate_ca_id
-                        == dbCertificateCA.id,
+                        model_objects.RootStoreVersion_2_X509CertificateTrusted.x509_certificate_trusted_id
+                        == dbX509CertificateTrusted.id,
                     )
                     .first()
                 )
-                if not dbRootStoreVersion2CertificateCA:
-                    dbRootStoreVersion2CertificateCA = (
-                        model_objects.RootStoreVersion_2_CertificateCA()
+                if not dbRootStoreVersion2X509CertificateTrusted:
+                    dbRootStoreVersion2X509CertificateTrusted = (
+                        model_objects.RootStoreVersion_2_X509CertificateTrusted()
                     )
-                    dbRootStoreVersion2CertificateCA.root_store_version_id = (
+                    dbRootStoreVersion2X509CertificateTrusted.root_store_version_id = (
                         dbRootStoreVersion.id
                     )
-                    dbRootStoreVersion2CertificateCA.certificate_ca_id = (
-                        dbCertificateCA.id
+                    dbRootStoreVersion2X509CertificateTrusted.x509_certificate_trusted_id = (
+                        dbX509CertificateTrusted.id
                     )
-                    ctx.dbSession.add(dbRootStoreVersion2CertificateCA)
+                    ctx.dbSession.add(dbRootStoreVersion2X509CertificateTrusted)
                     ctx.dbSession.flush(
                         objects=[
-                            dbRootStoreVersion2CertificateCA,
+                            dbRootStoreVersion2X509CertificateTrusted,
                         ]
                     )
-        certs_lookup[cert_id] = dbCertificateCA
+        certs_lookup[cert_id] = dbX509CertificateTrusted
 
     # bookkeeping update
     event_payload_dict["is_certificates_discovered"] = (
@@ -280,11 +282,11 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
         #    continue
         if cert_id not in certs_lookup:
             raise ValueError("Certificate `%s` is unknown" % cert_id)
-        dbCertificateCA = certs_lookup[cert_id]
+        dbX509CertificateTrusted = certs_lookup[cert_id]
         dbPref = db_create.create__X509CertificatePreferencePolicyItem(  # noqa: F841
             ctx,
             dbX509CertificateTrustPreferencePolicy=dbX509CertificateTrustPreferencePolicy,
-            dbCertificateCA=dbCertificateCA,
+            dbX509CertificateTrusted=dbX509CertificateTrusted,
         )
 
     # !!!: DomainBlocklisted

@@ -5,7 +5,7 @@ echo '01' > serial.txt
 touch index.txt
 
 
-1. Make the CertificateCA
+1. Make the X509CertificateTrusted
 
 openssl req -x509 -config ./openssl-ca-1.cnf -newkey rsa:4096 -sha256 -nodes -out cacert.pem -outform PEM
 

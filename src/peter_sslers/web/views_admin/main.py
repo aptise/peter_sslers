@@ -108,7 +108,7 @@ class ViewAdminMain(Handler):
         results: Dict[str, Dict] = {
             "AcmeAccount": {"count": 0, "items": [], "next": False},
             "Domain": {"count": 0, "items": [], "next": False},
-            "CertificateCA": {"count": 0, "items": [], "next": False},
+            "X509CertificateTrusted": {"count": 0, "items": [], "next": False},
             "X509CertificateRequest": {"count": 0, "items": [], "next": False},
             "PrivateKey": {"count": 0, "items": [], "next": False},
             "X509Certificate": {"count": 0, "items": [], "next": False},
@@ -164,14 +164,16 @@ class ViewAdminMain(Handler):
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # CertificateCA
-            if show_only["CertificateCA"]:
+            # X509CertificateTrusted
+            if show_only["X509CertificateTrusted"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.CertificateCA
-                ).filter(model_objects.CertificateCA.spki_sha256 == search_spki)
-                results["CertificateCA"]["count"] = _base.count()
-                if results["CertificateCA"]["count"]:
-                    results["CertificateCA"]["items"] = (
+                    model_objects.X509CertificateTrusted
+                ).filter(
+                    model_objects.X509CertificateTrusted.spki_sha256 == search_spki
+                )
+                results["X509CertificateTrusted"]["count"] = _base.count()
+                if results["X509CertificateTrusted"]["count"]:
+                    results["X509CertificateTrusted"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
@@ -227,19 +229,20 @@ class ViewAdminMain(Handler):
 
             search_text = cert_subject or cert_issuer
 
-            # CertificateCA
-            if show_only["CertificateCA"]:
+            # X509CertificateTrusted
+            if show_only["X509CertificateTrusted"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.CertificateCA
+                    model_objects.X509CertificateTrusted
                 ).filter(
                     sqlalchemy.or_(
-                        model_objects.CertificateCA.cert_subject == search_text,
-                        model_objects.CertificateCA.cert_issuer == search_text,
+                        model_objects.X509CertificateTrusted.cert_subject
+                        == search_text,
+                        model_objects.X509CertificateTrusted.cert_issuer == search_text,
                     )
                 )
-                results["CertificateCA"]["count"] = _base.count()
-                if results["CertificateCA"]["count"]:
-                    results["CertificateCA"]["items"] = (
+                results["X509CertificateTrusted"]["count"] = _base.count()
+                if results["X509CertificateTrusted"]["count"]:
+                    results["X509CertificateTrusted"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 

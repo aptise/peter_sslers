@@ -32,7 +32,7 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                ${admin_partials.formgroup__CertificateCA_Chain_file(show_text=show_text)}
+                ${admin_partials.formgroup__X509CertificateTrusted_Chain_file(show_text=show_text)}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
@@ -49,7 +49,7 @@
                 You can upload a certificate on this form: <br/>
                 <a  class="btn btn-primary"
                     href="${admin_prefix}/certificate-ca/upload-cert"
-                >Upload CertificateCA Cert</a>
+                >Upload X509CertificateTrusted Cert</a>
             </p>
         </div>
     </div>

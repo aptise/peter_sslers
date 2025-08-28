@@ -40,7 +40,7 @@
                 ${admin_partials.formgroup__Certificate_file(show_text=show_text)}
                 <hr/>
 
-                ${admin_partials.formgroup__CertificateCA_Chain_file(show_text=show_text)}
+                ${admin_partials.formgroup__X509CertificateTrusted_Chain_file(show_text=show_text)}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
@@ -69,7 +69,7 @@
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>valid form</th>
-                    <td><code>{"private_key": {"id": 2, "created": false}, "certificate_ca": {"id": 1, "created": false}, "result": "success", "certificate": {"url": "${admin_prefix}/x509-certificate/2", "id": 2, "created": false}}</code></td>
+                    <td><code>{"private_key": {"id": 2, "created": false}, "x509_certificate_trusted": {"id": 1, "created": false}, "result": "success", "certificate": {"url": "${admin_prefix}/x509-certificate/2", "id": 2, "created": false}}</code></td>
                 </tr>
                 <tr>
                     <th>valid form</th>

@@ -13,31 +13,34 @@ from pyramid.view import view_config
 from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
-from ..lib.forms import Form_CertificateCA_Upload_Cert__file
+from ..lib.forms import Form_X509CertificateTrusted_Upload_Cert__file
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
-from ...model.objects import CertificateCA
+from ...model.objects import X509CertificateTrusted
 
 # ==============================================================================
 
 
 class View_List(Handler):
     @view_config(
-        route_name="admin:certificate_cas", renderer="/admin/certificate_cas.mako"
+        route_name="admin:x509_certificate_trusteds",
+        renderer="/admin/x509_certificate_trusteds.mako",
     )
     @view_config(
-        route_name="admin:certificate_cas-paginated",
-        renderer="/admin/certificate_cas.mako",
+        route_name="admin:x509_certificate_trusteds-paginated",
+        renderer="/admin/x509_certificate_trusteds.mako",
     )
-    @view_config(route_name="admin:certificate_cas|json", renderer="json")
-    @view_config(route_name="admin:certificate_cas-paginated|json", renderer="json")
+    @view_config(route_name="admin:x509_certificate_trusteds|json", renderer="json")
+    @view_config(
+        route_name="admin:x509_certificate_trusteds-paginated|json", renderer="json"
+    )
     @docify(
         {
             "endpoint": "/certificate-cas.json",
             "section": "certificate-ca",
-            "about": """list CertificateCA(s)""",
+            "about": """list X509CertificateTrusted(s)""",
             "POST": None,
             "GET": True,
             "example": "curl {ADMIN_PREFIX}/certificate-cas.json",
@@ -52,7 +55,9 @@ class View_List(Handler):
         }
     )
     def list(self):
-        items_count = lib_db.get.get__CertificateCA__count(self.request.api_context)
+        items_count = lib_db.get.get__X509CertificateTrusted__count(
+            self.request.api_context
+        )
         url_template = (
             "%s/certificate-cas/{0}"
             % self.request.api_context.application_settings["admin_prefix"]
@@ -60,92 +65,84 @@ class View_List(Handler):
         if self.request.wants_json:
             url_template = "%s.json" % url_template
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CertificateCA__paginated(
+        items_paged = lib_db.get.get__X509CertificateTrusted__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         if self.request.wants_json:
             _certs = {c.id: c.as_json for c in items_paged}
             return {
-                "CertificateCAs": _certs,
+                "X509CertificateTrusteds": _certs,
                 "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
-            "CertificateCAs_count": items_count,
-            "CertificateCAs": items_paged,
+            "X509CertificateTrusteds_count": items_count,
+            "X509CertificateTrusteds": items_paged,
             "pager": pager,
         }
 
 
 class View_Focus(Handler):
-    dbCertificateCA: Optional[CertificateCA] = None
+    dbX509CertificateTrusted: Optional[X509CertificateTrusted] = None
 
-    def _focus(self) -> CertificateCA:
-        if self.dbCertificateCA is None:
-            dbCertificateCA = lib_db.get.get__CertificateCA__by_id(
+    def _focus(self) -> X509CertificateTrusted:
+        if self.dbX509CertificateTrusted is None:
+            dbX509CertificateTrusted = lib_db.get.get__X509CertificateTrusted__by_id(
                 self.request.api_context, self.request.matchdict["id"]
             )
-            if not dbCertificateCA:
+            if not dbX509CertificateTrusted:
                 raise HTTPNotFound("the cert was not found")
-            self.dbCertificateCA = dbCertificateCA
-            self.focus_item = dbCertificateCA
+            self.dbX509CertificateTrusted = dbX509CertificateTrusted
+            self.focus_item = dbX509CertificateTrusted
             self.focus_url = "%s/certificate-ca/%s" % (
                 self.request.api_context.application_settings["admin_prefix"],
-                self.dbCertificateCA.id,
+                self.dbX509CertificateTrusted.id,
             )
-        return self.dbCertificateCA
+        return self.dbX509CertificateTrusted
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_ca:focus",
-        renderer="/admin/certificate_ca-focus.mako",
+        route_name="admin:x509_certificate_trusted:focus",
+        renderer="/admin/x509_certificate_trusted-focus.mako",
     )
-    @view_config(route_name="admin:certificate_ca:focus|json", renderer="json")
+    @view_config(
+        route_name="admin:x509_certificate_trusted:focus|json", renderer="json"
+    )
     @docify(
         {
             "endpoint": "/certificate-ca/{ID}.json",
             "section": "certificate-ca",
-            "about": """CertificateCA focus""",
+            "about": """X509CertificateTrusted focus""",
             "POST": None,
             "GET": True,
             "example": "curl {ADMIN_PREFIX}/certificate-ca/1.json",
         }
     )
     def focus(self):
-        dbCertificateCA = self._focus()
-        items_count = (
-            lib_db.get.get__X509Certificate__by_CertificateCAId__primary__count(
-                self.request.api_context, dbCertificateCA.id
-            )
+        dbX509CertificateTrusted = self._focus()
+        items_count = lib_db.get.get__X509Certificate__by_X509CertificateTrustedId__primary__count(
+            self.request.api_context, dbX509CertificateTrusted.id
         )
-        items_paged = (
-            lib_db.get.get__X509Certificate__by_CertificateCAId__primary__paginated(
-                self.request.api_context, dbCertificateCA.id, limit=10, offset=0
-            )
+        items_paged = lib_db.get.get__X509Certificate__by_X509CertificateTrustedId__primary__paginated(
+            self.request.api_context, dbX509CertificateTrusted.id, limit=10, offset=0
         )
-        items_paged_alt = (
-            lib_db.get.get__X509Certificate__by_CertificateCAId__alt__paginated(
-                self.request.api_context, dbCertificateCA.id, limit=10, offset=0
-            )
+        items_paged_alt = lib_db.get.get__X509Certificate__by_X509CertificateTrustedId__alt__paginated(
+            self.request.api_context, dbX509CertificateTrusted.id, limit=10, offset=0
         )
-        chains_0 = (
-            lib_db.get.get__X509CertificateTrustChain__by_CertificateCAId0__paginated(
-                self.request.api_context, dbCertificateCA.id, limit=10, offset=0
-            )
+        chains_0 = lib_db.get.get__X509CertificateTrustChain__by_X509CertificateTrustedId0__paginated(
+            self.request.api_context, dbX509CertificateTrusted.id, limit=10, offset=0
         )
-        chains_n = (
-            lib_db.get.get__X509CertificateTrustChain__by_CertificateCAIdN__paginated(
-                self.request.api_context, dbCertificateCA.id, limit=10, offset=0
-            )
+        chains_n = lib_db.get.get__X509CertificateTrustChain__by_X509CertificateTrustedIdN__paginated(
+            self.request.api_context, dbX509CertificateTrusted.id, limit=10, offset=0
         )
         if self.request.wants_json:
             return {
-                "CertificateCA": dbCertificateCA.as_json,
+                "X509CertificateTrusted": dbX509CertificateTrusted.as_json,
             }
         return {
             "project": "peter_sslers",
-            "CertificateCA": dbCertificateCA,
+            "X509CertificateTrusted": dbX509CertificateTrusted,
             "X509Certificates_count": items_count,
             "X509Certificates": items_paged,
             "X509Certificates_Alt": items_paged_alt,
@@ -155,12 +152,14 @@ class View_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate_ca:focus:raw", renderer="string")
+    @view_config(
+        route_name="admin:x509_certificate_trusted:focus:raw", renderer="string"
+    )
     @docify(
         {
             "endpoint": "/certificate-ca/{ID}/cert.pem",
             "section": "certificate-ca",
-            "about": """CertificateCA focus: cert.pem""",
+            "about": """X509CertificateTrusted focus: cert.pem""",
             "POST": None,
             "GET": True,
             "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.pem",
@@ -170,7 +169,7 @@ class View_Focus(Handler):
         {
             "endpoint": "/certificate-ca/{ID}/cert.pem.txt",
             "section": "certificate-ca",
-            "about": """CertificateCA focus: cert.pem.txt""",
+            "about": """X509CertificateTrusted focus: cert.pem.txt""",
             "POST": None,
             "GET": True,
             "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.pem.txt",
@@ -180,7 +179,7 @@ class View_Focus(Handler):
         {
             "endpoint": "/certificate-ca/{ID}/cert.cer",
             "section": "certificate-ca",
-            "about": """CertificateCA focus: cert.cer""",
+            "about": """X509CertificateTrusted focus: cert.cer""",
             "POST": None,
             "GET": True,
             "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.cer",
@@ -190,7 +189,7 @@ class View_Focus(Handler):
         {
             "endpoint": "/certificate-ca/{ID}/cert.crt",
             "section": "certificate-ca",
-            "about": """CertificateCA focus: cert.crt""",
+            "about": """X509CertificateTrusted focus: cert.crt""",
             "POST": None,
             "GET": True,
             "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.crt",
@@ -200,7 +199,7 @@ class View_Focus(Handler):
         {
             "endpoint": "/certificate-ca/{ID}/cert.der",
             "section": "certificate-ca",
-            "about": """CertificateCA focus: cert.der""",
+            "about": """X509CertificateTrusted focus: cert.der""",
             "POST": None,
             "GET": True,
             "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.der",
@@ -210,14 +209,16 @@ class View_Focus(Handler):
         """
         for extensions, see `cert_utils.EXTENSION_TO_MIME`
         """
-        dbCertificateCA = self._focus()
+        dbX509CertificateTrusted = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
-            return dbCertificateCA.cert_pem
+            return dbX509CertificateTrusted.cert_pem
         elif self.request.matchdict["format"] == "pem.txt":
-            return dbCertificateCA.cert_pem
+            return dbX509CertificateTrusted.cert_pem
         elif self.request.matchdict["format"] in ("cer", "crt", "der"):
-            as_der = cert_utils.convert_pem_to_der(pem_data=dbCertificateCA.cert_pem)
+            as_der = cert_utils.convert_pem_to_der(
+                pem_data=dbX509CertificateTrusted.cert_pem
+            )
             response = Response()
             if self.request.matchdict["format"] in ("crt", "der"):
                 response.content_type = "application/x-x509-ca-cert"
@@ -229,149 +230,149 @@ class View_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate_ca:focus:parse|json", renderer="json")
+    @view_config(
+        route_name="admin:x509_certificate_trusted:focus:parse|json", renderer="json"
+    )
     @docify(
         {
             "endpoint": "/certificate-ca/{ID}/parse.json",
             "section": "certificate-ca",
-            "about": """CertificateCA focus: parse""",
+            "about": """X509CertificateTrusted focus: parse""",
             "POST": None,
             "GET": True,
             "example": "curl {ADMIN_PREFIX}/certificate-ca/1/parse.json",
         }
     )
     def focus_parse_json(self):
-        dbCertificateCA = self._focus()
+        dbX509CertificateTrusted = self._focus()
         return {
-            "CertificateCA": {
-                "id": dbCertificateCA.id,
-                "parsed": cert_utils.parse_cert(cert_pem=dbCertificateCA.cert_pem),
+            "X509CertificateTrusted": {
+                "id": dbX509CertificateTrusted.id,
+                "parsed": cert_utils.parse_cert(
+                    cert_pem=dbX509CertificateTrusted.cert_pem
+                ),
             }
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_ca:focus:x509_certificates",
-        renderer="/admin/certificate_ca-focus-x509_certificates.mako",
+        route_name="admin:x509_certificate_trusted:focus:x509_certificates",
+        renderer="/admin/x509_certificate_trusted-focus-x509_certificates.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca:focus:x509_certificates-paginated",
-        renderer="/admin/certificate_ca-focus-x509_certificates.mako",
+        route_name="admin:x509_certificate_trusted:focus:x509_certificates-paginated",
+        renderer="/admin/x509_certificate_trusted-focus-x509_certificates.mako",
     )
     def related__X509Certificates(self):
-        dbCertificateCA = self._focus()
-        items_count = (
-            lib_db.get.get__X509Certificate__by_CertificateCAId__primary__count(
-                self.request.api_context, dbCertificateCA.id
-            )
+        dbX509CertificateTrusted = self._focus()
+        items_count = lib_db.get.get__X509Certificate__by_X509CertificateTrustedId__primary__count(
+            self.request.api_context, dbX509CertificateTrusted.id
         )
         url_template = "%s/x509-certificates/{0}" % self.focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = (
-            lib_db.get.get__X509Certificate__by_CertificateCAId__primary__paginated(
-                self.request.api_context,
-                dbCertificateCA.id,
-                limit=items_per_page,
-                offset=offset,
-            )
-        )
-        return {
-            "project": "peter_sslers",
-            "CertificateCA": dbCertificateCA,
-            "X509Certificates_count": items_count,
-            "X509Certificates": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:certificate_ca:focus:x509_certificates_alt",
-        renderer="/admin/certificate_ca-focus-x509_certificates_alt.mako",
-    )
-    @view_config(
-        route_name="admin:certificate_ca:focus:x509_certificates_alt-paginated",
-        renderer="/admin/certificate_ca-focus-x509_certificates_alt.mako",
-    )
-    def related__X509CertificatesAlt(self):
-        dbCertificateCA = self._focus()
-        items_count = lib_db.get.get__X509Certificate__by_CertificateCAId__alt__count(
-            self.request.api_context, dbCertificateCA.id
-        )
-        url_template = "%s/x509-certificates-alt/{0}" % self.focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = (
-            lib_db.get.get__X509Certificate__by_CertificateCAId__alt__paginated(
-                self.request.api_context,
-                dbCertificateCA.id,
-                limit=items_per_page,
-                offset=offset,
-            )
-        )
-        return {
-            "project": "peter_sslers",
-            "CertificateCA": dbCertificateCA,
-            "X509Certificates_count": items_count,
-            "X509Certificates": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:certificate_ca:focus:x509_certificate_trust_chains_0",
-        renderer="/admin/certificate_ca-focus-x509_certificate_trust_chains.mako",
-    )
-    @view_config(
-        route_name="admin:certificate_ca:focus:x509_certificate_trust_chains_0-paginated",
-        renderer="/admin/certificate_ca-focus-x509_certificate_trust_chains.mako",
-    )
-    @view_config(
-        route_name="admin:certificate_ca:focus:x509_certificate_trust_chains_n",
-        renderer="/admin/certificate_ca-focus-x509_certificate_trust_chains.mako",
-    )
-    @view_config(
-        route_name="admin:certificate_ca:focus:x509_certificate_trust_chains_n-paginated",
-        renderer="/admin/certificate_ca-focus-x509_certificate_trust_chains.mako",
-    )
-    def related__X509CertificateTrustChains(self):
-        dbCertificateCA = self._focus()
-
-        accessor = None
-        if self.request.matched_route.name in (
-            "admin:certificate_ca:focus:x509_certificate_trust_chains_0",
-            "admin:certificate_ca:focus:x509_certificate_trust_chains_0-paginated",
-        ):
-            url_template = "%s/x509-certificate-trust-chain-0/{0}" % self.focus_url
-            func_count = (
-                lib_db.get.get__X509CertificateTrustChain__by_CertificateCAId0__count
-            )
-            func_paginated = (
-                lib_db.get.get__X509CertificateTrustChain__by_CertificateCAId0__paginated
-            )
-            accessor = "0"
-        else:
-            url_template = "%s/x509-certificate-trust-chain-n/{0}" % self.focus_url
-            func_count = (
-                lib_db.get.get__X509CertificateTrustChain__by_CertificateCAIdN__count
-            )
-            func_paginated = (
-                lib_db.get.get__X509CertificateTrustChain__by_CertificateCAIdN__paginated
-            )
-            accessor = "n"
-
-        items_count = func_count(self.request.api_context, dbCertificateCA.id)
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = func_paginated(
+        items_paged = lib_db.get.get__X509Certificate__by_X509CertificateTrustedId__primary__paginated(
             self.request.api_context,
-            dbCertificateCA.id,
+            dbX509CertificateTrusted.id,
             limit=items_per_page,
             offset=offset,
         )
         return {
             "project": "peter_sslers",
-            "CertificateCA": dbCertificateCA,
+            "X509CertificateTrusted": dbX509CertificateTrusted,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:x509_certificate_trusted:focus:x509_certificates_alt",
+        renderer="/admin/x509_certificate_trusted-focus-x509_certificates_alt.mako",
+    )
+    @view_config(
+        route_name="admin:x509_certificate_trusted:focus:x509_certificates_alt-paginated",
+        renderer="/admin/x509_certificate_trusted-focus-x509_certificates_alt.mako",
+    )
+    def related__X509CertificatesAlt(self):
+        dbX509CertificateTrusted = self._focus()
+        items_count = (
+            lib_db.get.get__X509Certificate__by_X509CertificateTrustedId__alt__count(
+                self.request.api_context, dbX509CertificateTrusted.id
+            )
+        )
+        url_template = "%s/x509-certificates-alt/{0}" % self.focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__X509Certificate__by_X509CertificateTrustedId__alt__paginated(
+            self.request.api_context,
+            dbX509CertificateTrusted.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "X509CertificateTrusted": dbX509CertificateTrusted,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_0",
+        renderer="/admin/x509_certificate_trusted-focus-x509_certificate_trust_chains.mako",
+    )
+    @view_config(
+        route_name="admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_0-paginated",
+        renderer="/admin/x509_certificate_trusted-focus-x509_certificate_trust_chains.mako",
+    )
+    @view_config(
+        route_name="admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_n",
+        renderer="/admin/x509_certificate_trusted-focus-x509_certificate_trust_chains.mako",
+    )
+    @view_config(
+        route_name="admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_n-paginated",
+        renderer="/admin/x509_certificate_trusted-focus-x509_certificate_trust_chains.mako",
+    )
+    def related__X509CertificateTrustChains(self):
+        dbX509CertificateTrusted = self._focus()
+
+        accessor = None
+        if self.request.matched_route.name in (
+            "admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_0",
+            "admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_0-paginated",
+        ):
+            url_template = "%s/x509-certificate-trust-chain-0/{0}" % self.focus_url
+            func_count = (
+                lib_db.get.get__X509CertificateTrustChain__by_X509CertificateTrustedId0__count
+            )
+            func_paginated = (
+                lib_db.get.get__X509CertificateTrustChain__by_X509CertificateTrustedId0__paginated
+            )
+            accessor = "0"
+        else:
+            url_template = "%s/x509-certificate-trust-chain-n/{0}" % self.focus_url
+            func_count = (
+                lib_db.get.get__X509CertificateTrustChain__by_X509CertificateTrustedIdN__count
+            )
+            func_paginated = (
+                lib_db.get.get__X509CertificateTrustChain__by_X509CertificateTrustedIdN__paginated
+            )
+            accessor = "n"
+
+        items_count = func_count(self.request.api_context, dbX509CertificateTrusted.id)
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = func_paginated(
+            self.request.api_context,
+            dbX509CertificateTrusted.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "X509CertificateTrusted": dbX509CertificateTrusted,
             "X509CertificateTrustChains_count": items_count,
             "X509CertificateTrustChains": items_paged,
             "accessor": accessor,
@@ -380,13 +381,15 @@ class View_Focus(Handler):
 
 
 class View_New(Handler):
-    @view_config(route_name="admin:certificate_ca:upload_cert")
-    @view_config(route_name="admin:certificate_ca:upload_cert|json", renderer="json")
+    @view_config(route_name="admin:x509_certificate_trusted:upload_cert")
+    @view_config(
+        route_name="admin:x509_certificate_trusted:upload_cert|json", renderer="json"
+    )
     @docify(
         {
             "endpoint": "/certificate-ca/upload-cert.json",
             "section": "certificate-ca",
-            "about": """CertificateCA upload certificate""",
+            "about": """X509CertificateTrusted upload certificate""",
             "POST": True,
             "GET": None,
             "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.der",
@@ -410,14 +413,14 @@ class View_New(Handler):
         if self.request.wants_json:
             return formatted_get_docs(self, "/certificate-ca/upload-cert.json")
         return render_to_response(
-            "/admin/certificate_ca-upload_cert.mako", {}, self.request
+            "/admin/x509_certificate_trusted-upload_cert.mako", {}, self.request
         )
 
     def _upload_cert__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
-                schema=Form_CertificateCA_Upload_Cert__file,
+                schema=Form_X509CertificateTrusted_Upload_Cert__file,
                 validate_get=False,
             )
             if not result:
@@ -429,9 +432,9 @@ class View_New(Handler):
 
             cert_file_name = formStash.results["cert_file_name"] or "manual upload"
             (
-                dbCertificateCA,
+                dbX509CertificateTrusted,
                 _is_created,
-            ) = lib_db.getcreate.getcreate__CertificateCA__by_pem_text(
+            ) = lib_db.getcreate.getcreate__X509CertificateTrusted__by_pem_text(
                 self.request.api_context,
                 cert_pem,
                 display_name=cert_file_name,
@@ -441,16 +444,16 @@ class View_New(Handler):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "CertificateCA": {
+                    "X509CertificateTrusted": {
                         "created": _is_created,
-                        "id": dbCertificateCA.id,
+                        "id": dbX509CertificateTrusted.id,
                     },
                 }
             return HTTPSeeOther(
                 "%s/certificate-ca/%s?result=success&is_created=%s"
                 % (
                     self.request.api_context.application_settings["admin_prefix"],
-                    dbCertificateCA.id,
+                    dbX509CertificateTrusted.id,
                     (1 if _is_created else 0),
                 )
             )

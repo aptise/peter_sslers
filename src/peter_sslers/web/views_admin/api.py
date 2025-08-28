@@ -152,7 +152,7 @@ class ViewAdminApi(Handler):
         {
             "endpoint": "/api/reconcile-cas.json",
             "section": "api",
-            "about": """Reconcile outstanding CertificateCA records by downloading and enrolling the CertificateCA presented in their "AuthorityKeyIdentifier".""",
+            "about": """Reconcile outstanding X509CertificateTrusted records by downloading and enrolling the X509CertificateTrusted presented in their "AuthorityKeyIdentifier".""",
             "POST": True,
             "GET": None,
             "instructions": "curl {ADMIN_PREFIX}/api/reconcile-cas.json",
@@ -758,7 +758,7 @@ class ViewAdminApi_Redis(Handler):
                     * chain = r.get('i99')
                     * fullchain = cert + "\n" + chain
                 """
-                # prime the CertificateCAs that are active
+                # prime the X509CertificateTrusteds that are active
                 offset = 0
                 limit = 100
                 while True:

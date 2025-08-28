@@ -143,9 +143,9 @@
                     <hr/>
                 % endif
 
-                % if show_only['CertificateCA']:
-                    <h4>CertificateCAs</h4>
-                    % if results['CertificateCA']['count']:
+                % if show_only['X509CertificateTrusted']:
+                    <h4>X509CertificateTrusteds</h4>
+                    % if results['X509CertificateTrusted']['count']:
                         <table class="table table-condensed">
                             <thead>
                                 <tr>
@@ -157,14 +157,14 @@
                                 </tr>
                             </thead>
                             <body>
-                            % for cert in results['CertificateCA']['items']:
+                            % for cert in results['X509CertificateTrusted']['items']:
                                 <tr>
                                     <td>
                                         <a  class="label label-info"
                                             href="${admin_prefix}/certificate-ca/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            CertificateCA-${cert.id}</a>
+                                            X509CertificateTrusted-${cert.id}</a>
                                     </td>
                                     <td>${cert.display_name}</td>
                                     <td><code>${cert.spki_sha256}</code></td>
@@ -174,8 +174,8 @@
                             % endfor
                             </body>
                         </table>
-                        % if results['CertificateCA']['next']:
-                            <a href="${results['CertificateCA']['next']}">More</a>
+                        % if results['X509CertificateTrusted']['next']:
+                            <a href="${results['X509CertificateTrusted']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>

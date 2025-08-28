@@ -149,7 +149,7 @@ The Certificate Fullchain
     fullchain.pem       PEM     application/x-pem-file
     fullchain.pem.txt   PEM     text/plain
 
-#### CertificateCA
+#### X509CertificateTrusted
 
 The CertificateAuthority's Certificate:
 

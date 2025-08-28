@@ -870,9 +870,9 @@
         cols = ("id",
                 "display_name",
                 "chain_length",
-                "certificate_ca_0_id",
-                "certificate_ca_n_id",
-                "certificate_ca_ids_string",
+                "x509_certificate_trusted_0_id",
+                "x509_certificate_trusted_n_id",
+                "x509_certificate_trusted_ids_string",
                )
     %>
     <table class="table table-striped table-condensed">
@@ -1313,12 +1313,12 @@
     <table class="table table-striped table-condensed">
         % for section in OperationsEvent.event_payload_json.keys():
             <%
-                if section == "certificate_ca.ids":
-                    header = "CertificateCAs"
+                if section == "x509_certificate_trusted.ids":
+                    header = "X509CertificateTrusteds"
                     ids_ = OperationsEvent.event_payload_json[section]
                     url_template = "%s/certificate-ca" % admin_prefix
-                elif section == "certificate_ca.ids_fail":
-                    header = "CertificateCAs - Failures"
+                elif section == "x509_certificate_trusted.ids_fail":
+                    header = "X509CertificateTrusteds - Failures"
                     ids_ = OperationsEvent.event_payload_json[section]
                     url_template = "%s/certificate-ca" % admin_prefix
                 else:
@@ -1808,10 +1808,10 @@
 
 
 <%def name="object_event__object(object_event)">
-    % if object_event.certificate_ca_id:
-        <a class="label label-info" href="${admin_prefix}/certificate-ca/${object_event.certificate_ca_id}">
+    % if object_event.x509_certificate_trusted_id:
+        <a class="label label-info" href="${admin_prefix}/certificate-ca/${object_event.x509_certificate_trusted_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            CertificateCA-${object_event.certificate_ca_id}
+            X509CertificateTrusted-${object_event.x509_certificate_trusted_id}
         </a>
     % elif object_event.x509_certificate_request_id:
         <a class="label label-info" href="${admin_prefix}/x509-certificate-request/${object_event.x509_certificate_request_id}">
@@ -1913,8 +1913,8 @@
 </%def>
 
 
-<%def name="info_CertificateCA()">
-    <h3>What are CertificateCAs?</h3>
+<%def name="info_X509CertificateTrusted()">
+    <h3>What are X509CertificateTrusteds?</h3>
     <p>
         These are the trusted(?) certs that CertificateAuthorities use to sign your certs.
         They are used for building chains and fullchains. Trusted ones may be
@@ -2396,7 +2396,7 @@
 </%def>
 
 
-<%def name="formgroup__CertificateCA_Chain_file(show_text=False)">
+<%def name="formgroup__X509CertificateTrusted_Chain_file(show_text=False)">
     <div class="form-group clearfix">
         <label for="f1-chain_file">Chain File</label>
         <input class="form-control" type="file" id="f1-chain_file" name="chain_file" />
@@ -2414,7 +2414,7 @@
 </%def>
 
 
-<%def name="formgroup__CertificateCA_Cert_file(show_text=False)">
+<%def name="formgroup__X509CertificateTrusted_Cert_file(show_text=False)">
     <div class="form-group clearfix">
         <label for="f1-cert_file">Cert File</label>
         <input class="form-control" type="file" id="f1-cert_file" name="cert_file" />

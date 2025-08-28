@@ -114,6 +114,7 @@ Commands
 
     # apply revision
     alembic -c data_development/config.ini upgrade head
+    alembic -c data_development/config.ini upgrade 5bfca3b856ff
     
     # inspect database
     sqlite3 data_development/ssl_minnow.sqlite

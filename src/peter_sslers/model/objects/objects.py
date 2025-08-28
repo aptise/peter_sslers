@@ -828,10 +828,11 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
     """
 
     __table_args__ = (
-        sa.UniqueConstraint(
+        sa.Index(
+            "uidx_acme_authorization_potential",
             "acme_order_id",
             "domain_id",
-            name="acme_authorization_potential_uidx",
+            unique=True,
         ),
     )
 
@@ -1364,11 +1365,12 @@ class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
 
 class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
     __table_args__ = (
-        sa.UniqueConstraint(
+        sa.Index(
+            "uidx_domain_active_account",
             "acme_dns_server_id",
             "domain_id",
             "is_active",
-            name="domain_active_account",
+            unique=True,
         ),
     )
 
@@ -2586,220 +2588,6 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class CertificateCA(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
-    """
-    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
-    are used to sign server certificates.
-
-    These are directly tied to a X509Certificate and are needed to create a
-    "fullchain" certificate for most deployments.
-    """
-
-    __tablename__ = "certificate_ca"
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    display_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    discovery_type: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(255), nullable=True, default=None
-    )
-
-    # TODO: migrate this to an association table that tracks different trusted root stores
-    is_trusted_root: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )  # this is just used to track if we know this cert is in trusted root stores.
-    key_technology_id: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
-    )  # see .utils.KeyTechnology
-
-    cert_pem: Mapped[str] = mapped_column(sa.Text, nullable=False, unique=True)
-    cert_pem_md5: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(32), nullable=True, unique=True
-    )
-    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
-    fingerprint_sha1: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-
-    timestamp_not_before: Mapped[datetime.datetime] = mapped_column(
-        TZDateTime(timezone=True), nullable=False
-    )
-    timestamp_not_after: Mapped[datetime.datetime] = mapped_column(
-        TZDateTime(timezone=True), nullable=False
-    )
-    cert_subject: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    cert_issuer: Mapped[str] = mapped_column(sa.Text, nullable=False)
-
-    # these are not guaranteed
-    cert_issuer_uri: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
-    cert_authority_key_identifier: Mapped[Optional[str]] = mapped_column(
-        sa.Text, nullable=True
-    )
-    cert_issuer__reconciled: Mapped[Optional[bool]] = mapped_column(
-        sa.Boolean, nullable=True, default=None
-    )  # status, True or False
-    cert_issuer__certificate_ca_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
-    )  # who did we reconcile this to/
-    reconciled_uris: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
-
-    count_active_certificates: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False, default=0
-    )  # internal tracking
-    operations_event_id__created: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )  # internal tracking
-    signed_by__certificate_ca_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
-    )  # internal tracking
-    cross_signed_by__certificate_ca_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
-    )  # internal tracking
-
-    timestamp_created: Mapped[datetime.datetime] = mapped_column(
-        TZDateTime(timezone=True), nullable=False
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    x509_certificate_trust_chains_0 = sa_orm_relationship(
-        "X509CertificateTrustChain",
-        primaryjoin="CertificateCA.id==X509CertificateTrustChain.certificate_ca_0_id",
-        back_populates="certificate_ca_0",
-    )
-    x509_certificate_trust_chains_n = sa_orm_relationship(
-        "X509CertificateTrustChain",
-        primaryjoin="CertificateCA.id==X509CertificateTrustChain.certificate_ca_n_id",
-        back_populates="certificate_ca_n",
-    )
-    cert_issuer__certificate_ca = sa_orm_relationship(
-        "CertificateCA",
-        primaryjoin="CertificateCA.cert_issuer__certificate_ca_id==remote(CertificateCA.id)",
-        uselist=False,
-    )
-    operations_event__created = sa_orm_relationship(
-        "OperationsEvent",
-        primaryjoin="CertificateCA.operations_event_id__created==OperationsEvent.id",
-        uselist=False,
-    )
-    operations_object_events = sa_orm_relationship(
-        "OperationsObjectEvent",
-        primaryjoin="CertificateCA.id==OperationsObjectEvent.certificate_ca_id",
-        back_populates="certificate_ca",
-    )
-
-    to_root_store_versions = sa_orm_relationship(
-        "RootStoreVersion_2_CertificateCA",
-        primaryjoin="CertificateCA.id==RootStoreVersion_2_CertificateCA.certificate_ca_id",
-        back_populates="certificate_ca",
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def button_view(self) -> str:
-        dbSession = sa_Session.object_session(self)
-        if TYPE_CHECKING:
-            assert dbSession
-        request = dbSession.info.get("request")
-
-        if not request:
-            return "<!-- ERROR. could not derive the `request` -->"
-
-        button = (
-            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca/%(id)s" """
-            """data-sha1-preview="%(sha1_preview)s">"""
-            """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
-            """CertificateCA-%(id)s</a>"""
-            """<code>%(sha1_preview)s</code>"""
-            """|"""
-            """<code>%(cert_subject)s</code>"""
-            """|"""
-            """<code>%(cert_issuer)s</code>"""
-            % {
-                "admin_prefix": request.api_context.application_settings[
-                    "admin_prefix"
-                ],
-                "id": self.id,
-                "sha1_preview": self.fingerprint_sha1_preview,
-                "cert_issuer": self.cert_issuer,
-                "cert_subject": self.cert_subject,
-            }
-        )
-        return button
-
-    @property
-    def button_search_spki(self) -> str:
-        dbSession = sa_Session.object_session(self)
-        if TYPE_CHECKING:
-            assert dbSession
-        request = dbSession.info.get("request")
-
-        if not request:
-            return "<!-- ERROR. could not derive the `request` -->"
-
-        button = (
-            """<a class="btn btn-xs btn-info" href="%(admin_prefix)s/search?%(cert_spki_search)s">"""
-            """<span class="glyphicon glyphicon-search" aria-hidden="true"></span>"""
-            """</a>"""
-            % {
-                "admin_prefix": request.api_context.application_settings[
-                    "admin_prefix"
-                ],
-                "cert_spki_search": self.cert_spki_search,
-            }
-        )
-        return button
-
-    @reify
-    def cert_spki_search(self) -> str:
-        return "type=spki&spki=%s&source=certificate_ca&certificate_ca.id=%s" % (
-            self.spki_sha256,
-            self.id,
-        )
-
-    @reify
-    def cert_subject_search(self) -> str:
-        return (
-            "type=cert_subject&cert_subject=%s&source=certificate_ca&certificate_ca.id=%s"
-            % (self.cert_subject, self.id)
-        )
-
-    @reify
-    def cert_issuer_search(self) -> str:
-        return (
-            "type=cert_issuer&cert_issuer=%s&source=certificate_ca&certificate_ca.id=%s"
-            % (self.cert_issuer, self.id)
-        )
-
-    @reify
-    def fingerprint_sha1_preview(self) -> str:
-        return "%s&hellip;" % (self.fingerprint_sha1__colon or "")[:8]
-
-    @property
-    def key_technology(self) -> Optional[str]:
-        if self.key_technology_id is None:
-            return None
-        return model_utils.KeyTechnology.as_string(self.key_technology_id)
-
-    @property
-    def as_json(self) -> Dict:
-        return {
-            "id": self.id,
-            # - -
-            "cert_pem_md5": self.cert_pem_md5,
-            "cert_pem": self.cert_pem,
-            "cert_subject": self.cert_subject,
-            "cert_issuer": self.cert_issuer,
-            "display_name": self.display_name,
-            "fingerprint_sha1": self.fingerprint_sha1,
-            "key_technology": self.key_technology,
-            "spki_sha256": self.spki_sha256,
-            "timestamp_created": self.timestamp_created_isoformat,
-            "timestamp_not_after": self.timestamp_not_after_isoformat,
-            "timestamp_not_before": self.timestamp_not_before_isoformat,
-        }
-
-
-# ==============================================================================
-
-
 class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     """
     A CoverageAssuranceEvent occurs when a X509Certificate is deactivated
@@ -3514,7 +3302,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN acme_server_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
-            " CASE WHEN certificate_ca_id IS NOT NULL THEN 1 ELSE 0 END"
+            " CASE WHEN x509_certificate_trusted_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "
             " CASE WHEN x509_certificate_trust_chain_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "
@@ -3563,8 +3351,8 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     acme_server_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_server.id"), nullable=True
     )
-    certificate_ca_id: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
+    x509_certificate_trusted_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_trusted.id"), nullable=True
     )
     x509_certificate_trust_chain_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("x509_certificate_trust_chain.id"), nullable=True
@@ -3630,9 +3418,9 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="operations_object_events",
     )
-    certificate_ca = sa_orm_relationship(
-        "CertificateCA",
-        primaryjoin="OperationsObjectEvent.certificate_ca_id==CertificateCA.id",
+    x509_certificate_trusted = sa_orm_relationship(
+        "X509CertificateTrusted",
+        primaryjoin="OperationsObjectEvent.x509_certificate_trusted_id==X509CertificateTrusted.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -4036,10 +3824,11 @@ class RenewalConfiguration(
             ")",
             name="check_rc_backup_account",
         ),
-        sa.UniqueConstraint(
+        sa.Index(
+            "uidx_renewal_configuration_label",
             "label",
             "enrollment_factory_id__via",
-            name="unique_rc_label",
+            unique=True,
         ),
     )
 
@@ -4345,9 +4134,9 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="root_store_versions",
     )
-    to_certificate_cas = sa_orm_relationship(
-        "RootStoreVersion_2_CertificateCA",
-        primaryjoin="RootStoreVersion.id==RootStoreVersion_2_CertificateCA.root_store_version_id",
+    to_x509_certificate_trusteds = sa_orm_relationship(
+        "RootStoreVersion_2_X509CertificateTrusted",
+        primaryjoin="RootStoreVersion.id==RootStoreVersion_2_X509CertificateTrusted.root_store_version_id",
         back_populates="root_store_version",
     )
 
@@ -4363,29 +4152,29 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
         }
 
 
-class RootStoreVersion_2_CertificateCA(Base, _Mixin_Timestamps_Pretty):
-    __tablename__ = "root_store_version_2_certificate_ca"
+class RootStoreVersion_2_X509CertificateTrusted(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "root_store_version_2_x509_certificate_trusted"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     root_store_version_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("root_store_version.id"), nullable=False
     )
-    certificate_ca_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    x509_certificate_trusted_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_trusted.id"), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    certificate_ca = sa_orm_relationship(
-        "CertificateCA",
-        primaryjoin="RootStoreVersion_2_CertificateCA.certificate_ca_id==CertificateCA.id",
+    x509_certificate_trusted = sa_orm_relationship(
+        "X509CertificateTrusted",
+        primaryjoin="RootStoreVersion_2_X509CertificateTrusted.x509_certificate_trusted_id==X509CertificateTrusted.id",
         uselist=False,
         back_populates="to_root_store_versions",
     )
     root_store_version = sa_orm_relationship(
         "RootStoreVersion",
-        primaryjoin="RootStoreVersion_2_CertificateCA.root_store_version_id==RootStoreVersion.id",
+        primaryjoin="RootStoreVersion_2_X509CertificateTrusted.root_store_version_id==RootStoreVersion.id",
         uselist=False,
-        back_populates="to_certificate_cas",
+        back_populates="to_x509_certificate_trusteds",
     )
 
 
@@ -5066,7 +4855,7 @@ class X509CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
     A signed Server Certificate.
-    To install on a webserver, must be paired with the PrivateKey and Trusted CertificateCA.
+    To install on a webserver, must be paired with the PrivateKey and Trusted X509CertificateTrusted.
 
     The domains will be stored in:
     * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
@@ -5281,24 +5070,24 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return "\n".join((self.cert_pem.strip(), self.cert_chain_pem))  # type: ignore[arg-type]
 
     @reify
-    def certificate_ca_ids__upchain(self) -> List[int]:
+    def x509_certificate_trusted_ids__upchain(self) -> List[int]:
         # this loops `ORM:x509_certificate_chains`
         # this is NOT in order of preference
         _ids = set([])
         for _to_x509_certificate_trust_chain in self.x509_certificate_chains:
             _chain = _to_x509_certificate_trust_chain.x509_certificate_trust_chain
-            _ids.add(_chain.certificate_ca_0_id)
+            _ids.add(_chain.x509_certificate_trusted_0_id)
         ids = list(_ids)
         return ids
 
     @reify
-    def certificate_cas__upchain(self) -> List["CertificateCA"]:
+    def x509_certificate_trusteds__upchain(self) -> List["X509CertificateTrusted"]:
         # this loops `ORM:x509_certificate_chains`
         # this is NOT in order of preference
         _cas = set([])
         for _to_x509_certificate_trust_chain in self.x509_certificate_chains:
             _chain = _to_x509_certificate_trust_chain.x509_certificate_trust_chain
-            _cas.add(_chain.certificate_ca_0)
+            _cas.add(_chain.x509_certificate_trusted_0)
         cas = list(_cas)
         return cas
 
@@ -5337,7 +5126,7 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
                 # there are a lot of ways to compute this,
                 # this is not efficient. this is just a quick pass
                 preferred_ca_ids = [
-                    i.certificate_ca_id
+                    i.x509_certificate_trusted_id
                     for i in request.dbX509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
                 ]
                 for _preferred_ca_id in preferred_ca_ids:
@@ -5345,7 +5134,7 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
                         _ca_chain = _csc.x509_certificate_trust_chain
                         # right now we don't care WHERE in the chain the
                         # certificate CA pref is, just that it is in the chain
-                        if _preferred_ca_id in _ca_chain.certificate_ca_ids:
+                        if _preferred_ca_id in _ca_chain.x509_certificate_trusted_ids:
                             return _ca_chain
 
             # we have None! so just return the first one we have
@@ -5555,7 +5344,7 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             )
 
     def valid_x509_certificate_trust_chain(self, x509_certificate_trust_chain_id=None):
-        """return a single CertificateCA, or the default"""
+        """return a single X509CertificateTrusted, or the default"""
         for _to_upchain in self.x509_certificate_chains:
             if (
                 _to_upchain.x509_certificate_trust_chain_id
@@ -5604,7 +5393,7 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "certificate_type": self.certificate_type,
             "x509_certificate_trust_chain_id__preferred": self.x509_certificate_trust_chain_id__preferred,
             "x509_certificate_trust_chain_ids": self.x509_certificate_trust_chain_ids,
-            "certificate_ca_ids__upchain": self.certificate_ca_ids__upchain,
+            "x509_certificate_trusted_ids__upchain": self.x509_certificate_trusted_ids__upchain,
             "cert_pem": self.cert_pem,
             "cert_pem_md5": self.cert_pem_md5,
             "cert_subject": self.cert_subject,
@@ -5663,7 +5452,7 @@ class X509CertificateChain(Base):
 
     ``is_upstream_default`` is a boolean used to track if the issuing ACME Server
     presented the X509CertificateTrustChain as the primary/default chain (``True``), or if
-    the upstream server provided the CertificateCA as an alternate chain.
+    the upstream server provided the X509CertificateTrusted as an alternate chain.
     """
 
     __tablename__ = "x509_certificate_chain"
@@ -5751,7 +5540,7 @@ class X509CertificatePreferencePolicyItem(Base, _Mixin_Timestamps_Pretty):
         sa.Index(
             "uidx_x509_certificate_trust_preference_policy_item_b",
             "x509_certificate_trust_preference_policy_id",
-            "certificate_ca_id",
+            "x509_certificate_trusted_id",
             unique=True,
         ),
     )
@@ -5763,8 +5552,10 @@ class X509CertificatePreferencePolicyItem(Base, _Mixin_Timestamps_Pretty):
         nullable=False,
     )
     slot_id = mapped_column(sa.Integer, nullable=False)
-    certificate_ca_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False, unique=True
+    x509_certificate_trusted_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("x509_certificate_trusted.id"),
+        nullable=False,
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -5775,9 +5566,9 @@ class X509CertificatePreferencePolicyItem(Base, _Mixin_Timestamps_Pretty):
         back_populates="x509_certificate_trust_preference_policy_items",
         uselist=False,
     )
-    certificate_ca = sa_orm_relationship(
-        "CertificateCA",
-        primaryjoin="X509CertificatePreferencePolicyItem.certificate_ca_id==CertificateCA.id",
+    x509_certificate_trusted = sa_orm_relationship(
+        "X509CertificateTrusted",
+        primaryjoin="X509CertificatePreferencePolicyItem.x509_certificate_trusted_id==X509CertificateTrusted.id",
         uselist=False,
     )
 
@@ -5787,13 +5578,230 @@ class X509CertificatePreferencePolicyItem(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             # --
             "slot_id": self.slot_id,
-            "certificate_ca_id": self.certificate_ca_id,
+            "x509_certificate_trusted_id": self.x509_certificate_trusted_id,
         }
+
+
+class X509CertificateTrusted(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
+    """
+    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
+    are used to sign server certificates.
+
+    These are directly tied to a X509Certificate and are needed to create a
+    "fullchain" certificate for most deployments.
+    """
+
+    __tablename__ = "x509_certificate_trusted"
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    display_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    discovery_type: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+
+    # TODO: migrate this to an association table that tracks different trusted root stores
+    is_trusted_root: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )  # this is just used to track if we know this cert is in trusted root stores.
+    key_technology_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # see .utils.KeyTechnology
+
+    cert_pem: Mapped[str] = mapped_column(sa.Text, nullable=False, unique=True)
+    cert_pem_md5: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(32), nullable=True, unique=True
+    )
+    spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
+    fingerprint_sha1: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+
+    timestamp_not_before: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    timestamp_not_after: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+    cert_subject: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    cert_issuer: Mapped[str] = mapped_column(sa.Text, nullable=False)
+
+    # these are not guaranteed
+    cert_issuer_uri: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+    cert_authority_key_identifier: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True
+    )
+    cert_issuer__reconciled: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )  # status, True or False
+    cert_issuer__x509_certificate_trusted_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_trusted.id"), nullable=True
+    )  # who did we reconcile this to/
+    reconciled_uris: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
+
+    count_active_certificates: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, default=0
+    )  # internal tracking
+    operations_event_id__created: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )  # internal tracking
+    signed_by__x509_certificate_trusted_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_trusted.id"), nullable=True
+    )  # internal tracking
+    cross_signed_by__x509_certificate_trusted_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_trusted.id"), nullable=True
+    )  # internal tracking
+
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        TZDateTime(timezone=True), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    x509_certificate_trust_chains_0 = sa_orm_relationship(
+        "X509CertificateTrustChain",
+        primaryjoin="X509CertificateTrusted.id==X509CertificateTrustChain.x509_certificate_trusted_0_id",
+        back_populates="x509_certificate_trusted_0",
+    )
+    x509_certificate_trust_chains_n = sa_orm_relationship(
+        "X509CertificateTrustChain",
+        primaryjoin="X509CertificateTrusted.id==X509CertificateTrustChain.x509_certificate_trusted_n_id",
+        back_populates="x509_certificate_trusted_n",
+    )
+    cert_issuer__x509_certificate_trusted = sa_orm_relationship(
+        "X509CertificateTrusted",
+        primaryjoin="X509CertificateTrusted.cert_issuer__x509_certificate_trusted_id==remote(X509CertificateTrusted.id)",
+        uselist=False,
+    )
+    operations_event__created = sa_orm_relationship(
+        "OperationsEvent",
+        primaryjoin="X509CertificateTrusted.operations_event_id__created==OperationsEvent.id",
+        uselist=False,
+    )
+    operations_object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="X509CertificateTrusted.id==OperationsObjectEvent.x509_certificate_trusted_id",
+        back_populates="x509_certificate_trusted",
+    )
+
+    to_root_store_versions = sa_orm_relationship(
+        "RootStoreVersion_2_X509CertificateTrusted",
+        primaryjoin="X509CertificateTrusted.id==RootStoreVersion_2_X509CertificateTrusted.x509_certificate_trusted_id",
+        back_populates="x509_certificate_trusted",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def button_view(self) -> str:
+        dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert dbSession
+        request = dbSession.info.get("request")
+
+        if not request:
+            return "<!-- ERROR. could not derive the `request` -->"
+
+        button = (
+            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca/%(id)s" """
+            """data-sha1-preview="%(sha1_preview)s">"""
+            """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
+            """X509CertificateTrusted-%(id)s</a>"""
+            """<code>%(sha1_preview)s</code>"""
+            """|"""
+            """<code>%(cert_subject)s</code>"""
+            """|"""
+            """<code>%(cert_issuer)s</code>"""
+            % {
+                "admin_prefix": request.api_context.application_settings[
+                    "admin_prefix"
+                ],
+                "id": self.id,
+                "sha1_preview": self.fingerprint_sha1_preview,
+                "cert_issuer": self.cert_issuer,
+                "cert_subject": self.cert_subject,
+            }
+        )
+        return button
+
+    @property
+    def button_search_spki(self) -> str:
+        dbSession = sa_Session.object_session(self)
+        if TYPE_CHECKING:
+            assert dbSession
+        request = dbSession.info.get("request")
+
+        if not request:
+            return "<!-- ERROR. could not derive the `request` -->"
+
+        button = (
+            """<a class="btn btn-xs btn-info" href="%(admin_prefix)s/search?%(cert_spki_search)s">"""
+            """<span class="glyphicon glyphicon-search" aria-hidden="true"></span>"""
+            """</a>"""
+            % {
+                "admin_prefix": request.api_context.application_settings[
+                    "admin_prefix"
+                ],
+                "cert_spki_search": self.cert_spki_search,
+            }
+        )
+        return button
+
+    @reify
+    def cert_spki_search(self) -> str:
+        return (
+            "type=spki&spki=%s&source=x509_certificate_trusted&x509_certificate_trusted.id=%s"
+            % (
+                self.spki_sha256,
+                self.id,
+            )
+        )
+
+    @reify
+    def cert_subject_search(self) -> str:
+        return (
+            "type=cert_subject&cert_subject=%s&source=x509_certificate_trusted&x509_certificate_trusted.id=%s"
+            % (self.cert_subject, self.id)
+        )
+
+    @reify
+    def cert_issuer_search(self) -> str:
+        return (
+            "type=cert_issuer&cert_issuer=%s&source=x509_certificate_trusted&x509_certificate_trusted.id=%s"
+            % (self.cert_issuer, self.id)
+        )
+
+    @reify
+    def fingerprint_sha1_preview(self) -> str:
+        return "%s&hellip;" % (self.fingerprint_sha1__colon or "")[:8]
+
+    @property
+    def key_technology(self) -> Optional[str]:
+        if self.key_technology_id is None:
+            return None
+        return model_utils.KeyTechnology.as_string(self.key_technology_id)
+
+    @property
+    def as_json(self) -> Dict:
+        return {
+            "id": self.id,
+            # - -
+            "cert_pem_md5": self.cert_pem_md5,
+            "cert_pem": self.cert_pem,
+            "cert_subject": self.cert_subject,
+            "cert_issuer": self.cert_issuer,
+            "display_name": self.display_name,
+            "fingerprint_sha1": self.fingerprint_sha1,
+            "key_technology": self.key_technology,
+            "spki_sha256": self.spki_sha256,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "timestamp_not_after": self.timestamp_not_after_isoformat,
+            "timestamp_not_before": self.timestamp_not_before_isoformat,
+        }
+
+
+# ==============================================================================
 
 
 class X509CertificateTrustChain(Base, _Mixin_Timestamps_Pretty):
     """
-    These are pre-assembled chains of CertificateCA objects.
+    These are pre-assembled chains of X509CertificateTrusted objects.
     """
 
     __tablename__ = "x509_certificate_trust_chain"
@@ -5817,16 +5825,16 @@ class X509CertificateTrustChain(Base, _Mixin_Timestamps_Pretty):
     chain_length: Mapped[int] = mapped_column(sa.Integer, nullable=False)
 
     # this is the first item in the chain; what signs the X509Certificate
-    certificate_ca_0_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    x509_certificate_trusted_0_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_trusted.id"), nullable=False
     )
     # this is the last item in the chain; usually a leaf of a trusted root
-    certificate_ca_n_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    x509_certificate_trusted_n_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_trusted.id"), nullable=False
     )
-    # this is a comma(,) separated list of the involved CertificateCA ids
+    # this is a comma(,) separated list of the involved X509CertificateTrusted ids
     # using a string here is not a normalized data storage, but is more useful and efficient
-    certificate_ca_ids_string: Mapped[str] = mapped_column(
+    x509_certificate_trusted_ids_string: Mapped[str] = mapped_column(
         sa.Unicode(255), nullable=False
     )
 
@@ -5836,16 +5844,16 @@ class X509CertificateTrustChain(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    certificate_ca_0 = sa_orm_relationship(
-        "CertificateCA",
-        primaryjoin="X509CertificateTrustChain.certificate_ca_0_id==CertificateCA.id",
+    x509_certificate_trusted_0 = sa_orm_relationship(
+        "X509CertificateTrusted",
+        primaryjoin="X509CertificateTrustChain.x509_certificate_trusted_0_id==X509CertificateTrusted.id",
         uselist=False,
         back_populates="x509_certificate_trust_chains_0",
     )
 
-    certificate_ca_n = sa_orm_relationship(
-        "CertificateCA",
-        primaryjoin="X509CertificateTrustChain.certificate_ca_n_id==CertificateCA.id",
+    x509_certificate_trusted_n = sa_orm_relationship(
+        "X509CertificateTrusted",
+        primaryjoin="X509CertificateTrustChain.x509_certificate_trusted_n_id==X509CertificateTrusted.id",
         uselist=False,
         back_populates="x509_certificate_trust_chains_n",
     )
@@ -5899,23 +5907,25 @@ class X509CertificateTrustChain(Base, _Mixin_Timestamps_Pretty):
         return button
 
     @reify
-    def certificate_ca_ids(self) -> List[str]:
-        _certificate_ca_ids = self.certificate_ca_ids_string.split(",")
-        return _certificate_ca_ids
+    def x509_certificate_trusted_ids(self) -> List[str]:
+        _x509_certificate_trusted_ids = self.x509_certificate_trusted_ids_string.split(
+            ","
+        )
+        return _x509_certificate_trusted_ids
 
     @reify
-    def certificate_cas_all(self) -> List["CertificateCA"]:
+    def x509_certificate_trusteds_all(self) -> List["X509CertificateTrusted"]:
         # reify vs property, because this queries the database
-        certificate_ca_ids = self.certificate_ca_ids
+        x509_certificate_trusted_ids = self.x509_certificate_trusted_ids
         dbSession = sa_Session.object_session(self)
         if TYPE_CHECKING:
             assert dbSession
-        dbCertificateCAs = (
-            dbSession.query(CertificateCA)
-            .filter(CertificateCA.id.in_(certificate_ca_ids))
+        dbX509CertificateTrusteds = (
+            dbSession.query(X509CertificateTrusted)
+            .filter(X509CertificateTrusted.id.in_(x509_certificate_trusted_ids))
             .all()
         )
-        return dbCertificateCAs
+        return dbX509CertificateTrusteds
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -5924,8 +5934,10 @@ class X509CertificateTrustChain(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             # - -
-            "certificate_ca_ids": self.certificate_ca_ids,
-            "certificate_cas": [i.as_json for i in self.certificate_cas_all],
+            "x509_certificate_trusted_ids": self.x509_certificate_trusted_ids,
+            "x509_certificate_trusteds": [
+                i.as_json for i in self.x509_certificate_trusteds_all
+            ],
             "chain_pem_md5": self.chain_pem_md5,
             "chain_pem": self.chain_pem,
             "display_name": self.display_name,
@@ -5942,14 +5954,16 @@ class X509CertificateTrustReconciliation(Base):
     timestamp_operation: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
-    certificate_ca_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False
+    x509_certificate_trusted_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("x509_certificate_trusted.id"), nullable=False
     )
     result: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )  # True - success; False - failure
-    certificate_ca_id__issuer__reconciled: Mapped[Optional[int]] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=True
+    x509_certificate_trusted_id__issuer__reconciled: Mapped[Optional[int]] = (
+        mapped_column(
+            sa.Integer, sa.ForeignKey("x509_certificate_trusted.id"), nullable=True
+        )
     )
 
 
@@ -5979,7 +5993,7 @@ __all__ = (
     "AcmeOrder2AcmeAuthorization",
     "AcmePollingError",
     "AriCheck",
-    "CertificateCA",
+    "X509CertificateTrusted",
     "CoverageAssuranceEvent",
     "Domain",
     "DomainAutocert",
@@ -5995,7 +6009,7 @@ __all__ = (
     "RenewalConfiguration",
     "RootStore",
     "RootStoreVersion",
-    "RootStoreVersion_2_CertificateCA",
+    "RootStoreVersion_2_X509CertificateTrusted",
     "RoutineExecution",
     "UniquelyChallengedFQDNSet",
     "UniquelyChallengedFQDNSet2Domain",

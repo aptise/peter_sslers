@@ -575,47 +575,48 @@ def _admin_views(config: "Configurator") -> None:
         paginate=True,
     )
 
-    # !!!: CertificateCAs (Certificate Authority)
+    # !!!: X509CertificateTrusteds (Certificate Authority)
     config.add_route_7(
-        "admin:certificate_cas",
+        "admin:x509_certificate_trusteds",
         "/certificate-cas",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_ca:focus",
+        "admin:x509_certificate_trusted:focus",
         "/certificate-ca/{@id}",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_ca:focus:parse|json", "/certificate-ca/{@id}/parse.json"
+        "admin:x509_certificate_trusted:focus:parse|json",
+        "/certificate-ca/{@id}/parse.json",
     )
     config.add_route_7(
-        "admin:certificate_ca:focus:raw",
+        "admin:x509_certificate_trusted:focus:raw",
         "/certificate-ca/{@id}/cert.{format:(cer|crt|der|pem|pem.txt)}",
     )
     config.add_route_7(
-        "admin:certificate_ca:focus:x509_certificates",
+        "admin:x509_certificate_trusted:focus:x509_certificates",
         "/certificate-ca/{@id}/x509-certificates",
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_ca:focus:x509_certificates_alt",
+        "admin:x509_certificate_trusted:focus:x509_certificates_alt",
         "/certificate-ca/{@id}/x509-certificates-alt",
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_ca:focus:x509_certificate_trust_chains_0",
+        "admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_0",
         "/certificate-ca/{@id}/x509-certificate-trust-chain-0",
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_ca:focus:x509_certificate_trust_chains_n",
+        "admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_n",
         "/certificate-ca/{@id}/x509-certificate-trust-chain-n",
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_ca:upload_cert",
+        "admin:x509_certificate_trusted:upload_cert",
         "/certificate-ca/upload-cert",
         jsonify=True,
     )

@@ -106,12 +106,11 @@ def upgrade() -> None:
     with op.batch_alter_table(
         "x509_certificate_trust_preference_policy_item", schema=None
     ) as batch_op:
-        batch_op.drop_index(batch_op.f("uidx_certificate_ca_preference_a"))
-        batch_op.drop_index(batch_op.f("uidx_certificate_ca_preference_b"))
         batch_op.drop_constraint(
             batch_op.f("uq_certificate_ca_preference_certificate_ca_id"), type_="unique"
         )
-
+        batch_op.drop_index(batch_op.f("uidx_certificate_ca_preference_a"))
+        batch_op.drop_index(batch_op.f("uidx_certificate_ca_preference_b"))
         batch_op.create_index(
             "uidx_x509_certificate_trust_preference_policy_item_a",
             ["x509_certificate_trust_preference_policy_id", "slot_id"],
@@ -122,12 +121,6 @@ def upgrade() -> None:
             ["x509_certificate_trust_preference_policy_id", "certificate_ca_id"],
             unique=True,
         )
-        batch_op.create_unique_constraint(
-            batch_op.f(
-                "uq_x509_certificate_trust_preference_policy_item_certificate_ca_id"
-            ),
-            ["certificate_ca_id"],
-        )
     # ### end Alembic commands ###
 
 
@@ -137,27 +130,23 @@ def downgrade() -> None:
     with op.batch_alter_table(
         "x509_certificate_trust_preference_policy_item", schema=None
     ) as batch_op:
-        batch_op.drop_constraint(
-            batch_op.f(
-                "uq_x509_certificate_trust_preference_policy_item_certificate_ca_id"
-            ),
-            type_="unique",
-        )
-        batch_op.drop_index("uidx_x509_certificate_trust_preference_policy_item_b")
         batch_op.drop_index("uidx_x509_certificate_trust_preference_policy_item_a")
-        batch_op.create_unique_constraint(
-            batch_op.f("uq_certificate_ca_preference_certificate_ca_id"),
-            ["certificate_ca_id"],
-        )
+        batch_op.drop_index("uidx_x509_certificate_trust_preference_policy_item_b")
         batch_op.create_index(
             batch_op.f("uidx_certificate_ca_preference_b"),
             ["x509_certificate_trust_preference_policy_id", "certificate_ca_id"],
-            unique=1,
+            unique=True,
         )
         batch_op.create_index(
             batch_op.f("uidx_certificate_ca_preference_a"),
             ["x509_certificate_trust_preference_policy_id", "slot_id"],
-            unique=1,
+            unique=True,
+        )
+
+        # this is a bad constraint!
+        batch_op.create_unique_constraint(
+            batch_op.f("uq_certificate_ca_preference_certificate_ca_id"),
+            ["certificate_ca_id"],
         )
 
     with op.batch_alter_table(

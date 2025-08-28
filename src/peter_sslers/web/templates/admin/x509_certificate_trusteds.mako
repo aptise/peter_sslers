@@ -6,15 +6,15 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">CertificateCAs</li>
+        <li class="active">X509CertificateTrusteds</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CertificateCAs</h2>
+    <h2>X509CertificateTrusteds</h2>
     <p>
-        CertificateCAs can be initialized and updated by probing the LetsEncrypt service;
+        X509CertificateTrusteds can be initialized and updated by probing the LetsEncrypt service;
         see <a class="btn btn-xs btn-warning" href="${admin_prefix}/api">Api Endpoints</a>.
     
     </p>
@@ -30,13 +30,13 @@
             <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
             X509CertificateTrustChains</a>
         <a  href="${admin_prefix}/certificate-ca/upload-cert"
-            title="CertificateCA - Upload Cert"
+            title="X509CertificateTrusted - Upload Cert"
             class="btn btn-xs btn-primary"
         >
             <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-            Upload: CertificateCA</a>
+            Upload: X509CertificateTrusted</a>
         <a  href="${admin_prefix}/x509-certificate-trust-preference-policys"
-            title="CertificateCAs - Preference Policys"
+            title="X509CertificateTrusteds - Preference Policys"
             class="btn btn-xs btn-info"
         >
             <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -51,7 +51,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if CertificateCAs:
+            % if X509CertificateTrusteds:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -66,11 +66,11 @@
                             <th>cert_pem_md5</th>
                         </tr>
                     </thead>
-                    % for cert in CertificateCAs:
+                    % for cert in X509CertificateTrusteds:
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/certificate-ca/${cert.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                CertificateCA-${cert.id}</a>
+                                X509CertificateTrusted-${cert.id}</a>
                             </td>
                             <td><span class="badge">${cert.count_active_certificates or ''}</span></td>
                             <td><code>${cert.cert_subject}</code></td>
