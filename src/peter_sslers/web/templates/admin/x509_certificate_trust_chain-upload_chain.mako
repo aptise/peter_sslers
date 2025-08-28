@@ -25,7 +25,7 @@
             <%! show_text = False %>
 
             <form
-                action="${admin_prefix}/certificate-ca-chain/upload-chain"
+                action="${admin_prefix}/certificate-trust-chain/upload-chain"
                 method="POST"
                 enctype="multipart/form-data"
             >
@@ -42,13 +42,13 @@
         <div class="col-sm-6">
             <h3>This form is JSON capable</h3>
             <p>
-                <code>curl ${request.api_host}${admin_prefix}/certificate-ca-chain/upload-chain.json</code>
+                <code>curl ${request.api_host}${admin_prefix}/certificate-trust-chain/upload-chain.json</code>
             </p>
 
             <p>
                 You can upload a certificate on this form: <br/>
                 <a  class="btn btn-primary"
-                    href="${admin_prefix}/certificate-ca/upload-cert"
+                    href="${admin_prefix}/x509-certificate-trusted/upload-cert"
                 >Upload X509CertificateTrusted Cert</a>
             </p>
         </div>

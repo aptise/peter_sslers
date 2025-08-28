@@ -192,11 +192,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-dns Server Accounts</a></li>
-                <li><a href="${admin_prefix}/certificate-cas"
+                <li><a href="${admin_prefix}/x509-certificate-trusteds"
                        title="X509CertificateTrusteds"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-cas</a></li>
+                    x509-certificate-trusteds</a></li>
                 <li><a href="${admin_prefix}/x509-certificate-trust-chain"
                        title="X509CertificateTrustChains"
                     >
@@ -267,7 +267,7 @@
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: AcmeAccount</a></li>
                 <li>
-                    <a  href="${admin_prefix}/certificate-ca/upload-cert"
+                    <a  href="${admin_prefix}/x509-certificate-trusted/upload-cert"
                         title="X509CertificateTrusted - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>

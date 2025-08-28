@@ -6,8 +6,8 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-cas">X509CertificateTrusteds</a></li>
-        <li><a href="${admin_prefix}/certificate-ca/${X509CertificateTrusted.id}">Focus [${X509CertificateTrusted.id}]</a></li>
+        <li><a href="${admin_prefix}/x509-certificate-trusteds">X509CertificateTrusteds</a></li>
+        <li><a href="${admin_prefix}/x509-certificate-trusted/${X509CertificateTrusted.id}">Focus [${X509CertificateTrusted.id}]</a></li>
         <li class="active">X509CertificateTrusteds</li>
     </ol>
 </%block>

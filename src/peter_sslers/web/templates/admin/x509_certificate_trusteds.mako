@@ -29,7 +29,7 @@
         >
             <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
             X509CertificateTrustChains</a>
-        <a  href="${admin_prefix}/certificate-ca/upload-cert"
+        <a  href="${admin_prefix}/x509-certificate-trusted/upload-cert"
             title="X509CertificateTrusted - Upload Cert"
             class="btn btn-xs btn-primary"
         >
@@ -41,7 +41,7 @@
         >
             <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
             List: Preferred</a>
-        <a href="${admin_prefix}/certificate-cas.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/x509-certificate-trusteds.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json</a>
     </p>
@@ -68,7 +68,7 @@
                     </thead>
                     % for cert in X509CertificateTrusteds:
                         <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/certificate-ca/${cert.id}">
+                            <td><a class="label label-info" href="${admin_prefix}/x509-certificate-trusted/${cert.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 X509CertificateTrusted-${cert.id}</a>
                             </td>

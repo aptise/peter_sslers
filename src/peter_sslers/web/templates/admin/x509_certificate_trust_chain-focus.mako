@@ -19,7 +19,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate-ca-chain/${X509CertificateTrustChain.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/certificate-trust-chain/${X509CertificateTrustChain.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -81,8 +81,8 @@
                     <tr>
                         <th>download</th>
                         <td>
-                            <a class="label label-info" href="${admin_prefix}/certificate-ca-chain/${X509CertificateTrustChain.id}/chain.pem.txt">chain.pem.txt</a>
-                            <a class="label label-info" href="${admin_prefix}/certificate-ca-chain/${X509CertificateTrustChain.id}/chain.pem">chain.pem</a>
+                            <a class="label label-info" href="${admin_prefix}/certificate-trust-chain/${X509CertificateTrustChain.id}/chain.pem.txt">chain.pem.txt</a>
+                            <a class="label label-info" href="${admin_prefix}/certificate-trust-chain/${X509CertificateTrustChain.id}/chain.pem">chain.pem</a>
                         </td>
                     </tr>
                 </tbody>

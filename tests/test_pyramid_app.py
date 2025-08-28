@@ -4138,10 +4138,12 @@ class FunctionalTests_X509CertificateTrusted(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/peter_sslers/certificate-cas", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusteds", status=200
+        )
         # paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusteds/1", status=200
         )
 
     @routes_tested(
@@ -4153,13 +4155,13 @@ class FunctionalTests_X509CertificateTrusted(AppTest):
     def test_list_json(self):
         # JSON root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusteds.json", status=200
         )
         assert "X509CertificateTrusteds" in res.json
 
         # JSON paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/1.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusteds/1.json", status=200
         )
         assert "X509CertificateTrusteds" in res.json
 
@@ -4176,44 +4178,48 @@ class FunctionalTests_X509CertificateTrusted(AppTest):
         )
     )
     def test_focus_html(self):
-        res = self.testapp.get("/.well-known/peter_sslers/certificate-ca/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1", status=200
+        )
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/cert.pem", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/cert.pem", status=200
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/cert.pem.txt", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/cert.cer", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/cert.crt", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/cert.der", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/x509-certificates", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/x509-certificates/1",
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/cert.pem.txt",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/x509-certificate-trust-chain-0",
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/cert.cer", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/cert.crt", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/cert.der", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificates",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/x509-certificate-trust-chain-0/1",
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificates/1",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/x509-certificate-trust-chain-n",
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificate-trust-chain-0",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/x509-certificate-trust-chain-n/1",
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificate-trust-chain-0/1",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificate-trust-chain-n",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificate-trust-chain-n/1",
             status=200,
         )
 
@@ -4225,10 +4231,11 @@ class FunctionalTests_X509CertificateTrusted(AppTest):
     )
     def test_focus_json(self):
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/1.json", status=200
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/parse.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/parse.json",
+            status=200,
         )
         assert "X509CertificateTrusted" in res.json
         assert "id" in res.json["X509CertificateTrusted"]
@@ -4249,7 +4256,7 @@ class FunctionalTests_X509CertificateTrusted(AppTest):
         _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/upload-cert", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/upload-cert", status=200
         )
         form = res.form
         form["cert_file"] = Upload(_cert_ca_filepath)
@@ -4279,11 +4286,12 @@ class FunctionalTests_X509CertificateTrusted(AppTest):
         _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/upload-cert.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/upload-cert.json",
+            status=200,
         )
         _data = {"cert_file": Upload(_cert_ca_filepath)}
         res2 = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca/upload-cert.json", _data
+            "/.well-known/peter_sslers/x509-certificate-trusted/upload-cert.json", _data
         )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
@@ -4294,7 +4302,7 @@ class FunctionalTests_X509CertificateTrusted(AppTest):
         )  # this is the 3rd item in letsencrypt_info._CERT_CAS_ORDER
         obj_id = res2.json["X509CertificateTrusted"]["id"]
         res3 = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/%s" % obj_id, status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/%s" % obj_id, status=200
         )
 
 
@@ -4349,19 +4357,20 @@ class FunctionalTests_X509CertificateTrustChain(AppTest):
         python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustChain.test_focus_html
         """
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chain/1", status=200
+            "/.well-known/peter_sslers/certificate-trust-chain/1", status=200
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chain/1/chain.pem", status=200
+            "/.well-known/peter_sslers/certificate-trust-chain/1/chain.pem", status=200
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chain/1/chain.pem.txt", status=200
+            "/.well-known/peter_sslers/certificate-trust-chain/1/chain.pem.txt",
+            status=200,
         )
 
     @routes_tested(("admin:x509_certificate_trust_chain:focus|json",))
     def test_focus_json(self):
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chain/1.json", status=200
+            "/.well-known/peter_sslers/certificate-trust-chain/1.json", status=200
         )
 
     @routes_tested(("admin:x509_certificate_trust_chain:upload_chain",))
@@ -4386,7 +4395,7 @@ class FunctionalTests_X509CertificateTrustChain(AppTest):
         try:
             tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
             res = self.testapp.get(
-                "/.well-known/peter_sslers/certificate-ca-chain/upload-chain",
+                "/.well-known/peter_sslers/certificate-trust-chain/upload-chain",
                 status=200,
             )
             form = res.form
@@ -4410,7 +4419,7 @@ class FunctionalTests_X509CertificateTrustChain(AppTest):
         """
         # test chain uploads
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chain/upload-chain.json",
+            "/.well-known/peter_sslers/certificate-trust-chain/upload-chain.json",
             status=200,
         )
         # let's build a chain!
@@ -4431,7 +4440,7 @@ class FunctionalTests_X509CertificateTrustChain(AppTest):
             tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
             _data = {"chain_file": Upload(tmpfile_pem.name)}
             res2 = self.testapp.post(
-                "/.well-known/peter_sslers/certificate-ca-chain/upload-chain.json",
+                "/.well-known/peter_sslers/certificate-trust-chain/upload-chain.json",
                 _data,
             )
             assert res2.status_code == 200
@@ -8702,21 +8711,21 @@ class FunctionalTests_AlternateChains(AppTest):
                 _x509_certificate_chain.x509_certificate_trust_chain.x509_certificate_trusted_0_id
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/certificate-ca-chain/%s" % chain_id,
+                "/.well-known/peter_sslers/certificate-trust-chain/%s" % chain_id,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/certificate-ca/%s"
+                "/.well-known/peter_sslers/x509-certificate-trusted/%s"
                 % x509_certificate_trusted_id,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/certificate-ca/%s/x509-certificates-alt"
+                "/.well-known/peter_sslers/x509-certificate-trusted/%s/x509-certificates-alt"
                 % x509_certificate_trusted_id,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/certificate-ca/%s/x509-certificates-alt/1"
+                "/.well-known/peter_sslers/x509-certificate-trusted/%s/x509-certificates-alt/1"
                 % x509_certificate_trusted_id,
                 status=200,
             )
@@ -8750,52 +8759,52 @@ class FunctionalTests_AlternateChains(AppTest):
 
             # chain
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/chain.cer"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/chain.cer"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/chain.crt"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/chain.crt"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/chain.der"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/chain.der"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/chain.pem"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/chain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/chain.pem.txt"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/chain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # fullchain
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/fullchain.pem"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/fullchain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/fullchain.pem.txt"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/fullchain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # configs
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/config.json"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/config.json"
                 % focus_ids,
                 status=200,
             )
 
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/config.zip"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/config.zip"
                 % focus_ids,
                 status=200,
             )

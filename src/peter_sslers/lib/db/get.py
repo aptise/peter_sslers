@@ -1593,11 +1593,11 @@ def get__X509CertificateTrusteds__by_fingerprint_sha1_substring(
 
 def get__X509CertificateTrusted__by_fingerprint_sha1(
     ctx: "ApiContext", fingerprint_sha1: str
-) -> X509CertificateTrusted:
+) -> Optional[X509CertificateTrusted]:
     dbX509CertificateTrusted = (
         ctx.dbSession.query(X509CertificateTrusted)
         .filter(X509CertificateTrusted.fingerprint_sha1 == fingerprint_sha1)
-        .one()
+        .first()
     )
     return dbX509CertificateTrusted
 

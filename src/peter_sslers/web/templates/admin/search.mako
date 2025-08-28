@@ -161,7 +161,7 @@
                                 <tr>
                                     <td>
                                         <a  class="label label-info"
-                                            href="${admin_prefix}/certificate-ca/${cert.id}"
+                                            href="${admin_prefix}/x509-certificate-trusted/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                             X509CertificateTrusted-${cert.id}</a>

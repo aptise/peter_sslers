@@ -5699,7 +5699,7 @@ class X509CertificateTrusted(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             return "<!-- ERROR. could not derive the `request` -->"
 
         button = (
-            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca/%(id)s" """
+            """<a class="label label-info" href="%(admin_prefix)s/x509-certificate-trusted/%(id)s" """
             """data-sha1-preview="%(sha1_preview)s">"""
             """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
             """X509CertificateTrusted-%(id)s</a>"""
@@ -5871,7 +5871,7 @@ class X509CertificateTrustChain(Base, _Mixin_Timestamps_Pretty):
             return "<!-- ERROR. could not derive the `request` -->"
 
         button = (
-            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca-chain/%(id)s">"""
+            """<a class="label label-info" href="%(admin_prefix)s/certificate-trust-chain/%(id)s">"""
             """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
             """X509CertificateTrustChain-%(id)s</a>"""
             % {
@@ -5894,7 +5894,7 @@ class X509CertificateTrustChain(Base, _Mixin_Timestamps_Pretty):
             return "<!-- ERROR. could not derive the `request` -->"
 
         button = (
-            """<a class="label label-info" href="%(admin_prefix)s/certificate-ca-chain/%(id)s">"""
+            """<a class="label label-info" href="%(admin_prefix)s/certificate-trust-chain/%(id)s">"""
             """<span class="glyphicon glyphicon-file" aria-hidden="true"></span>"""
             """X509CertificateTrustChain-%(id)s</a>"""
             % {

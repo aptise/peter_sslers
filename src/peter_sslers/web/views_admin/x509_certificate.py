@@ -1249,12 +1249,12 @@ class View_Focus_via_X509CertificateTrustChain(View_Focus):
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/config.json",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/config.json",
             "section": "x509-certificate",
             "about": """X509Certificate via X509CertificateTrustChain Config.json""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/config.json",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/config.json",
         }
     )
     def config_json(self):
@@ -1281,12 +1281,12 @@ class View_Focus_via_X509CertificateTrustChain(View_Focus):
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/config.zip",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/config.zip",
             "section": "x509-certificate",
             "about": """X509Certificate via X509CertificateTrustChain Config.zip""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/config.zip",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/config.zip",
         }
     )
     def config_zip(self):
@@ -1324,52 +1324,52 @@ class View_Focus_via_X509CertificateTrustChain(View_Focus):
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.pem",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/chain.pem",
             "section": "x509-certificate",
             "about": """X509Certificate via X509CertificateTrustChain Chain-PEM""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/chain.pem",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/chain.pem",
         }
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.pem.txt",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/chain.pem.txt",
             "section": "x509-certificate",
             "about": """X509Certificate via X509CertificateTrustChain Chain-PEM""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/chain.pem.txt",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/chain.pem.txt",
         }
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.cer",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/chain.cer",
             "section": "x509-certificate",
             "about": """X509Certificate via X509CertificateTrustChain Chain-DER""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/chain.cer",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/chain.cer",
         }
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.crt",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/chain.crt",
             "section": "x509-certificate",
             "about": """X509Certificate via X509CertificateTrustChain Chain-DER""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/chain.crt",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/chain.crt",
         }
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.der",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/chain.der",
             "section": "x509-certificate",
             "about": """X509Certificate via X509CertificateTrustChain Chain-DER""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/chain.der",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/chain.der",
         }
     )
     def chain(self):
@@ -1404,22 +1404,22 @@ class View_Focus_via_X509CertificateTrustChain(View_Focus):
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/fullchain.pem",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/fullchain.pem",
             "section": "x509-certificate",
             "about": """X509Certificate via X509CertificateTrustChain FullChain-PEM""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/fullchain.pem",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/fullchain.pem",
         }
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/fullchain.pem.txt",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/fullchain.pem.txt",
             "section": "x509-certificate",
             "about": """X509Certificate via X509CertificateTrustChain FullChain-PEM""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/fullchain.pem.txt",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/fullchain.pem.txt",
         }
     )
     def fullchain(self):

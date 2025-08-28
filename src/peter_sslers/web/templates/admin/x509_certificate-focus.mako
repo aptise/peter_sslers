@@ -756,7 +756,7 @@
                             <ul class="list list-unstyled">
                                 % for _to_x509_certificate_trust_chain in X509Certificate.x509_certificate_chains:
                                     <li>
-                                        <a class="label label-info" href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}/config.json">
+                                        <a class="label label-info" href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-trust-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}/config.json">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             X509CertificateTrustChain-${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}
                                             config.json</a>
@@ -797,7 +797,7 @@
                                     <li>
                                         <a
                                             class="label label-info"
-                                            href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}/config.zip"
+                                            href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-trust-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}/config.zip"
                                             data-x509_certificate_trust_chain-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.id}"
                                             data-x509_certificate_trust_chain-x509_certificate_trusted_0-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.x509_certificate_trusted_0.id}"
                                             data-x509_certificate_trust_chain-x509_certificate_trusted_0-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.x509_certificate_trusted_0.fingerprint_sha1}"
@@ -850,7 +850,7 @@
                                                 <td>
                                                     <a
                                                         class="label label-info"
-                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/chain.pem.txt"
+                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-trust-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/chain.pem.txt"
                                                         data-x509_certificate_trust_chain-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}"
                                                         data-x509_certificate_trust_chain-x509_certificate_trusted_0-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.x509_certificate_trusted_0.id}"
                                                         data-x509_certificate_trust_chain-x509_certificate_trusted_0-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.x509_certificate_trusted_0.fingerprint_sha1}"
@@ -861,7 +861,7 @@
                                                         chain.pem.txt</a>
                                                     <a
                                                         class="label label-info"
-                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/chain.pem"
+                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-trust-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/chain.pem"
                                                         data-x509_certificate_trust_chain-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}"
                                                         data-x509_certificate_trust_chain-x509_certificate_trusted_0-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.x509_certificate_trusted_0.id}"
                                                         data-x509_certificate_trust_chain-x509_certificate_trusted_0-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.x509_certificate_trusted_0.fingerprint_sha1}"
@@ -879,7 +879,7 @@
                                                 <td>
                                                     <a
                                                         class="label label-info"
-                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/fullchain.pem.txt"
+                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-trust-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/fullchain.pem.txt"
                                                         data-x509_certificate_trust_chain-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}"
                                                         data-x509_certificate_trust_chain-x509_certificate_trusted_0-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.x509_certificate_trusted_0.id}"
                                                         data-x509_certificate_trust_chain-x509_certificate_trusted_0-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.x509_certificate_trusted_0.fingerprint_sha1}"
@@ -890,7 +890,7 @@
                                                         fullchain.pem.txt</a>
                                                     <a
                                                         class="label label-info"
-                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-ca-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/fullchain.pem"
+                                                        href="${admin_prefix}/x509-certificate/${X509Certificate.id}/via-certificate-trust-chain/${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}/fullchain.pem"
                                                         data-x509_certificate_trust_chain-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain_id}"
                                                         data-x509_certificate_trust_chain-x509_certificate_trusted_0-id="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.x509_certificate_trusted_0.id}"
                                                         data-x509_certificate_trust_chain-x509_certificate_trusted_0-fingerprint_sha1="${_to_x509_certificate_trust_chain.x509_certificate_trust_chain.x509_certificate_trusted_0.fingerprint_sha1}"

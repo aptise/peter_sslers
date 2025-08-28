@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-cas">X509CertificateTrusteds</a></li>
+        <li><a href="${admin_prefix}/x509-certificate-trusteds">X509CertificateTrusteds</a></li>
         <li class="active">Focus [${X509CertificateTrusted.id}]</li>
     </ol>
 </%block>
@@ -19,7 +19,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate-ca/${X509CertificateTrusted.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/x509-certificate-trusted/${X509CertificateTrusted.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -119,12 +119,12 @@
                     <tr>
                         <th>download</th>
                         <td>
-                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${X509CertificateTrusted.id}/cert.pem.txt">cert.pem.txt (PEM)</a>
-                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${X509CertificateTrusted.id}/cert.pem">cert.pem (PEM)</a>
+                            <a class="label label-info" href="${admin_prefix}/x509-certificate-trusted/${X509CertificateTrusted.id}/cert.pem.txt">cert.pem.txt (PEM)</a>
+                            <a class="label label-info" href="${admin_prefix}/x509-certificate-trusted/${X509CertificateTrusted.id}/cert.pem">cert.pem (PEM)</a>
 
-                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${X509CertificateTrusted.id}/cert.cer">cert.cer (DER)</a>
-                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${X509CertificateTrusted.id}/cert.crt">cert.crt (DER)</a>
-                            <a class="label label-info" href="${admin_prefix}/certificate-ca/${X509CertificateTrusted.id}/cert.der">cert.der (DER)</a>
+                            <a class="label label-info" href="${admin_prefix}/x509-certificate-trusted/${X509CertificateTrusted.id}/cert.cer">cert.cer (DER)</a>
+                            <a class="label label-info" href="${admin_prefix}/x509-certificate-trusted/${X509CertificateTrusted.id}/cert.crt">cert.crt (DER)</a>
+                            <a class="label label-info" href="${admin_prefix}/x509-certificate-trusted/${X509CertificateTrusted.id}/cert.der">cert.der (DER)</a>
                         </td>
                     </tr>
                     <tr>
@@ -181,7 +181,7 @@
                         <td>
                             % if X509CertificateTrustChains0:
                                 ${admin_partials.table_X509CertificateTrustChains(X509CertificateTrustChains0)}
-                                ${admin_partials.nav_pager("%s/certificate-ca/%s/x509-certificate-trust-chain-0" % (admin_prefix, X509CertificateTrusted.id))}
+                                ${admin_partials.nav_pager("%s/x509-certificate-trusted/%s/x509-certificate-trust-chain-0" % (admin_prefix, X509CertificateTrusted.id))}
                             % else:
                                 No known X509CertificateTrustChains.
                             % endif
@@ -194,7 +194,7 @@
                         <td>
                             % if X509CertificateTrustChainsN:
                                 ${admin_partials.table_X509CertificateTrustChains(X509CertificateTrustChainsN)}
-                                ${admin_partials.nav_pager("%s/certificate-ca/%s/x509-certificate-trust-chain-n" % (admin_prefix, X509CertificateTrusted.id))}
+                                ${admin_partials.nav_pager("%s/x509-certificate-trusted/%s/x509-certificate-trust-chain-n" % (admin_prefix, X509CertificateTrusted.id))}
                             % else:
                                 No known X509CertificateTrustChains.
                             % endif
@@ -207,7 +207,7 @@
                         <td>
                             % if X509Certificates:
                                 ${admin_partials.table_X509Certificates(X509Certificates, show_domains=True)}
-                                ${admin_partials.nav_pager("%s/certificate-ca/%s/x509-certificates" % (admin_prefix, X509CertificateTrusted.id))}
+                                ${admin_partials.nav_pager("%s/x509-certificate-trusted/%s/x509-certificates" % (admin_prefix, X509CertificateTrusted.id))}
                             % else:
                                 No known X509Certificates.
                             % endif
@@ -220,7 +220,7 @@
                         <td>
                             % if X509Certificates_Alt:
                                 ${admin_partials.table_X509Certificates(X509Certificates_Alt, show_domains=True)}
-                                ${admin_partials.nav_pager("%s/certificate-ca/%s/x509-certificates-alt" % (admin_prefix, X509CertificateTrusted.id))}
+                                ${admin_partials.nav_pager("%s/x509-certificate-trusted/%s/x509-certificates-alt" % (admin_prefix, X509CertificateTrusted.id))}
                             % else:
                                 No known X509Certificates.
                             % endif

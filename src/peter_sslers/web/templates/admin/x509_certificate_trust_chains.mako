@@ -18,7 +18,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a  href="${admin_prefix}/certificate-ca-chain/upload-chain"
+        <a  href="${admin_prefix}/certificate-trust-chain/upload-chain"
             title="X509CertificateTrustChain - Upload"
             class="btn btn-xs btn-primary"
         >
@@ -47,7 +47,7 @@
                     </thead>
                     % for chain in X509CertificateTrustChains:
                         <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/certificate-ca-chain/${chain.id}">
+                            <td><a class="label label-info" href="${admin_prefix}/certificate-trust-chain/${chain.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 X509CertificateTrustChain-${chain.id}</a>
                             </td>

@@ -2748,7 +2748,7 @@ class AppTest(AppTestCore):
                     )
 
                     # note: pre-populate X509CertificateTrusted
-                    # this should create `/certificate-ca/1`
+                    # this should create `/x509-certificate-trusted/1`
                     #
                     _cert_ca_id = "isrg_root_x1"
                     _cert_ca_filename = TEST_FILES["X509CertificateTrusteds"]["cert"][
@@ -2836,7 +2836,7 @@ class AppTest(AppTestCore):
                         # self.ctx.pyramid_transaction_commit()
 
                         # note: pre-populate X509CertificateTrusted - self-signed
-                        # this should create `/certificate-ca/2`
+                        # this should create `/x509-certificate-trusted/2`
                         #
                         _cert_ca_filename = TEST_FILES["X509Certificates"][
                             "SelfSigned"

@@ -38,20 +38,20 @@ class View_List(Handler):
     )
     @docify(
         {
-            "endpoint": "/certificate-cas.json",
-            "section": "certificate-ca",
+            "endpoint": "/x509-certificate-trusteds.json",
+            "section": "x509-certificate-trusted",
             "about": """list X509CertificateTrusted(s)""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-cas.json",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trusteds.json",
         }
     )
     @docify(
         {
-            "endpoint": "/certificate-cas/{PAGE}.json",
-            "section": "certificate-ca",
-            "example": "curl {ADMIN_PREFIX}/certificate-cas/1.json",
-            "variant_of": "/certificate-cas.json",
+            "endpoint": "/x509-certificate-trusteds/{PAGE}.json",
+            "section": "x509-certificate-trusted",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trusteds/1.json",
+            "variant_of": "/x509-certificate-trusteds.json",
         }
     )
     def list(self):
@@ -59,7 +59,7 @@ class View_List(Handler):
             self.request.api_context
         )
         url_template = (
-            "%s/certificate-cas/{0}"
+            "%s/x509-certificate-trusteds/{0}"
             % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
@@ -94,7 +94,7 @@ class View_Focus(Handler):
                 raise HTTPNotFound("the cert was not found")
             self.dbX509CertificateTrusted = dbX509CertificateTrusted
             self.focus_item = dbX509CertificateTrusted
-            self.focus_url = "%s/certificate-ca/%s" % (
+            self.focus_url = "%s/x509-certificate-trusted/%s" % (
                 self.request.api_context.application_settings["admin_prefix"],
                 self.dbX509CertificateTrusted.id,
             )
@@ -111,12 +111,12 @@ class View_Focus(Handler):
     )
     @docify(
         {
-            "endpoint": "/certificate-ca/{ID}.json",
-            "section": "certificate-ca",
+            "endpoint": "/x509-certificate-trusted/{ID}.json",
+            "section": "x509-certificate-trusted",
             "about": """X509CertificateTrusted focus""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca/1.json",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trusted/1.json",
         }
     )
     def focus(self):
@@ -157,52 +157,52 @@ class View_Focus(Handler):
     )
     @docify(
         {
-            "endpoint": "/certificate-ca/{ID}/cert.pem",
-            "section": "certificate-ca",
+            "endpoint": "/x509-certificate-trusted/{ID}/cert.pem",
+            "section": "x509-certificate-trusted",
             "about": """X509CertificateTrusted focus: cert.pem""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.pem",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trusted/1/cert.pem",
         }
     )
     @docify(
         {
-            "endpoint": "/certificate-ca/{ID}/cert.pem.txt",
-            "section": "certificate-ca",
+            "endpoint": "/x509-certificate-trusted/{ID}/cert.pem.txt",
+            "section": "x509-certificate-trusted",
             "about": """X509CertificateTrusted focus: cert.pem.txt""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.pem.txt",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trusted/1/cert.pem.txt",
         }
     )
     @docify(
         {
-            "endpoint": "/certificate-ca/{ID}/cert.cer",
-            "section": "certificate-ca",
+            "endpoint": "/x509-certificate-trusted/{ID}/cert.cer",
+            "section": "x509-certificate-trusted",
             "about": """X509CertificateTrusted focus: cert.cer""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.cer",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trusted/1/cert.cer",
         }
     )
     @docify(
         {
-            "endpoint": "/certificate-ca/{ID}/cert.crt",
-            "section": "certificate-ca",
+            "endpoint": "/x509-certificate-trusted/{ID}/cert.crt",
+            "section": "x509-certificate-trusted",
             "about": """X509CertificateTrusted focus: cert.crt""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.crt",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trusted/1/cert.crt",
         }
     )
     @docify(
         {
-            "endpoint": "/certificate-ca/{ID}/cert.der",
-            "section": "certificate-ca",
+            "endpoint": "/x509-certificate-trusted/{ID}/cert.der",
+            "section": "x509-certificate-trusted",
             "about": """X509CertificateTrusted focus: cert.der""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.der",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trusted/1/cert.der",
         }
     )
     def focus_raw(self):
@@ -235,12 +235,12 @@ class View_Focus(Handler):
     )
     @docify(
         {
-            "endpoint": "/certificate-ca/{ID}/parse.json",
-            "section": "certificate-ca",
+            "endpoint": "/x509-certificate-trusted/{ID}/parse.json",
+            "section": "x509-certificate-trusted",
             "about": """X509CertificateTrusted focus: parse""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/parse.json",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trusted/1/parse.json",
         }
     )
     def focus_parse_json(self):
@@ -387,17 +387,17 @@ class View_New(Handler):
     )
     @docify(
         {
-            "endpoint": "/certificate-ca/upload-cert.json",
-            "section": "certificate-ca",
+            "endpoint": "/x509-certificate-trusted/upload-cert.json",
+            "section": "x509-certificate-trusted",
             "about": """X509CertificateTrusted upload certificate""",
             "POST": True,
             "GET": None,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca/1/cert.der",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trusted/1/cert.der",
             # -----
             "instructions": [
                 """curl """
                 """--form 'cert_file=@chain1.pem' """
-                """{ADMIN_PREFIX}/certificate-ca/upload-cert.json""",
+                """{ADMIN_PREFIX}/x509-certificate-trusted/upload-cert.json""",
             ],
             "form_fields": {
                 "cert_file": "required",
@@ -411,7 +411,9 @@ class View_New(Handler):
 
     def _upload_cert__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self, "/certificate-ca/upload-cert.json")
+            return formatted_get_docs(
+                self, "/x509-certificate-trusted/upload-cert.json"
+            )
         return render_to_response(
             "/admin/x509_certificate_trusted-upload_cert.mako", {}, self.request
         )
@@ -450,7 +452,7 @@ class View_New(Handler):
                     },
                 }
             return HTTPSeeOther(
-                "%s/certificate-ca/%s?result=success&is_created=%s"
+                "%s/x509-certificate-trusted/%s?result=success&is_created=%s"
                 % (
                     self.request.api_context.application_settings["admin_prefix"],
                     dbX509CertificateTrusted.id,

@@ -890,7 +890,7 @@
                         <td>
                             % if c == 'id':
                                 <a  class="label label-info"
-                                    href="${admin_prefix}/certificate-ca-chain/${x509_certificate_trust_chain.id}">
+                                    href="${admin_prefix}/certificate-trust-chain/${x509_certificate_trust_chain.id}">
                                     <span class="glyphicon x509_certificate_trust_chain-file" aria-hidden="true"></span>
                                     X509CertificateTrustChain-${x509_certificate_trust_chain.id}</a>
                                 % else:
@@ -1316,11 +1316,11 @@
                 if section == "x509_certificate_trusted.ids":
                     header = "X509CertificateTrusteds"
                     ids_ = OperationsEvent.event_payload_json[section]
-                    url_template = "%s/certificate-ca" % admin_prefix
+                    url_template = "%s/x509-certificate-trusted" % admin_prefix
                 elif section == "x509_certificate_trusted.ids_fail":
                     header = "X509CertificateTrusteds - Failures"
                     ids_ = OperationsEvent.event_payload_json[section]
-                    url_template = "%s/certificate-ca" % admin_prefix
+                    url_template = "%s/x509-certificate-trusted" % admin_prefix
                 else:
                     continue
             %>
@@ -1809,7 +1809,7 @@
 
 <%def name="object_event__object(object_event)">
     % if object_event.x509_certificate_trusted_id:
-        <a class="label label-info" href="${admin_prefix}/certificate-ca/${object_event.x509_certificate_trusted_id}">
+        <a class="label label-info" href="${admin_prefix}/x509-certificate-trusted/${object_event.x509_certificate_trusted_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
             X509CertificateTrusted-${object_event.x509_certificate_trusted_id}
         </a>
