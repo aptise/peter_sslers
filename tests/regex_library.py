@@ -164,9 +164,9 @@ RE_CertificateCA_uploaded = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/certificate-ca/(\d+)\?result=success&is_created=\d$"""
 )
 
-# note: CertificateCAChain
+# note: X509CertificateTrustChain
 
-RE_CertificateCAChain_uploaded = re.compile(
+RE_X509CertificateTrustChain_uploaded = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/certificate-ca-chain/(\d+)\?result=success&is_created=\d$"""
 )
 

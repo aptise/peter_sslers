@@ -104,7 +104,7 @@ from .regex_library import RE_AcmeOrder_renewal_configuration
 from .regex_library import RE_AcmeOrder_retry
 from .regex_library import RE_AcmeOrder_status
 from .regex_library import RE_CertificateCA_uploaded
-from .regex_library import RE_CertificateCAChain_uploaded
+from .regex_library import RE_X509CertificateTrustChain_uploaded
 from .regex_library import RE_X509Certificate_button
 from .regex_library import RE_X509Certificate_main
 from .regex_library import RE_X509Certificate_operation_nginx_expire
@@ -4163,10 +4163,10 @@ class FunctionalTests_CertificateCA(AppTest):
             "admin:certificate_ca:focus:raw",
             "admin:certificate_ca:focus:x509_certificates",
             "admin:certificate_ca:focus:x509_certificates-paginated",
-            "admin:certificate_ca:focus:certificate_ca_chains_0",
-            "admin:certificate_ca:focus:certificate_ca_chains_0-paginated",
-            "admin:certificate_ca:focus:certificate_ca_chains_n",
-            "admin:certificate_ca:focus:certificate_ca_chains_n-paginated",
+            "admin:certificate_ca:focus:x509_certificate_trust_chains_0",
+            "admin:certificate_ca:focus:x509_certificate_trust_chains_0-paginated",
+            "admin:certificate_ca:focus:x509_certificate_trust_chains_n",
+            "admin:certificate_ca:focus:x509_certificate_trust_chains_n-paginated",
         )
     )
     def test_focus_html(self):
@@ -4195,19 +4195,19 @@ class FunctionalTests_CertificateCA(AppTest):
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-0",
+            "/.well-known/peter_sslers/certificate-ca/1/x509-certificate-trust-chain-0",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-0/1",
+            "/.well-known/peter_sslers/certificate-ca/1/x509-certificate-trust-chain-0/1",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-n",
+            "/.well-known/peter_sslers/certificate-ca/1/x509-certificate-trust-chain-n",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-n/1",
+            "/.well-known/peter_sslers/certificate-ca/1/x509-certificate-trust-chain-n/1",
             status=200,
         )
 
@@ -4292,52 +4292,55 @@ class FunctionalTests_CertificateCA(AppTest):
         )
 
 
-class FunctionalTests_CertificateCAChain(AppTest):
+class FunctionalTests_X509CertificateTrustChain(AppTest):
     """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain
+    python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustChain
     """
 
     @routes_tested(
         (
-            "admin:certificate_ca_chains",
-            "admin:certificate_ca_chains-paginated",
+            "admin:x509_certificate_trust_chains",
+            "admin:x509_certificate_trust_chains-paginated",
         )
     )
     def test_list_html(self):
         # root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chains", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-chain", status=200
         )
         # paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chains/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-chain/1", status=200
         )
 
     @routes_tested(
         (
-            "admin:certificate_ca_chains|json",
-            "admin:certificate_ca_chains-paginated|json",
+            "admin:x509_certificate_trust_chains|json",
+            "admin:x509_certificate_trust_chains-paginated|json",
         )
     )
     def test_list_json(self):
         # JSON root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chains.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-chain.json", status=200
         )
-        assert "CertificateCAChains" in res.json
+        assert "X509CertificateTrustChains" in res.json
 
         # JSON paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chains/1.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-chain/1.json", status=200
         )
-        assert "CertificateCAChains" in res.json
+        assert "X509CertificateTrustChains" in res.json
 
     @routes_tested(
-        ("admin:certificate_ca_chain:focus", "admin:certificate_ca_chain:focus:raw")
+        (
+            "admin:x509_certificate_trust_chain:focus",
+            "admin:x509_certificate_trust_chain:focus:raw",
+        )
     )
     def test_focus_html(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_focus_html
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustChain.test_focus_html
         """
         res = self.testapp.get(
             "/.well-known/peter_sslers/certificate-ca-chain/1", status=200
@@ -4349,16 +4352,16 @@ class FunctionalTests_CertificateCAChain(AppTest):
             "/.well-known/peter_sslers/certificate-ca-chain/1/chain.pem.txt", status=200
         )
 
-    @routes_tested(("admin:certificate_ca_chain:focus|json",))
+    @routes_tested(("admin:x509_certificate_trust_chain:focus|json",))
     def test_focus_json(self):
         res = self.testapp.get(
             "/.well-known/peter_sslers/certificate-ca-chain/1.json", status=200
         )
 
-    @routes_tested(("admin:certificate_ca_chain:upload_chain",))
+    @routes_tested(("admin:x509_certificate_trust_chain:upload_chain",))
     def test_upload_html(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_upload_html
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustChain.test_upload_html
         """
         # let's build a chain!
         chain_items = ["isrg_root_x2_cross", "isrg_root_x1"]
@@ -4382,7 +4385,7 @@ class FunctionalTests_CertificateCAChain(AppTest):
             form["chain_file"] = Upload(tmpfile_pem.name)
             res2 = form.submit()
             assert res2.status_code == 303
-            matched = RE_CertificateCAChain_uploaded.match(res2.location)
+            matched = RE_X509CertificateTrustChain_uploaded.match(res2.location)
             # this querystring ends: ?result=success&is_created=0'
             _is_created = bool(int(res2.location[-1]))
             assert matched
@@ -4392,10 +4395,10 @@ class FunctionalTests_CertificateCAChain(AppTest):
             if tmpfile_pem is not None:
                 tmpfile_pem.close()
 
-    @routes_tested(("admin:certificate_ca_chain:upload_chain|json",))
+    @routes_tested(("admin:x509_certificate_trust_chain:upload_chain|json",))
     def test_upload_json(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_upload_json
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustChain.test_upload_json
         """
         # test chain uploads
         res = self.testapp.get(
@@ -4424,7 +4427,7 @@ class FunctionalTests_CertificateCAChain(AppTest):
             assert res2.status_code == 200
             assert res2.json["result"] == "success"
             # we may not have created this
-            assert res2.json["CertificateCAChain"]["created"] in (True, False)
+            assert res2.json["X509CertificateTrustChain"]["created"] in (True, False)
 
         finally:
             if tmpfile_pem is not None:
@@ -8684,9 +8687,9 @@ class FunctionalTests_AlternateChains(AppTest):
     def test_CertificateCA_view(self):
         focus_X509Certificate = self._get_one()
         for _x509_certificate_chain in focus_X509Certificate.x509_certificate_chains:
-            chain_id = _x509_certificate_chain.certificate_ca_chain_id
+            chain_id = _x509_certificate_chain.x509_certificate_trust_chain_id
             certificate_ca_id = (
-                _x509_certificate_chain.certificate_ca_chain.certificate_ca_0_id
+                _x509_certificate_chain.x509_certificate_trust_chain.certificate_ca_0_id
             )
             res = self.testapp.get(
                 "/.well-known/peter_sslers/certificate-ca-chain/%s" % chain_id,
@@ -8709,10 +8712,10 @@ class FunctionalTests_AlternateChains(AppTest):
 
     @routes_tested(
         (
-            "admin:x509_certificate:focus:via_certificate_ca_chain:config|json",
-            "admin:x509_certificate:focus:via_certificate_ca_chain:config|zip",
-            "admin:x509_certificate:focus:via_certificate_ca_chain:chain:raw",
-            "admin:x509_certificate:focus:via_certificate_ca_chain:fullchain:raw",
+            "admin:x509_certificate:focus:via_x509_certificate_trust_chain:config|json",
+            "admin:x509_certificate:focus:via_x509_certificate_trust_chain:config|zip",
+            "admin:x509_certificate:focus:via_x509_certificate_trust_chain:chain:raw",
+            "admin:x509_certificate:focus:via_x509_certificate_trust_chain:fullchain:raw",
         )
     )
     def test_X509Certificate_view(self):
@@ -8721,8 +8724,8 @@ class FunctionalTests_AlternateChains(AppTest):
         x509_certificate_id = focus_X509Certificate.id
         # this will have the primary root and the alternate roots;
         # pre-cache this now
-        certificate_ca_chain_ids = [
-            i.certificate_ca_chain_id
+        x509_certificate_trust_chain_ids = [
+            i.x509_certificate_trust_chain_id
             for i in focus_X509Certificate.x509_certificate_chains
         ]
 
@@ -8731,8 +8734,8 @@ class FunctionalTests_AlternateChains(AppTest):
             status=200,
         )
 
-        for certificate_ca_chain_id in certificate_ca_chain_ids:
-            focus_ids = (x509_certificate_id, certificate_ca_chain_id)
+        for x509_certificate_trust_chain_id in x509_certificate_trust_chain_ids:
+            focus_ids = (x509_certificate_id, x509_certificate_trust_chain_id)
 
             # chain
             res = self.testapp.get(

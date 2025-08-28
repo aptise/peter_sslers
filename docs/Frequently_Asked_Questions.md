@@ -172,7 +172,7 @@ of their signed Certificates that lead to different trusted roots.
 
 Alternate Chains are fully supported by PeterSSLers
 
-* All Alternate CertificateCAChains are downloaded and tracked
+* All Alternate X509CertificateTrustChains are downloaded and tracked
 * Machine-readable Endpoints are available to detect and utilize the Alternate Chains
 * Default UX, payloads and endpoints are optimized for the Primary Chain
 * Default payloads may be configured to enforce a chain preference, so alternate

@@ -159,7 +159,7 @@ The CertificateAuthority's Certificate:
     cert.crt            DER     application/x-x509-ca-cert
     cert.der            DER     application/x-x509-ca-cert
 
-#### CertificateCAChain
+#### X509CertificateTrustChain
 
 One or more CertificateAuthority Certificates
 

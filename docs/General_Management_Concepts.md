@@ -85,9 +85,9 @@ The normalized data structure used by the backend and object hierarchy is as fol
   * The "End Entity" Certificate
 * `X509CertificateChain`
   * One or more per `X509Certificate`
-  * Maps a `X509Certificate` to the ACME indicated `CertificateCAChain`
+  * Maps a `X509Certificate` to the ACME indicated `X509CertificateTrustChain`
   * Indicates if the association was the primary/default or an alterate
-* `CertificateCAChain`
+* `X509CertificateTrustChain`
   * Represents a chain of one or more `CertificateCA` Certificates
   * item 0 signed the `X509Certificate`
   * item n is typically signed by the Trust store Certificate

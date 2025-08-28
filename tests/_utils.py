@@ -2573,16 +2573,16 @@ class AppTest(AppTestCore):
         (
             _dbChain,
             _is_created,
-        ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+        ) = db.getcreate.getcreate__X509CertificateTrustChain__by_pem_text(
             self.ctx, _chain_pem, display_name=_chain_filename
         )
 
-        dbCertificateCAChains_alt = None
+        dbX509CertificateTrustChains_alt = None
         if (
             "alternate_chains"
             in TEST_FILES["X509Certificates"][payload_section][payload_key]
         ):
-            dbCertificateCAChains_alt = []
+            dbX509CertificateTrustChains_alt = []
             for _chain_index in TEST_FILES["X509Certificates"][payload_section][
                 payload_key
             ]["alternate_chains"]:
@@ -2597,10 +2597,10 @@ class AppTest(AppTestCore):
                 (
                     _dbChainAlternate,
                     _is_created,
-                ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+                ) = db.getcreate.getcreate__X509CertificateTrustChain__by_pem_text(
                     self.ctx, _chain_pem, display_name=_chain_filename
                 )
-                dbCertificateCAChains_alt.append(_dbChainAlternate)
+                dbX509CertificateTrustChains_alt.append(_dbChainAlternate)
 
         _cert_filename = (
             filename_template
@@ -2625,11 +2625,11 @@ class AppTest(AppTestCore):
             self.ctx,
             _cert_pem,
             cert_domains_expected=_cert_domains_expected,
-            dbCertificateCAChain=_dbChain,
+            dbX509CertificateTrustChain=_dbChain,
             dbPrivateKey=_dbPrivateKey,
             certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
             # optionals
-            dbCertificateCAChains_alt=dbCertificateCAChains_alt,
+            dbX509CertificateTrustChains_alt=dbX509CertificateTrustChains_alt,
             dbUniqueFQDNSet=_dbUniqueFQDNSet,
             is_active=True,
         )
@@ -2843,12 +2843,12 @@ class AppTest(AppTestCore):
                         ][_id]["cert"]
                         chain_pem = self._filedata_testfile(_cert_ca_filename)
                         (
-                            _dbCertificateCAChain_SelfSigned,
+                            _dbX509CertificateTrustChain_SelfSigned,
                             _is_created,
-                        ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+                        ) = db.getcreate.getcreate__X509CertificateTrustChain__by_pem_text(
                             self.ctx, chain_pem, display_name=_cert_ca_filename
                         )
-                        # print(_dbCertificateCAChain_SelfSigned, _is_created)
+                        # print(_dbX509CertificateTrustChain_SelfSigned, _is_created)
                         # self.ctx.pyramid_transaction_commit()
 
                         _cert_filename = TEST_FILES["X509Certificates"]["SelfSigned"][
@@ -2873,7 +2873,7 @@ class AppTest(AppTestCore):
                             self.ctx,
                             cert_pem,
                             cert_domains_expected=_cert_domains_expected,
-                            dbCertificateCAChain=_dbCertificateCAChain_SelfSigned,
+                            dbX509CertificateTrustChain=_dbX509CertificateTrustChain_SelfSigned,
                             certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
                             dbPrivateKey=_dbPrivateKey,
                             # optionals
