@@ -520,23 +520,6 @@ class Form_Certificate_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
 
 
-class Form_X509Certificate_mark(_Form_Schema_Base):
-    action = OneOf(
-        (
-            "active",
-            "inactive",
-            "revoked",
-            "unrevoke",
-        ),
-        not_empty=True,
-    )
-
-
-class Form_X509Certificate_search(_Form_Schema_Base):
-    ari_identifier = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    serial = UnicodeString(not_empty=False, if_missing=None, strip=True)
-
-
 class Form_CoverageAssuranceEvent_mark(_Form_Schema_Base):
     action = OneOf(
         ("resolution"),
@@ -563,13 +546,7 @@ class Form_Domain_AcmeDnsServer_new(_Form_Schema_Base):
     acme_dns_server_id = Int(not_empty=True)
 
 
-class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
-
-    # do not update on edit
-    name = UnicodeString(not_empty=True, strip=True, max=64)
-
-    label_template = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
-
+class Form_EnrollmentFactory_edit(_Form_Schema_Base):
     domain_template_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_template_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
@@ -607,6 +584,18 @@ class Form_EnrollmentFactory_edit_new(_Form_Schema_Base):
     acme_profile__backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True, max=64
     )
+
+
+class Form_EnrollmentFactory_new(Form_EnrollmentFactory_edit):
+
+    # do not update on edit
+    name = UnicodeString(not_empty=True, strip=True, max=64)
+    label_template = UnicodeString(not_empty=True, if_missing=None, strip=True, max=64)
+
+
+class Form_EnrollmentFactory_onboard(_Form_Schema_Base):
+    domain_name = UnicodeString(not_empty=True, strip=True)
+    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
 
 class Form_EnrollmentFactory_query(_Form_Schema_Base):
@@ -820,18 +809,6 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
         )
 
 
-class Form_RenewalConfig_new_enrollment(_Form_Schema_Base):
-    enrollment_factory_id = Int(not_empty=True)
-    domain_name = UnicodeString(not_empty=True, strip=True)
-    note = UnicodeString(not_empty=False, if_missing=None, strip=True)
-    label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
-    is_export_filesystem = OneOf(
-        model_utils.OptionsOnOff._options_RenewalConfigurationFactory_isExportFilesystem,
-        not_empty=False,
-        if_missing="enrollment_factory_default",
-    )
-
-
 class Form_RenewalConfiguration_mark(_Form_Schema_Base):
     action = OneOf(
         ("active", "inactive", "is_export_filesystem-on", "is_export_filesystem-off"),
@@ -846,3 +823,20 @@ class Form_UniqueFQDNSet_modify(_Form_Schema_Base):
 
 class Form_UniqueFQDNSet_new(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True, strip=True)
+
+
+class Form_X509Certificate_mark(_Form_Schema_Base):
+    action = OneOf(
+        (
+            "active",
+            "inactive",
+            "revoked",
+            "unrevoke",
+        ),
+        not_empty=True,
+    )
+
+
+class Form_X509Certificate_search(_Form_Schema_Base):
+    ari_identifier = UnicodeString(not_empty=False, if_missing=None, strip=True)
+    serial = UnicodeString(not_empty=False, if_missing=None, strip=True)

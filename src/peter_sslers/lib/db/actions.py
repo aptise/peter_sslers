@@ -423,6 +423,7 @@ def api_domains__certificate_if_needed(
                         dbSystemConfiguration=dbSystemConfiguration,
                     )
                     is_duplicate_renewal = False
+
                 except errors.DuplicateRenewalConfiguration as exc:
                     is_duplicate_renewal = True
                     # we could raise exc to abort, but this is likely preferred

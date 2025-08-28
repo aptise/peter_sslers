@@ -268,6 +268,16 @@
                                         </button>
                                     </form>
                                 % endif
+                            % else:
+                                % if RenewalConfiguration.enrollment_factory__via.is_export_filesystem == "on":
+                                    <span class="label label-success">
+                                        ${RenewalConfiguration.enrollment_factory__via.is_export_filesystem}
+                                    </span>
+                                % else:
+                                    <span class="label label-danger">
+                                        ${RenewalConfiguration.enrollment_factory__via.is_export_filesystem}
+                                    </span>
+                                % endif
                             % endif
                         </td>
                     </tr>

@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 # from typing import Dict
 
 # pypi
-import cert_utils
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.renderers import render_to_response
@@ -21,12 +20,12 @@ from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_RenewalConfig_new
 from ..lib.forms import Form_RenewalConfig_new_configuration
-from ..lib.forms import Form_RenewalConfig_new_enrollment
 from ..lib.forms import Form_RenewalConfig_new_order
 from ..lib.forms import Form_RenewalConfiguration_mark
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
+from ..lib.utils import prep__domains_challenged__dns01
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -36,62 +35,10 @@ from ...model.objects import RenewalConfiguration
 
 if TYPE_CHECKING:
     from pyramid.request import Request
-    from pyramid_formencode_classic import FormStash
 
-    from ...model.objects import EnrollmentFactory
     from ...model.objects import X509Certificate
-    from ...model.utils import DomainsChallenged
 
 # ==============================================================================
-
-
-def prep__domains_challenged__dns01(
-    request: "Request",
-    formStash: "FormStash",
-    domains_challenged: "DomainsChallenged",
-) -> List[str]:
-    domains_all = []
-    # check for blocklists here
-    # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-    # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
-    for challenge_, domains_ in domains_challenged.items():
-        if domains_:
-            lib_db.validate.validate_domain_names(request.api_context, domains_)
-            if challenge_ == "dns-01":
-                # check to ensure the domains are configured for dns-01
-                # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
-                try:
-                    lib_db.validate.ensure_domains_dns01(request.api_context, domains_)
-                except errors.AcmeDomainsRequireConfigurationAcmeDNS as exc:
-                    # in "experimental" mode, we may want to use specific
-                    # acme-dns servers and not the global one
-                    if (
-                        request.api_context.application_settings["acme_dns_support"]
-                        == "experimental"
-                    ):
-                        raise
-                    # in "basic" mode we can just associate these to the global option
-                    if not request.api_context.dbAcmeDnsServer_GlobalDefault:
-                        formStash.fatal_field(
-                            "domain_names_dns01",
-                            "No global acme-dns server configured.",
-                        )
-                    if TYPE_CHECKING:
-                        assert (
-                            request.api_context.dbAcmeDnsServer_GlobalDefault
-                            is not None
-                        )
-                    # exc.args[0] will be the listing of domains
-                    (domainObjects, adnsAccountObjects) = (
-                        lib_db.associate.ensure_domain_names_to_acmeDnsServer(
-                            request.api_context,
-                            exc.args[0],
-                            request.api_context.dbAcmeDnsServer_GlobalDefault,
-                            discovery_type="via renewal_configuration.new",
-                        )
-                    )
-            domains_all.extend(domains_)
-    return domains_all
 
 
 def submit__mark(
@@ -101,7 +48,7 @@ def submit__mark(
 ) -> Tuple["RenewalConfiguration", str]:
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
-    action = request.params.get("action")
+
     (result, formStash) = formhandling.form_validate(
         request,
         schema=Form_RenewalConfiguration_mark,
@@ -145,6 +92,7 @@ def submit__mark(
         assert event_status is not None
 
     request.api_context.dbSession.flush(objects=[dbRenewalConfiguration])
+    request.api_context.pyramid_transaction_commit()
 
     # bookkeeping
     dbOperationsEvent = lib_db.logger.log__OperationsEvent(
@@ -158,6 +106,7 @@ def submit__mark(
         ),
         dbRenewalConfiguration=dbRenewalConfiguration,
     )
+    request.api_context.pyramid_transaction_commit()
 
     return dbRenewalConfiguration, action
 
@@ -295,6 +244,9 @@ def submit__new(
             )
 
             request.api_context.pyramid_transaction_commit()
+
+        except errors.FieldError as exc:
+            formStash.fatal_field(exc.args[0], exc.args[1])
 
         except errors.DuplicateRenewalConfiguration as exc:
             is_duplicate_renewal = True
@@ -509,6 +461,9 @@ def submit__new_configuration(
                         dbRenewalConfiguration,
                     )
 
+            except errors.FieldError as exc:
+                formStash.fatal_field(exc.args[0], exc.args[1])
+
             except errors.DuplicateRenewalConfiguration as exc:
                 is_duplicate_renewal = True
                 # we could raise exc to abort, but this is likely preferred
@@ -548,213 +503,6 @@ def submit__new_configuration(
 
     except Exception:
         raise
-
-
-def submit__new_enrollment(
-    request: "Request",
-    dbEnrollmentFactory: "EnrollmentFactory",
-    acknowledge_transaction_commits: Optional[Literal[True]] = None,
-) -> Tuple[RenewalConfiguration, bool]:
-    if not acknowledge_transaction_commits:
-        raise errors.AcknowledgeTransactionCommitRequired()
-    assert dbEnrollmentFactory
-
-    dbRenewalConfiguration: "RenewalConfiguration"
-    is_duplicate_renewal: bool
-
-    (result, formStash) = formhandling.form_validate(
-        request,
-        schema=Form_RenewalConfig_new_enrollment,
-        validate_get=False,
-    )
-    if not result:
-        raise formhandling.FormInvalid(formStash)
-    try:
-        # note: step 1 - analyze the "submitted" domain
-        # this ensures only one domain
-        # we'll pretend it's http-01, though that is irreleveant
-        domains_challenged = form_utils.form_single_domain_challenge_typed(
-            request, formStash, challenge_type="http-01"
-        )
-        # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
-        for challenge_, domains_ in domains_challenged.items():
-            if domains_:
-                try:
-                    lib_db.validate.validate_domain_names(request.api_context, domains_)
-                except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
-                    formStash.fatal_field(
-                        field="domain_name",
-                        error_field="This domain_name has been blocklisted",
-                    )
-                except errors.AcmeDomainsInvalid as exc:  # noqa: F841
-                    formStash.fatal_field(
-                        field="domain_name",
-                        error_field="This domain_name is invalid",
-                    )
-
-        domain_name = domains_challenged["http-01"][0]
-        reverse_domain_name = utils.reverse_domain_name(domain_name)
-
-        # does the domain exist?
-        # we should check to see if it does and has certs
-        dbDomain = lib_db.get.get__Domain__by_name(
-            request.api_context,
-            domain_name,
-        )
-        if not dbDomain:
-            # we need to start with a domain name
-            (dbDomain, _is_created) = lib_db.getcreate.getcreate__Domain__by_domainName(
-                request.api_context,
-                domain_name,
-                discovery_type="enrollment-factory",
-            )
-            request.api_context.pyramid_transaction_commit()
-
-        domains_challenged = model_utils.DomainsChallenged()
-        domain_names_all = []
-
-        if dbEnrollmentFactory.domain_template_dns01:
-            templated_domains = dbEnrollmentFactory.domain_template_dns01.replace(
-                "{DOMAIN}", domain_name
-            ).replace("{NIAMOD}", reverse_domain_name)
-            # domains will also be lowercase+strip
-            #
-            # IMPORTANT RFC 8738
-            #       https://www.rfc-editor.org/rfc/rfc8738#section-7
-            #       The existing "dns-01" challenge MUST NOT be used to validate IP identifiers.
-            #
-            submitted_ = cert_utils.utils.domains_from_string(
-                templated_domains,
-                allow_hostname=True,
-                allow_ipv4=False,
-                allow_ipv6=False,
-            )
-            domain_names_all.extend(submitted_)
-            domains_challenged["dns-01"] = submitted_
-
-        if dbEnrollmentFactory.domain_template_http01:
-            templated_domains = dbEnrollmentFactory.domain_template_http01.replace(
-                "{DOMAIN}", domain_name
-            ).replace("{NIAMOD}", reverse_domain_name)
-            # domains will also be lowercase+strip
-            submitted_ = cert_utils.utils.domains_from_string(
-                templated_domains,
-                allow_hostname=True,
-                allow_ipv4=True,
-                allow_ipv6=True,
-                ipv6_require_compressed=True,
-            )
-            domain_names_all.extend(submitted_)
-            domains_challenged["http-01"] = submitted_
-
-        # 2: ensure there are domains
-        if not domain_names_all:
-            formStash.fatal_field(
-                field="domain_name",
-                error_field="did not expand template into domains",
-            )
-
-        # 3: ensure there is no overlap
-        domain_names_all_set = set(domain_names_all)
-        if len(domain_names_all) != len(domain_names_all_set):
-            formStash.fatal_field(
-                field="domain_name",
-                error_field="a domain name can only be associated to one challenge type",
-            )
-
-        # ensure wildcards are only in dns-01
-        for chall, ds in domains_challenged.items():
-            if chall == "dns-01":
-                continue
-            if ds:
-                for d in ds:
-                    if d[0] == "*":
-                        formStash.fatal_form(
-                            error_main="wildcards (*) MUST use `dns-01`.",
-                        )
-
-        # see DOMAINS_CHALLENGED_FIELDS
-        if domains_challenged["dns-01"]:
-            if not request.api_context.dbAcmeDnsServer_GlobalDefault:
-                formStash.fatal_field(
-                    field="domain_names_dns01",
-                    error_field="The global acme-dns server is not configured.",
-                )
-
-        # note: step 2 - analyze the "templated" domains
-        #
-
-        domains_all = prep__domains_challenged__dns01(  # noqa: F841
-            request,
-            formStash=formStash,
-            domains_challenged=domains_challenged,
-        )
-
-        #
-        # DONE AND VALIDATED
-        #
-
-        is_export_filesystem = formStash.results["is_export_filesystem"]
-        is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
-            is_export_filesystem
-        )
-
-        note = formStash.results["note"]
-        label = formStash.results["label"]
-        if label:
-            label = utils.apply_domain_template(label, domain_name, reverse_domain_name)
-            label = utils.normalize_unique_text(label)
-            if not utils.validate_label(label):
-                formStash.fatal_field(
-                    field="label",
-                    error_field="the `label` is not compliant",
-                )
-
-        is_duplicate_renewal = False
-        try:
-            dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
-                request.api_context,
-                domains_challenged=domains_challenged,
-                # PRIMARY cert
-                dbAcmeAccount__primary=dbEnrollmentFactory.acme_account__primary,
-                private_key_cycle_id__primary=dbEnrollmentFactory.private_key_cycle_id__primary,
-                private_key_technology_id__primary=dbEnrollmentFactory.private_key_technology_id__primary,
-                acme_profile__primary=dbEnrollmentFactory.acme_profile__primary,
-                # BACKUP cert
-                dbAcmeAccount__backup=dbEnrollmentFactory.acme_account__backup,
-                private_key_cycle_id__backup=(
-                    dbEnrollmentFactory.private_key_cycle_id__backup
-                    if dbEnrollmentFactory.acme_account__backup
-                    else None
-                ),
-                private_key_technology_id__backup=(
-                    dbEnrollmentFactory.private_key_technology_id__backup
-                    if dbEnrollmentFactory.acme_account__backup
-                    else None
-                ),
-                acme_profile__backup=(
-                    dbEnrollmentFactory.acme_profile__backup
-                    if dbEnrollmentFactory.acme_account__backup
-                    else None
-                ),
-                # misc
-                note=note,
-                label=label,
-                is_export_filesystem_id=is_export_filesystem_id,
-                dbEnrollmentFactory=dbEnrollmentFactory,
-            )
-
-            request.api_context.pyramid_transaction_commit()
-
-        except errors.DuplicateRenewalConfiguration as exc:
-            is_duplicate_renewal = True  # noqa: F841
-            # we could raise exc to abort, but this is likely preferred
-            dbRenewalConfiguration = exc.args[0]
-
-    except Exception:
-        raise
-
-    return (dbRenewalConfiguration, is_duplicate_renewal)
 
 
 def submit__new_order(
@@ -1778,112 +1526,3 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 "%s/renewal-configurations/all?result=error&operation=new-freeform"
                 % self.request.api_context.application_settings["admin_prefix"]
             )
-
-
-class View_New_Enrollment(Handler):
-
-    dbEnrollmentFactory: Optional["EnrollmentFactory"] = None
-
-    @view_config(route_name="admin:renewal_configuration:new_enrollment")
-    @view_config(
-        route_name="admin:renewal_configuration:new_enrollment|json", renderer="json"
-    )
-    @docify(
-        {
-            "endpoint": "/renewal-configuration/new-enrollment.json",
-            "section": "renewal-configuration",
-            "about": """RenewalConfiguration: New Enrollment""",
-            "POST": True,
-            "GET": None,
-            "instructions": "curl {ADMIN_PREFIX}/renewal-configuration/new-enrollment.json",
-            "form_fields": {
-                # ALL certs
-                "enrollment_factory_id": "required; an enrollment factory id",
-                "domain_name": "required; a single domain name",
-                "note": "An optional string to be associated with the RenewalConfiguration.",
-            },
-            "valid_options": {
-                "SystemConfigurations": "{RENDER_ON_REQUEST}",
-            },
-            "requirements": [
-                "MUST submit `domain_name` and `enrollment_factory_id`",
-            ],
-            "examples": [
-                """curl """
-                """--form 'enrollment_factory_id=1' """
-                """--form 'domain_name=example.com' """
-                """{ADMIN_PREFIX}/renewal-configuration/new-enrollment.json""",
-            ],
-        }
-    )
-    def new_enrollment(self):
-        try:
-            _enrollment_factory_id = int(
-                self.request.params.get("enrollment_factory_id")
-            )
-            dbEnrollmentFactory = lib_db.get.get__EnrollmentFactory__by_id(
-                self.request.api_context, _enrollment_factory_id
-            )
-            if not dbEnrollmentFactory:
-                raise ValueError("could not load `EnrollmentFactory`")
-            self.dbEnrollmentFactory = dbEnrollmentFactory
-        except Exception:
-            if self.request.wants_json:
-                if self.request.method == "GET":
-                    return self._new_enrollment__print()
-                return {"error": "invalid `enrollment_factory_id`"}
-            return HTTPSeeOther(
-                "%s/enrollment-factorys?result=error&operation=new-enrollment"
-                % self.request.api_context.application_settings["admin_prefix"]
-            )
-        if self.request.method == "POST":
-            return self._new_enrollment__submit()
-        return self._new_enrollment__print()
-
-    def _new_enrollment__print(self):
-        if self.request.wants_json:
-            return formatted_get_docs(
-                self, "/renewal-configuration/new-enrollment.json"
-            )
-        return render_to_response(
-            "/admin/renewal_configuration-new_enrollment.mako",
-            {
-                "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
-                "EnrollmentFactory": self.dbEnrollmentFactory,
-                "AcmeDnsServer_GlobalDefault": self.request.api_context.dbAcmeDnsServer_GlobalDefault,
-            },
-            self.request,
-        )
-
-    def _new_enrollment__submit(self):
-        """ """
-        try:
-            if TYPE_CHECKING:
-                assert self.dbEnrollmentFactory
-            (dbRenewalConfiguration, is_duplicate_renewal) = submit__new_enrollment(
-                self.request,
-                dbEnrollmentFactory=self.dbEnrollmentFactory,
-                acknowledge_transaction_commits=True,
-            )
-            if self.request.wants_json:
-                return {
-                    "result": "success",
-                    "RenewalConfiguration": dbRenewalConfiguration.as_json,
-                    "is_duplicate_renewal": is_duplicate_renewal,
-                }
-            return HTTPSeeOther(
-                "%s/renewal-configuration/%s%s"
-                % (
-                    self.request.api_context.application_settings["admin_prefix"],
-                    dbRenewalConfiguration.id,
-                    (
-                        "?is_duplicate_renewal_configuration=true"
-                        if is_duplicate_renewal
-                        else ""
-                    ),
-                )
-            )
-        except formhandling.FormInvalid as exc:
-            if self.request.wants_json:
-                return {"result": "error", "form_errors": exc.formStash.errors}
-            return formhandling.form_reprint(self.request, self._new_enrollment__print)

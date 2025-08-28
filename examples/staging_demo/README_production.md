@@ -104,35 +104,25 @@ According to the above, `acme_server_id = 2; PEBBLE TEST 2`::
 
     ssl_manage data_production renewal-configuration list
 
-    ssl_manage data_production renewal-configuration new-enrollment \
-        enrollment_factory_id=1 \
+    ssl_manage data_production enrollment-factory onboard \
+        id=1 \
         domain_name="a.peter-sslers.testing.opensource.aptise.com" \
-        label="chall_prefix-{DOMAIN}" \
-        is_export_filesystem=enrollment_factory_default
 
-    ssl_manage data_production renewal-configuration new-enrollment \
-        enrollment_factory_id=1 \
+    ssl_manage data_production enrollment-factory onboard \
+        id=1 \
         domain_name="b.peter-sslers.testing.opensource.aptise.com" \
-        label="chall_prefix-{DOMAIN}" \
-        is_export_filesystem=enrollment_factory_default
 
-    ssl_manage data_production renewal-configuration new-enrollment \
-        enrollment_factory_id=1 \
+    ssl_manage data_production enrollment-factory onboard \
+        id=1 \
         domain_name="c.peter-sslers.testing.opensource.aptise.com" \
-        label="chall_prefix-{DOMAIN}" \
-        is_export_filesystem=enrollment_factory_default
 
-    ssl_manage data_production renewal-configuration new-enrollment \
-        enrollment_factory_id=1 \
+    ssl_manage data_production enrollment-factory onboard \
+        id=1 \
         domain_name="d.peter-sslers.testing.opensource.aptise.com" \
-        label="chall_prefix-{DOMAIN}" \
-        is_export_filesystem=enrollment_factory_default
 
-    ssl_manage data_production renewal-configuration new-enrollment \
-        enrollment_factory_id=1 \
+    ssl_manage data_production enrollment-factory onboard \
+        id=1 \
         domain_name="e.peter-sslers.testing.opensource.aptise.com" \
-        label="chall_prefix-{DOMAIN}" \
-        is_export_filesystem=enrollment_factory_default
 
 
 ## Run the audit tools

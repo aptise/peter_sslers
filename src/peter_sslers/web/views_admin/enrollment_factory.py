@@ -19,11 +19,14 @@ from ..lib import form_utils as form_utils
 from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
-from ..lib.forms import Form_EnrollmentFactory_edit_new
+from ..lib.forms import Form_EnrollmentFactory_edit
+from ..lib.forms import Form_EnrollmentFactory_new
+from ..lib.forms import Form_EnrollmentFactory_onboard
 from ..lib.forms import Form_EnrollmentFactory_query
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
+from ..lib.utils import prep__domains_challenged__dns01
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -145,7 +148,7 @@ def submit__new(
 
     (result, formStash) = formhandling.form_validate(
         request,
-        schema=Form_EnrollmentFactory_edit_new,
+        schema=Form_EnrollmentFactory_new,
         validate_get=False,
     )
     if not result:
@@ -252,10 +255,9 @@ def submit__new(
             acme_profile__backup = None
 
         label_template = formStash.results["label_template"]
-        if label_template:
-            _valid, _err = validate_label_template(label_template)
-            if not _valid:
-                formStash.fatal_field(field="label_template", error_field=_err)
+        _valid, _err = validate_label_template(label_template)
+        if not _valid:
+            formStash.fatal_field(field="label_template", error_field=_err)
 
         # make it
 
@@ -300,7 +302,7 @@ def submit__edit(
 
     (result, formStash) = formhandling.form_validate(
         request,
-        schema=Form_EnrollmentFactory_edit_new,
+        schema=Form_EnrollmentFactory_edit,
         validate_get=False,
     )
     if not result:
@@ -314,12 +316,6 @@ def submit__edit(
             dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
         )
     )
-    label_template = formStash.results["label_template"]
-    if label_template:
-        _valid, _err = validate_label_template(label_template)
-        if not _valid:
-            formStash.fatal_field(field="label_template", error_field=_err)
-
     try:
 
         is_export_filesystem = formStash.results["is_export_filesystem"]
@@ -330,7 +326,9 @@ def submit__edit(
         result = lib_db.update.update_EnrollmentFactory(
             request.api_context,
             dbEnrollmentFactory,
-            name=formStash.results["name"],
+            # these do not support edit
+            name=dbEnrollmentFactory.name,
+            label_template=dbEnrollmentFactory.label_template,
             # primary
             acme_account_id__primary=formStash.results["acme_account_id__primary"],
             private_key_cycle__primary=formStash.results["private_key_cycle__primary"],
@@ -348,7 +346,6 @@ def submit__edit(
             is_export_filesystem_id=is_export_filesystem_id,
             # misc
             note=formStash.results["note"],
-            label_template=label_template,
             domain_template_http01=domain_template_http01,
             domain_template_dns01=domain_template_dns01,
         )
@@ -356,6 +353,207 @@ def submit__edit(
         return result
     except Exception as exc:
         formStash.fatal_form(error_main=displayable_exception(exc))
+
+
+def submit__onboard(
+    request: "Request",
+    dbEnrollmentFactory: "EnrollmentFactory",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple["RenewalConfiguration", bool]:
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+    assert dbEnrollmentFactory
+
+    dbRenewalConfiguration: "RenewalConfiguration"
+    is_duplicate_renewal: bool
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_EnrollmentFactory_onboard,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+    try:
+        # note: step 1 - analyze the "submitted" domain
+        # this ensures only one domain
+        # we'll pretend it's http-01, though that is irreleveant
+        domains_challenged = form_utils.form_single_domain_challenge_typed(
+            request, formStash, challenge_type="http-01"
+        )
+        # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
+        for challenge_, domains_ in domains_challenged.items():
+            if domains_:
+                try:
+                    lib_db.validate.validate_domain_names(request.api_context, domains_)
+                except errors.AcmeDomainsBlocklisted as exc:  # noqa: F841
+                    formStash.fatal_field(
+                        field="domain_name",
+                        error_field="This domain_name has been blocklisted",
+                    )
+                except errors.AcmeDomainsInvalid as exc:  # noqa: F841
+                    formStash.fatal_field(
+                        field="domain_name",
+                        error_field="This domain_name is invalid",
+                    )
+
+        domain_name = domains_challenged["http-01"][0]
+        reverse_domain_name = utils.reverse_domain_name(domain_name)
+
+        # does the domain exist?
+        # we should check to see if it does and has certs
+        dbDomain = lib_db.get.get__Domain__by_name(
+            request.api_context,
+            domain_name,
+        )
+        if not dbDomain:
+            # we need to start with a domain name
+            (dbDomain, _is_created) = lib_db.getcreate.getcreate__Domain__by_domainName(
+                request.api_context,
+                domain_name,
+                discovery_type="enrollment-factory",
+            )
+            request.api_context.pyramid_transaction_commit()
+
+        domains_challenged = model_utils.DomainsChallenged()
+        domain_names_all = []
+
+        if dbEnrollmentFactory.domain_template_dns01:
+            templated_domains = dbEnrollmentFactory.domain_template_dns01.replace(
+                "{DOMAIN}", domain_name
+            ).replace("{NIAMOD}", reverse_domain_name)
+            # domains will also be lowercase+strip
+            #
+            # IMPORTANT RFC 8738
+            #       https://www.rfc-editor.org/rfc/rfc8738#section-7
+            #       The existing "dns-01" challenge MUST NOT be used to validate IP identifiers.
+            #
+            submitted_ = cert_utils.utils.domains_from_string(
+                templated_domains,
+                allow_hostname=True,
+                allow_ipv4=False,
+                allow_ipv6=False,
+            )
+            domain_names_all.extend(submitted_)
+            domains_challenged["dns-01"] = submitted_
+
+        if dbEnrollmentFactory.domain_template_http01:
+            templated_domains = dbEnrollmentFactory.domain_template_http01.replace(
+                "{DOMAIN}", domain_name
+            ).replace("{NIAMOD}", reverse_domain_name)
+            # domains will also be lowercase+strip
+            submitted_ = cert_utils.utils.domains_from_string(
+                templated_domains,
+                allow_hostname=True,
+                allow_ipv4=True,
+                allow_ipv6=True,
+                ipv6_require_compressed=True,
+            )
+            domain_names_all.extend(submitted_)
+            domains_challenged["http-01"] = submitted_
+
+        # 2: ensure there are domains
+        if not domain_names_all:
+            formStash.fatal_field(
+                field="domain_name",
+                error_field="did not expand template into domains",
+            )
+
+        # 3: ensure there is no overlap
+        domain_names_all_set = set(domain_names_all)
+        if len(domain_names_all) != len(domain_names_all_set):
+            formStash.fatal_field(
+                field="domain_name",
+                error_field="a domain name can only be associated to one challenge type",
+            )
+
+        # ensure wildcards are only in dns-01
+        for chall, ds in domains_challenged.items():
+            if chall == "dns-01":
+                continue
+            if ds:
+                for d in ds:
+                    if d[0] == "*":
+                        formStash.fatal_form(
+                            error_main="wildcards (*) MUST use `dns-01`.",
+                        )
+
+        # see DOMAINS_CHALLENGED_FIELDS
+        if domains_challenged["dns-01"]:
+            if not request.api_context.dbAcmeDnsServer_GlobalDefault:
+                formStash.fatal_field(
+                    field="domain_names_dns01",
+                    error_field="The global acme-dns server is not configured.",
+                )
+
+        # note: step 2 - analyze the "templated" domains
+        #
+
+        domains_all = prep__domains_challenged__dns01(  # noqa: F841
+            request,
+            formStash=formStash,
+            domains_challenged=domains_challenged,
+        )
+
+        #
+        # DONE AND VALIDATED
+        #
+        note = formStash.results["note"]
+        label = dbEnrollmentFactory.label_template
+        if label:
+            label = utils.apply_domain_template(label, domain_name, reverse_domain_name)
+            label = utils.normalize_unique_text(label)
+            if not utils.validate_label(label):
+                raise ValueError("the `label` is not compliant")
+
+        is_duplicate_renewal = False
+        try:
+            dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
+                request.api_context,
+                domains_challenged=domains_challenged,
+                # PRIMARY cert
+                dbAcmeAccount__primary=dbEnrollmentFactory.acme_account__primary,
+                private_key_cycle_id__primary=dbEnrollmentFactory.private_key_cycle_id__primary,
+                private_key_technology_id__primary=dbEnrollmentFactory.private_key_technology_id__primary,
+                acme_profile__primary=dbEnrollmentFactory.acme_profile__primary,
+                # BACKUP cert
+                dbAcmeAccount__backup=dbEnrollmentFactory.acme_account__backup,
+                private_key_cycle_id__backup=(
+                    dbEnrollmentFactory.private_key_cycle_id__backup
+                    if dbEnrollmentFactory.acme_account__backup
+                    else None
+                ),
+                private_key_technology_id__backup=(
+                    dbEnrollmentFactory.private_key_technology_id__backup
+                    if dbEnrollmentFactory.acme_account__backup
+                    else None
+                ),
+                acme_profile__backup=(
+                    dbEnrollmentFactory.acme_profile__backup
+                    if dbEnrollmentFactory.acme_account__backup
+                    else None
+                ),
+                # misc
+                note=note,
+                label=label,
+                is_export_filesystem_id=model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT,
+                dbEnrollmentFactory=dbEnrollmentFactory,
+            )
+
+            request.api_context.pyramid_transaction_commit()
+
+        except errors.FieldError as exc:
+            formStash.fatal_field(exc.args[0], exc.args[1])
+
+        except errors.DuplicateRenewalConfiguration as exc:
+            is_duplicate_renewal = True  # noqa: F841
+            # we could raise exc to abort, but this is likely preferred
+            dbRenewalConfiguration = exc.args[0]
+
+    except Exception:
+        raise
+
+    return (dbRenewalConfiguration, is_duplicate_renewal)
 
 
 def submit__query(
@@ -570,19 +768,19 @@ class View_Focus(Handler):
             },
             "valid_options": {
                 "AcmeAccounts": "{RENDER_ON_REQUEST::as_json_label}",
-                "private_key_cycle__primary": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_cycle__primary": Form_EnrollmentFactory_edit.fields[
                     "private_key_cycle__primary"
                 ].list,
-                "private_key_cycle__backup": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_cycle__backup": Form_EnrollmentFactory_edit.fields[
                     "private_key_cycle__backup"
                 ].list,
-                "private_key_technology__primary": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_technology__primary": Form_EnrollmentFactory_edit.fields[
                     "private_key_technology__primary"
                 ].list,
-                "private_key_technology__backup": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_technology__backup": Form_EnrollmentFactory_edit.fields[
                     "private_key_technology__backup"
                 ].list,
-                "is_export_filesystem": Form_EnrollmentFactory_edit_new.fields[
+                "is_export_filesystem": Form_EnrollmentFactory_edit.fields[
                     "is_export_filesystem"
                 ].list,
             },
@@ -647,6 +845,89 @@ class View_Focus(Handler):
             if self.request.wants_json:
                 return {"result": "error", "form_errors": exc.formStash.errors}
             return formhandling.form_reprint(self.request, self._edit__print)
+
+    @view_config(route_name="admin:enrollment_factory:focus:onboard")
+    @view_config(
+        route_name="admin:enrollment_factory:focus:onboard|json", renderer="json"
+    )
+    @docify(
+        {
+            "endpoint": "/enrollment-factory/onboard.json",
+            "section": "enrollment-factory",
+            "about": """EnrollmentFactory: Onboard""",
+            "POST": True,
+            "GET": None,
+            "instructions": "curl {ADMIN_PREFIX}/enrollment-factory/onboard.json",
+            "form_fields": {
+                # ALL certs
+                "domain_name": "required; a single domain name",
+                "note": "An optional string to be associated with the RenewalConfiguration.",
+            },
+            "valid_options": {
+                "SystemConfigurations": "{RENDER_ON_REQUEST}",
+            },
+            "requirements": [
+                "MUST submit `domain_name`.",
+            ],
+            "examples": [
+                """curl """
+                """--form 'domain_name=example.com' """
+                """{ADMIN_PREFIX}/enrollment-factory/onboard.json""",
+            ],
+        }
+    )
+    def onboard(self):
+        dbEnrollmentFactory = self._focus()  # noqa: F841
+        if self.request.method == "POST":
+            return self._onboard__submit()
+        return self._onboard__print()
+
+    def _onboard__print(self):
+        if self.request.wants_json:
+            return formatted_get_docs(self, "/enrollment-factory/onboard.json")
+        return render_to_response(
+            "/admin/enrollment_factory-focus-onboard.mako",
+            {
+                "SystemConfiguration_global": self.request.api_context.dbSystemConfiguration_global,
+                "EnrollmentFactory": self.dbEnrollmentFactory,
+                "AcmeDnsServer_GlobalDefault": self.request.api_context.dbAcmeDnsServer_GlobalDefault,
+            },
+            self.request,
+        )
+
+    def _onboard__submit(self):
+        """ """
+        try:
+            if TYPE_CHECKING:
+                assert self.dbEnrollmentFactory
+            (dbRenewalConfiguration, is_duplicate_renewal) = submit__onboard(
+                self.request,
+                dbEnrollmentFactory=self.dbEnrollmentFactory,
+                acknowledge_transaction_commits=True,
+            )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "EnrollmentFactory": self.dbEnrollmentFactory.as_json,
+                    "RenewalConfiguration": dbRenewalConfiguration.as_json,
+                    "is_duplicate_renewal": is_duplicate_renewal,
+                }
+            return HTTPSeeOther(
+                "%s/renewal-configuration/%s%s"
+                % (
+                    self.request.api_context.application_settings["admin_prefix"],
+                    dbRenewalConfiguration.id,
+                    (
+                        "?is_duplicate_renewal_configuration=true"
+                        if is_duplicate_renewal
+                        else ""
+                    ),
+                )
+            )
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": exc.formStash.errors}
+            return formhandling.form_reprint(self.request, self._onboard__print)
 
     @view_config(
         route_name="admin:enrollment_factory:focus:query",
@@ -722,47 +1003,45 @@ class View_Focus(Handler):
             return formhandling.form_reprint(self.request, self._query__print)
 
     @view_config(
-        route_name="admin:enrollment_factory:focus:x509_certificates",
-        renderer="/admin/enrollment_factory-focus-x509_certificates.mako",
+        route_name="admin:enrollment_factory:focus:domains",
+        renderer="/admin/enrollment_factory-focus-domains.mako",
     )
     @view_config(
-        route_name="admin:enrollment_factory:focus:x509_certificates-paginated",
-        renderer="/admin/enrollment_factory-focus-x509_certificates.mako",
+        route_name="admin:enrollment_factory:focus:domains-paginated",
+        renderer="/admin/enrollment_factory-focus-domains.mako",
     )
     @view_config(
-        route_name="admin:enrollment_factory:focus:x509_certificates|json",
+        route_name="admin:enrollment_factory:focus:domains|json",
         renderer="json",
     )
     @view_config(
-        route_name="admin:enrollment_factory:focus:x509_certificates-paginated|json",
+        route_name="admin:enrollment_factory:focus:domains-paginated|json",
         renderer="json",
     )
-    def related__X509Certificates(self):
+    def related__Domains(self):
         dbEnrollmentFactory = self._focus()  # noqa: F841
-        items_count = lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__count(
+        items_count = lib_db.get.get__Domain__by_EnrollmentFactoryId__count(
             self.request.api_context, dbEnrollmentFactory.id
         )
-        url_template = "%s/x509-certificates/{0}" % self._focus_url
+        url_template = "%s/domains/{0}" % self._focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = (
-            lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__paginated(
-                self.request.api_context,
-                dbEnrollmentFactory.id,
-                limit=items_per_page,
-                offset=offset,
-            )
+        items_paged = lib_db.get.get__Domain__by_EnrollmentFactoryId__paginated(
+            self.request.api_context,
+            dbEnrollmentFactory.id,
+            limit=items_per_page,
+            offset=offset,
         )
         if self.request.wants_json:
-            _X509Certificates = [k.as_json for k in items_paged]
+            _Domains = [k.as_json for k in items_paged]
             return {
-                "X509Certificates": _X509Certificates,
+                "Domains": _Domains,
                 "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
             "EnrollmentFactory": dbEnrollmentFactory,
-            "X509Certificates_count": items_count,
-            "X509Certificates": items_paged,
+            "Domains_count": items_count,
+            "Domains": items_paged,
             "pager": pager,
         }
 
@@ -813,6 +1092,51 @@ class View_Focus(Handler):
             "pager": pager,
         }
 
+    @view_config(
+        route_name="admin:enrollment_factory:focus:x509_certificates",
+        renderer="/admin/enrollment_factory-focus-x509_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:x509_certificates-paginated",
+        renderer="/admin/enrollment_factory-focus-x509_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:x509_certificates|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:enrollment_factory:focus:x509_certificates-paginated|json",
+        renderer="json",
+    )
+    def related__X509Certificates(self):
+        dbEnrollmentFactory = self._focus()  # noqa: F841
+        items_count = lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__count(
+            self.request.api_context, dbEnrollmentFactory.id
+        )
+        url_template = "%s/x509-certificates/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = (
+            lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__paginated(
+                self.request.api_context,
+                dbEnrollmentFactory.id,
+                limit=items_per_page,
+                offset=offset,
+            )
+        )
+        if self.request.wants_json:
+            _X509Certificates = [k.as_json for k in items_paged]
+            return {
+                "X509Certificates": _X509Certificates,
+                "pagination": json_pagination(items_count, pager),
+            }
+        return {
+            "project": "peter_sslers",
+            "EnrollmentFactory": dbEnrollmentFactory,
+            "X509Certificates_count": items_count,
+            "X509Certificates": items_paged,
+            "pager": pager,
+        }
+
 
 class View_New(Handler):
     @view_config(route_name="admin:enrollment_factorys:new")
@@ -844,19 +1168,19 @@ class View_New(Handler):
             },
             "valid_options": {
                 "AcmeAccounts": "{RENDER_ON_REQUEST::as_json_label}",
-                "private_key_cycle__primary": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_cycle__primary": Form_EnrollmentFactory_new.fields[
                     "private_key_cycle__primary"
                 ].list,
-                "private_key_cycle__backup": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_cycle__backup": Form_EnrollmentFactory_new.fields[
                     "private_key_cycle__backup"
                 ].list,
-                "private_key_technology__primary": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_technology__primary": Form_EnrollmentFactory_new.fields[
                     "private_key_technology__primary"
                 ].list,
-                "private_key_technology__backup": Form_EnrollmentFactory_edit_new.fields[
+                "private_key_technology__backup": Form_EnrollmentFactory_new.fields[
                     "private_key_technology__backup"
                 ].list,
-                "is_export_filesystem": Form_EnrollmentFactory_edit_new.fields[
+                "is_export_filesystem": Form_EnrollmentFactory_new.fields[
                     "is_export_filesystem"
                 ].list,
             },

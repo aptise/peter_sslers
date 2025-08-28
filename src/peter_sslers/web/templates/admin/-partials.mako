@@ -1154,6 +1154,33 @@
 </%def>
 
 
+<%def name="table_Domains(domains, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>domain</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for item in domains:
+            <tr>
+                <td>
+                    <a class="label label-info" href="${admin_prefix}/domain/${item.id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        Domain-${item.id}</a>
+                </td>
+                <td>
+                    <a class="label label-info" href="${admin_prefix}/domain/${item.id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        ${item.domain_name}</a>
+                </td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
 <%def name="table_DomainAutocerts(domain_autocerts, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>

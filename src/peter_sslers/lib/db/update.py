@@ -796,12 +796,13 @@ def update_EnrollmentFactory(
     private_key_cycle__backup: Optional[str],
     private_key_technology__backup: Optional[str],
     acme_profile__backup: Optional[str],
-    name: Optional[str],
     note: Optional[str],
     domain_template_http01: Optional[str],
     domain_template_dns01: Optional[str],
-    label_template: Optional[str],
-    is_export_filesystem_id: Optional[int],
+    is_export_filesystem_id: int,
+    # does not support update
+    name: str,
+    label_template: str,
 ) -> bool:
     if not any(
         (
@@ -812,19 +813,15 @@ def update_EnrollmentFactory(
     ):
         raise errors.InvalidTransition("Missing Required Primary.")
 
-    # these require some validation
-    name = lib_utils.normalize_unique_text(name) if name else None
-    if name:
-        if name.startswith("rc-") or name.startswith("global"):
-            raise ValueError("`name` contains a reserved prefix or is a reserved word")
+    # update not supported:
 
-        existingEnrollmentFactory = get__EnrollmentFactory__by_name(ctx, name)
-        if existingEnrollmentFactory and (
-            existingEnrollmentFactory.id != dbEnrollmentFactory.id
-        ):
-            raise errors.InvalidTransition(
-                "An EnrollmentFactory already exists with this name."
-            )
+    existingEnrollmentFactory = get__EnrollmentFactory__by_name(ctx, name)
+    if existingEnrollmentFactory and (
+        existingEnrollmentFactory.id != dbEnrollmentFactory.id
+    ):
+        raise errors.InvalidTransition(
+            "An EnrollmentFactory already exists with this name."
+        )
 
     # default to original
     if is_export_filesystem_id is None:
@@ -868,6 +865,10 @@ def update_EnrollmentFactory(
 
     if name != dbEnrollmentFactory.name:
         raise errors.InvalidTransition("`EnrollmentFactory.name` can not be changed.")
+    if label_template != dbEnrollmentFactory.label_template:
+        raise errors.InvalidTransition(
+            "`EnrollmentFactory.label_template` can not be changed."
+        )
 
     pairings = (
         ("acme_account_id__primary", acme_account_id__primary),
@@ -879,7 +880,6 @@ def update_EnrollmentFactory(
         ("private_key_technology_id__backup", private_key_technology_id__backup),
         ("acme_profile__backup", acme_profile__backup),
         ("note", note),
-        ("label_template", label_template),
         ("domain_template_http01", domain_template_http01),
         ("domain_template_dns01", domain_template_dns01),
         ("is_export_filesystem_id", is_export_filesystem_id),

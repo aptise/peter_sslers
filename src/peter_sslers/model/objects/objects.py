@@ -2066,6 +2066,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 ),
             },
             "RenewalConfiguration": self.renewal_configuration.as_json,
+            "X509Certificate": (
+                self.x509_certificate.as_json if self.x509_certificate_id else None
+            ),
             # - -
             "acme_authorization_ids": self.acme_authorization_ids,
             "acme_status_order": self.acme_status_order,
@@ -2075,8 +2078,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "acme_process_steps": self.acme_process_steps,
             "x509_certificate_request_id": self.x509_certificate_request_id,
             "certificate_type": self.certificate_type,
-            "x509_certificate_id": self.x509_certificate_id,
-            "x509_certificate_id__replaces": self.x509_certificate_id__replaces,
             "domains_as_list": self.domains_as_list,
             "domains_challenged": self.domains_challenged,
             "finalize_url": self.finalize_url,
@@ -2131,6 +2132,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                 if self.is_can_acme_server_deactivate_authorizations
                 else None
             ),
+            "x509_certificate_id": self.x509_certificate_id,
+            "x509_certificate_id__replaces": self.x509_certificate_id__replaces,
         }
 
 
@@ -3530,7 +3533,9 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False, unique=True)
 
-    label_template: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
+    label_template: Mapped[str] = mapped_column(
+        sa.Unicode(64), nullable=False, default="{NIAMOD}"
+    )
 
     domain_template_http01: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, default=None
@@ -4293,6 +4298,11 @@ class RenewalConfiguration(
             ")",
             name="check_rc_backup_account",
         ),
+        sa.UniqueConstraint(
+            "label",
+            "enrollment_factory_id__via",
+            name="unique_rc_label",
+        ),
     )
 
     __tablename__ = "renewal_configuration"
@@ -4303,7 +4313,7 @@ class RenewalConfiguration(
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
 
     label: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(64), nullable=True, unique=True
+        sa.Unicode(128), nullable=True, unique=False
     )
 
     # this should always be true; maybe one day it will be a toggle
@@ -4472,7 +4482,7 @@ class RenewalConfiguration(
 
     @property
     def as_json(self) -> Dict:
-        return {
+        rval = {
             "id": self.id,
             # - -
             "X509Certificates_5_primary": [
@@ -4493,6 +4503,8 @@ class RenewalConfiguration(
             "acme_profile__backup__effective": self.acme_profile__backup__effective,
             "domains_challenged": self.domains_challenged,
             "is_active": self.is_active,
+            "is_export_filesystem": self.is_export_filesystem_id,
+            "is_save_alternate_chains": self.is_save_alternate_chains,
             "label": self.label,
             "note": self.note,
             "private_key_cycle__primary": self.private_key_cycle__primary,
@@ -4506,6 +4518,9 @@ class RenewalConfiguration(
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "uniquely_challenged_fqdn_set_id": self.uniquely_challenged_fqdn_set_id,
         }
+        if self.enrollment_factory_id__via:
+            rval["EnrollmentFactory"] = self.enrollment_factory__via.as_json
+        return rval
 
     @property
     def as_json_docs(self) -> Dict:
@@ -5819,6 +5834,8 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             assert _request is not None
 
         rval = {
+            "AcmeOrder": None,
+            # - - - - -
             "id": self.id,
             # - -
             # cert.acme_order.renewal_configuration.is_active

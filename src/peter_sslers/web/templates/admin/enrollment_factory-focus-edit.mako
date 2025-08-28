@@ -63,8 +63,13 @@
                     <tr>
                         <th>name</th>
                         <td>
-                            ${admin_partials.formgroup__name(default=EnrollmentFactory.name)}
-                            <em>Edit is NOT supported</em>
+                            <code>${EnrollmentFactory.name}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>label_template</th>
+                        <td>
+                            <code>${EnrollmentFactory.label_template}</code>
                         </td>
                     </tr>
                     <tr>

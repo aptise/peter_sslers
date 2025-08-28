@@ -568,6 +568,10 @@ class ViewAdminApi_Domain(Handler):
                         dbSystemConfiguration=dbSystemConfiguration_autocert,
                     )
                     is_duplicate_renewal = False  # noqa: F841
+
+                except errors.FieldError as exc:
+                    formStash.fatal_field(exc.args[0], exc.args[1])
+
                 except errors.DuplicateRenewalConfiguration as exc:
                     is_duplicate_renewal = True  # noqa: F841
                     # we could raise exc to abort, but this is likely preferred

@@ -1127,17 +1127,19 @@ def create__RenewalConfiguration(
         not in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id__alt
     ):
         # alt -- allowed for Sysconfig CIN/AutoCert
-        raise ValueError(
+        raise errors.FieldError(
+            "private_key_cycle_id__primary",
             "Unsupported `private_key_cycle_id__primary`: %s"
-            % private_key_cycle_id__primary
+            % private_key_cycle_id__primary,
         )
     if (
         private_key_technology_id__primary
         not in model_utils.KeyTechnology._options_RenewalConfiguration_private_key_technology_id__alt
     ):
-        raise ValueError(
+        raise errors.FieldError(
+            "private_key_technology_id__primary",
             "Unsupported `private_key_technology_id__primary`: %s"
-            % private_key_technology_id__primary
+            % private_key_technology_id__primary,
         )
     if not dbAcmeAccount__primary.is_active:
         raise ValueError("must supply active `dbAcmeAccount`")
@@ -1187,8 +1189,9 @@ def create__RenewalConfiguration(
 
     if is_export_filesystem_id == model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT:
         if not dbEnrollmentFactory:
-            raise ValueError(
-                "`is_export_filesystem_id` option requires an Enrollment Factory"
+            raise errors.FieldError(
+                "is_export_filesystem_id",
+                "`is_export_filesystem_id` option requires an Enrollment Factory",
             )
 
     assert ctx.timestamp
@@ -1196,12 +1199,26 @@ def create__RenewalConfiguration(
     label = lib_utils.normalize_unique_text(label) if label else None
     if label:
         if label.startswith("rc-") or label.startswith("global"):
-            raise ValueError(
-                "`label` '%s' contains a reserved prefix or is a reserved word" % label
+            raise errors.FieldError(
+                "label",
+                "`label` '%s' contains a reserved prefix or is a reserved word" % label,
             )
-        _conflicting = _get.get__RenewalConfiguration__by_label(ctx, label)
-        if _conflicting:
-            raise ValueError("`label` '%s' already in use" % label)
+        if dbEnrollmentFactory:
+            # scope conflicting labels to within the EnrollmentFactory
+            # a duplicate is allowed within EnrollmentFactories
+            # this is because a EF has a dedicated directory
+            _conflicting = _get.get__RenewalConfiguration__by_enrollmentFactoryId_label(
+                ctx, dbEnrollmentFactory.id, label
+            )
+            if _conflicting:
+                raise errors.FieldError(
+                    "label",
+                    "`label` '%s' already in use for EnrollmentFactory" % label,
+                )
+        else:
+            _conflicting = _get.get__RenewalConfiguration__by_label(ctx, label)
+            if _conflicting:
+                raise errors.FieldError("label", "`label` '%s' already in use" % label)
 
     # this may raise: [errors.AcmeDomainsBlocklisted, errors.AcmeDomainsInvalid]
     _domain_names_all = domains_challenged.domains_as_list

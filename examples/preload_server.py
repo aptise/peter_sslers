@@ -210,20 +210,18 @@ print("Creating RenewalConfigurations...")
 ENROLLMENT_FACTORY_ID = mapping["EnrollmentFactory"]["preload_server"]["id"]
 for phonetic in NATO_ALPHABET:
     r = requests.get(
-        URL_BASE
-        + "/renewal-configuration/new-enrollment.json?enrollment_factory_id=%s"
-        % ENROLLMENT_FACTORY_ID
+        URL_BASE + "/enrollment-factory/%s/onboard.json" % ENROLLMENT_FACTORY_ID
     )
     r_json = r.json()
     assert "form_fields" in r_json
 
     form_data = {
         "domain_name": "%s.com" % phonetic,
-        "enrollment_factory_id": ENROLLMENT_FACTORY_ID,
         "note": "preload_server scripted",
     }
     r = requests.post(
-        URL_BASE + "/renewal-configuration/new-enrollment.json", form_data
+        URL_BASE + "/enrollment-factory/%s/onboard.json" % ENROLLMENT_FACTORY_ID,
+        form_data,
     )
     r_json = r.json()
     assert r_json["result"] == "success"

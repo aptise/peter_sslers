@@ -4922,7 +4922,7 @@ class FunctionalTests_X509Certificate(AppTest):
         assert res.status_code == 303
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate/%s?&result=error&error=There+was+an+error+with+your+form.+Already+active.&operation=mark&action=active"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate/%s?result=error&error=Error_Main--There+was+an+error+with+your+form.+Already+active.&operation=mark&action=active"
             % focus_id
         )
 
@@ -6268,6 +6268,7 @@ class _MixinEnrollmentFactory:
             "is_export_filesystem": "off",
             "name": domain,
             "note": note,
+            "label_template": "{DOMAIN}",
             "private_key_cycle__backup": "account_default",
             "private_key_cycle__primary": "account_default",
             "private_key_technology__backup": "account_default",
@@ -6347,6 +6348,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         form["domain_template_http01"] = "mail.{DOMAIN}, %s.{DOMAIN}" % domain
         form["name"] = domain
         form["note"] = note
+        form["label_template"] = "{DOMAIN}"
         form["is_export_filesystem"] = "off"
         res2 = form.submit()
 
@@ -6375,6 +6377,7 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
             "domain_template_dns01": "",
             "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
             "is_export_filesystem": "off",
+            "label_template": "{DOMAIN}",
             "name": domain,
             "note": note,
             "private_key_cycle__backup": "account_default",
@@ -6394,10 +6397,12 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         (
             "admin:enrollment_factory:focus",
             "admin:enrollment_factory:focus:edit",
-            "admin:enrollment_factory:focus:x509_certificates",
-            "admin:enrollment_factory:focus:x509_certificates-paginated",
+            "admin:enrollment_factory:focus:domains",
+            "admin:enrollment_factory:focus:domains-paginated",
             "admin:enrollment_factory:focus:renewal_configurations",
             "admin:enrollment_factory:focus:renewal_configurations-paginated",
+            "admin:enrollment_factory:focus:x509_certificates",
+            "admin:enrollment_factory:focus:x509_certificates-paginated",
             "admin:enrollment_factory:focus:query",
         )
     )
@@ -6420,11 +6425,11 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         res3 = self.testapp.get(res2.location, status=200)
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates",
+            "/.well-known/peter_sslers/enrollment-factory/1/domains",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates/1",
+            "/.well-known/peter_sslers/enrollment-factory/1/domains/1",
             status=200,
         )
         res = self.testapp.get(
@@ -6433,6 +6438,14 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         )
         res = self.testapp.get(
             "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations/1",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates/1",
             status=200,
         )
 
@@ -6449,10 +6462,12 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         (
             "admin:enrollment_factory:focus|json",
             "admin:enrollment_factory:focus:edit|json",
-            "admin:enrollment_factory:focus:x509_certificates|json",
-            "admin:enrollment_factory:focus:x509_certificates-paginated|json",
+            "admin:enrollment_factory:focus:domains|json",
+            "admin:enrollment_factory:focus:domains-paginated|json",
             "admin:enrollment_factory:focus:renewal_configurations|json",
             "admin:enrollment_factory:focus:renewal_configurations-paginated|json",
+            "admin:enrollment_factory:focus:x509_certificates|json",
+            "admin:enrollment_factory:focus:x509_certificates-paginated|json",
             "admin:enrollment_factory:focus:query|json",
         )
     )
@@ -6489,7 +6504,6 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
                 "domain_template_dns01"
             ],
             "domain_template_http01": "mail.{DOMAIN}, %s.{DOMAIN}" % domain,
-            "name": res.json["EnrollmentFactory"]["name"],
             "note": res.json["EnrollmentFactory"]["note"],
             "is_export_filesystem": "off",
             "private_key_cycle__backup": res.json["EnrollmentFactory"][
@@ -6513,13 +6527,13 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         assert "EnrollmentFactory" in res3.json
 
         res4 = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates.json"
+            "/.well-known/peter_sslers/enrollment-factory/1/domains.json"
         )
-        assert "X509Certificates" in res4.json
+        assert "Domains" in res4.json
         res4 = self.testapp.get(
-            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates.json"
+            "/.well-known/peter_sslers/enrollment-factory/1/domains.json"
         )
-        assert "X509Certificates" in res4.json
+        assert "Domains" in res4.json
 
         res5 = self.testapp.get(
             "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations.json"
@@ -6529,6 +6543,15 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
             "/.well-known/peter_sslers/enrollment-factory/1/renewal-configurations.json"
         )
         assert "RenewalConfigurations" in res5.json
+
+        res4 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates.json"
+        )
+        assert "X509Certificates" in res4.json
+        res4 = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/1/x509-certificates.json"
+        )
+        assert "X509Certificates" in res4.json
 
         resQ = self.testapp.get(
             "/.well-known/peter_sslers/enrollment-factory/1/query.json"
@@ -6543,6 +6566,64 @@ class FunctionalTests_EnrollmentFactorys(AppTest, _MixinEnrollmentFactory):
         assert resQ2.json["domain_name"] == "example.com"
         assert "RenewalConfiguration" in resQ2.json
         assert "X509Certificates" in resQ2.json
+
+    @routes_tested(("admin:enrollment_factory:focus:onboard",))
+    def test_onboard_html(self):
+        """
+        python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration.test_onboard_html
+        """
+        eFactory_id = self._ensureOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/%s/onboard" % eFactory_id,
+            status=200,
+        )
+
+        note = generate_random_domain(testCase=self)
+
+        form = res.form
+        form["domain_name"] = generate_random_domain(testCase=self)
+        form["note"] = note
+
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        matched = RE_RenewalConfiguration.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+        res3 = self.testapp.get(res2.location)
+        assert "<code>%s</code>" % note in res3.text
+
+    @routes_tested(("admin:enrollment_factory:focus:onboard|json",))
+    def test_onboard_json(self):
+        eFactory_id = self._ensureOne__EnrollmentFactory()
+
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/enrollment-factory/%s/onboard.json"
+            % eFactory_id,
+            status=200,
+        )
+        assert "form_fields" in res.json
+
+        account_key_global__primary = res.json["valid_options"]["SystemConfigurations"][
+            "global"
+        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
+
+        note = generate_random_domain(testCase=self)
+
+        form: Dict[str, Union[int, str]] = {}
+        form["domain_name"] = generate_random_domain(testCase=self)
+        form["note"] = note
+
+        res2 = self.testapp.post(
+            "/.well-known/peter_sslers/enrollment-factory/%s/onboard.json"
+            % eFactory_id,
+            form,
+        )
+        assert res2.json["result"] == "success"
+        assert "RenewalConfiguration" in res2.json
+        assert res2.json["RenewalConfiguration"]["note"] == note
 
 
 class FunctionalTests_Operations(AppTest):
@@ -7556,64 +7637,6 @@ class FunctionalTests_RenewalConfiguration(AppTest, _MixinEnrollmentFactory):
 
         res2 = self.testapp.post(
             "/.well-known/peter_sslers/renewal-configuration/new.json",
-            form,
-        )
-        assert res2.json["result"] == "success"
-        assert "RenewalConfiguration" in res2.json
-        assert res2.json["RenewalConfiguration"]["note"] == note
-
-    @routes_tested(("admin:renewal_configuration:new_enrollment",))
-    def test_new_enrollment_html(self):
-        """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_RenewalConfiguration.test_new_enrollment_html
-        """
-        eFactory_id = self._makeOne__EnrollmentFactory()
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/renewal-configuration/new-enrollment?enrollment_factory_id=%s"
-            % eFactory_id,
-            status=200,
-        )
-
-        note = generate_random_domain(testCase=self)
-
-        form = res.form
-        form["domain_name"] = generate_random_domain(testCase=self)
-        form["note"] = note
-
-        res2 = form.submit()
-        assert res2.status_code == 303
-
-        matched = RE_RenewalConfiguration.match(res2.location)
-        assert matched
-        obj_id = matched.groups()[0]
-
-        res3 = self.testapp.get(res2.location)
-        assert "<code>%s</code>" % note in res3.text
-
-    @routes_tested(("admin:renewal_configuration:new_enrollment|json",))
-    def test_new_enrollment_json(self):
-        eFactory_id = self._makeOne__EnrollmentFactory()
-
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/renewal-configuration/new-enrollment.json",
-            status=200,
-        )
-        assert "form_fields" in res.json
-
-        account_key_global__primary = res.json["valid_options"]["SystemConfigurations"][
-            "global"
-        ]["AcmeAccounts"]["primary"]["AcmeAccountKey"]["key_pem_md5"]
-
-        note = generate_random_domain(testCase=self)
-
-        form: Dict[str, Union[int, str]] = {}
-        form["enrollment_factory_id"] = eFactory_id
-        form["domain_name"] = generate_random_domain(testCase=self)
-        form["note"] = note
-
-        res2 = self.testapp.post(
-            "/.well-known/peter_sslers/renewal-configuration/new-enrollment.json",
             form,
         )
         assert res2.json["result"] == "success"

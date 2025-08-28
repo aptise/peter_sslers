@@ -22,19 +22,22 @@ from webob.multidict import MultiDict
 from ..lib import formhandling
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeDnsServer_new
+from ..lib.forms import Form_EnrollmentFactory_new
+from ..lib.forms import Form_EnrollmentFactory_onboard
 from ..lib.forms import Form_EnrollmentFactory_query
 from ..lib.forms import Form_RenewalConfig_new
 from ..lib.forms import Form_RenewalConfig_new_configuration
-from ..lib.forms import Form_RenewalConfig_new_enrollment
 from ..lib.forms import Form_RenewalConfig_new_order
 from ..lib.forms import Form_RenewalConfiguration_mark
 from ..lib.forms import Form_SystemConfiguration_edit
 from ..lib.forms import Form_SystemConfiguration_Global_edit
+from ..lib.forms import Form_X509Certificate_mark
 from ..views_admin import acme_account as v_acme_account
 from ..views_admin import acme_dns_server as v_acme_dns_server
 from ..views_admin import enrollment_factory as v_enrollment_factory
 from ..views_admin import renewal_configuration as v_renewal_configuration
 from ..views_admin import system_configuration as v_system_configuration
+from ..views_admin import x509_certificate as v_x509_certificate
 from ...lib import db as lib_db  # noqa: F401
 from ...lib.utils import validate_config_uri
 from ...model import objects as model_objects
@@ -46,6 +49,7 @@ if TYPE_CHECKING:
     from ...model.objects import EnrollmentFactory
     from ...model.objects import RenewalConfiguration
     from ...model.objects import SystemConfiguration
+    from ...model.objects import X509Certificate
 
 # ==============================================================================
 
@@ -70,11 +74,12 @@ COMMANDS: Dict[str, List[str]] = {
     "acme-server": [
         "list",
     ],
-    "x509-certificate": [
+    "domain": [
         "list",
     ],
     "enrollment-factory": [
         "focus",
+        "onboard",
         "list",
         "new",
     ],
@@ -88,12 +93,16 @@ COMMANDS: Dict[str, List[str]] = {
         "mark",
         "new",
         "new-configuration",
-        "new-enrollment",
         "new-order",
     ],
     "system-configuration": [
         "list",
         "edit",
+    ],
+    "x509-certificate": [
+        "list",
+        "focus",
+        "mark",
     ],
 }
 
@@ -127,6 +136,9 @@ def main(argv=sys.argv):
     except GeneratorExit:
         pass
 
+    # GLOBAL varlue
+    RENDER_JSON = True if options.get("as_json", "").upper() in ("TRUE", "1") else False
+
     if command not in COMMANDS:
         print("`%s` is not a valid command" % command)
         exit(1)
@@ -137,7 +149,7 @@ def main(argv=sys.argv):
     def render_data(data: Any) -> None:
         # determine as_json on the fly;
         # the pyramid integration code expects the options to all be strings
-        if options.get("as_json", "").upper() in ("TRUE", "1"):
+        if RENDER_JSON:
             print(json.dumps(data))
         else:
             pprint.pprint(data)
@@ -168,6 +180,9 @@ def main(argv=sys.argv):
             else:
                 dbItemsCount = None
             dbItems = f_paginated(request.api_context, offset=offset, limit=limit)
+            if RENDER_JSON:
+                # TODO: print these asjson, but needs to be wrapped into caller
+                return
             for _dbItem in dbItems:
                 print("-----")
                 if condensed:
@@ -265,16 +280,35 @@ def main(argv=sys.argv):
                 exit(1)
             return _dbSystemConfiguration
 
+        def _get_X509Certificate(
+            arg: str = "id", required: bool = True
+        ) -> "X509Certificate":
+            x509_certificate_id = options[arg]
+            _dbX509Certificate = lib_db.get.get__X509Certificate__by_id(
+                request.api_context, x509_certificate_id
+            )
+            if not _dbX509Certificate:
+                print("invalid `X509Certificate`")
+                exit(1)
+            return _dbX509Certificate
+
+        # scoping
+        _dbAcmeAccount: Optional["AcmeAccount"]
+        _dbAcmeDnsServer: Optional["AcmeDnsServer"]
+        _dbEnrollmentFactory: Optional["EnrollmentFactory"]
+        _dbRenewalConfiguration: Optional["RenewalConfiguration"]
+        _dbX509Certificate: Optional["X509Certificate"]
+
         # !!!: distpatch[acme-account]
         if command == "acme-account":
-            _dbAcmeAccount: Optional["AcmeAccount"]
             # !!!: focus
             if subcommand == "focus":
                 _dbAcmeAccount = _get_AcmeAccount()
                 render_data(_dbAcmeAccount.as_json)
             # !!!: - list
             elif subcommand == "list":
-                print("ACME Accounts:")
+                if not RENDER_JSON:
+                    print("ACME Accounts:")
                 _list_items(
                     lib_db.get.get__AcmeAccount__count,
                     lib_db.get.get__AcmeAccount__paginated,
@@ -290,7 +324,8 @@ def main(argv=sys.argv):
                         request,
                         acknowledge_transaction_commits=True,
                     )
-                    print("success", "[CREATED]" if _is_created else "")
+                    if not RENDER_JSON:
+                        print("success", "[CREATED]" if _is_created else "")
                     render_data(_dbAcmeAccount.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
@@ -324,10 +359,10 @@ def main(argv=sys.argv):
 
         # !!!: distpatch[acme-dns-server]
         elif command == "acme-dns-server":
-            _dbAcmeDnsServer: Optional["AcmeDnsServer"]
             # !!!: - list
             if subcommand == "list":
-                print("acme-dns Servers:")
+                if not RENDER_JSON:
+                    print("acme-dns Servers:")
                 _list_items(
                     lib_db.get.get__AcmeDnsServer__count,
                     lib_db.get.get__AcmeDnsServer__paginated,
@@ -343,7 +378,8 @@ def main(argv=sys.argv):
                         request,
                         acknowledge_transaction_commits=True,
                     )
-                    print("success", "[CREATED]" if _is_created else "")
+                    if not RENDER_JSON:
+                        print("success", "[CREATED]" if _is_created else "")
                     render_data(_dbAcmeDnsServer.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
@@ -360,7 +396,8 @@ def main(argv=sys.argv):
                     request,
                     dbAcmeDnsServer=_dbAcmeDnsServer,
                 )
-                print("successful check")
+                if not RENDER_JSON:
+                    print("successful check")
         # !!!: distpatch[acme-order]
         elif command == "acme-order":
             # !!!: - focus
@@ -369,7 +406,8 @@ def main(argv=sys.argv):
                 render_data(_dbAcmeOrder.as_json)
             # !!!: - list
             elif subcommand == "list":
-                print("ACME Orders:")
+                if not RENDER_JSON:
+                    print("ACME Orders:")
                 _list_items(
                     lib_db.get.get__AcmeOrder__count,
                     lib_db.get.get__AcmeOrder__paginated,
@@ -378,23 +416,24 @@ def main(argv=sys.argv):
         elif command == "acme-server":
             # !!!: - list
             if subcommand == "list":
-                print("ACME Servers:")
+                if not RENDER_JSON:
+                    print("ACME Servers:")
                 _list_items(
                     None,
                     lib_db.get.get__AcmeServer__paginated,
                 )
-        # !!!: distpatch[x509-certificate]
-        elif command == "x509-certificate":
+        # !!!: distpatch[domain]
+        elif command == "domain":
+            # !!!: - list
             if subcommand == "list":
-                print("X509Certificates:")
+                if not RENDER_JSON:
+                    print("Domains:")
                 _list_items(
-                    lib_db.get.get__X509Certificate__count,
-                    lib_db.get.get__X509Certificate__paginated,
-                    condensed=True,
+                    None,
+                    lib_db.get.get__Domain__paginated,
                 )
         # !!!: distpatch[enrollment-factory]
         elif command == "enrollment-factory":
-            _dbEnrollmentFactory: Optional["EnrollmentFactory"]
             # !!!: focus
             if subcommand == "focus":
                 _dbEnrollmentFactory = _get_EnrollmentFactory()
@@ -422,15 +461,41 @@ def main(argv=sys.argv):
                     render_data(_formatted)
                 else:
                     render_data(_dbEnrollmentFactory.as_json)
+            # !!!: - onboard
+            elif subcommand == "onboard":
+                # !!!: - onboard - help
+                if "help" in options:
+                    print("MUST submit `id`")
+                    render_data(Form_EnrollmentFactory_onboard.fields)
+                    exit(0)
+                _dbEnrollmentFactory = _get_EnrollmentFactory()
+                try:
+                    _dbRenewalConfiguration, _is_duplicate = (
+                        v_enrollment_factory.submit__onboard(
+                            request,
+                            dbEnrollmentFactory=_dbEnrollmentFactory,
+                            acknowledge_transaction_commits=True,
+                        )
+                    )
+                    print("success", "[DUPLICATE]" if _is_duplicate else "")
+                    render_data(_dbRenewalConfiguration.as_json)
+                except formhandling.FormInvalid as exc:
+                    print("Errors:")
+                    render_data(exc.formStash.errors)
             # !!!: - list
             elif subcommand == "list":
-                print("Enrollment Factories:")
+                if not RENDER_JSON:
+                    print("Enrollment Factories:")
                 _list_items(
                     lib_db.get.get__EnrollmentFactory__count,
                     lib_db.get.get__EnrollmentFactory__paginated,
                 )
             # !!!: - new
             elif subcommand == "new":
+                # !!!: - new - help
+                if "help" in options:
+                    render_data(Form_EnrollmentFactory_new.fields)
+                    exit(0)
                 try:
                     _dbEnrollmentFactory = v_enrollment_factory.submit__new(
                         request,
@@ -438,7 +503,8 @@ def main(argv=sys.argv):
                     )
                     render_data(_dbEnrollmentFactory.as_json_docs)
                 except formhandling.FormInvalid as exc:
-                    print("Errors:")
+                    if not RENDER_JSON:
+                        print("Errors:")
                     render_data(exc.formStash.errors)
                     exit(1)
 
@@ -446,7 +512,8 @@ def main(argv=sys.argv):
         elif command == "rate-limited":
             # !!!: - list
             if subcommand == "list":
-                print("RateLimiteds:")
+                if not RENDER_JSON:
+                    print("RateLimiteds:")
                 _list_items(
                     None,
                     lib_db.get.get__RateLimited__paginated,
@@ -494,14 +561,14 @@ def main(argv=sys.argv):
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
-            _dbRenewalConfiguration: Optional["RenewalConfiguration"]
             # !!!: focus
             if subcommand == "focus":
                 _dbRenewalConfiguration = _get_RenewalConfiguration()
                 render_data(_dbRenewalConfiguration.as_json)
             # !!!: - list
             elif subcommand == "list":
-                print("Renewal Configurations:")
+                if not RENDER_JSON:
+                    print("Renewal Configurations:")
                 _list_items(
                     lib_db.get.get__RenewalConfiguration__count,
                     lib_db.get.get__RenewalConfiguration__paginated,
@@ -521,10 +588,12 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     )
-                    print("success", _action)
+                    if not RENDER_JSON:
+                        print("success", _action)
                     render_data(_dbRenewalConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
-                    print("Errors:")
+                    if not RENDER_JSON:
+                        print("Errors:")
                     render_data(exc.formStash.errors)
                     exit(1)
             # !!!: - new
@@ -540,7 +609,8 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     )
-                    print("success", "[DUPLICATE]" if _is_duplicate else "")
+                    if not RENDER_JSON:
+                        print("success", "[DUPLICATE]" if _is_duplicate else "")
                     render_data(_dbRenewalConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
@@ -562,31 +632,9 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     )
-                    print("success", "[DUPLICATE]" if _is_duplicate else "")
+                    if not RENDER_JSON:
+                        print("success", "[DUPLICATE]" if _is_duplicate else "")
                     render_data(_dbRenewalConfigurationNew.as_json)
-                except formhandling.FormInvalid as exc:
-                    print("Errors:")
-                    render_data(exc.formStash.errors)
-            # !!!: - new-enrollment
-            elif subcommand == "new-enrollment":
-                # !!!: - new-enrollment - help
-                if "help" in options:
-                    print("MUST submit `enrollment_factory_id`")
-                    render_data(Form_RenewalConfig_new_enrollment.fields)
-                    exit(0)
-                _dbEnrollmentFactory = _get_EnrollmentFactory(
-                    arg="enrollment_factory_id"
-                )
-                try:
-                    _dbRenewalConfiguration, _is_duplicate = (
-                        v_renewal_configuration.submit__new_enrollment(
-                            request,
-                            dbEnrollmentFactory=_dbEnrollmentFactory,
-                            acknowledge_transaction_commits=True,
-                        )
-                    )
-                    print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    render_data(_dbRenewalConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     render_data(exc.formStash.errors)
@@ -606,10 +654,15 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     )
-                    print(
-                        "success",
-                        "[NonFatalError: %s]" % _excAcmeOrder if _excAcmeOrder else "",
-                    )
+                    if not RENDER_JSON:
+                        print(
+                            "success",
+                            (
+                                "[NonFatalError: %s]" % _excAcmeOrder
+                                if _excAcmeOrder
+                                else ""
+                            ),
+                        )
                     render_data(_dbAcmeOrder.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
@@ -620,7 +673,8 @@ def main(argv=sys.argv):
 
             # !!!: - list
             if subcommand == "list":
-                print("Renewal Configurations:")
+                if not RENDER_JSON:
+                    print("Renewal Configurations:")
                 _list_items(
                     lib_db.get.get__SystemConfiguration__count,
                     lib_db.get.get__SystemConfiguration__paginated,
@@ -651,8 +705,44 @@ def main(argv=sys.argv):
                             dbSystemConfiguration=_dbSystemConfiguration,
                             acknowledge_transaction_commits=True,
                         )
-                    print("success")
+                    if not RENDER_JSON:
+                        print("success")
                     render_data(_dbSystemConfiguration.as_json)
                 except formhandling.FormInvalid as exc:
                     print("Errors:")
                     render_data(exc.formStash.errors)
+        # !!!: distpatch[x509-certificate]
+        elif command == "x509-certificate":
+            # !!!: focus
+            if subcommand == "focus":
+                _dbX509Certificate = _get_X509Certificate()
+                render_data(_dbX509Certificate.as_json)
+            elif subcommand == "list":
+                if not RENDER_JSON:
+                    print("X509Certificates:")
+                _list_items(
+                    lib_db.get.get__X509Certificate__count,
+                    lib_db.get.get__X509Certificate__paginated,
+                    condensed=True,
+                )
+            # !!!: - mark
+            elif subcommand == "mark":
+                # !!!: - mark - help
+                if "help" in options:
+                    render_data(Form_X509Certificate_mark.fields)
+                    exit(0)
+                try:
+                    _dbX509Certificate = _get_X509Certificate()
+                    _dbX509Certificate, _action = v_x509_certificate.submit__mark(
+                        request,
+                        dbX509Certificate=_dbX509Certificate,
+                        acknowledge_transaction_commits=True,
+                    )
+                    if not RENDER_JSON:
+                        print("success", _action)
+                    render_data(_dbX509Certificate.as_json)
+                except formhandling.FormInvalid as exc:
+                    if not RENDER_JSON:
+                        print("Errors:")
+                    render_data(exc.formStash.errors)
+                    exit(1)

@@ -147,12 +147,22 @@ def normalize_unique_text(text: str) -> str:
     return text
 
 
-# 64chars
-RE_label = re.compile(r"^([a-zA-Z0-9\-\.\_]{1,64})$")
+# 128 chars, because tests have long names
+RE_label = re.compile(r"^([a-zA-Z0-9\-\.\_]{1,128})$")
 
 
 def validate_label(label: str) -> bool:
     if RE_label.match(label):
+        return True
+    return False
+
+
+def is_template_variable(
+    template: str,
+) -> bool:
+    if "{DOMAIN}" in template:
+        return True
+    if "{NIAMOD}" in template:
         return True
     return False
 

@@ -67,12 +67,6 @@
         <div class="col-sm-4">
             <h3>Enrolled Records</h3>
             <ul class="nav nav-pills nav-stacked">
-
-                <li><a href="${admin_prefix}/x509-certificates"
-                       title="X509Certificates"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    x509-certificates</a></li>
                 <li><a href="${admin_prefix}/domains"
                        title="Domains"
                     >
@@ -101,6 +95,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     unique-fqdn-sets</a></li>
+                <li><a href="${admin_prefix}/x509-certificates"
+                       title="X509Certificates"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    x509-certificates</a></li>
             </ul>
 
             <h3>Recordkeeping - ACME Logs</h3>
@@ -156,12 +155,6 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-polling-errors</a></li>
-                <li><a href="${admin_prefix}/x509-certificate-requests"
-                       title="X509CertificateRequests"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    x509-certificate-requests
-                    </a></li>
                 <li><a href="${admin_prefix}/domain-autocerts"
                        title="DomainAutocerts"
                     >
@@ -173,6 +166,12 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     routine-executions
+                    </a></li>
+                <li><a href="${admin_prefix}/x509-certificate-requests"
+                       title="X509CertificateRequests"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    x509-certificate-requests
                     </a></li>
             </ul>
 
