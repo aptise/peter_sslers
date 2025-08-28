@@ -312,9 +312,11 @@
     Standardized against python cryptography names::
     CertificateSigned is renamed to X509Certificate
     CertificateRequest is renamed to X509CertificateRequest
+    CertificateCA is renamed to X509CertificateTrusted
+    CertificateCAChain is renamed to X509CertificateTrustChain
+    CertificateCAPreference is renamed to X509CertificateTrustPreferencePolicyItem
+    CertificateCAPreferencePolicy is renamed to X509CertificateTrustPreferencePolicy
     
-
-
 0.6.0
     py3.7+ only (sqlalchemy requirement)
     lib.cert_utils is now a pypi package, cert_utils, that is only py3
