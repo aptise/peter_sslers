@@ -2942,107 +2942,6 @@ class CertificateCAChain(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class X509CertificateTrustPreferencePolicy(Base):
-    """
-    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
-    are used to sign server certificates.
-
-    These are directly tied to a X509Certificate and are needed to create a
-    "fullchain" certificate for most deployments.
-    """
-
-    __tablename__ = "x509_certificate_trust_preference_policy"
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    name: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(64), nullable=True, unique=True
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    x509_certificate_trust_preference_policy_items = sa_orm_relationship(
-        "X509CertificatePreferencePolicyItem",
-        primaryjoin="X509CertificateTrustPreferencePolicy.id==X509CertificatePreferencePolicyItem.x509_certificate_trust_preference_policy_id",
-        order_by="X509CertificatePreferencePolicyItem.slot_id.asc()",
-        back_populates="x509_certificate_trust_preference_policy",
-    )
-
-    @property
-    def as_json(self):
-        return {
-            "id": self.id,
-            # --
-            "x509_certificate_trust_preference_policy_items": [
-                i.as_json_minimal
-                for i in self.x509_certificate_trust_preference_policy_items
-            ],
-            # --
-            "name": self.name,
-        }
-
-
-class X509CertificatePreferencePolicyItem(Base, _Mixin_Timestamps_Pretty):
-    """
-    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
-    are used to sign server certificates.
-
-    These are directly tied to a X509Certificate and are needed to create a
-    "fullchain" certificate for most deployments.
-    """
-
-    __tablename__ = "x509_certificate_trust_preference_policy_item"
-    __table_args__ = (
-        sa.Index(
-            "uidx_x509_certificate_trust_preference_policy_item_a",
-            "x509_certificate_trust_preference_policy_id",
-            "slot_id",
-            unique=True,
-        ),
-        sa.Index(
-            "uidx_x509_certificate_trust_preference_policy_item_b",
-            "x509_certificate_trust_preference_policy_id",
-            "certificate_ca_id",
-            unique=True,
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    x509_certificate_trust_preference_policy_id: Mapped[int] = mapped_column(
-        sa.Integer,
-        sa.ForeignKey("x509_certificate_trust_preference_policy.id"),
-        nullable=False,
-    )
-    slot_id = mapped_column(sa.Integer, nullable=False)
-    certificate_ca_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False, unique=True
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    x509_certificate_trust_preference_policy = sa_orm_relationship(
-        "X509CertificateTrustPreferencePolicy",
-        primaryjoin="X509CertificatePreferencePolicyItem.x509_certificate_trust_preference_policy_id==X509CertificateTrustPreferencePolicy.id",
-        back_populates="x509_certificate_trust_preference_policy_items",
-        uselist=False,
-    )
-    certificate_ca = sa_orm_relationship(
-        "CertificateCA",
-        primaryjoin="X509CertificatePreferencePolicyItem.certificate_ca_id==CertificateCA.id",
-        uselist=False,
-    )
-
-    @property
-    def as_json_minimal(self):
-        return {
-            "id": self.id,
-            # --
-            "slot_id": self.slot_id,
-            "certificate_ca_id": self.certificate_ca_id,
-        }
-
-
-# ==============================================================================
-
-
 class CertificateCAReconciliation(Base):
     __tablename__ = "certificate_ca_reconciliation"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
@@ -5941,6 +5840,106 @@ class X509CertificateChain(Base):
     )
 
 
+class X509CertificateTrustPreferencePolicy(Base):
+    """
+    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
+    are used to sign server certificates.
+
+    These are directly tied to a X509Certificate and are needed to create a
+    "fullchain" certificate for most deployments.
+    """
+
+    __tablename__ = "x509_certificate_trust_preference_policy"
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    name: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(64), nullable=True, unique=True
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    x509_certificate_trust_preference_policy_items = sa_orm_relationship(
+        "X509CertificatePreferencePolicyItem",
+        primaryjoin="X509CertificateTrustPreferencePolicy.id==X509CertificatePreferencePolicyItem.x509_certificate_trust_preference_policy_id",
+        order_by="X509CertificatePreferencePolicyItem.slot_id.asc()",
+        back_populates="x509_certificate_trust_preference_policy",
+    )
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            # --
+            "x509_certificate_trust_preference_policy_items": [
+                i.as_json_minimal
+                for i in self.x509_certificate_trust_preference_policy_items
+            ],
+            # --
+            "name": self.name,
+        }
+
+
+class X509CertificatePreferencePolicyItem(Base, _Mixin_Timestamps_Pretty):
+    """
+    These are trusted "Certificate Authority" Certificates from LetsEncrypt that
+    are used to sign server certificates.
+
+    These are directly tied to a X509Certificate and are needed to create a
+    "fullchain" certificate for most deployments.
+    """
+
+    __tablename__ = "x509_certificate_trust_preference_policy_item"
+    __table_args__ = (
+        sa.Index(
+            "uidx_x509_certificate_trust_preference_policy_item_a",
+            "x509_certificate_trust_preference_policy_id",
+            "slot_id",
+            unique=True,
+        ),
+        sa.Index(
+            "uidx_x509_certificate_trust_preference_policy_item_b",
+            "x509_certificate_trust_preference_policy_id",
+            "certificate_ca_id",
+            unique=True,
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    x509_certificate_trust_preference_policy_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("x509_certificate_trust_preference_policy.id"),
+        nullable=False,
+    )
+    slot_id = mapped_column(sa.Integer, nullable=False)
+    certificate_ca_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("certificate_ca.id"), nullable=False, unique=True
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    x509_certificate_trust_preference_policy = sa_orm_relationship(
+        "X509CertificateTrustPreferencePolicy",
+        primaryjoin="X509CertificatePreferencePolicyItem.x509_certificate_trust_preference_policy_id==X509CertificateTrustPreferencePolicy.id",
+        back_populates="x509_certificate_trust_preference_policy_items",
+        uselist=False,
+    )
+    certificate_ca = sa_orm_relationship(
+        "CertificateCA",
+        primaryjoin="X509CertificatePreferencePolicyItem.certificate_ca_id==CertificateCA.id",
+        uselist=False,
+    )
+
+    @property
+    def as_json_minimal(self):
+        return {
+            "id": self.id,
+            # --
+            "slot_id": self.slot_id,
+            "certificate_ca_id": self.certificate_ca_id,
+        }
+
+
+# ==============================================================================
+
 # ==============================================================================
 
 
@@ -5967,8 +5966,6 @@ __all__ = (
     "AriCheck",
     "CertificateCA",
     "CertificateCAChain",
-    "X509CertificatePreferencePolicyItem",
-    "X509CertificateTrustPreferencePolicy",
     "CertificateCAReconciliation",
     "CoverageAssuranceEvent",
     "Domain",
@@ -5993,5 +5990,7 @@ __all__ = (
     "UniqueFQDNSet2Domain",
     "X509Certificate",
     "X509CertificateChain",
+    "X509CertificatePreferencePolicyItem",
     "X509CertificateRequest",
+    "X509CertificateTrustPreferencePolicy",
 )
