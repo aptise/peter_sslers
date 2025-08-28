@@ -6,20 +6,20 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-ca-preference-policys">CertificateCAPreferencePolicys</a></li>
-        <li class="active">Focus ${CertificateCAPreferencePolicy.id}-${CertificateCAPreferencePolicy.name} </li>
+        <li><a href="${admin_prefix}/x509-certificate-trust-preference-policys">X509CertificateTrustPreferencePolicys</a></li>
+        <li class="active">Focus ${X509CertificateTrustPreferencePolicy.id}-${X509CertificateTrustPreferencePolicy.name} </li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CertificateCAPreferencePolicy - Focus - ${CertificateCAPreferencePolicy.id}-${CertificateCAPreferencePolicy.name}</h2>
+    <h2>X509CertificateTrustPreferencePolicy - Focus - ${X509CertificateTrustPreferencePolicy.id}-${X509CertificateTrustPreferencePolicy.name}</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate-ca-preference-policy/${CertificateCAPreferencePolicy.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/x509-certificate-trust-preference-policy/${X509CertificateTrustPreferencePolicy.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json</a>
     </p>
@@ -35,7 +35,7 @@
                     <th>id</th>
                     <td>
                         <span class="label label-default">
-                            ${CertificateCAPreferencePolicy.id}
+                            ${X509CertificateTrustPreferencePolicy.id}
                         </span>
                     </td>
                 </tr>
@@ -43,7 +43,7 @@
                     <th>name</th>
                     <td>
                         <span class="label label-default">
-                            ${CertificateCAPreferencePolicy.name}
+                            ${X509CertificateTrustPreferencePolicy.name}
                         </span>
                     </td>
                 </tr>
@@ -57,12 +57,12 @@
 
             <ul class="list-styled">
                 <%
-                    idx_n = len(CertificateCAPreferencePolicy.certificate_ca_preferences) - 1
+                    idx_n = len(X509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items) - 1
                 %>
-                % for idx, dbPreference in enumerate(CertificateCAPreferencePolicy.certificate_ca_preferences):
+                % for idx, dbPreference in enumerate(X509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items):
                     <li>
                         <form
-                            action="${admin_prefix}/certificate-ca-preference-policy/${CertificateCAPreferencePolicy.id}/delete"
+                            action="${admin_prefix}/x509-certificate-trust-preference-policy/${X509CertificateTrustPreferencePolicy.id}/delete"
                             method="POST"
                             style="display:inline-block;"
                             id="form-preferred-delete-${dbPreference.slot_id}"
@@ -75,7 +75,7 @@
                             </button>
                         </form>
                         <form
-                            action="${admin_prefix}/certificate-ca-preference-policy/${CertificateCAPreferencePolicy.id}/prioritize"
+                            action="${admin_prefix}/x509-certificate-trust-preference-policy/${X509CertificateTrustPreferencePolicy.id}/prioritize"
                             method="POST"
                             style="display:inline-block;"
                             id="form-preferred-prioritize_increase-${dbPreference.slot_id}"
@@ -89,7 +89,7 @@
                             </button>
                         </form>
                         <form
-                            action="${admin_prefix}/certificate-ca-preference-policy/${CertificateCAPreferencePolicy.id}/prioritize"
+                            action="${admin_prefix}/x509-certificate-trust-preference-policy/${X509CertificateTrustPreferencePolicy.id}/prioritize"
                             method="POST"
                             style="display:inline-block;"
                             id="form-preferred-prioritize_decrease-${dbPreference.slot_id}"
@@ -113,7 +113,7 @@
             <p>You may enter the initial few characters of the fingerprint_sha1.</p>
             <p>Items will be added to the end of the list.</p>
             <form
-                action="${admin_prefix}/certificate-ca-preference-policy/${CertificateCAPreferencePolicy.id}/add"
+                action="${admin_prefix}/x509-certificate-trust-preference-policy/${X509CertificateTrustPreferencePolicy.id}/add"
                 method="POST"
                 id="form-preferred-add"
             >

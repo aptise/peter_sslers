@@ -489,16 +489,16 @@ class Form_API_Domain_certificate_if_needed(_Form_Schema_Base):
     )
 
 
-class Form_CertificateCAPreference__add(_Form_Schema_Base):
+class Form_X509CertificatePreferencePolicyItem__add(_Form_Schema_Base):
     fingerprint_sha1 = UnicodeString(not_empty=True, strip=True)
 
 
-class Form_CertificateCAPreference__delete(_Form_Schema_Base):
+class Form_X509CertificatePreferencePolicyItem__delete(_Form_Schema_Base):
     slot = Int(not_empty=True)
     fingerprint_sha1 = UnicodeString(not_empty=True, strip=True)
 
 
-class Form_CertificateCAPreference__prioritize(_Form_Schema_Base):
+class Form_X509CertificatePreferencePolicyItem__prioritize(_Form_Schema_Base):
     slot = Int(not_empty=True)
     fingerprint_sha1 = UnicodeString(not_empty=True, strip=True)
     priority = OneOf(("increase", "decrease"), not_empty=True)

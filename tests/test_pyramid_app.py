@@ -3473,61 +3473,64 @@ class FunctionalTests_AriCheck(AppTest):
         assert res.json["AriCheck"]["id"] == dbAriCheck.id
 
 
-class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
+class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
     """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAPreferencePolicy
+    python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustPreferencePolicy
     """
 
     @routes_tested(
         (
-            "admin:certificate_ca_preference_policys",
-            "admin:certificate_ca_preference_policys-paginated",
+            "admin:x509_certificate_trust_preference_policys",
+            "admin:x509_certificate_trust_preference_policys-paginated",
         )
     )
     def test_list_html(self):
         # root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policys", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policys",
+            status=200,
         )
         # paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policys/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policys/1",
+            status=200,
         )
 
     @routes_tested(
         (
-            "admin:certificate_ca_preference_policys|json",
-            "admin:certificate_ca_preference_policys-paginated|json",
+            "admin:x509_certificate_trust_preference_policys|json",
+            "admin:x509_certificate_trust_preference_policys-paginated|json",
         )
     )
     def test_list_json(self):
         # JSON root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policys.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policys.json",
             status=200,
         )
-        assert "CertificateCAPreferencePolicys" in res.json
+        assert "X509CertificateTrustPreferencePolicys" in res.json
 
         # JSON paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policys/1.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policys/1.json",
             status=200,
         )
-        assert "CertificateCAPreferencePolicys" in res.json
+        assert "X509CertificateTrustPreferencePolicys" in res.json
 
-    @routes_tested(("admin:certificate_ca_preference_policy:focus",))
+    @routes_tested(("admin:x509_certificate_trust_preference_policy:focus",))
     def test_focus_html(self):
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
-        )
-
-    @routes_tested(("admin:certificate_ca_preference_policy:focus|json",))
-    def test_focus_json(self):
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1",
             status=200,
         )
-        assert "CertificateCAPreferencePolicy" in res.json
+
+    @routes_tested(("admin:x509_certificate_trust_preference_policy:focus|json",))
+    def test_focus_json(self):
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1.json",
+            status=200,
+        )
+        assert "X509CertificateTrustPreferencePolicy" in res.json
 
     def _expected_preferences(self):
         """this is shared by html and json"""
@@ -3548,40 +3551,40 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         ]
         return (expected_preferences_initial, expected_preferences_altered)
 
-    def _load__CertificateCAPreferencePolicy(self):
-        _dbCertificateCAPreferencePolicy = (
-            lib_db_get.get__CertificateCAPreferencePolicy__by_id(
+    def _load__X509CertificateTrustPreferencePolicy(self):
+        _dbX509CertificateTrustPreferencePolicy = (
+            lib_db_get.get__X509CertificateTrustPreferencePolicy__by_id(
                 self.ctx,
                 1,
                 eagerload_preferences=True,
             )
         )
-        return _dbCertificateCAPreferencePolicy
+        return _dbX509CertificateTrustPreferencePolicy
 
     def _load__CertificateCA_unused(self):
         dbCertificateCA_unused = (
             self.ctx.dbSession.query(model_objects.CertificateCA)
             .outerjoin(
-                model_objects.CertificateCAPreference,
+                model_objects.X509CertificatePreferencePolicyItem,
                 model_objects.CertificateCA.id
-                == model_objects.CertificateCAPreference.certificate_ca_id,
+                == model_objects.X509CertificatePreferencePolicyItem.certificate_ca_id,
             )
-            .filter(model_objects.CertificateCAPreference.id.is_(None))
+            .filter(model_objects.X509CertificatePreferencePolicyItem.id.is_(None))
             .all()
         )
         return dbCertificateCA_unused
 
     @routes_tested(
         (
-            "admin:certificate_ca_preference_policy:focus",
-            "admin:certificate_ca_preference_policy:focus:add",
-            "admin:certificate_ca_preference_policy:focus:delete",
-            "admin:certificate_ca_preference_policy:focus:prioritize",
+            "admin:x509_certificate_trust_preference_policy:focus",
+            "admin:x509_certificate_trust_preference_policy:focus:add",
+            "admin:x509_certificate_trust_preference_policy:focus:delete",
+            "admin:x509_certificate_trust_preference_policy:focus:prioritize",
         )
     )
     def test_manipulate_html(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAPreferencePolicy
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustPreferencePolicy
         """
 
         (
@@ -3594,13 +3597,15 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             ensures the forms are present, expected and compliant
             """
             # load our database backed info
-            _dbCertificateCAPreferencePolicy = (
-                self._load__CertificateCAPreferencePolicy()
+            _dbX509CertificateTrustPreferencePolicy = (
+                self._load__X509CertificateTrustPreferencePolicy()
             )
-            _dbCertificateCAPreferences = (
-                _dbCertificateCAPreferencePolicy.certificate_ca_preferences
+            _dbX509CertificatePreferencePolicyItems = (
+                _dbX509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
             )
-            assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
+            assert len(_dbX509CertificatePreferencePolicyItems) == len(
+                _expected_preferences
+            )
 
             _res_forms = _res.forms
 
@@ -3628,15 +3633,18 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
                 assert _fields["slot"] == _slot_id
                 assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
 
-                assert _dbCertificateCAPreferences[_idx].slot_id == int(_slot_id)
-                assert _dbCertificateCAPreferences[
+                assert _dbX509CertificatePreferencePolicyItems[_idx].slot_id == int(
+                    _slot_id
+                )
+                assert _dbX509CertificatePreferencePolicyItems[
                     _idx
                 ].certificate_ca.fingerprint_sha1.startswith(_fingerpint_sha1_substr)
 
         # !!!: start the test
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1",
+            status=200,
         )
         _ensure_compliance_form(res, expected_preferences_initial)
 
@@ -3667,7 +3675,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         assert res4.status_code == 303
         assert (
             res4.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=prioritize"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1?result=success&operation=prioritize"
         )
         res5 = self.testapp.get(res4.location, status=200)
         _ensure_compliance_form(res5, expected_preferences_altered)
@@ -3687,7 +3695,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         assert res6.status_code == 303
         assert (
             res6.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=prioritize"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1?result=success&operation=prioritize"
         )
 
         # now, do this again.
@@ -3706,7 +3714,8 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # start from scratch
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1",
+            status=200,
         )
         forms = res.forms
         assert "form-preferred-add" in res.forms
@@ -3719,7 +3728,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         assert res2.status_code == 303
         assert (
             res2.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=add"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1?result=success&operation=add"
         )
 
         # ensure compliance
@@ -3744,7 +3753,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         assert res4.status_code == 303
         assert (
             res4.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=delete"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1?result=success&operation=delete"
         )
 
         # delete again, we should fail!
@@ -3757,7 +3766,8 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # and lets make sure we're at the base option
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1",
+            status=200,
         )
         _ensure_compliance_form(res, expected_preferences_initial)
 
@@ -3765,15 +3775,15 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
     @routes_tested(
         (
-            "admin:certificate_ca_preference_policy:focus|json",
-            "admin:certificate_ca_preference_policy:focus:add|json",
-            "admin:certificate_ca_preference_policy:focus:delete|json",
-            "admin:certificate_ca_preference_policy:focus:prioritize|json",
+            "admin:x509_certificate_trust_preference_policy:focus|json",
+            "admin:x509_certificate_trust_preference_policy:focus:add|json",
+            "admin:x509_certificate_trust_preference_policy:focus:delete|json",
+            "admin:x509_certificate_trust_preference_policy:focus:prioritize|json",
         )
     )
     def test_manipulate_json(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAPreferencePolicy.test_manipulate_json
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustPreferencePolicy.test_manipulate_json
         """
         (
             expected_preferences_initial,
@@ -3796,19 +3806,21 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             ensures the forms are present, expected and compliant
             """
             # load our database backed info
-            _dbCertificateCAPreferencePolicy = (
-                self._load__CertificateCAPreferencePolicy()
+            _dbX509CertificateTrustPreferencePolicy = (
+                self._load__X509CertificateTrustPreferencePolicy()
             )
-            _dbCertificateCAPreferences = (
-                _dbCertificateCAPreferencePolicy.certificate_ca_preferences
+            _dbX509CertificatePreferencePolicyItems = (
+                _dbX509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
             )
-            assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
+            assert len(_dbX509CertificatePreferencePolicyItems) == len(
+                _expected_preferences
+            )
 
             # check our payload
-            assert "CertificateCAPreferencePolicy" in res.json
+            assert "X509CertificateTrustPreferencePolicy" in res.json
 
             # # res.json
-            # {'CertificateCAPreferencePolicy': {'id': 1, 'certificate_ca_preferences': [{'id': 1, 'slot_id': 1, 'certificate_ca_id': 1}, {'id': 2, 'slot_id': 2, 'certificate_ca_id': 4}, {'id': 3, 'slot_id': 3, 'certificate_ca_id': 2}], 'name': 'global'}}
+            # {'X509CertificateTrustPreferencePolicy': {'id': 1, 'x509_certificate_trust_preference_policy_items': [{'id': 1, 'slot_id': 1, 'certificate_ca_id': 1}, {'id': 2, 'slot_id': 2, 'certificate_ca_id': 4}, {'id': 3, 'slot_id': 3, 'certificate_ca_id': 2}], 'name': 'global'}}
 
             # # _expected_preferences
             # (('1', 'DAC9024F'), ('2', 'BDB1B93C'), ('3', 'CABD2A79'))
@@ -3818,7 +3830,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             json_caCertId_2_certSha = {}
             json_slotId_2_certSha = {}
 
-            for _dbPref in _dbCertificateCAPreferences:
+            for _dbPref in _dbX509CertificatePreferencePolicyItems:
                 db_caCertId_2_certSha[_dbPref.certificate_ca_id] = (
                     _dbPref.certificate_ca.fingerprint_sha1
                 )
@@ -3826,8 +3838,8 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
                     _dbPref.certificate_ca.fingerprint_sha1
                 )
 
-            for _jsonPref in _res.json["CertificateCAPreferencePolicy"][
-                "certificate_ca_preferences"
+            for _jsonPref in _res.json["X509CertificateTrustPreferencePolicy"][
+                "x509_certificate_trust_preference_policy_items"
             ]:
                 _cert_ca_id = _jsonPref["certificate_ca_id"]
                 _slot_id = _jsonPref["slot_id"]
@@ -3844,7 +3856,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         # !!!: start the test
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1.json",
             status=200,
         )
         _ensure_compliance_payload(res, expected_preferences_initial)
@@ -3853,7 +3865,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # GET/POST prioritize
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             status=200,
         )
         assert "form_fields" in res.json
@@ -3862,7 +3874,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         for _field in _expected_fields:
             assert _field in res.json["form_fields"]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json"
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json"
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
@@ -3873,7 +3885,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # GET/POST add
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/add.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/add.json",
             status=200,
         )
         assert "form_fields" in res.json
@@ -3882,7 +3894,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         for _field in _expected_fields:
             assert _field in res.json["form_fields"]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/add.json"
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/add.json"
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
@@ -3893,7 +3905,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # GET/POST delete
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/delete.json",
             status=200,
         )
         assert "form_fields" in res.json
@@ -3902,7 +3914,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         for _field in _expected_fields:
             assert _field in res.json["form_fields"]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json"
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/delete.json"
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
@@ -3921,7 +3933,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             "priority": "increase",
         }
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -3936,7 +3948,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             _payload["fingerprint_sha1"]
         ][0]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -3955,7 +3967,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             "priority": "decrease",
         }
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -3970,7 +3982,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             _payload["fingerprint_sha1"]
         ][0]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -3993,7 +4005,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             _payload["fingerprint_sha1"]
         ][0]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4003,7 +4015,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         # now, do this again.
         # we should FAIL because it is stale
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4024,7 +4036,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             _payload["fingerprint_sha1"]
         ][0]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4034,7 +4046,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         # now, do this again.
         # we should FAIL because it is stale
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4053,7 +4065,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         # add
         _payload = {"fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/add.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/add.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4069,7 +4081,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             )
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1.json",
             status=200,
         )
         _ensure_compliance_payload(res, expected_preferences_added)
@@ -4077,7 +4089,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         # delete
         _payload = {"slot": 4, "fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/delete.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4086,7 +4098,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # delete again, we should fail!
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/delete.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4099,7 +4111,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # and lets make sure we're at the base option
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1.json",
             status=200,
         )
         _ensure_compliance_payload(res, expected_preferences_initial)

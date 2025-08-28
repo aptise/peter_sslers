@@ -41,8 +41,6 @@ from ...model.objects import AcmeServerConfiguration
 from ...model.objects import AriCheck
 from ...model.objects import CertificateCA
 from ...model.objects import CertificateCAChain
-from ...model.objects import CertificateCAPreference
-from ...model.objects import CertificateCAPreferencePolicy
 from ...model.objects import CoverageAssuranceEvent
 from ...model.objects import Domain
 from ...model.objects import DomainAutocert
@@ -64,7 +62,9 @@ from ...model.objects import UniquelyChallengedFQDNSet
 from ...model.objects import UniquelyChallengedFQDNSet2Domain
 from ...model.objects import X509Certificate
 from ...model.objects import X509CertificateChain
+from ...model.objects import X509CertificatePreferencePolicyItem
 from ...model.objects import X509CertificateRequest
+from ...model.objects import X509CertificateTrustPreferencePolicy
 from ...model.objects.aliases import UniqueFQDNSet2DomainAlt
 
 if TYPE_CHECKING:
@@ -1125,34 +1125,6 @@ def get__AcmeOrder__by_order_url(
     return item
 
 
-def get__AcmeOrder__by_X509CertificateRequest__count(
-    ctx: "ApiContext", x509_certificate_request_id: int
-) -> int:
-    counted = (
-        ctx.dbSession.query(AcmeOrder)
-        .filter(AcmeOrder.x509_certificate_request_id == x509_certificate_request_id)
-        .count()
-    )
-    return counted
-
-
-def get__AcmeOrder__by_X509CertificateRequest__paginated(
-    ctx: "ApiContext",
-    x509_certificate_request_id: int,
-    limit: Optional[int] = None,
-    offset: int = 0,
-) -> List[AcmeOrder]:
-    items_paged = (
-        ctx.dbSession.query(AcmeOrder)
-        .filter(AcmeOrder.x509_certificate_request_id == x509_certificate_request_id)
-        .order_by(AcmeOrder.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
 def get__AcmeOrder__by_AcmeAuthorizationId__count(
     ctx: "ApiContext", acme_authorization_id: int
 ) -> int:
@@ -1366,6 +1338,34 @@ def get__AcmeOrder__by_UniquelyChallengedFQDNSetId__paginated(
     return items_paged
 
 
+def get__AcmeOrder__by_X509CertificateRequest__count(
+    ctx: "ApiContext", x509_certificate_request_id: int
+) -> int:
+    counted = (
+        ctx.dbSession.query(AcmeOrder)
+        .filter(AcmeOrder.x509_certificate_request_id == x509_certificate_request_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeOrder__by_X509CertificateRequest__paginated(
+    ctx: "ApiContext",
+    x509_certificate_request_id: int,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[AcmeOrder]:
+    items_paged = (
+        ctx.dbSession.query(AcmeOrder)
+        .filter(AcmeOrder.x509_certificate_request_id == x509_certificate_request_id)
+        .order_by(AcmeOrder.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -1565,16 +1565,6 @@ def get__CertificateCA__paginated(
     return items_paged
 
 
-def get__CertificateCAPreference__paginated(
-    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
-) -> List[CertificateCA]:
-    q = ctx.dbSession.query(CertificateCAPreference)
-    q = q.order_by(CertificateCAPreference.id.asc()).limit(limit).offset(offset)
-    q = q.options(joinedload(CertificateCAPreference.certificate_ca))
-    items_paged = q.all()
-    return items_paged
-
-
 def get__CertificateCA__by_id(
     ctx: "ApiContext", cert_id: int
 ) -> Optional[CertificateCA]:
@@ -1735,60 +1725,6 @@ def get__CertificateCAChain__by_CertificateCAIdN__paginated(
     )
     items_paged = (
         query.order_by(CertificateCAChain.id.desc()).limit(limit).offset(offset).all()
-    )
-    return items_paged
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__CertificateCAPreferencePolicy__by_name(
-    ctx: "ApiContext",
-    name: str,
-    eagerload_preferences: bool = False,
-) -> Optional[CertificateCAPreferencePolicy]:
-    name = lib_utils.normalize_unique_text(name)
-    q = ctx.dbSession.query(CertificateCAPreferencePolicy).filter(
-        CertificateCAPreferencePolicy.name == name
-    )
-    if eagerload_preferences:
-        q = q.options(
-            joinedload(CertificateCAPreferencePolicy.certificate_ca_preferences)
-        )
-    dbCertificateCAPreferencePolicy = q.first()
-    return dbCertificateCAPreferencePolicy
-
-
-def get__CertificateCAPreferencePolicy__by_id(
-    ctx: "ApiContext",
-    id_: int,
-    eagerload_preferences: bool = False,
-) -> Optional[CertificateCAPreferencePolicy]:
-    q = ctx.dbSession.query(CertificateCAPreferencePolicy).filter(
-        CertificateCAPreferencePolicy.id == id_
-    )
-    if eagerload_preferences:
-        q = q.options(
-            joinedload(CertificateCAPreferencePolicy.certificate_ca_preferences)
-        )
-    dbCertificateCAPreferencePolicy = q.first()
-    return dbCertificateCAPreferencePolicy
-
-
-def get__CertificateCAPreferencePolicy__count(ctx: "ApiContext") -> int:
-    counted = ctx.dbSession.query(CertificateCAPreferencePolicy).count()
-    return counted
-
-
-def get__CertificateCAPreferencePolicy__paginated(
-    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
-) -> List[CertificateCAPreferencePolicy]:
-    items_paged = (
-        ctx.dbSession.query(CertificateCAPreferencePolicy)
-        .order_by(CertificateCAPreferencePolicy.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
     )
     return items_paged
 
@@ -4247,3 +4183,77 @@ def get_X509Certificates_renew_now(
     # print(q.statement.compile())
     expiring_certs = q.all()
     return expiring_certs
+
+
+def get__X509CertificateTrustPreferencePolicy__by_name(
+    ctx: "ApiContext",
+    name: str,
+    eagerload_preferences: bool = False,
+) -> Optional[X509CertificateTrustPreferencePolicy]:
+    name = lib_utils.normalize_unique_text(name)
+    q = ctx.dbSession.query(X509CertificateTrustPreferencePolicy).filter(
+        X509CertificateTrustPreferencePolicy.name == name
+    )
+    if eagerload_preferences:
+        q = q.options(
+            joinedload(
+                X509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
+            )
+        )
+    dbX509CertificateTrustPreferencePolicy = q.first()
+    return dbX509CertificateTrustPreferencePolicy
+
+
+def get__X509CertificateTrustPreferencePolicy__by_id(
+    ctx: "ApiContext",
+    id_: int,
+    eagerload_preferences: bool = False,
+) -> Optional[X509CertificateTrustPreferencePolicy]:
+    q = ctx.dbSession.query(X509CertificateTrustPreferencePolicy).filter(
+        X509CertificateTrustPreferencePolicy.id == id_
+    )
+    if eagerload_preferences:
+        q = q.options(
+            joinedload(
+                X509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
+            )
+        )
+    dbX509CertificateTrustPreferencePolicy = q.first()
+    return dbX509CertificateTrustPreferencePolicy
+
+
+def get__X509CertificateTrustPreferencePolicy__count(ctx: "ApiContext") -> int:
+    counted = ctx.dbSession.query(X509CertificateTrustPreferencePolicy).count()
+    return counted
+
+
+def get__X509CertificateTrustPreferencePolicy__paginated(
+    ctx: "ApiContext", limit: Optional[int] = None, offset: int = 0
+) -> List[X509CertificateTrustPreferencePolicy]:
+    items_paged = (
+        ctx.dbSession.query(X509CertificateTrustPreferencePolicy)
+        .order_by(X509CertificateTrustPreferencePolicy.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__X509CertificatePreferencePolicyItem__paginated(
+    ctx: "ApiContext",
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[CertificateCA]:
+    q = ctx.dbSession.query(X509CertificatePreferencePolicyItem)
+    q = (
+        q.order_by(X509CertificatePreferencePolicyItem.id.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    q = q.options(joinedload(X509CertificatePreferencePolicyItem.certificate_ca))
+    items_paged = q.all()
+    return items_paged

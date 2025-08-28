@@ -9,7 +9,7 @@ from pyramid.httpexceptions import HTTPFound
 
 # localapp
 from ...lib import db as lib_db
-from ...model.objects import CertificateCAPreferencePolicy
+from ...model.objects import X509CertificateTrustPreferencePolicy
 
 if TYPE_CHECKING:
     from pyramid.request import Request
@@ -48,21 +48,21 @@ def admin_url(request: "Request") -> str:
     return request.api_host + request.api_context.application_settings["admin_prefix"]
 
 
-def load_CertificateCAPreferencePolicy_global(
+def load_X509CertificateTrustPreferencePolicy_global(
     request: "Request",
-) -> "CertificateCAPreferencePolicy":
+) -> "X509CertificateTrustPreferencePolicy":
     """
-    loads `model.objects.CertificateCAPreferences` onto the request
+    loads `model.objects.X509CertificatePreferencePolicyItems` onto the request
     """
-    dbCertificateCAPreferencePolicy = (
-        lib_db.get.get__CertificateCAPreferencePolicy__by_name(
+    dbX509CertificateTrustPreferencePolicy = (
+        lib_db.get.get__X509CertificateTrustPreferencePolicy__by_name(
             request.api_context,
             "global",
             eagerload_preferences=True,
         )
     )
-    assert dbCertificateCAPreferencePolicy is not None
-    return dbCertificateCAPreferencePolicy
+    assert dbX509CertificateTrustPreferencePolicy is not None
+    return dbX509CertificateTrustPreferencePolicy
 
 
 # ==============================================================================

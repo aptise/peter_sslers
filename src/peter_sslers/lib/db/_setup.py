@@ -265,8 +265,8 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
     # _buffer = datetime.timedelta(90)
     # date_cutoff = _now + _buffer
 
-    dbCertificateCAPreferencePolicy = db_create.create__CertificateCAPreferencePolicy(
-        ctx, "global"
+    dbX509CertificateTrustPreferencePolicy = (
+        db_create.create__X509CertificateTrustPreferencePolicy(ctx, "global")
     )
 
     for cert_id in letsencrypt_info.DEFAULT_CA_PREFERENCES:
@@ -281,9 +281,9 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
         if cert_id not in certs_lookup:
             raise ValueError("Certificate `%s` is unknown" % cert_id)
         dbCertificateCA = certs_lookup[cert_id]
-        dbPref = db_create.create__CertificateCAPreference(  # noqa: F841
+        dbPref = db_create.create__X509CertificatePreferencePolicyItem(  # noqa: F841
             ctx,
-            dbCertificateCAPreferencePolicy=dbCertificateCAPreferencePolicy,
+            dbX509CertificateTrustPreferencePolicy=dbX509CertificateTrustPreferencePolicy,
             dbCertificateCA=dbCertificateCA,
         )
 

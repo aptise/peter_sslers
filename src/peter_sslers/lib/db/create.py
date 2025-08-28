@@ -47,8 +47,6 @@ if TYPE_CHECKING:
     from ...model.objects import AriCheck
     from ...model.objects import CertificateCA
     from ...model.objects import CertificateCAChain
-    from ...model.objects import CertificateCAPreference
-    from ...model.objects import CertificateCAPreferencePolicy
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import Domain
     from ...model.objects import DomainAutocert
@@ -61,7 +59,9 @@ if TYPE_CHECKING:
     from ...model.objects import SystemConfiguration
     from ...model.objects import UniqueFQDNSet
     from ...model.objects import X509Certificate
+    from ...model.objects import X509CertificatePreferencePolicyItem
     from ...model.objects import X509CertificateRequest
+    from ...model.objects import X509CertificateTrustPreferencePolicy
     from ...model.utils import DomainsChallenged
 
     # from ...lib.acme_v2 import AcmeOrderRFC
@@ -723,57 +723,61 @@ def create__AriCheck(
     return dbAriCheck
 
 
-def create__CertificateCAPreferencePolicy(
+def create__X509CertificateTrustPreferencePolicy(
     ctx: "ApiContext",
     name: str,
-) -> "CertificateCAPreferencePolicy":
+) -> "X509CertificateTrustPreferencePolicy":
     """
-    Create a new CertificateCAPreference entry
+    Create a new X509CertificatePreferencePolicyItem entry
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbCertificateCA: (required) a `model_objects.CertificateCA` object
     :param slot_id: (optional) The id, if any. defaults to db managing the id
     """
     name = lib_utils.normalize_unique_text(name)
-    dbCertificateCAPreferencePolicy = model_objects.CertificateCAPreferencePolicy()
-    dbCertificateCAPreferencePolicy.name = name
-    ctx.dbSession.add(dbCertificateCAPreferencePolicy)
-    ctx.dbSession.flush(objects=[dbCertificateCAPreferencePolicy])
-    return dbCertificateCAPreferencePolicy
+    dbX509CertificateTrustPreferencePolicy = (
+        model_objects.X509CertificateTrustPreferencePolicy()
+    )
+    dbX509CertificateTrustPreferencePolicy.name = name
+    ctx.dbSession.add(dbX509CertificateTrustPreferencePolicy)
+    ctx.dbSession.flush(objects=[dbX509CertificateTrustPreferencePolicy])
+    return dbX509CertificateTrustPreferencePolicy
 
 
-def create__CertificateCAPreference(
+def create__X509CertificatePreferencePolicyItem(
     ctx: "ApiContext",
-    dbCertificateCAPreferencePolicy: "CertificateCAPreferencePolicy",
+    dbX509CertificateTrustPreferencePolicy: "X509CertificateTrustPreferencePolicy",
     dbCertificateCA: "CertificateCA",
     slot_id: Optional[int] = None,
-) -> "CertificateCAPreference":
+) -> "X509CertificatePreferencePolicyItem":
     """
-    Create a new CertificateCAPreference entry
+    Create a new X509CertificatePreferencePolicyItem entry
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbCertificateCA: (required) a `model_objects.CertificateCA` object
     :param slot_id: (optional) The id, if any. defaults to db managing the id
     """
-    dbCertificateCAPreference = model_objects.CertificateCAPreference()
-    dbCertificateCAPreference.certificate_ca_preference_policy_id = (
-        dbCertificateCAPreferencePolicy.id
+    dbX509CertificatePreferencePolicyItem = (
+        model_objects.X509CertificatePreferencePolicyItem()
     )
-    dbCertificateCAPreference.certificate_ca_id = dbCertificateCA.id
+    dbX509CertificatePreferencePolicyItem.x509_certificate_trust_preference_policy_id = (
+        dbX509CertificateTrustPreferencePolicy.id
+    )
+    dbX509CertificatePreferencePolicyItem.certificate_ca_id = dbCertificateCA.id
     if slot_id is None:
         slot_id = (
-            ctx.dbSession.query(model_objects.CertificateCAPreference)
+            ctx.dbSession.query(model_objects.X509CertificatePreferencePolicyItem)
             .filter(
-                model_objects.CertificateCAPreference.certificate_ca_preference_policy_id
-                == dbCertificateCAPreferencePolicy.id
+                model_objects.X509CertificatePreferencePolicyItem.x509_certificate_trust_preference_policy_id
+                == dbX509CertificateTrustPreferencePolicy.id
             )
             .count()
             + 1
         )
-    dbCertificateCAPreference.slot_id = slot_id
-    ctx.dbSession.add(dbCertificateCAPreference)
-    ctx.dbSession.flush(objects=[dbCertificateCAPreference])
-    return dbCertificateCAPreference
+    dbX509CertificatePreferencePolicyItem.slot_id = slot_id
+    ctx.dbSession.add(dbX509CertificatePreferencePolicyItem)
+    ctx.dbSession.flush(objects=[dbX509CertificatePreferencePolicyItem])
+    return dbX509CertificatePreferencePolicyItem
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

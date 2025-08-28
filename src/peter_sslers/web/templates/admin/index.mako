@@ -202,11 +202,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-ca-chains</a></li>
-                <li><a href="${admin_prefix}/certificate-ca-preference-policys"
-                       title="CertificateCAPreferencePolicys"
+                <li><a href="${admin_prefix}/x509-certificate-trust-preference-policys"
+                       title="X509CertificateTrustPreferencePolicys"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-ca-preference-policys</a></li>
+                    x509-certificate-trust-preference-policys</a></li>
             </ul>
 
 

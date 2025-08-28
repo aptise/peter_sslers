@@ -24,7 +24,7 @@ import transaction
 from . import models
 from .lib.handler import admin_url
 from .lib.handler import api_host
-from .lib.handler import load_CertificateCAPreferencePolicy_global
+from .lib.handler import load_X509CertificateTrustPreferencePolicy_global
 from ..lib.config_utils import ApplicationSettings
 from ..lib.config_utils import set_bool_setting
 from ..lib.context import ApiContext
@@ -170,8 +170,8 @@ def main(global_config: Optional[Dict], **settings):
     config.add_request_method(api_host, "api_host", reify=True)
     config.add_request_method(admin_url, "admin_url", reify=True)
     config.add_request_method(
-        load_CertificateCAPreferencePolicy_global,
-        "dbCertificateCAPreferencePolicy",
+        load_X509CertificateTrustPreferencePolicy_global,
+        "dbX509CertificateTrustPreferencePolicy",
         reify=True,
     )
 

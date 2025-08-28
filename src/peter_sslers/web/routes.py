@@ -642,31 +642,31 @@ def _admin_views(config: "Configurator") -> None:
         jsonify=True,
     )
 
-    # !!!: CertificateCAPreferencePolicys
+    # !!!: X509CertificateTrustPreferencePolicys
     config.add_route_7(
-        "admin:certificate_ca_preference_policys",
-        "/certificate-ca-preference-policys",
+        "admin:x509_certificate_trust_preference_policys",
+        "/x509-certificate-trust-preference-policys",
         jsonify=True,
         paginate=True,
     )
     config.add_route_7(
-        "admin:certificate_ca_preference_policy:focus",
-        "/certificate-ca-preference-policy/{@id}",
+        "admin:x509_certificate_trust_preference_policy:focus",
+        "/x509-certificate-trust-preference-policy/{@id}",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_ca_preference_policy:focus:add",
-        "/certificate-ca-preference-policy/{@id}/add",
+        "admin:x509_certificate_trust_preference_policy:focus:add",
+        "/x509-certificate-trust-preference-policy/{@id}/add",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_ca_preference_policy:focus:delete",
-        "/certificate-ca-preference-policy/{@id}/delete",
+        "admin:x509_certificate_trust_preference_policy:focus:delete",
+        "/x509-certificate-trust-preference-policy/{@id}/delete",
         jsonify=True,
     )
     config.add_route_7(
-        "admin:certificate_ca_preference_policy:focus:prioritize",
-        "/certificate-ca-preference-policy/{@id}/prioritize",
+        "admin:x509_certificate_trust_preference_policy:focus:prioritize",
+        "/x509-certificate-trust-preference-policy/{@id}/prioritize",
         jsonify=True,
     )
 
