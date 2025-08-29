@@ -79,6 +79,7 @@ Right now the invoke script offers:
 
 You can interact with this project via a commandline interface in several ways.
 
+* Commandline tools.  Please see the `Automation` documentation
 * Run a webserver instance and query JSON urls or use a browser like lynx.
 * Run explicit routes via `prequest`. This allows you to do admin tasks without
   spinnig up a server.

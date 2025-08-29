@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm.session import Session
 
     from .context import ApiContext
-    from ..model.objects import CertificateCAPreferencePolicy
+    from ..model.objects import X509CertificateTrustPreferencePolicy
 
 # ==============================================================================
 
@@ -355,10 +355,12 @@ class RequestCommandline(object):
         return admin_url(self)
 
     @reify
-    def dbCertificateCAPreferencePolicy(self) -> "CertificateCAPreferencePolicy":
-        from ..web.lib.handler import load_CertificateCAPreferencePolicy_global
+    def dbX509CertificateTrustPreferencePolicy(
+        self,
+    ) -> "X509CertificateTrustPreferencePolicy":
+        from ..web.lib.handler import load_X509CertificateTrustPreferencePolicy_global
 
-        return load_CertificateCAPreferencePolicy_global(self)
+        return load_X509CertificateTrustPreferencePolicy_global(self)
 
 
 def validate_config_uri(config_uri: str) -> str:

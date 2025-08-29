@@ -6,26 +6,26 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-cas">CertificateCAs</a></li>
-        <li><a href="${admin_prefix}/certificate-ca/${CertificateCA.id}">Focus [${CertificateCA.id}]</a></li>
-        <li class="active">CertificateCAChains - ${accessor}</li>
+        <li><a href="${admin_prefix}/x509-certificate-trusteds">X509CertificateTrusteds</a></li>
+        <li><a href="${admin_prefix}/x509-certificate-trusted/${X509CertificateTrusted.id}">Focus [${X509CertificateTrusted.id}]</a></li>
+        <li class="active">X509CertificateTrusteds</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CertificateCA - Focus - CertificateCAChains = ${accessor}</h2>
+    <h2>X509CertificateTrusted - Focus - X509Certificates</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if CertificateCAChains:
+            % if X509Certificates:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateCAChains(CertificateCAChains)}
+                ${admin_partials.table_X509Certificates(X509Certificates, show_domains=True)}
             % else:
-                No known CertificateCAChains.
+                No known X509Certificates.
             % endif
         </div>
     </div>

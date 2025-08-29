@@ -11,12 +11,12 @@ from pyramid.view import view_config
 from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
-from ..lib.forms import Form_CertificateCAChain_Upload__file
+from ..lib.forms import Form_X509CertificateTrustChain_Upload__file
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
-from ...model.objects import CertificateCAChain
+from ...model.objects import X509CertificateTrustChain
 
 
 # ==============================================================================
@@ -24,130 +24,136 @@ from ...model.objects import CertificateCAChain
 
 class View_List(Handler):
     @view_config(
-        route_name="admin:certificate_ca_chains",
-        renderer="/admin/certificate_ca_chains.mako",
+        route_name="admin:x509_certificate_trust_chains",
+        renderer="/admin/x509_certificate_trust_chains.mako",
     )
     @view_config(
-        route_name="admin:certificate_ca_chains-paginated",
-        renderer="/admin/certificate_ca_chains.mako",
+        route_name="admin:x509_certificate_trust_chains-paginated",
+        renderer="/admin/x509_certificate_trust_chains.mako",
     )
-    @view_config(route_name="admin:certificate_ca_chains|json", renderer="json")
+    @view_config(route_name="admin:x509_certificate_trust_chains|json", renderer="json")
     @view_config(
-        route_name="admin:certificate_ca_chains-paginated|json", renderer="json"
+        route_name="admin:x509_certificate_trust_chains-paginated|json", renderer="json"
     )
     @docify(
         {
-            "endpoint": "/certificate-ca-chains.json",
-            "section": "certificate-ca-chain",
-            "about": """list CertificateCAChain(s)""",
+            "endpoint": "/x509-certificate-trust-chain.json",
+            "section": "certificate-trust-chain",
+            "about": """list X509CertificateTrustChain(s)""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca-chains.json",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trust-chain.json",
         }
     )
     @docify(
         {
-            "endpoint": "/certificate-ca-chains/{PAGE}.json",
-            "section": "certificate-ca-chain",
-            "example": "curl {ADMIN_PREFIX}/certificate-ca-chains/1.json",
-            "variant_of": "/certificate-ca-chains.json",
+            "endpoint": "/x509-certificate-trust-chain/{PAGE}.json",
+            "section": "certificate-trust-chain",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate-trust-chain/1.json",
+            "variant_of": "/x509-certificate-trust-chain.json",
         }
     )
     def list(self):
-        items_count = lib_db.get.get__CertificateCAChain__count(
+        items_count = lib_db.get.get__X509CertificateTrustChain__count(
             self.request.api_context
         )
         url_template = (
-            "%s/certificate-ca-chains/{0}"
+            "%s/x509-certificate-trust-chain/{0}"
             % self.request.api_context.application_settings["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__CertificateCAChain__paginated(
+        items_paged = lib_db.get.get__X509CertificateTrustChain__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         if self.request.wants_json:
             _chains = {c.id: c.as_json for c in items_paged}
             return {
-                "CertificateCAChains": _chains,
+                "X509CertificateTrustChains": _chains,
                 "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
-            "CertificateCAChains_count": items_count,
-            "CertificateCAChains": items_paged,
+            "X509CertificateTrustChains_count": items_count,
+            "X509CertificateTrustChains": items_paged,
             "pager": pager,
         }
 
 
 class View_Focus(Handler):
-    dbCertificateCAChain: Optional[CertificateCAChain] = None
+    dbX509CertificateTrustChain: Optional[X509CertificateTrustChain] = None
 
-    def _focus(self) -> CertificateCAChain:
-        if self.dbCertificateCAChain is None:
-            dbCertificateCAChain = lib_db.get.get__CertificateCAChain__by_id(
-                self.request.api_context, self.request.matchdict["id"]
+    def _focus(self) -> X509CertificateTrustChain:
+        if self.dbX509CertificateTrustChain is None:
+            dbX509CertificateTrustChain = (
+                lib_db.get.get__X509CertificateTrustChain__by_id(
+                    self.request.api_context, self.request.matchdict["id"]
+                )
             )
-            if not dbCertificateCAChain:
+            if not dbX509CertificateTrustChain:
                 raise HTTPNotFound("the chain was not found")
-            self.dbCertificateCAChain = dbCertificateCAChain
-            self.focus_item = dbCertificateCAChain
-            self.focus_url = "%s/certificate-ca-chain/%s" % (
+            self.dbX509CertificateTrustChain = dbX509CertificateTrustChain
+            self.focus_item = dbX509CertificateTrustChain
+            self.focus_url = "%s/certificate-trust-chain/%s" % (
                 self.request.api_context.application_settings["admin_prefix"],
-                self.dbCertificateCAChain.id,
+                self.dbX509CertificateTrustChain.id,
             )
-        return self.dbCertificateCAChain
+        return self.dbX509CertificateTrustChain
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate_ca_chain:focus",
-        renderer="/admin/certificate_ca_chain-focus.mako",
+        route_name="admin:x509_certificate_trust_chain:focus",
+        renderer="/admin/x509_certificate_trust_chain-focus.mako",
     )
-    @view_config(route_name="admin:certificate_ca_chain:focus|json", renderer="json")
+    @view_config(
+        route_name="admin:x509_certificate_trust_chain:focus|json", renderer="json"
+    )
     @docify(
         {
-            "endpoint": "/certificate-ca-chain/{ID}.json",
-            "section": "certificate-ca-chain",
-            "about": """CertificateCAChain focus""",
+            "endpoint": "/certificate-trust-chain/{ID}.json",
+            "section": "certificate-trust-chain",
+            "about": """X509CertificateTrustChain focus""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca-chain/1.json",
+            "example": "curl {ADMIN_PREFIX}/certificate-trust-chain/1.json",
         }
     )
     def focus(self):
-        dbCertificateCAChain = self._focus()
+        dbX509CertificateTrustChain = self._focus()
         if self.request.wants_json:
             return {
-                "CertificateCAChain": dbCertificateCAChain.as_json,
+                "X509CertificateTrustChain": dbX509CertificateTrustChain.as_json,
             }
         return {
             "project": "peter_sslers",
-            "CertificateCAChain": dbCertificateCAChain,
+            "X509CertificateTrustChain": dbX509CertificateTrustChain,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate_ca_chain:focus:raw", renderer="string")
+    @view_config(
+        route_name="admin:x509_certificate_trust_chain:focus:raw", renderer="string"
+    )
     @docify(
         {
-            "endpoint": "/certificate-ca-chain/{ID}/chain.pem",
-            "section": "certificate-ca-chain",
-            "about": """CertificateCAChain focus. as PEM""",
+            "endpoint": "/certificate-trust-chain/{ID}/chain.pem",
+            "section": "certificate-trust-chain",
+            "about": """X509CertificateTrustChain focus. as PEM""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca-chain/1/chain.pem",
+            "example": "curl {ADMIN_PREFIX}/certificate-trust-chain/1/chain.pem",
         }
     )
     @docify(
         {
-            "endpoint": "/certificate-ca-chain/{ID}/chain.pem.txt",
-            "section": "certificate-ca-chain",
-            "about": """CertificateCAChain focus. as PEM""",
+            "endpoint": "/certificate-trust-chain/{ID}/chain.pem.txt",
+            "section": "certificate-trust-chain",
+            "about": """X509CertificateTrustChain focus. as PEM""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/certificate-ca-chain/1/chain.pem.txt",
+            "example": "curl {ADMIN_PREFIX}/certificate-trust-chain/1/chain.pem.txt",
         }
     )
     def focus_raw(self):
@@ -156,33 +162,34 @@ class View_Focus(Handler):
         """
         # TODO - support cer format
         # only able to read, not write, with cryptography right now
-        dbCertificateCAChain = self._focus()
+        dbX509CertificateTrustChain = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
-            return dbCertificateCAChain.chain_pem
+            return dbX509CertificateTrustChain.chain_pem
         elif self.request.matchdict["format"] == "pem.txt":
-            return dbCertificateCAChain.chain_pem
+            return dbX509CertificateTrustChain.chain_pem
         return "UNSUPPORTED FORMAT"
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 class View_New(Handler):
-    @view_config(route_name="admin:certificate_ca_chain:upload_chain")
+    @view_config(route_name="admin:x509_certificate_trust_chain:upload_chain")
     @view_config(
-        route_name="admin:certificate_ca_chain:upload_chain|json", renderer="json"
+        route_name="admin:x509_certificate_trust_chain:upload_chain|json",
+        renderer="json",
     )
     @docify(
         {
-            "endpoint": "/certificate-ca-chain/upload.json",
-            "section": "certificate-ca-chain",
-            "about": """upload a CertificateCAChain""",
+            "endpoint": "/certificate-trust-chain/upload.json",
+            "section": "certificate-trust-chain",
+            "about": """upload a X509CertificateTrustChain""",
             "POST": True,
             "GET": None,
-            "instructions": """curl {ADMIN_PREFIX}/certificate-ca-chain/upload-chain.json""",
+            "instructions": """curl {ADMIN_PREFIX}/certificate-trust-chain/upload-chain.json""",
             "example": """curl """
             """--form 'chain_file=@chain1.pem' """
-            """{ADMIN_PREFIX}/certificate-ca-chain/upload-chain.json""",
+            """{ADMIN_PREFIX}/certificate-trust-chain/upload-chain.json""",
             "form_fields": {
                 "chain_file": "required",
             },
@@ -195,16 +202,16 @@ class View_New(Handler):
 
     def _upload_chain__print(self):
         if self.request.wants_json:
-            return formatted_get_docs(self, "/certificate-ca-chain/upload.json")
+            return formatted_get_docs(self, "/certificate-trust-chain/upload.json")
         return render_to_response(
-            "/admin/certificate_ca_chain-upload_chain.mako", {}, self.request
+            "/admin/x509_certificate_trust_chain-upload_chain.mako", {}, self.request
         )
 
     def _upload_chain__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
-                schema=Form_CertificateCAChain_Upload__file,
+                schema=Form_X509CertificateTrustChain_Upload__file,
                 validate_get=False,
             )
             if not result:
@@ -216,9 +223,9 @@ class View_New(Handler):
 
             chain_file_name = formStash.results["chain_file_name"]
             (
-                dbCertificateCAChain,
+                dbX509CertificateTrustChain,
                 _is_created,
-            ) = lib_db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+            ) = lib_db.getcreate.getcreate__X509CertificateTrustChain__by_pem_text(
                 self.request.api_context,
                 chain_pem,
                 display_name=chain_file_name,
@@ -228,16 +235,16 @@ class View_New(Handler):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "CertificateCAChain": {
+                    "X509CertificateTrustChain": {
                         "created": _is_created,
-                        "id": dbCertificateCAChain.id,
+                        "id": dbX509CertificateTrustChain.id,
                     },
                 }
             return HTTPSeeOther(
-                "%s/certificate-ca-chain/%s?result=success&is_created=%s"
+                "%s/certificate-trust-chain/%s?result=success&is_created=%s"
                 % (
                     self.request.api_context.application_settings["admin_prefix"],
-                    dbCertificateCAChain.id,
+                    dbX509CertificateTrustChain.id,
                     (1 if _is_created else 0),
                 )
             )

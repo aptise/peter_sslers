@@ -172,7 +172,7 @@ of their signed Certificates that lead to different trusted roots.
 
 Alternate Chains are fully supported by PeterSSLers
 
-* All Alternate CertificateCAChains are downloaded and tracked
+* All Alternate X509CertificateTrustChains are downloaded and tracked
 * Machine-readable Endpoints are available to detect and utilize the Alternate Chains
 * Default UX, payloads and endpoints are optimized for the Primary Chain
 * Default payloads may be configured to enforce a chain preference, so alternate
@@ -233,8 +233,8 @@ But... This project uses bootstrap, so it looks fine on browsers!
 ![CSR: Check Verification Status](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/04-view_status.png)
 ![CSR: New FULL](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/09-new_csr.png)
 ![Operations Log](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/05-operations_log.png)
-![List: Authority Certificates](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/06-certificate_cas.png)
-![Focus: Authority Certificate](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/07-certificate_cas_focus.png)
+![List: Authority Certificates](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/06-x509_certificate_trusteds.png)
+![Focus: Authority Certificate](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/07-x509_certificate_trusteds_focus.png)
 ![Upload Existing Certificates](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/10-upload_cert.png)
 ![List Certificates](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/11-certificates_list.png)
 ![List Domains](https://raw.github.com/aptise/peter_sslers/blob/main/docs/images/12-domains_list.png)

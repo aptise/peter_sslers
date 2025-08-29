@@ -158,16 +158,16 @@ RE_AcmeOrder_btn_deactive_authorizations__off = re.compile(
 RE_AcmeOrder_status = re.compile(r"<th>status</th>\s*<td><code>(\w+)</code>")
 
 
-# note: CertificateCA
+# note: X509CertificateTrusted
 
-RE_CertificateCA_uploaded = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/certificate-ca/(\d+)\?result=success&is_created=\d$"""
+RE_X509CertificateTrusted_uploaded = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/x509-certificate-trusted/(\d+)\?result=success&is_created=\d$"""
 )
 
-# note: CertificateCAChain
+# note: X509CertificateTrustChain
 
-RE_CertificateCAChain_uploaded = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/certificate-ca-chain/(\d+)\?result=success&is_created=\d$"""
+RE_X509CertificateTrustChain_uploaded = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/certificate-trust-chain/(\d+)\?result=success&is_created=\d$"""
 )
 
 # note: X509Certificate

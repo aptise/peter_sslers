@@ -26,9 +26,9 @@
                 <ul>
                     <li>PrivateKey</li>
                     <li>X509Certificate</li>
-                    <li>CertificateCAChain</li>
+                    <li>X509CertificateTrustChain</li>
                 </ul>
-                Some webservers require the X509Certificate and CertificateCAChain be joined in PEM format as a "fullchain" certificate.
+                Some webservers require the X509Certificate and X509CertificateTrustChain be joined in PEM format as a "fullchain" certificate.
             </p>
 
              <p>Most pages have documentation on them</p>
@@ -66,19 +66,19 @@
                 </tr>
                 <tr>
                     <th>X509Certificate</th>
-                    <td>Your <em>X509Certificate</em> is an OpenSSL certificate that has been signed by a trusted <em>CertificateCA</em>.
+                    <td>Your <em>X509Certificate</em> is an OpenSSL certificate that has been signed by a trusted <em>X509CertificateTrusted</em>.
                         The <em>X509Certificate</em> must be installed on your webserver with the <em>PrivateKey</em> that signed the corresponding <em>X509CertificateRequest</em> to serve https content.
                     </td>
                 </tr>
                 <tr>
-                    <th>CertificateCA</th>
+                    <th>X509CertificateTrusted</th>
                     <td>A trusted Certificate Authority Certificate, used to sign your <em>X509Certificate</em>.
                         It must be installed on your webserver in order to serve https content.
                     </td>
                 </tr>
                 <tr>
-                    <th>CertificateCAChain</th>
-                    <td>A collection of or more <em>CertificateCA</em> Certificates that provide a path from the EndEntity
+                    <th>X509CertificateTrustChain</th>
+                    <td>A collection of or more <em>X509CertificateTrusted</em> Certificates that provide a path from the EndEntity
                         <em>X509Certificate</em> to a Trusted Root Certificate..
                     </td>
                 </tr>

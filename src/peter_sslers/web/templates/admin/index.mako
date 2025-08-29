@@ -192,21 +192,21 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-dns Server Accounts</a></li>
-                <li><a href="${admin_prefix}/certificate-cas"
-                       title="CertificateCAs"
+                <li><a href="${admin_prefix}/x509-certificate-trusteds"
+                       title="X509CertificateTrusteds"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-cas</a></li>
-                <li><a href="${admin_prefix}/certificate-ca-chains"
-                       title="CertificateCAChains"
+                    x509-certificate-trusteds</a></li>
+                <li><a href="${admin_prefix}/x509-certificate-trust-chain"
+                       title="X509CertificateTrustChains"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-ca-chains</a></li>
-                <li><a href="${admin_prefix}/certificate-ca-preference-policys"
-                       title="CertificateCAPreferencePolicys"
+                    x509-certificate-trust-chain</a></li>
+                <li><a href="${admin_prefix}/x509-certificate-trust-preference-policys"
+                       title="X509CertificateTrustPreferencePolicys"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-ca-preference-policys</a></li>
+                    x509-certificate-trust-preference-policys</a></li>
             </ul>
 
 
@@ -267,11 +267,11 @@
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: AcmeAccount</a></li>
                 <li>
-                    <a  href="${admin_prefix}/certificate-ca/upload-cert"
-                        title="CertificateCA - Upload"
+                    <a  href="${admin_prefix}/x509-certificate-trusted/upload-cert"
+                        title="X509CertificateTrusted - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-                    Upload: CertificateCA</a></li>
+                    Upload: X509CertificateTrusted</a></li>
                 <li>
                     <a  href="${admin_prefix}/x509-certificate/upload"
                         title="X509Certificate - Upload"

@@ -103,8 +103,8 @@ from .regex_library import RE_AcmeOrder_processed
 from .regex_library import RE_AcmeOrder_renewal_configuration
 from .regex_library import RE_AcmeOrder_retry
 from .regex_library import RE_AcmeOrder_status
-from .regex_library import RE_CertificateCA_uploaded
-from .regex_library import RE_CertificateCAChain_uploaded
+from .regex_library import RE_X509CertificateTrusted_uploaded
+from .regex_library import RE_X509CertificateTrustChain_uploaded
 from .regex_library import RE_X509Certificate_button
 from .regex_library import RE_X509Certificate_main
 from .regex_library import RE_X509Certificate_operation_nginx_expire
@@ -3473,66 +3473,69 @@ class FunctionalTests_AriCheck(AppTest):
         assert res.json["AriCheck"]["id"] == dbAriCheck.id
 
 
-class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
+class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
     """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAPreferencePolicy
+    python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustPreferencePolicy
     """
 
     @routes_tested(
         (
-            "admin:certificate_ca_preference_policys",
-            "admin:certificate_ca_preference_policys-paginated",
+            "admin:x509_certificate_trust_preference_policys",
+            "admin:x509_certificate_trust_preference_policys-paginated",
         )
     )
     def test_list_html(self):
         # root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policys", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policys",
+            status=200,
         )
         # paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policys/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policys/1",
+            status=200,
         )
 
     @routes_tested(
         (
-            "admin:certificate_ca_preference_policys|json",
-            "admin:certificate_ca_preference_policys-paginated|json",
+            "admin:x509_certificate_trust_preference_policys|json",
+            "admin:x509_certificate_trust_preference_policys-paginated|json",
         )
     )
     def test_list_json(self):
         # JSON root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policys.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policys.json",
             status=200,
         )
-        assert "CertificateCAPreferencePolicys" in res.json
+        assert "X509CertificateTrustPreferencePolicys" in res.json
 
         # JSON paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policys/1.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policys/1.json",
             status=200,
         )
-        assert "CertificateCAPreferencePolicys" in res.json
+        assert "X509CertificateTrustPreferencePolicys" in res.json
 
-    @routes_tested(("admin:certificate_ca_preference_policy:focus",))
+    @routes_tested(("admin:x509_certificate_trust_preference_policy:focus",))
     def test_focus_html(self):
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
-        )
-
-    @routes_tested(("admin:certificate_ca_preference_policy:focus|json",))
-    def test_focus_json(self):
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1",
             status=200,
         )
-        assert "CertificateCAPreferencePolicy" in res.json
+
+    @routes_tested(("admin:x509_certificate_trust_preference_policy:focus|json",))
+    def test_focus_json(self):
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1.json",
+            status=200,
+        )
+        assert "X509CertificateTrustPreferencePolicy" in res.json
 
     def _expected_preferences(self):
         """this is shared by html and json"""
         # when we initialize the application, the setup routine inserts some
-        # default CertificateCA preferences
+        # default X509CertificateTrusted preferences
         # format: (slot_id, sha1[:8])
         expected_preferences_initial = (
             ("1", "DAC9024F"),  # trustid_root_x3
@@ -3548,40 +3551,40 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         ]
         return (expected_preferences_initial, expected_preferences_altered)
 
-    def _load__CertificateCAPreferencePolicy(self):
-        _dbCertificateCAPreferencePolicy = (
-            lib_db_get.get__CertificateCAPreferencePolicy__by_id(
+    def _load__X509CertificateTrustPreferencePolicy(self):
+        _dbX509CertificateTrustPreferencePolicy = (
+            lib_db_get.get__X509CertificateTrustPreferencePolicy__by_id(
                 self.ctx,
                 1,
                 eagerload_preferences=True,
             )
         )
-        return _dbCertificateCAPreferencePolicy
+        return _dbX509CertificateTrustPreferencePolicy
 
-    def _load__CertificateCA_unused(self):
-        dbCertificateCA_unused = (
-            self.ctx.dbSession.query(model_objects.CertificateCA)
+    def _load__X509CertificateTrusted_unused(self):
+        dbX509CertificateTrusted_unused = (
+            self.ctx.dbSession.query(model_objects.X509CertificateTrusted)
             .outerjoin(
-                model_objects.CertificateCAPreference,
-                model_objects.CertificateCA.id
-                == model_objects.CertificateCAPreference.certificate_ca_id,
+                model_objects.X509CertificatePreferencePolicyItem,
+                model_objects.X509CertificateTrusted.id
+                == model_objects.X509CertificatePreferencePolicyItem.x509_certificate_trusted_id,
             )
-            .filter(model_objects.CertificateCAPreference.id.is_(None))
+            .filter(model_objects.X509CertificatePreferencePolicyItem.id.is_(None))
             .all()
         )
-        return dbCertificateCA_unused
+        return dbX509CertificateTrusted_unused
 
     @routes_tested(
         (
-            "admin:certificate_ca_preference_policy:focus",
-            "admin:certificate_ca_preference_policy:focus:add",
-            "admin:certificate_ca_preference_policy:focus:delete",
-            "admin:certificate_ca_preference_policy:focus:prioritize",
+            "admin:x509_certificate_trust_preference_policy:focus",
+            "admin:x509_certificate_trust_preference_policy:focus:add",
+            "admin:x509_certificate_trust_preference_policy:focus:delete",
+            "admin:x509_certificate_trust_preference_policy:focus:prioritize",
         )
     )
     def test_manipulate_html(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAPreferencePolicy
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustPreferencePolicy
         """
 
         (
@@ -3594,13 +3597,15 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             ensures the forms are present, expected and compliant
             """
             # load our database backed info
-            _dbCertificateCAPreferencePolicy = (
-                self._load__CertificateCAPreferencePolicy()
+            _dbX509CertificateTrustPreferencePolicy = (
+                self._load__X509CertificateTrustPreferencePolicy()
             )
-            _dbCertificateCAPreferences = (
-                _dbCertificateCAPreferencePolicy.certificate_ca_preferences
+            _dbX509CertificatePreferencePolicyItems = (
+                _dbX509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
             )
-            assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
+            assert len(_dbX509CertificatePreferencePolicyItems) == len(
+                _expected_preferences
+            )
 
             _res_forms = _res.forms
 
@@ -3628,15 +3633,20 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
                 assert _fields["slot"] == _slot_id
                 assert _fields["fingerprint_sha1"].startswith(_fingerpint_sha1_substr)
 
-                assert _dbCertificateCAPreferences[_idx].slot_id == int(_slot_id)
-                assert _dbCertificateCAPreferences[
+                assert _dbX509CertificatePreferencePolicyItems[_idx].slot_id == int(
+                    _slot_id
+                )
+                assert _dbX509CertificatePreferencePolicyItems[
                     _idx
-                ].certificate_ca.fingerprint_sha1.startswith(_fingerpint_sha1_substr)
+                ].x509_certificate_trusted.fingerprint_sha1.startswith(
+                    _fingerpint_sha1_substr
+                )
 
         # !!!: start the test
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1",
+            status=200,
         )
         _ensure_compliance_form(res, expected_preferences_initial)
 
@@ -3667,7 +3677,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         assert res4.status_code == 303
         assert (
             res4.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=prioritize"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1?result=success&operation=prioritize"
         )
         res5 = self.testapp.get(res4.location, status=200)
         _ensure_compliance_form(res5, expected_preferences_altered)
@@ -3687,7 +3697,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         assert res6.status_code == 303
         assert (
             res6.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=prioritize"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1?result=success&operation=prioritize"
         )
 
         # now, do this again.
@@ -3700,13 +3710,14 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         )
 
         # woohoo, now grab a new certificateCA to insert
-        dbCertificateCA_unused = self._load__CertificateCA_unused()
-        assert len(dbCertificateCA_unused) >= 1
-        dbCertificateCA_add = dbCertificateCA_unused[0]
+        dbX509CertificateTrusted_unused = self._load__X509CertificateTrusted_unused()
+        assert len(dbX509CertificateTrusted_unused) >= 1
+        dbX509CertificateTrusted_add = dbX509CertificateTrusted_unused[0]
 
         # start from scratch
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1",
+            status=200,
         )
         forms = res.forms
         assert "form-preferred-add" in res.forms
@@ -3714,12 +3725,12 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         # add
         form_add = res.forms["form-preferred-add"]
         assert "fingerprint_sha1" in dict(form_add.submit_fields())
-        form_add["fingerprint_sha1"] = dbCertificateCA_add.fingerprint_sha1
+        form_add["fingerprint_sha1"] = dbX509CertificateTrusted_add.fingerprint_sha1
         res2 = form_add.submit()
         assert res2.status_code == 303
         assert (
             res2.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=add"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1?result=success&operation=add"
         )
 
         # ensure compliance
@@ -3727,7 +3738,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         expected_preferences_added.append(
             (
                 str(len(expected_preferences_added) + 1),
-                str(dbCertificateCA_add.fingerprint_sha1),
+                str(dbX509CertificateTrusted_add.fingerprint_sha1),
             )
         )
         res3 = self.testapp.get(res2.location)
@@ -3738,13 +3749,14 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         _submit_fields = dict(form_del.submit_fields())
         assert "fingerprint_sha1" in _submit_fields
         assert (
-            _submit_fields["fingerprint_sha1"] == dbCertificateCA_add.fingerprint_sha1
+            _submit_fields["fingerprint_sha1"]
+            == dbX509CertificateTrusted_add.fingerprint_sha1
         )
         res4 = form_del.submit()
         assert res4.status_code == 303
         assert (
             res4.location
-            == "http://peter-sslers.example.com/.well-known/peter_sslers/certificate-ca-preference-policy/1?result=success&operation=delete"
+            == "http://peter-sslers.example.com/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1?result=success&operation=delete"
         )
 
         # delete again, we should fail!
@@ -3757,7 +3769,8 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # and lets make sure we're at the base option
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1",
+            status=200,
         )
         _ensure_compliance_form(res, expected_preferences_initial)
 
@@ -3765,15 +3778,15 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
     @routes_tested(
         (
-            "admin:certificate_ca_preference_policy:focus|json",
-            "admin:certificate_ca_preference_policy:focus:add|json",
-            "admin:certificate_ca_preference_policy:focus:delete|json",
-            "admin:certificate_ca_preference_policy:focus:prioritize|json",
+            "admin:x509_certificate_trust_preference_policy:focus|json",
+            "admin:x509_certificate_trust_preference_policy:focus:add|json",
+            "admin:x509_certificate_trust_preference_policy:focus:delete|json",
+            "admin:x509_certificate_trust_preference_policy:focus:prioritize|json",
         )
     )
     def test_manipulate_json(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAPreferencePolicy.test_manipulate_json
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustPreferencePolicy.test_manipulate_json
         """
         (
             expected_preferences_initial,
@@ -3782,13 +3795,13 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # for json tests, we need to map the substring fingerprints in the test to
         # full size fingerprints for certain operations
-        _dbCertificateCA_all = self.ctx.dbSession.query(
-            model_objects.CertificateCA
+        _dbX509CertificateTrusted_all = self.ctx.dbSession.query(
+            model_objects.X509CertificateTrusted
         ).all()
         # sha1[:8] = (sha1, id)
         fingerprints_mapping = {
             i.fingerprint_sha1[:8]: (i.fingerprint_sha1, i.id)
-            for i in _dbCertificateCA_all
+            for i in _dbX509CertificateTrusted_all
         }
 
         def _ensure_compliance_payload(_res, _expected_preferences):
@@ -3796,19 +3809,21 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             ensures the forms are present, expected and compliant
             """
             # load our database backed info
-            _dbCertificateCAPreferencePolicy = (
-                self._load__CertificateCAPreferencePolicy()
+            _dbX509CertificateTrustPreferencePolicy = (
+                self._load__X509CertificateTrustPreferencePolicy()
             )
-            _dbCertificateCAPreferences = (
-                _dbCertificateCAPreferencePolicy.certificate_ca_preferences
+            _dbX509CertificatePreferencePolicyItems = (
+                _dbX509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
             )
-            assert len(_dbCertificateCAPreferences) == len(_expected_preferences)
+            assert len(_dbX509CertificatePreferencePolicyItems) == len(
+                _expected_preferences
+            )
 
             # check our payload
-            assert "CertificateCAPreferencePolicy" in res.json
+            assert "X509CertificateTrustPreferencePolicy" in res.json
 
             # # res.json
-            # {'CertificateCAPreferencePolicy': {'id': 1, 'certificate_ca_preferences': [{'id': 1, 'slot_id': 1, 'certificate_ca_id': 1}, {'id': 2, 'slot_id': 2, 'certificate_ca_id': 4}, {'id': 3, 'slot_id': 3, 'certificate_ca_id': 2}], 'name': 'global'}}
+            # {'X509CertificateTrustPreferencePolicy': {'id': 1, 'x509_certificate_trust_preference_policy_items': [{'id': 1, 'slot_id': 1, 'x509_certificate_trusted_id': 1}, {'id': 2, 'slot_id': 2, 'x509_certificate_trusted_id': 4}, {'id': 3, 'slot_id': 3, 'x509_certificate_trusted_id': 2}], 'name': 'global'}}
 
             # # _expected_preferences
             # (('1', 'DAC9024F'), ('2', 'BDB1B93C'), ('3', 'CABD2A79'))
@@ -3818,18 +3833,18 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             json_caCertId_2_certSha = {}
             json_slotId_2_certSha = {}
 
-            for _dbPref in _dbCertificateCAPreferences:
-                db_caCertId_2_certSha[_dbPref.certificate_ca_id] = (
-                    _dbPref.certificate_ca.fingerprint_sha1
+            for _dbPref in _dbX509CertificatePreferencePolicyItems:
+                db_caCertId_2_certSha[_dbPref.x509_certificate_trusted_id] = (
+                    _dbPref.x509_certificate_trusted.fingerprint_sha1
                 )
                 db_slotId_2_certSha[_dbPref.slot_id] = (
-                    _dbPref.certificate_ca.fingerprint_sha1
+                    _dbPref.x509_certificate_trusted.fingerprint_sha1
                 )
 
-            for _jsonPref in _res.json["CertificateCAPreferencePolicy"][
-                "certificate_ca_preferences"
+            for _jsonPref in _res.json["X509CertificateTrustPreferencePolicy"][
+                "x509_certificate_trust_preference_policy_items"
             ]:
-                _cert_ca_id = _jsonPref["certificate_ca_id"]
+                _cert_ca_id = _jsonPref["x509_certificate_trusted_id"]
                 _slot_id = _jsonPref["slot_id"]
                 json_caCertId_2_certSha[_cert_ca_id] = db_caCertId_2_certSha[
                     _cert_ca_id
@@ -3844,7 +3859,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         # !!!: start the test
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1.json",
             status=200,
         )
         _ensure_compliance_payload(res, expected_preferences_initial)
@@ -3853,7 +3868,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # GET/POST prioritize
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             status=200,
         )
         assert "form_fields" in res.json
@@ -3862,7 +3877,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         for _field in _expected_fields:
             assert _field in res.json["form_fields"]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json"
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json"
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
@@ -3873,7 +3888,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # GET/POST add
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/add.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/add.json",
             status=200,
         )
         assert "form_fields" in res.json
@@ -3882,7 +3897,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         for _field in _expected_fields:
             assert _field in res.json["form_fields"]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/add.json"
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/add.json"
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
@@ -3893,7 +3908,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # GET/POST delete
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/delete.json",
             status=200,
         )
         assert "form_fields" in res.json
@@ -3902,7 +3917,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         for _field in _expected_fields:
             assert _field in res.json["form_fields"]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json"
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/delete.json"
         )
         assert res.json["result"] == "error"
         assert "Error_Main" in res.json["form_errors"]
@@ -3921,7 +3936,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             "priority": "increase",
         }
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -3936,7 +3951,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             _payload["fingerprint_sha1"]
         ][0]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -3955,7 +3970,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             "priority": "decrease",
         }
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -3970,7 +3985,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             _payload["fingerprint_sha1"]
         ][0]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -3993,7 +4008,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             _payload["fingerprint_sha1"]
         ][0]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4003,7 +4018,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         # now, do this again.
         # we should FAIL because it is stale
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4024,7 +4039,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
             _payload["fingerprint_sha1"]
         ][0]
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4034,7 +4049,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         # now, do this again.
         # we should FAIL because it is stale
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/prioritize.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/prioritize.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4046,14 +4061,14 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         )
 
         # woohoo, now grab a new certificateCA to insert
-        dbCertificateCA_unused = self._load__CertificateCA_unused()
-        assert len(dbCertificateCA_unused) >= 1
-        dbCertificateCA_add = dbCertificateCA_unused[0]
+        dbX509CertificateTrusted_unused = self._load__X509CertificateTrusted_unused()
+        assert len(dbX509CertificateTrusted_unused) >= 1
+        dbX509CertificateTrusted_add = dbX509CertificateTrusted_unused[0]
 
         # add
-        _payload = {"fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
+        _payload = {"fingerprint_sha1": dbX509CertificateTrusted_add.fingerprint_sha1}
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/add.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/add.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4065,19 +4080,22 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         expected_preferences_added.append(
             (
                 str(len(expected_preferences_added) + 1),
-                str(dbCertificateCA_add.fingerprint_sha1),
+                str(dbX509CertificateTrusted_add.fingerprint_sha1),
             )
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1.json",
             status=200,
         )
         _ensure_compliance_payload(res, expected_preferences_added)
 
         # delete
-        _payload = {"slot": 4, "fingerprint_sha1": dbCertificateCA_add.fingerprint_sha1}
+        _payload = {
+            "slot": 4,
+            "fingerprint_sha1": dbX509CertificateTrusted_add.fingerprint_sha1,
+        }
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/delete.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4086,7 +4104,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # delete again, we should fail!
         res = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1/delete.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1/delete.json",
             _payload,
         )
         assert res.status_code == 200
@@ -4099,7 +4117,7 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
 
         # and lets make sure we're at the base option
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-preference-policy/1.json",
+            "/.well-known/peter_sslers/x509-certificate-trust-preference-policy/1.json",
             status=200,
         )
         _ensure_compliance_payload(res, expected_preferences_initial)
@@ -4107,138 +4125,145 @@ class FunctionalTests_CertificateCAPreferencePolicy(AppTest):
         # TODO: test adding more than 10 items
 
 
-class FunctionalTests_CertificateCA(AppTest):
+class FunctionalTests_X509CertificateTrusted(AppTest):
     """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA
+    python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrusted
     """
 
     @routes_tested(
         (
-            "admin:certificate_cas",
-            "admin:certificate_cas-paginated",
+            "admin:x509_certificate_trusteds",
+            "admin:x509_certificate_trusteds-paginated",
         )
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/peter_sslers/certificate-cas", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusteds", status=200
+        )
         # paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusteds/1", status=200
         )
 
     @routes_tested(
         (
-            "admin:certificate_cas|json",
-            "admin:certificate_cas-paginated|json",
+            "admin:x509_certificate_trusteds|json",
+            "admin:x509_certificate_trusteds-paginated|json",
         )
     )
     def test_list_json(self):
         # JSON root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusteds.json", status=200
         )
-        assert "CertificateCAs" in res.json
+        assert "X509CertificateTrusteds" in res.json
 
         # JSON paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-cas/1.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusteds/1.json", status=200
         )
-        assert "CertificateCAs" in res.json
+        assert "X509CertificateTrusteds" in res.json
 
     @routes_tested(
         (
-            "admin:certificate_ca:focus",
-            "admin:certificate_ca:focus:raw",
-            "admin:certificate_ca:focus:x509_certificates",
-            "admin:certificate_ca:focus:x509_certificates-paginated",
-            "admin:certificate_ca:focus:certificate_ca_chains_0",
-            "admin:certificate_ca:focus:certificate_ca_chains_0-paginated",
-            "admin:certificate_ca:focus:certificate_ca_chains_n",
-            "admin:certificate_ca:focus:certificate_ca_chains_n-paginated",
+            "admin:x509_certificate_trusted:focus",
+            "admin:x509_certificate_trusted:focus:raw",
+            "admin:x509_certificate_trusted:focus:x509_certificates",
+            "admin:x509_certificate_trusted:focus:x509_certificates-paginated",
+            "admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_0",
+            "admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_0-paginated",
+            "admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_n",
+            "admin:x509_certificate_trusted:focus:x509_certificate_trust_chains_n-paginated",
         )
     )
     def test_focus_html(self):
-        res = self.testapp.get("/.well-known/peter_sslers/certificate-ca/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1", status=200
+        )
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/cert.pem", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/cert.pem", status=200
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/cert.pem.txt", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/cert.cer", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/cert.crt", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/cert.der", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/x509-certificates", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/x509-certificates/1",
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/cert.pem.txt",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-0",
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/cert.cer", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/cert.crt", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/cert.der", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificates",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-0/1",
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificates/1",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-n",
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificate-trust-chain-0",
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/certificate-ca-chains-n/1",
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificate-trust-chain-0/1",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificate-trust-chain-n",
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/x509-certificate-trust-chain-n/1",
             status=200,
         )
 
     @routes_tested(
         (
-            "admin:certificate_ca:focus|json",
-            "admin:certificate_ca:focus:parse|json",
+            "admin:x509_certificate_trusted:focus|json",
+            "admin:x509_certificate_trusted:focus:parse|json",
         )
     )
     def test_focus_json(self):
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/1.json", status=200
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/1/parse.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/1/parse.json",
+            status=200,
         )
-        assert "CertificateCA" in res.json
-        assert "id" in res.json["CertificateCA"]
-        assert "parsed" in res.json["CertificateCA"]
+        assert "X509CertificateTrusted" in res.json
+        assert "id" in res.json["X509CertificateTrusted"]
+        assert "parsed" in res.json["X509CertificateTrusted"]
 
-    @routes_tested(("admin:certificate_ca:upload_cert",))
+    @routes_tested(("admin:x509_certificate_trusted:upload_cert",))
     def test_upload_html(self):
         """
-        This should enter in item #8, but the CertificateCAs.order is 0.
+        This should enter in item #8, but the X509CertificateTrusteds.order is 0.
         xxx At this point, the only CA Cert that is not self-signed should be `ISRG Root X1`
         update: ISRG Root X2 has a cross-signed variant
 
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA.test_upload_html
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrusted.test_upload_html
         """
-        _cert_ca_id = TEST_FILES["CertificateCAs"]["order"][0]
+        _cert_ca_id = TEST_FILES["X509CertificateTrusteds"]["order"][0]
         self.assertEqual(_cert_ca_id, "trustid_root_x3")
-        _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+        _cert_ca_filename = TEST_FILES["X509CertificateTrusteds"]["cert"][_cert_ca_id]
         _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/upload-cert", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/upload-cert", status=200
         )
         form = res.form
         form["cert_file"] = Upload(_cert_ca_filepath)
         res2 = form.submit()
         assert res2.status_code == 303
 
-        matched = RE_CertificateCA_uploaded.match(res2.location)
+        matched = RE_X509CertificateTrusted_uploaded.match(res2.location)
 
         # this querystring ends: ?result=success&is_created=0'
         _is_created = bool(int(res2.location[-1]))
@@ -4247,112 +4272,119 @@ class FunctionalTests_CertificateCA(AppTest):
         obj_id = matched.groups()[0]
         res3 = self.testapp.get(res2.location, status=200)
 
-    @routes_tested(("admin:certificate_ca:upload_cert|json",))
+    @routes_tested(("admin:x509_certificate_trusted:upload_cert|json",))
     def test_upload_json(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCA.test_upload_json
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrusted.test_upload_json
 
         This originally tested an upload, but now we preload this certificate
         We
         """
-        _cert_ca_id = TEST_FILES["CertificateCAs"]["order"][2]
+        _cert_ca_id = TEST_FILES["X509CertificateTrusteds"]["order"][2]
         self.assertEqual(_cert_ca_id, "isrg_root_x1_cross")
-        _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+        _cert_ca_filename = TEST_FILES["X509CertificateTrusteds"]["cert"][_cert_ca_id]
         _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
 
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/upload-cert.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/upload-cert.json",
+            status=200,
         )
         _data = {"cert_file": Upload(_cert_ca_filepath)}
         res2 = self.testapp.post(
-            "/.well-known/peter_sslers/certificate-ca/upload-cert.json", _data
+            "/.well-known/peter_sslers/x509-certificate-trusted/upload-cert.json", _data
         )
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
         # we may not have created this
-        assert res2.json["CertificateCA"]["created"] in (True, False)
+        assert res2.json["X509CertificateTrusted"]["created"] in (True, False)
         assert (
-            res2.json["CertificateCA"]["id"] == 3
+            res2.json["X509CertificateTrusted"]["id"] == 3
         )  # this is the 3rd item in letsencrypt_info._CERT_CAS_ORDER
-        obj_id = res2.json["CertificateCA"]["id"]
+        obj_id = res2.json["X509CertificateTrusted"]["id"]
         res3 = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca/%s" % obj_id, status=200
+            "/.well-known/peter_sslers/x509-certificate-trusted/%s" % obj_id, status=200
         )
 
 
-class FunctionalTests_CertificateCAChain(AppTest):
+class FunctionalTests_X509CertificateTrustChain(AppTest):
     """
-    python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain
+    python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustChain
     """
 
     @routes_tested(
         (
-            "admin:certificate_ca_chains",
-            "admin:certificate_ca_chains-paginated",
+            "admin:x509_certificate_trust_chains",
+            "admin:x509_certificate_trust_chains-paginated",
         )
     )
     def test_list_html(self):
         # root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chains", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-chain", status=200
         )
         # paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chains/1", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-chain/1", status=200
         )
 
     @routes_tested(
         (
-            "admin:certificate_ca_chains|json",
-            "admin:certificate_ca_chains-paginated|json",
+            "admin:x509_certificate_trust_chains|json",
+            "admin:x509_certificate_trust_chains-paginated|json",
         )
     )
     def test_list_json(self):
         # JSON root
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chains.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-chain.json", status=200
         )
-        assert "CertificateCAChains" in res.json
+        assert "X509CertificateTrustChains" in res.json
 
         # JSON paginated
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chains/1.json", status=200
+            "/.well-known/peter_sslers/x509-certificate-trust-chain/1.json", status=200
         )
-        assert "CertificateCAChains" in res.json
+        assert "X509CertificateTrustChains" in res.json
 
     @routes_tested(
-        ("admin:certificate_ca_chain:focus", "admin:certificate_ca_chain:focus:raw")
+        (
+            "admin:x509_certificate_trust_chain:focus",
+            "admin:x509_certificate_trust_chain:focus:raw",
+        )
     )
     def test_focus_html(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_focus_html
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustChain.test_focus_html
         """
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chain/1", status=200
+            "/.well-known/peter_sslers/certificate-trust-chain/1", status=200
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chain/1/chain.pem", status=200
+            "/.well-known/peter_sslers/certificate-trust-chain/1/chain.pem", status=200
         )
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chain/1/chain.pem.txt", status=200
+            "/.well-known/peter_sslers/certificate-trust-chain/1/chain.pem.txt",
+            status=200,
         )
 
-    @routes_tested(("admin:certificate_ca_chain:focus|json",))
+    @routes_tested(("admin:x509_certificate_trust_chain:focus|json",))
     def test_focus_json(self):
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chain/1.json", status=200
+            "/.well-known/peter_sslers/certificate-trust-chain/1.json", status=200
         )
 
-    @routes_tested(("admin:certificate_ca_chain:upload_chain",))
+    @routes_tested(("admin:x509_certificate_trust_chain:upload_chain",))
     def test_upload_html(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_upload_html
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustChain.test_upload_html
         """
         # let's build a chain!
         chain_items = ["isrg_root_x2_cross", "isrg_root_x1"]
         _chain_data = []
         for _cert_ca_id in chain_items:
-            _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+            _cert_ca_filename = TEST_FILES["X509CertificateTrusteds"]["cert"][
+                _cert_ca_id
+            ]
             _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
             _cert_ca_filedata = self._filedata_testfile(_cert_ca_filepath)
             if TYPE_CHECKING:
@@ -4363,14 +4395,14 @@ class FunctionalTests_CertificateCAChain(AppTest):
         try:
             tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
             res = self.testapp.get(
-                "/.well-known/peter_sslers/certificate-ca-chain/upload-chain",
+                "/.well-known/peter_sslers/certificate-trust-chain/upload-chain",
                 status=200,
             )
             form = res.form
             form["chain_file"] = Upload(tmpfile_pem.name)
             res2 = form.submit()
             assert res2.status_code == 303
-            matched = RE_CertificateCAChain_uploaded.match(res2.location)
+            matched = RE_X509CertificateTrustChain_uploaded.match(res2.location)
             # this querystring ends: ?result=success&is_created=0'
             _is_created = bool(int(res2.location[-1]))
             assert matched
@@ -4380,21 +4412,23 @@ class FunctionalTests_CertificateCAChain(AppTest):
             if tmpfile_pem is not None:
                 tmpfile_pem.close()
 
-    @routes_tested(("admin:certificate_ca_chain:upload_chain|json",))
+    @routes_tested(("admin:x509_certificate_trust_chain:upload_chain|json",))
     def test_upload_json(self):
         """
-        python -m unittest tests.test_pyramid_app.FunctionalTests_CertificateCAChain.test_upload_json
+        python -m unittest tests.test_pyramid_app.FunctionalTests_X509CertificateTrustChain.test_upload_json
         """
         # test chain uploads
         res = self.testapp.get(
-            "/.well-known/peter_sslers/certificate-ca-chain/upload-chain.json",
+            "/.well-known/peter_sslers/certificate-trust-chain/upload-chain.json",
             status=200,
         )
         # let's build a chain!
         chain_items = ["isrg_root_x2_cross", "isrg_root_x1"]
         _chain_data = []
         for _cert_ca_id in chain_items:
-            _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][_cert_ca_id]
+            _cert_ca_filename = TEST_FILES["X509CertificateTrusteds"]["cert"][
+                _cert_ca_id
+            ]
             _cert_ca_filepath = self._filepath_testfile(_cert_ca_filename)
             _cert_ca_filedata = self._filedata_testfile(_cert_ca_filepath)
             if TYPE_CHECKING:
@@ -4406,13 +4440,13 @@ class FunctionalTests_CertificateCAChain(AppTest):
             tmpfile_pem = cert_utils.new_pem_tempfile(chain_data)
             _data = {"chain_file": Upload(tmpfile_pem.name)}
             res2 = self.testapp.post(
-                "/.well-known/peter_sslers/certificate-ca-chain/upload-chain.json",
+                "/.well-known/peter_sslers/certificate-trust-chain/upload-chain.json",
                 _data,
             )
             assert res2.status_code == 200
             assert res2.json["result"] == "success"
             # we may not have created this
-            assert res2.json["CertificateCAChain"]["created"] in (True, False)
+            assert res2.json["X509CertificateTrustChain"]["created"] in (True, False)
 
         finally:
             if tmpfile_pem is not None:
@@ -8665,42 +8699,43 @@ class FunctionalTests_AlternateChains(AppTest):
 
     @routes_tested(
         (
-            "admin:certificate_ca:focus:x509_certificates_alt",
-            "admin:certificate_ca:focus:x509_certificates_alt-paginated",
+            "admin:x509_certificate_trusted:focus:x509_certificates_alt",
+            "admin:x509_certificate_trusted:focus:x509_certificates_alt-paginated",
         )
     )
-    def test_CertificateCA_view(self):
+    def test_X509CertificateTrusted_view(self):
         focus_X509Certificate = self._get_one()
         for _x509_certificate_chain in focus_X509Certificate.x509_certificate_chains:
-            chain_id = _x509_certificate_chain.certificate_ca_chain_id
-            certificate_ca_id = (
-                _x509_certificate_chain.certificate_ca_chain.certificate_ca_0_id
+            chain_id = _x509_certificate_chain.x509_certificate_trust_chain_id
+            x509_certificate_trusted_id = (
+                _x509_certificate_chain.x509_certificate_trust_chain.x509_certificate_trusted_0_id
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/certificate-ca-chain/%s" % chain_id,
+                "/.well-known/peter_sslers/certificate-trust-chain/%s" % chain_id,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/certificate-ca/%s" % certificate_ca_id,
+                "/.well-known/peter_sslers/x509-certificate-trusted/%s"
+                % x509_certificate_trusted_id,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/certificate-ca/%s/x509-certificates-alt"
-                % certificate_ca_id,
+                "/.well-known/peter_sslers/x509-certificate-trusted/%s/x509-certificates-alt"
+                % x509_certificate_trusted_id,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/certificate-ca/%s/x509-certificates-alt/1"
-                % certificate_ca_id,
+                "/.well-known/peter_sslers/x509-certificate-trusted/%s/x509-certificates-alt/1"
+                % x509_certificate_trusted_id,
                 status=200,
             )
 
     @routes_tested(
         (
-            "admin:x509_certificate:focus:via_certificate_ca_chain:config|json",
-            "admin:x509_certificate:focus:via_certificate_ca_chain:config|zip",
-            "admin:x509_certificate:focus:via_certificate_ca_chain:chain:raw",
-            "admin:x509_certificate:focus:via_certificate_ca_chain:fullchain:raw",
+            "admin:x509_certificate:focus:via_x509_certificate_trust_chain:config|json",
+            "admin:x509_certificate:focus:via_x509_certificate_trust_chain:config|zip",
+            "admin:x509_certificate:focus:via_x509_certificate_trust_chain:chain:raw",
+            "admin:x509_certificate:focus:via_x509_certificate_trust_chain:fullchain:raw",
         )
     )
     def test_X509Certificate_view(self):
@@ -8709,8 +8744,8 @@ class FunctionalTests_AlternateChains(AppTest):
         x509_certificate_id = focus_X509Certificate.id
         # this will have the primary root and the alternate roots;
         # pre-cache this now
-        certificate_ca_chain_ids = [
-            i.certificate_ca_chain_id
+        x509_certificate_trust_chain_ids = [
+            i.x509_certificate_trust_chain_id
             for i in focus_X509Certificate.x509_certificate_chains
         ]
 
@@ -8719,57 +8754,57 @@ class FunctionalTests_AlternateChains(AppTest):
             status=200,
         )
 
-        for certificate_ca_chain_id in certificate_ca_chain_ids:
-            focus_ids = (x509_certificate_id, certificate_ca_chain_id)
+        for x509_certificate_trust_chain_id in x509_certificate_trust_chain_ids:
+            focus_ids = (x509_certificate_id, x509_certificate_trust_chain_id)
 
             # chain
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/chain.cer"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/chain.cer"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/chain.crt"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/chain.crt"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/chain.der"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/chain.der"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/chain.pem"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/chain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/chain.pem.txt"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/chain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # fullchain
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/fullchain.pem"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/fullchain.pem"
                 % focus_ids,
                 status=200,
             )
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/fullchain.pem.txt"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/fullchain.pem.txt"
                 % focus_ids,
                 status=200,
             )
 
             # configs
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/config.json"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/config.json"
                 % focus_ids,
                 status=200,
             )
 
             res = self.testapp.get(
-                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-ca-chain/%s/config.zip"
+                "/.well-known/peter_sslers/x509-certificate/%s/via-certificate-trust-chain/%s/config.zip"
                 % focus_ids,
                 status=200,
             )

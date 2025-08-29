@@ -20,8 +20,6 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeEventLog
     from ...model.objects import AcmeOrder
     from ...model.objects import AcmeServer
-    from ...model.objects import CertificateCA
-    from ...model.objects import CertificateCAChain
     from ...model.objects import CoverageAssuranceEvent
     from ...model.objects import Domain
     from ...model.objects import EnrollmentFactory
@@ -33,6 +31,8 @@ if TYPE_CHECKING:
     from ...model.objects import UniquelyChallengedFQDNSet
     from ...model.objects import X509Certificate
     from ...model.objects import X509CertificateRequest
+    from ...model.objects import X509CertificateTrustChain
+    from ...model.objects import X509CertificateTrusted
 
 # ==============================================================================
 
@@ -580,8 +580,8 @@ def _log_object_event(
     dbAcmeDnsServer: Optional["AcmeDnsServer"] = None,
     dbAcmeOrder: Optional["AcmeOrder"] = None,
     dbAcmeServer: Optional["AcmeServer"] = None,
-    dbCertificateCA: Optional["CertificateCA"] = None,
-    dbCertificateCAChain: Optional["CertificateCAChain"] = None,
+    dbX509CertificateTrusted: Optional["X509CertificateTrusted"] = None,
+    dbX509CertificateTrustChain: Optional["X509CertificateTrustChain"] = None,
     dbX509CertificateRequest: Optional["X509CertificateRequest"] = None,
     dbCoverageAssuranceEvent: Optional["CoverageAssuranceEvent"] = None,
     dbDomain: Optional["Domain"] = None,
@@ -607,10 +607,14 @@ def _log_object_event(
         dbOperationsObjectEvent.acme_order_id = dbAcmeOrder.id
     elif dbAcmeServer:
         dbOperationsObjectEvent.acme_server_id = dbAcmeServer.id
-    elif dbCertificateCA:
-        dbOperationsObjectEvent.certificate_ca_id = dbCertificateCA.id
-    elif dbCertificateCAChain:
-        dbOperationsObjectEvent.certificate_ca_chain_id = dbCertificateCAChain.id
+    elif dbX509CertificateTrusted:
+        dbOperationsObjectEvent.x509_certificate_trusted_id = (
+            dbX509CertificateTrusted.id
+        )
+    elif dbX509CertificateTrustChain:
+        dbOperationsObjectEvent.x509_certificate_trust_chain_id = (
+            dbX509CertificateTrustChain.id
+        )
     elif dbX509CertificateRequest:
         dbOperationsObjectEvent.x509_certificate_request_id = (
             dbX509CertificateRequest.id

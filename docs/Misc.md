@@ -40,11 +40,11 @@ This prime style will store data into `Redis` in the following format:
 * `d:{DOMAIN_NAME}` a 3 element hash for
   * X509Certificate (c)
   * PrivateKey (p)
-  * CertificateCAChain (i)
+  * X509CertificateTrustChain (i)
   * Note: the leading colon is required
 * `c{ID}` the X509Certificate in PEM format; (c)ert
 * `p{ID}` the PrivateKey in PEM format; (p)rivate
-* `i{ID}` the CertificateCAChain in PEM format; (i)ntermediate certs
+* `i{ID}` the X509CertificateTrustChain in PEM format; (i)ntermediate certs
 
 The `Redis` datastore might look something like this:
 
@@ -69,7 +69,7 @@ to assemble the data for `foo.example.com`:
 This prime style will store data into `Redis` in the following format:
 
 * `{DOMAIN_NAME}` a 2 element hash for:
-  * FullChain [X509Certificate+CertificateCAChain] (f)
+  * FullChain [X509Certificate+X509CertificateTrustChain] (f)
   * PrivateKey (p)
 
 The `Redis` datastore might look something like this:

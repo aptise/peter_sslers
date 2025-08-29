@@ -45,10 +45,12 @@ if TYPE_CHECKING:
 
 def archive_zipfile(
     dbX509Certificate: X509Certificate,
-    certificate_ca_chain_id: Optional[int] = None,
+    x509_certificate_trust_chain_id: Optional[int] = None,
 ) -> tempfile.SpooledTemporaryFile:
-    if certificate_ca_chain_id is None:
-        certificate_ca_chain_id = dbX509Certificate.certificate_ca_chain_id__preferred
+    if x509_certificate_trust_chain_id is None:
+        x509_certificate_trust_chain_id = (
+            dbX509Certificate.x509_certificate_trust_chain_id__preferred
+        )
 
     now = time.localtime(time.time())[:6]
     tmpfile = tempfile.SpooledTemporaryFile()
@@ -66,7 +68,7 @@ def archive_zipfile(
         archive.writestr(
             info,
             dbX509Certificate.valid_cert_chain_pem(
-                certificate_ca_chain_id=certificate_ca_chain_id
+                x509_certificate_trust_chain_id=x509_certificate_trust_chain_id
             ),
         )
         # `fullchain1.pem`
@@ -76,7 +78,7 @@ def archive_zipfile(
         archive.writestr(
             info,
             dbX509Certificate.valid_cert_fullchain_pem(
-                certificate_ca_chain_id=certificate_ca_chain_id
+                x509_certificate_trust_chain_id=x509_certificate_trust_chain_id
             ),
         )
         # `privkey1.pem`
@@ -781,9 +783,9 @@ class View_New(Handler):
             if not isinstance(ca_chain_pem, str):
                 ca_chain_pem = ca_chain_pem.decode("utf8")
             (
-                dbCertificateCAChain,
+                dbX509CertificateTrustChain,
                 chain_is_created,
-            ) = lib_db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+            ) = lib_db.getcreate.getcreate__X509CertificateTrustChain__by_pem_text(
                 self.request.api_context,
                 ca_chain_pem,
                 discovery_type="upload",
@@ -816,7 +818,7 @@ class View_New(Handler):
                 self.request.api_context,
                 certificate_pem,
                 cert_domains_expected=_certificate_domain_names,
-                dbCertificateCAChain=dbCertificateCAChain,
+                dbX509CertificateTrustChain=dbX509CertificateTrustChain,
                 certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
                 # optionals
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
@@ -838,9 +840,9 @@ class View_New(Handler):
                             dbX509Certificate.id,
                         ),
                     },
-                    "CertificateCAChain": {
+                    "X509CertificateTrustChain": {
                         "created": chain_is_created,
-                        "id": dbCertificateCAChain.id,
+                        "id": dbX509CertificateTrustChain.id,
                     },
                     "PrivateKey": {"created": pkey_is_created, "id": dbPrivateKey.id},
                 }
@@ -1228,68 +1230,74 @@ class View_Focus(Handler):
         }
 
 
-class View_Focus_via_CertificateCAChain(View_Focus):
-    def _focus_via_CertificateCAChain(self):
+class View_Focus_via_X509CertificateTrustChain(View_Focus):
+    def _focus_via_X509CertificateTrustChain(self):
         dbX509Certificate = self._focus()
-        certificate_ca_chain_id = int(self.request.matchdict["id_cachain"])
-        if certificate_ca_chain_id not in dbX509Certificate.certificate_ca_chain_ids:
-            raise HTTPNotFound("invalid CertificateCAChain")
-        return (dbX509Certificate, certificate_ca_chain_id)
+        x509_certificate_trust_chain_id = int(self.request.matchdict["id_cachain"])
+        if (
+            x509_certificate_trust_chain_id
+            not in dbX509Certificate.x509_certificate_trust_chain_ids
+        ):
+            raise HTTPNotFound("invalid X509CertificateTrustChain")
+        return (dbX509Certificate, x509_certificate_trust_chain_id)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:x509_certificate:focus:via_certificate_ca_chain:config|json",
+        route_name="admin:x509_certificate:focus:via_x509_certificate_trust_chain:config|json",
         renderer="json",
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/config.json",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/config.json",
             "section": "x509-certificate",
-            "about": """X509Certificate via CertificateCAChain Config.json""",
+            "about": """X509Certificate via X509CertificateTrustChain Config.json""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/config.json",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/config.json",
         }
     )
     def config_json(self):
         (
             dbX509Certificate,
-            certificate_ca_chain_id,
-        ) = self._focus_via_CertificateCAChain()
+            x509_certificate_trust_chain_id,
+        ) = self._focus_via_X509CertificateTrustChain()
         if self.request.params.get("idonly", None):
             rval = dbX509Certificate.custom_config_payload(
-                certificate_ca_chain_id=certificate_ca_chain_id, id_only=True
+                x509_certificate_trust_chain_id=x509_certificate_trust_chain_id,
+                id_only=True,
             )
         else:
             rval = dbX509Certificate.custom_config_payload(
-                certificate_ca_chain_id=certificate_ca_chain_id, id_only=False
+                x509_certificate_trust_chain_id=x509_certificate_trust_chain_id,
+                id_only=False,
             )
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:x509_certificate:focus:via_certificate_ca_chain:config|zip"
+        route_name="admin:x509_certificate:focus:via_x509_certificate_trust_chain:config|zip"
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/config.zip",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/config.zip",
             "section": "x509-certificate",
-            "about": """X509Certificate via CertificateCAChain Config.zip""",
+            "about": """X509Certificate via X509CertificateTrustChain Config.zip""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/config.zip",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/config.zip",
         }
     )
     def config_zip(self):
         (
             dbX509Certificate,
-            certificate_ca_chain_id,
-        ) = self._focus_via_CertificateCAChain()
+            x509_certificate_trust_chain_id,
+        ) = self._focus_via_X509CertificateTrustChain()
         try:
             tmpfile = archive_zipfile(
-                dbX509Certificate, certificate_ca_chain_id=certificate_ca_chain_id
+                dbX509Certificate,
+                x509_certificate_trust_chain_id=x509_certificate_trust_chain_id,
             )
             response = Response(
                 content_type="application/zip", body_file=tmpfile, status=200
@@ -1298,7 +1306,7 @@ class View_Focus_via_CertificateCAChain(View_Focus):
                 "attachment; filename= cert%s-chain%s.zip"
                 % (
                     dbX509Certificate.id,
-                    certificate_ca_chain_id,
+                    x509_certificate_trust_chain_id,
                 )
             )
             return response
@@ -1311,65 +1319,67 @@ class View_Focus_via_CertificateCAChain(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:x509_certificate:focus:via_certificate_ca_chain:chain:raw",
+        route_name="admin:x509_certificate:focus:via_x509_certificate_trust_chain:chain:raw",
         renderer="string",
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.pem",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/chain.pem",
             "section": "x509-certificate",
-            "about": """X509Certificate via CertificateCAChain Chain-PEM""",
+            "about": """X509Certificate via X509CertificateTrustChain Chain-PEM""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/chain.pem",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/chain.pem",
         }
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.pem.txt",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/chain.pem.txt",
             "section": "x509-certificate",
-            "about": """X509Certificate via CertificateCAChain Chain-PEM""",
+            "about": """X509Certificate via X509CertificateTrustChain Chain-PEM""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/chain.pem.txt",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/chain.pem.txt",
         }
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.cer",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/chain.cer",
             "section": "x509-certificate",
-            "about": """X509Certificate via CertificateCAChain Chain-DER""",
+            "about": """X509Certificate via X509CertificateTrustChain Chain-DER""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/chain.cer",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/chain.cer",
         }
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.crt",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/chain.crt",
             "section": "x509-certificate",
-            "about": """X509Certificate via CertificateCAChain Chain-DER""",
+            "about": """X509Certificate via X509CertificateTrustChain Chain-DER""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/chain.crt",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/chain.crt",
         }
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/chain.der",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/chain.der",
             "section": "x509-certificate",
-            "about": """X509Certificate via CertificateCAChain Chain-DER""",
+            "about": """X509Certificate via X509CertificateTrustChain Chain-DER""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/chain.der",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/chain.der",
         }
     )
     def chain(self):
         (
             dbX509Certificate,
-            certificate_ca_chain_id,
-        ) = self._focus_via_CertificateCAChain()
-        cert_chain_pem = dbX509Certificate.valid_cert_chain_pem(certificate_ca_chain_id)
+            x509_certificate_trust_chain_id,
+        ) = self._focus_via_X509CertificateTrustChain()
+        cert_chain_pem = dbX509Certificate.valid_cert_chain_pem(
+            x509_certificate_trust_chain_id
+        )
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
             return cert_chain_pem
@@ -1389,36 +1399,36 @@ class View_Focus_via_CertificateCAChain(View_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:x509_certificate:focus:via_certificate_ca_chain:fullchain:raw",
+        route_name="admin:x509_certificate:focus:via_x509_certificate_trust_chain:fullchain:raw",
         renderer="string",
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/fullchain.pem",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/fullchain.pem",
             "section": "x509-certificate",
-            "about": """X509Certificate via CertificateCAChain FullChain-PEM""",
+            "about": """X509Certificate via X509CertificateTrustChain FullChain-PEM""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/fullchain.pem",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/fullchain.pem",
         }
     )
     @docify(
         {
-            "endpoint": "/x509-certificate/{ID}/via-certificate-ca-chain/{ID_CACHAIN}/fullchain.pem.txt",
+            "endpoint": "/x509-certificate/{ID}/via-certificate-trust-chain/{ID_CACHAIN}/fullchain.pem.txt",
             "section": "x509-certificate",
-            "about": """X509Certificate via CertificateCAChain FullChain-PEM""",
+            "about": """X509Certificate via X509CertificateTrustChain FullChain-PEM""",
             "POST": None,
             "GET": True,
-            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-ca-chain/2/fullchain.pem.txt",
+            "example": "curl {ADMIN_PREFIX}/x509-certificate/1/via-certificate-trust-chain/2/fullchain.pem.txt",
         }
     )
     def fullchain(self):
         (
             dbX509Certificate,
-            certificate_ca_chain_id,
-        ) = self._focus_via_CertificateCAChain()
+            x509_certificate_trust_chain_id,
+        ) = self._focus_via_X509CertificateTrustChain()
         cert_fullchain_pem = dbX509Certificate.valid_cert_fullchain_pem(
-            certificate_ca_chain_id
+            x509_certificate_trust_chain_id
         )
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"

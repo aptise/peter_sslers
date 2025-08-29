@@ -27,8 +27,6 @@ from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__AcmeDnsServer__by_api_url
 from .get import get__AcmeDnsServer__count
 from .get import get__AcmeServer__by_server
-from .get import get__CertificateCA__by_pem_text
-from .get import get__CertificateCAChain__by_pem_text
 from .get import get__Domain__by_name
 from .get import get__DomainBlocklisted__by_name
 from .get import get__PrivateKey_CurrentDay_AcmeAccount
@@ -37,6 +35,8 @@ from .get import get__PrivateKey_CurrentWeek_AcmeAccount
 from .get import get__PrivateKey_CurrentWeek_Global
 from .get import get__UniqueFQDNSet__by_DomainIds
 from .get import get__X509CertificateRequest__by_pem_text
+from .get import get__X509CertificateTrustChain__by_pem_text
+from .get import get__X509CertificateTrusted__by_pem_text
 from .logger import _log_object_event
 from .logger import log__OperationsEvent
 from .update import update_AcmeAuthorization_from_payload
@@ -57,8 +57,6 @@ if TYPE_CHECKING:
     from ...model.objects import AcmeChallenge
     from ...model.objects import AcmeDnsServer
     from ...model.objects import AcmeOrder
-    from ...model.objects import CertificateCA
-    from ...model.objects import CertificateCAChain
     from ...model.objects import Domain
     from ...model.objects import DomainBlocklisted
     from ...model.objects import PrivateKey
@@ -67,6 +65,8 @@ if TYPE_CHECKING:
     from ...model.objects import UniquelyChallengedFQDNSet
     from ...model.objects import X509Certificate
     from ...model.objects import X509CertificateRequest
+    from ...model.objects import X509CertificateTrustChain
+    from ...model.objects import X509CertificateTrusted
     from ...model.utils import DomainsChallenged
 
 
@@ -819,12 +819,12 @@ def getcreate__AcmeDnsServer(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__CertificateCAChain__by_pem_text(
+def getcreate__X509CertificateTrustChain__by_pem_text(
     ctx: "ApiContext",
     chain_pem: str,
     display_name: Optional[str] = None,
     discovery_type: Optional[str] = None,
-) -> Tuple["CertificateCAChain", bool]:
+) -> Tuple["X509CertificateTrustChain", bool]:
     chain_pem = cert_utils.cleanup_pem_text(chain_pem)
     chain_certs = cert_utils.split_pem_chain(chain_pem)  # this will clean it
     if len(chain_certs) < 1:
@@ -836,49 +836,61 @@ def getcreate__CertificateCAChain__by_pem_text(
     if len(chain_certs) > 1:
         cert_utils.ensure_chain_order(chain_certs)
 
-    dbCertificateCAChain = get__CertificateCAChain__by_pem_text(ctx, chain_pem)
-    if not dbCertificateCAChain:
+    dbX509CertificateTrustChain = get__X509CertificateTrustChain__by_pem_text(
+        ctx, chain_pem
+    )
+    if not dbX509CertificateTrustChain:
         chain_pem_md5 = cert_utils.utils.md5_text(chain_pem)
-        dbCertificateCAs = []
+        dbX509CertificateTrusteds = []
         for cert_pem in chain_certs:
-            (_dbCertificateCA, _is_created) = getcreate__CertificateCA__by_pem_text(
-                ctx,
-                cert_pem,
-                display_name=display_name,
-                discovery_type=discovery_type,
+            (_dbX509CertificateTrusted, _is_created) = (
+                getcreate__X509CertificateTrusted__by_pem_text(
+                    ctx,
+                    cert_pem,
+                    display_name=display_name,
+                    discovery_type=discovery_type,
+                )
             )
-            dbCertificateCAs.append(_dbCertificateCA)
+            dbX509CertificateTrusteds.append(_dbX509CertificateTrusted)
 
         if not display_name:
-            display_name = dbCertificateCAs[0].display_name
-            if len(dbCertificateCAs) > 1:
-                display_name += " > " + dbCertificateCAs[-1].display_name
+            display_name = dbX509CertificateTrusteds[0].display_name
+            if len(dbX509CertificateTrusteds) > 1:
+                display_name += " > " + dbX509CertificateTrusteds[-1].display_name
 
         # bookkeeping
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
             ctx,
-            model_utils.OperationsEventType.from_string("CertificateCAChain__insert"),
+            model_utils.OperationsEventType.from_string(
+                "X509CertificateTrustChain__insert"
+            ),
         )
 
-        dbCertificateCAChain = model_objects.CertificateCAChain()
-        dbCertificateCAChain.display_name = display_name
-        dbCertificateCAChain.discovery_type = discovery_type
-        dbCertificateCAChain.timestamp_created = ctx.timestamp
-        dbCertificateCAChain.chain_pem = chain_pem
-        dbCertificateCAChain.chain_pem_md5 = chain_pem_md5
-        dbCertificateCAChain.certificate_ca_0_id = dbCertificateCAs[0].id
-        dbCertificateCAChain.certificate_ca_n_id = dbCertificateCAs[-1].id
-        dbCertificateCAChain.chain_length = len(dbCertificateCAs)
-        dbCertificateCAChain.certificate_ca_ids_string = ",".join(
-            [str(i.id) for i in dbCertificateCAs]
+        dbX509CertificateTrustChain = model_objects.X509CertificateTrustChain()
+        dbX509CertificateTrustChain.display_name = display_name
+        dbX509CertificateTrustChain.discovery_type = discovery_type
+        dbX509CertificateTrustChain.timestamp_created = ctx.timestamp
+        dbX509CertificateTrustChain.chain_pem = chain_pem
+        dbX509CertificateTrustChain.chain_pem_md5 = chain_pem_md5
+        dbX509CertificateTrustChain.x509_certificate_trusted_0_id = (
+            dbX509CertificateTrusteds[0].id
         )
-        dbCertificateCAChain.operations_event_id__created = dbOperationsEvent.id
-        ctx.dbSession.add(dbCertificateCAChain)
-        ctx.dbSession.flush(objects=[dbCertificateCAChain])
+        dbX509CertificateTrustChain.x509_certificate_trusted_n_id = (
+            dbX509CertificateTrusteds[-1].id
+        )
+        dbX509CertificateTrustChain.chain_length = len(dbX509CertificateTrusteds)
+        dbX509CertificateTrustChain.x509_certificate_trusted_ids_string = ",".join(
+            [str(i.id) for i in dbX509CertificateTrusteds]
+        )
+        dbX509CertificateTrustChain.operations_event_id__created = dbOperationsEvent.id
+        ctx.dbSession.add(dbX509CertificateTrustChain)
+        ctx.dbSession.flush(objects=[dbX509CertificateTrustChain])
         is_created = True
 
-        event_payload_dict["certificate_ca_chain.id"] = dbCertificateCAChain.id
+        event_payload_dict["x509_certificate_trust_chain.id"] = (
+            dbX509CertificateTrustChain.id
+        )
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent])
 
@@ -886,24 +898,24 @@ def getcreate__CertificateCAChain__by_pem_text(
             ctx,
             dbOperationsEvent=dbOperationsEvent,
             event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                "CertificateCAChain__insert"
+                "X509CertificateTrustChain__insert"
             ),
-            dbCertificateCAChain=dbCertificateCAChain,
+            dbX509CertificateTrustChain=dbX509CertificateTrustChain,
         )
 
-    return (dbCertificateCAChain, is_created)
+    return (dbX509CertificateTrustChain, is_created)
 
 
-def getcreate__CertificateCA__by_pem_text(
+def getcreate__X509CertificateTrusted__by_pem_text(
     ctx: "ApiContext",
     cert_pem: str,
     display_name: Optional[str] = None,
     discovery_type: Optional[str] = None,
     is_trusted_root: Optional[bool] = None,
     key_technology_id: Optional[int] = None,
-) -> Tuple["CertificateCA", bool]:
+) -> Tuple["X509CertificateTrusted", bool]:
     """
-    Gets or Creates CertificateCAs
+    Gets or Creates X509CertificateTrusteds
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param cert_pem: (required)
@@ -920,8 +932,8 @@ def getcreate__CertificateCA__by_pem_text(
     elif len(_certs) != 1:
         raise ValueError("Did not find 1 Certificate in this PEM.")
     is_created = False
-    dbCertificateCA = get__CertificateCA__by_pem_text(ctx, cert_pem)
-    if not dbCertificateCA:
+    dbX509CertificateTrusted = get__X509CertificateTrusted__by_pem_text(ctx, cert_pem)
+    if not dbX509CertificateTrusted:
         cert_pem_md5 = cert_utils.utils.md5_text(cert_pem)
 
         # validate
@@ -946,43 +958,45 @@ def getcreate__CertificateCA__by_pem_text(
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
             ctx,
-            model_utils.OperationsEventType.from_string("CertificateCA__insert"),
+            model_utils.OperationsEventType.from_string(
+                "X509CertificateTrusted__insert"
+            ),
         )
 
         _cert_data = cert_utils.parse_cert(cert_pem=cert_pem)
         if not display_name:
             display_name = _cert_data["subject"] or "unknown"
 
-        dbCertificateCA = model_objects.CertificateCA()
-        dbCertificateCA.display_name = display_name
-        dbCertificateCA.discovery_type = discovery_type
-        dbCertificateCA.key_technology_id = key_technology_id
-        dbCertificateCA.is_trusted_root = is_trusted_root
-        dbCertificateCA.timestamp_created = ctx.timestamp
-        dbCertificateCA.cert_pem = cert_pem
-        dbCertificateCA.cert_pem_md5 = cert_pem_md5
-        dbCertificateCA.timestamp_not_before = _cert_data["startdate"]
-        dbCertificateCA.timestamp_not_after = _cert_data["enddate"]
-        dbCertificateCA.cert_subject = _cert_data["subject"]
-        dbCertificateCA.cert_issuer = _cert_data["issuer"]
-        dbCertificateCA.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
-        dbCertificateCA.key_technology_id = (
+        dbX509CertificateTrusted = model_objects.X509CertificateTrusted()
+        dbX509CertificateTrusted.display_name = display_name
+        dbX509CertificateTrusted.discovery_type = discovery_type
+        dbX509CertificateTrusted.key_technology_id = key_technology_id
+        dbX509CertificateTrusted.is_trusted_root = is_trusted_root
+        dbX509CertificateTrusted.timestamp_created = ctx.timestamp
+        dbX509CertificateTrusted.cert_pem = cert_pem
+        dbX509CertificateTrusted.cert_pem_md5 = cert_pem_md5
+        dbX509CertificateTrusted.timestamp_not_before = _cert_data["startdate"]
+        dbX509CertificateTrusted.timestamp_not_after = _cert_data["enddate"]
+        dbX509CertificateTrusted.cert_subject = _cert_data["subject"]
+        dbX509CertificateTrusted.cert_issuer = _cert_data["issuer"]
+        dbX509CertificateTrusted.fingerprint_sha1 = _cert_data["fingerprint_sha1"]
+        dbX509CertificateTrusted.key_technology_id = (
             model_utils.KeyTechnology.from_cert_utils_tuple(
                 _cert_data["key_technology"]
             )
         )
-        dbCertificateCA.spki_sha256 = _cert_data["spki_sha256"]
-        dbCertificateCA.cert_issuer_uri = _cert_data["issuer_uri"]
-        dbCertificateCA.cert_authority_key_identifier = _cert_data[
+        dbX509CertificateTrusted.spki_sha256 = _cert_data["spki_sha256"]
+        dbX509CertificateTrusted.cert_issuer_uri = _cert_data["issuer_uri"]
+        dbX509CertificateTrusted.cert_authority_key_identifier = _cert_data[
             "authority_key_identifier"
         ]
-        dbCertificateCA.operations_event_id__created = dbOperationsEvent.id
+        dbX509CertificateTrusted.operations_event_id__created = dbOperationsEvent.id
 
-        ctx.dbSession.add(dbCertificateCA)
-        ctx.dbSession.flush(objects=[dbCertificateCA])
+        ctx.dbSession.add(dbX509CertificateTrusted)
+        ctx.dbSession.flush(objects=[dbX509CertificateTrusted])
         is_created = True
 
-        event_payload_dict["certificate_ca.id"] = dbCertificateCA.id
+        event_payload_dict["x509_certificate_trusted.id"] = dbX509CertificateTrusted.id
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent])
 
@@ -990,12 +1004,12 @@ def getcreate__CertificateCA__by_pem_text(
             ctx,
             dbOperationsEvent=dbOperationsEvent,
             event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                "CertificateCA__insert"
+                "X509CertificateTrusted__insert"
             ),
-            dbCertificateCA=dbCertificateCA,
+            dbX509CertificateTrusted=dbX509CertificateTrusted,
         )
 
-    return (dbCertificateCA, is_created)
+    return (dbX509CertificateTrusted, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1561,11 +1575,13 @@ def getcreate__X509Certificate(
     ctx: "ApiContext",
     cert_pem: str,
     cert_domains_expected: List[str],
-    dbCertificateCAChain: "CertificateCAChain",
+    dbX509CertificateTrustChain: "X509CertificateTrustChain",
     dbPrivateKey: "PrivateKey",
     certificate_type_id: int,
     dbAcmeOrder: Optional["AcmeOrder"] = None,
-    dbCertificateCAChains_alt: Optional[List["CertificateCAChain"]] = None,
+    dbX509CertificateTrustChains_alt: Optional[
+        List["X509CertificateTrustChain"]
+    ] = None,
     dbX509CertificateRequest: Optional["X509CertificateRequest"] = None,
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
     discovery_type: Optional[str] = None,
@@ -1578,8 +1594,8 @@ def getcreate__X509Certificate(
     :param cert_pem: (required) The certificate in PEM encoding
     :param cert_domains_expected: (required) a list of domains in the cert we
       expect to see
-    :param dbCertificateCAChain: (required) The upstream
-       :class:`model.objects.CertificateCAChain` that signed the certificate
+    :param dbX509CertificateTrustChain: (required) The upstream
+       :class:`model.objects.X509CertificateTrustChain` that signed the certificate
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that
       signed the certificate
     :param certificate_type_id: (required) The :class:`model.utils.CertifcateType`
@@ -1587,8 +1603,8 @@ def getcreate__X509Certificate(
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the
       certificate was generated through. If provivded, do not submit
       `dbX509CertificateRequest` or `dbPrivateKey`
-    :param dbCertificateCAChains_alt: (optional) Iterable. Alternate
-      :class:`model.objects.CertificateCAChain`s that signed this certificate
+    :param dbX509CertificateTrustChains_alt: (optional) Iterable. Alternate
+      :class:`model.objects.X509CertificateTrustChain`s that signed this certificate
     :param dbX509CertificateRequest: (optional) The
       :class:`model.objects.X509CertificateRequest` the certificate was generated
       through. If provivded, do not submit `dbAcmeOrder`.
@@ -1625,12 +1641,12 @@ def getcreate__X509Certificate(
     if not all(
         (
             cert_pem,
-            dbCertificateCAChain,
+            dbX509CertificateTrustChain,
             dbPrivateKey,
         )
     ):
         raise ValueError(
-            "getcreate__X509Certificate must be provided with all of (cert_pem, dbCertificateCAChain, dbPrivateKey)"
+            "getcreate__X509Certificate must be provided with all of (cert_pem, dbX509CertificateTrustChain, dbPrivateKey)"
         )
 
     if certificate_type_id not in model_utils.CertificateType._mapping:
@@ -1683,21 +1699,21 @@ def getcreate__X509Certificate(
                 ctx.dbSession.flush(objects=[dbX509Certificate, dbPrivateKey])
 
         # ensure we have all the Alternate Chains connected to this ServerCerticiate
-        _upchains_existing = dbX509Certificate.certificate_ca_chain_ids
+        _upchains_existing = dbX509Certificate.x509_certificate_trust_chain_ids
         _upchains_needed = []
         # check the primary
-        if dbCertificateCAChain.id not in _upchains_existing:
-            _upchains_needed.append(dbCertificateCAChain.id)
-        if dbCertificateCAChains_alt:
+        if dbX509CertificateTrustChain.id not in _upchains_existing:
+            _upchains_needed.append(dbX509CertificateTrustChain.id)
+        if dbX509CertificateTrustChains_alt:
             # check the alts
-            for _dbCertificateCAChain_alt in dbCertificateCAChains_alt:
-                if _dbCertificateCAChain_alt.id not in _upchains_existing:
-                    _upchains_needed.append(_dbCertificateCAChain_alt.id)
+            for _dbX509CertificateTrustChain_alt in dbX509CertificateTrustChains_alt:
+                if _dbX509CertificateTrustChain_alt.id not in _upchains_existing:
+                    _upchains_needed.append(_dbX509CertificateTrustChain_alt.id)
         for _up_needed in _upchains_needed:
             dbX509CertificateChain = model_objects.X509CertificateChain()
             dbX509CertificateChain.x509_certificate_id = dbX509Certificate.id
-            dbX509CertificateChain.certificate_ca_chain_id = _up_needed
-            if _up_needed == dbCertificateCAChain.id:
+            dbX509CertificateChain.x509_certificate_trust_chain_id = _up_needed
+            if _up_needed == dbX509CertificateTrustChain.id:
                 dbX509CertificateChain.is_upstream_default = True
             else:
                 dbX509CertificateChain.is_upstream_default = None
@@ -1709,12 +1725,12 @@ def getcreate__X509Certificate(
             ctx,
             cert_pem=cert_pem,
             cert_domains_expected=cert_domains_expected,
-            dbCertificateCAChain=dbCertificateCAChain,
+            dbX509CertificateTrustChain=dbX509CertificateTrustChain,
             certificate_type_id=certificate_type_id,
             # optionals
             is_active=is_active,
             dbAcmeOrder=dbAcmeOrder,
-            dbCertificateCAChains_alt=dbCertificateCAChains_alt,
+            dbX509CertificateTrustChains_alt=dbX509CertificateTrustChains_alt,
             dbX509CertificateRequest=dbX509CertificateRequest,
             dbPrivateKey=dbPrivateKey,
             dbUniqueFQDNSet=dbUniqueFQDNSet,

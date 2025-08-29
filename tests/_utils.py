@@ -442,7 +442,7 @@ def process_pebble_roots(
         (
             _dbChain,
             _is_created,
-        ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
+        ) = db.getcreate.getcreate__X509CertificateTrusted__by_pem_text(
             ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
         )
         if _is_created is not True:
@@ -1222,7 +1222,7 @@ TEST_FILES: Dict = {
             },
         },
     },
-    "CertificateCAs": {
+    "X509CertificateTrusteds": {
         "order": (
             "trustid_root_x3",
             "isrg_root_x1",
@@ -2401,8 +2401,8 @@ class AppTestCore(CustomizedTestCase, _Mixin_filedata):
             """
             testname = "%s.%s" % (self.__class__.__name__, self._testMethodName)
             count_acme_order = self.ctx.dbSession.query(model_objects.AcmeOrder).count()
-            count_certificate_ca = self.ctx.dbSession.query(  # Pebble certs
-                model_objects.CertificateCA
+            count_x509_certificate_trusted = self.ctx.dbSession.query(  # Pebble certs
+                model_objects.X509CertificateTrusted
             ).count()
             if TYPE_CHECKING:
                 assert self._db_filename
@@ -2413,7 +2413,7 @@ class AppTestCore(CustomizedTestCase, _Mixin_filedata):
             if not os.path.exists(fname):
                 with open(fname, "w") as fh:
                     fh.write(
-                        "TestName\tCount[AcmeOrder]\tCount[CertificateCA]\tDBFilesize[setUp]\tDBFilesize[tearDown]\tWrappedTiming\n"
+                        "TestName\tCount[AcmeOrder]\tCount[X509CertificateTrusted]\tDBFilesize[setUp]\tDBFilesize[tearDown]\tWrappedTiming\n"
                     )
             with open(fname, "a") as fh:
                 fh.write(
@@ -2421,7 +2421,7 @@ class AppTestCore(CustomizedTestCase, _Mixin_filedata):
                     % (
                         testname,
                         count_acme_order,
-                        count_certificate_ca,
+                        count_x509_certificate_trusted,
                         self._db_filesize["setUp"],
                         self._db_filesize["tearDown"],
                         (self._wrapped_end - self._wrapped_start),
@@ -2573,16 +2573,16 @@ class AppTest(AppTestCore):
         (
             _dbChain,
             _is_created,
-        ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+        ) = db.getcreate.getcreate__X509CertificateTrustChain__by_pem_text(
             self.ctx, _chain_pem, display_name=_chain_filename
         )
 
-        dbCertificateCAChains_alt = None
+        dbX509CertificateTrustChains_alt = None
         if (
             "alternate_chains"
             in TEST_FILES["X509Certificates"][payload_section][payload_key]
         ):
-            dbCertificateCAChains_alt = []
+            dbX509CertificateTrustChains_alt = []
             for _chain_index in TEST_FILES["X509Certificates"][payload_section][
                 payload_key
             ]["alternate_chains"]:
@@ -2597,10 +2597,10 @@ class AppTest(AppTestCore):
                 (
                     _dbChainAlternate,
                     _is_created,
-                ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+                ) = db.getcreate.getcreate__X509CertificateTrustChain__by_pem_text(
                     self.ctx, _chain_pem, display_name=_chain_filename
                 )
-                dbCertificateCAChains_alt.append(_dbChainAlternate)
+                dbX509CertificateTrustChains_alt.append(_dbChainAlternate)
 
         _cert_filename = (
             filename_template
@@ -2625,11 +2625,11 @@ class AppTest(AppTestCore):
             self.ctx,
             _cert_pem,
             cert_domains_expected=_cert_domains_expected,
-            dbCertificateCAChain=_dbChain,
+            dbX509CertificateTrustChain=_dbChain,
             dbPrivateKey=_dbPrivateKey,
             certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
             # optionals
-            dbCertificateCAChains_alt=dbCertificateCAChains_alt,
+            dbX509CertificateTrustChains_alt=dbX509CertificateTrustChains_alt,
             dbUniqueFQDNSet=_dbUniqueFQDNSet,
             is_active=True,
         )
@@ -2659,7 +2659,7 @@ class AppTest(AppTestCore):
 
                         AccountKey:
                             account_1.key
-                        CertificateCAs:
+                        X509CertificateTrusteds:
                             isrgrootx1.pem
                             selfsigned_1-server.crt
                         PrivateKey
@@ -2747,11 +2747,11 @@ class AppTest(AppTestCore):
                         force_reconciliation=True,
                     )
 
-                    # note: pre-populate CertificateCA
-                    # this should create `/certificate-ca/1`
+                    # note: pre-populate X509CertificateTrusted
+                    # this should create `/x509-certificate-trusted/1`
                     #
                     _cert_ca_id = "isrg_root_x1"
-                    _cert_ca_filename = TEST_FILES["CertificateCAs"]["cert"][
+                    _cert_ca_filename = TEST_FILES["X509CertificateTrusteds"]["cert"][
                         _cert_ca_id
                     ]
                     _display_name = letsencrypt_info.CERT_CAS_DATA[_cert_ca_id][
@@ -2762,7 +2762,7 @@ class AppTest(AppTestCore):
                     (
                         _cert_ca_1,
                         _is_created,
-                    ) = db.getcreate.getcreate__CertificateCA__by_pem_text(
+                    ) = db.getcreate.getcreate__X509CertificateTrusted__by_pem_text(
                         self.ctx,
                         cert_ca_pem,
                         display_name=_display_name,
@@ -2835,20 +2835,20 @@ class AppTest(AppTestCore):
                         # print(_dbPrivateKey, _is_created)
                         # self.ctx.pyramid_transaction_commit()
 
-                        # note: pre-populate CertificateCA - self-signed
-                        # this should create `/certificate-ca/2`
+                        # note: pre-populate X509CertificateTrusted - self-signed
+                        # this should create `/x509-certificate-trusted/2`
                         #
                         _cert_ca_filename = TEST_FILES["X509Certificates"][
                             "SelfSigned"
                         ][_id]["cert"]
                         chain_pem = self._filedata_testfile(_cert_ca_filename)
                         (
-                            _dbCertificateCAChain_SelfSigned,
+                            _dbX509CertificateTrustChain_SelfSigned,
                             _is_created,
-                        ) = db.getcreate.getcreate__CertificateCAChain__by_pem_text(
+                        ) = db.getcreate.getcreate__X509CertificateTrustChain__by_pem_text(
                             self.ctx, chain_pem, display_name=_cert_ca_filename
                         )
-                        # print(_dbCertificateCAChain_SelfSigned, _is_created)
+                        # print(_dbX509CertificateTrustChain_SelfSigned, _is_created)
                         # self.ctx.pyramid_transaction_commit()
 
                         _cert_filename = TEST_FILES["X509Certificates"]["SelfSigned"][
@@ -2873,7 +2873,7 @@ class AppTest(AppTestCore):
                             self.ctx,
                             cert_pem,
                             cert_domains_expected=_cert_domains_expected,
-                            dbCertificateCAChain=_dbCertificateCAChain_SelfSigned,
+                            dbX509CertificateTrustChain=_dbX509CertificateTrustChain_SelfSigned,
                             certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
                             dbPrivateKey=_dbPrivateKey,
                             # optionals

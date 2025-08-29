@@ -613,21 +613,21 @@ def operations_reconcile_cas(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
     assert ctx.timestamp
-    dbCertificateCAs = (
-        ctx.dbSession.query(model_objects.CertificateCA)
+    dbX509CertificateTrusteds = (
+        ctx.dbSession.query(model_objects.X509CertificateTrusted)
         .filter(
-            model_objects.CertificateCA.cert_issuer_uri.is_not(None),
-            model_objects.CertificateCA.cert_issuer__reconciled.is_not(True),
+            model_objects.X509CertificateTrusted.cert_issuer_uri.is_not(None),
+            model_objects.X509CertificateTrusted.cert_issuer__reconciled.is_not(True),
         )
         .all()
     )
-    _certificate_ca_ids = []
-    _certificate_ca_ids_fail = []
-    for dbCertificateCA in dbCertificateCAs:
+    _x509_certificate_trusted_ids = []
+    _x509_certificate_trusted_ids_fail = []
+    for dbX509CertificateTrusted in dbX509CertificateTrusteds:
         log.debug("Reconciling CA...")
-        _certificate_ca_ids.append(dbCertificateCA.id)
-        cert_issuer_uri = dbCertificateCA.cert_issuer_uri
-        log.debug(dbCertificateCA.cert_subject)
+        _x509_certificate_trusted_ids.append(dbX509CertificateTrusted.id)
+        cert_issuer_uri = dbX509CertificateTrusted.cert_issuer_uri
+        log.debug(dbX509CertificateTrusted.cert_subject)
         log.debug(cert_issuer_uri)
         assert cert_issuer_uri
         try:
@@ -650,49 +650,59 @@ def operations_reconcile_cas(
             for cert_pem in cert_pems:
                 cert_parsed = cert_utils.parse_cert(cert_pem)
                 (
-                    _dbCertificateCAReconciled,
+                    _dbX509CertificateTrustedReconciled,
                     _is_created,
-                ) = getcreate.getcreate__CertificateCA__by_pem_text(
+                ) = getcreate.getcreate__X509CertificateTrusted__by_pem_text(
                     ctx,
                     cert_pem,
                     discovery_type="reconcile_cas",
                 )
                 # mark the first item as reconciled
-                dbCertificateCA.cert_issuer__reconciled = True
-                if not dbCertificateCA.cert_issuer__certificate_ca_id:
-                    dbCertificateCA.cert_issuer__certificate_ca_id = (
-                        _dbCertificateCAReconciled.id
+                dbX509CertificateTrusted.cert_issuer__reconciled = True
+                if (
+                    not dbX509CertificateTrusted.cert_issuer__x509_certificate_trusted_id
+                ):
+                    dbX509CertificateTrusted.cert_issuer__x509_certificate_trusted_id = (
+                        _dbX509CertificateTrustedReconciled.id
                     )
                 else:
                     raise ValueError("Not Implemented: multiple reconciles")
                 # mark the second item
-                _reconciled_uris = _dbCertificateCAReconciled.reconciled_uris
+                _reconciled_uris = _dbX509CertificateTrustedReconciled.reconciled_uris
                 reconciled_uris = (
                     _reconciled_uris.split(" ") if _reconciled_uris else []
                 )
                 if cert_issuer_uri not in reconciled_uris:
                     reconciled_uris.append(cert_issuer_uri)
                     _reconciled_uris = " ".join(reconciled_uris)
-                    _dbCertificateCAReconciled.reconciled_uris = _reconciled_uris
+                    _dbX509CertificateTrustedReconciled.reconciled_uris = (
+                        _reconciled_uris
+                    )
 
-                dbCertificateCAReconciliation = (
-                    model_objects.CertificateCAReconciliation()
+                dbX509CertificateTrustReconciliation = (
+                    model_objects.X509CertificateTrustReconciliation()
                 )
-                dbCertificateCAReconciliation.timestamp_operation = ctx.timestamp
-                dbCertificateCAReconciliation.certificate_ca_id = dbCertificateCA.id
-                dbCertificateCAReconciliation.certificate_ca_id__issuer__reconciled = (
-                    _dbCertificateCAReconciled.id
+                dbX509CertificateTrustReconciliation.timestamp_operation = ctx.timestamp
+                dbX509CertificateTrustReconciliation.x509_certificate_trusted_id = (
+                    dbX509CertificateTrusted.id
                 )
-                dbCertificateCAReconciliation.result = True
-                ctx.dbSession.add(dbCertificateCAReconciliation)
+                dbX509CertificateTrustReconciliation.x509_certificate_trusted_id__issuer__reconciled = (
+                    _dbX509CertificateTrustedReconciled.id
+                )
+                dbX509CertificateTrustReconciliation.result = True
+                ctx.dbSession.add(dbX509CertificateTrustReconciliation)
         except Exception as exc:
-            log.debug("EXCEPTION - could not reconcile CA %s", dbCertificateCA.id)
-            _certificate_ca_ids_fail.append(dbCertificateCA.id)
+            log.debug(
+                "EXCEPTION - could not reconcile CA %s", dbX509CertificateTrusted.id
+            )
+            _x509_certificate_trusted_ids_fail.append(dbX509CertificateTrusted.id)
 
     event_payload_dict = lib.utils.new_event_payload_dict()
-    event_payload_dict["certificate_ca.ids"] = _certificate_ca_ids
-    if _certificate_ca_ids_fail:
-        event_payload_dict["certificate_ca.ids_fail"] = _certificate_ca_ids_fail
+    event_payload_dict["x509_certificate_trusted.ids"] = _x509_certificate_trusted_ids
+    if _x509_certificate_trusted_ids_fail:
+        event_payload_dict["x509_certificate_trusted.ids_fail"] = (
+            _x509_certificate_trusted_ids_fail
+        )
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("operations__reconcile_cas"),
@@ -872,7 +882,7 @@ def operations_update_recents__global(
 
     #
     # Step3:
-    # update the count of active cert for each CertificateCA
+    # update the count of active cert for each X509CertificateTrusted
 
     X509Certificate1 = sqlalchemy.orm.aliased(model_objects.X509Certificate)
     X509Certificate2 = sqlalchemy.orm.aliased(model_objects.X509Certificate)
@@ -880,8 +890,12 @@ def operations_update_recents__global(
     X509CertificateChain1 = sqlalchemy.orm.aliased(model_objects.X509CertificateChain)
     X509CertificateChain2 = sqlalchemy.orm.aliased(model_objects.X509CertificateChain)
 
-    CertificateCAChain1 = sqlalchemy.orm.aliased(model_objects.CertificateCAChain)
-    CertificateCAChain2 = sqlalchemy.orm.aliased(model_objects.CertificateCAChain)
+    X509CertificateTrustChain1 = sqlalchemy.orm.aliased(
+        model_objects.X509CertificateTrustChain
+    )
+    X509CertificateTrustChain2 = sqlalchemy.orm.aliased(
+        model_objects.X509CertificateTrustChain
+    )
 
     _q_sub = (
         (
@@ -905,21 +919,21 @@ def operations_update_recents__global(
                 X509CertificateChain2.id == X509CertificateChain2.x509_certificate_id,
             )
             .outerjoin(
-                CertificateCAChain1,
-                X509CertificateChain1.certificate_ca_chain_id
-                == CertificateCAChain1.certificate_ca_0_id,
+                X509CertificateTrustChain1,
+                X509CertificateChain1.x509_certificate_trust_chain_id
+                == X509CertificateTrustChain1.x509_certificate_trusted_0_id,
             )
             .outerjoin(
-                CertificateCAChain2,
-                X509CertificateChain1.certificate_ca_chain_id
-                == CertificateCAChain2.certificate_ca_0_id,
+                X509CertificateTrustChain2,
+                X509CertificateChain1.x509_certificate_trust_chain_id
+                == X509CertificateTrustChain2.x509_certificate_trusted_0_id,
             )
             .filter(
                 sqlalchemy.or_(
-                    model_objects.CertificateCA.id
-                    == CertificateCAChain1.certificate_ca_0_id,
-                    model_objects.CertificateCA.id
-                    == CertificateCAChain2.certificate_ca_0_id,
+                    model_objects.X509CertificateTrusted.id
+                    == X509CertificateTrustChain1.x509_certificate_trusted_0_id,
+                    model_objects.X509CertificateTrusted.id
+                    == X509CertificateTrustChain2.x509_certificate_trusted_0_id,
                 )
             )
         )
@@ -927,7 +941,7 @@ def operations_update_recents__global(
         .as_scalar()
     )
     ctx.dbSession.execute(
-        model_objects.CertificateCA.__table__.update().values(
+        model_objects.X509CertificateTrusted.__table__.update().values(
             count_active_certificates=_q_sub
         )
     )
@@ -1073,7 +1087,7 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
         (
             _dbCACert,
             _is_created,
-        ) = getcreate.getcreate__CertificateCA__by_pem_text(
+        ) = getcreate.getcreate__X509CertificateTrusted__by_pem_text(
             ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
         )
         dbCACerts.append(_dbCACert)

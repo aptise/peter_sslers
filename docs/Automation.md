@@ -156,6 +156,11 @@ For example, a directory structure might look like this:
 
 ## Scripts
 
+### ssl_manage
+
+The `ssl_manage` tool tries to implement all core operations.
+
+
 ### acme_dns_audit
     audit acme-dns accounts
     checks credentials and cnames
@@ -266,11 +271,11 @@ If peter_sslers is installed on the same machine: the commandline script
 `import_certbot`, which is installed into the shell path via entrypoints, will
 yield superior performance as it does not require HTTP.
 
-### `/.well-known/peter_sslers/certificate-ca/upload-cert.json`
+### `/.well-known/peter_sslers/x509-certificate-trusted/upload-cert.json`
 
 Upload a new CertificateAuthority (LetsEncrypt) Certificate.
 
-### `/.well-known/peter_sslers/certificate-ca-chain/upload-chain.json`
+### `/.well-known/peter_sslers/x509-certificate-trust-chain/upload-chain.json`
 
 Upload a new CertificateAuthority (LetsEncrypt) Chain.  A chain are the
 intermediate certificates.

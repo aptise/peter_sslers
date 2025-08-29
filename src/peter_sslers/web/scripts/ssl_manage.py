@@ -34,11 +34,13 @@ from ..lib.forms import Form_SystemConfiguration_Global_edit
 from ..lib.forms import Form_X509Certificate_mark
 from ..views_admin import acme_account as v_acme_account
 from ..views_admin import acme_dns_server as v_acme_dns_server
+from ..views_admin import api as v_api
 from ..views_admin import enrollment_factory as v_enrollment_factory
 from ..views_admin import renewal_configuration as v_renewal_configuration
 from ..views_admin import system_configuration as v_system_configuration
 from ..views_admin import x509_certificate as v_x509_certificate
 from ...lib import db as lib_db  # noqa: F401
+from ...lib import utils_nginx
 from ...lib.utils import validate_config_uri
 from ...model import objects as model_objects
 
@@ -73,6 +75,14 @@ COMMANDS: Dict[str, List[str]] = {
     ],
     "acme-server": [
         "list",
+    ],
+    "action": [
+        "deactivate_expired",
+        "reconcile_cas",
+        "prime_redis",
+        "flush_nginx",
+        "status_nginx",
+        "update_recents",
     ],
     "domain": [
         "list",
@@ -422,6 +432,57 @@ def main(argv=sys.argv):
                     None,
                     lib_db.get.get__AcmeServer__paginated,
                 )
+
+        # !!!: distpatch[action]
+        elif command == "action":
+            if subcommand == "deactivate_expired":
+                rval = v_api.actual__deactivate_expired(
+                    request,
+                    acknowledge_transaction_commits=True,
+                )
+                render_data(rval)
+            elif subcommand == "reconcile_cas":
+                operations_event = lib_db.actions.operations_reconcile_cas(
+                    request.api_context,
+                )
+                request.api_context.pyramid_transaction_commit()
+                render_data(operations_event.as_json)
+
+            elif subcommand == "prime_redis":
+                dbEvent, total_primed = v_api.actual__prime_redis(
+                    request,
+                    acknowledge_transaction_commits=True,
+                )
+                rval = {
+                    "OperationsEvent": dbEvent.as_json,
+                    "total_primed": total_primed,
+                }
+                render_data(rval)
+            elif subcommand == "flush_nginx":
+                request.api_context._ensure_nginx()
+                success, dbEvent, servers_status = utils_nginx.nginx_flush_cache(
+                    request,
+                    request.api_context,
+                )
+                request.api_context.pyramid_transaction_commit()
+                render_data(servers_status)
+
+            elif subcommand == "status_nginx":
+                request.api_context._ensure_nginx()
+                servers_status = utils_nginx.nginx_status(
+                    request,
+                    request.api_context,
+                )
+                request.api_context.pyramid_transaction_commit()
+                render_data(servers_status)
+
+            elif subcommand == "update_recents":
+                operations_event = lib_db.actions.operations_update_recents__global(
+                    request.api_context,
+                )
+                request.api_context.pyramid_transaction_commit()
+                render_data(operations_event.as_json)
+
         # !!!: distpatch[domain]
         elif command == "domain":
             # !!!: - list
