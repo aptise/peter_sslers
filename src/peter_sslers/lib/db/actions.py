@@ -1091,7 +1091,11 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
             _dbCACert,
             _is_created,
         ) = getcreate.getcreate__X509CertificateTrusted__by_pem_text(
-            ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
+            ctx,
+            _root_pem,
+            display_name="Detected Pebble Root",
+            is_trusted_root=True,
+            is_untrusted_root=True,
         )
         dbCACerts.append(_dbCACert)
 
@@ -1175,6 +1179,7 @@ def refresh_roots(
         )
         if not dbX509CertificateTrusted:
             is_trusted_root = cert_data.get("is_trusted_root")
+            is_untrusted_root = cert_data.get("is_untrusted_root")
             (
                 dbX509CertificateTrusted,
                 _is_created,
@@ -1183,6 +1188,7 @@ def refresh_roots(
                 cert_data["cert_pem"],
                 display_name=cert_data["display_name"],
                 is_trusted_root=is_trusted_root,
+                is_untrusted_root=is_untrusted_root,
                 discovery_type="initial setup",
             )
             if _is_created:
@@ -1190,6 +1196,16 @@ def refresh_roots(
         if "is_trusted_root" in cert_data:
             if dbX509CertificateTrusted.is_trusted_root != cert_data["is_trusted_root"]:
                 dbX509CertificateTrusted.is_trusted_root = cert_data["is_trusted_root"]
+                if dbX509CertificateTrusted not in certs_discovered:
+                    certs_modified.append(dbX509CertificateTrusted)
+        elif "is_untrusted_root" in cert_data:
+            if (
+                dbX509CertificateTrusted.is_untrusted_root
+                != cert_data["is_untrusted_root"]
+            ):
+                dbX509CertificateTrusted.is_untrusted_root = cert_data[
+                    "is_untrusted_root"
+                ]
                 if dbX509CertificateTrusted not in certs_discovered:
                     certs_modified.append(dbX509CertificateTrusted)
         else:

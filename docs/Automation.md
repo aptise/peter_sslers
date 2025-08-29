@@ -189,6 +189,10 @@ These can also be disabled manually through the admin interface.
 ### refresh_pebble_ca_certs
   * dev tool to refresh the pebble certs when needed
 
+### refresh_roots
+   * parses the current installed version of cert_utils to pull new roots and compatability data
+   * this will delete data created by previous versions
+   * client generated data will be preserved
 
 ### register_acme_servers
 can be used to :

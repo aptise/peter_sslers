@@ -443,7 +443,11 @@ def process_pebble_roots(
             _dbChain,
             _is_created,
         ) = db.getcreate.getcreate__X509CertificateTrusted__by_pem_text(
-            ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
+            ctx,
+            _root_pem,
+            display_name="Detected Pebble Root",
+            is_trusted_root=True,
+            is_untrusted_root=True,
         )
         if _is_created is not True:
             log.critical(

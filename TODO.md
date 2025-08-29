@@ -18,6 +18,11 @@ Audit:
                 the def will commit the transaction; the caller must acknowledge this
 
 
+x509CertificateTrusted
+    descope into Root + Intermediates
+        they can still share a table via polymorphic identity
+
+
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
 

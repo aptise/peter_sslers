@@ -912,6 +912,7 @@ def getcreate__X509CertificateTrusted__by_pem_text(
     display_name: Optional[str] = None,
     discovery_type: Optional[str] = None,
     is_trusted_root: Optional[bool] = None,
+    is_untrusted_root: Optional[bool] = None,
     key_technology_id: Optional[int] = None,
 ) -> Tuple["X509CertificateTrusted", bool]:
     """
@@ -921,7 +922,8 @@ def getcreate__X509CertificateTrusted__by_pem_text(
     :param cert_pem: (required)
     :param display_name: a name to display this as
     :param discovery_type:
-    :param is_trusted_root:
+    :param is_trusted_root: bool
+    :param: is_untrusted_root: bool
     :param key_technology_id:  :class:`lib.utils.KeyTechnology` value
 
     """
@@ -972,6 +974,7 @@ def getcreate__X509CertificateTrusted__by_pem_text(
         dbX509CertificateTrusted.discovery_type = discovery_type
         dbX509CertificateTrusted.key_technology_id = key_technology_id
         dbX509CertificateTrusted.is_trusted_root = is_trusted_root
+        dbX509CertificateTrusted.is_untrusted_root = is_untrusted_root
         dbX509CertificateTrusted.timestamp_created = ctx.timestamp
         dbX509CertificateTrusted.cert_pem = cert_pem
         dbX509CertificateTrusted.cert_pem_md5 = cert_pem_md5
