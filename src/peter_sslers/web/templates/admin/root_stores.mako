@@ -28,6 +28,9 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
+            <p>This feature is experiemental and under development.</p>
+            <p>The `cert_utils` library tracks Root Store compatibility for CAs like <a href="https://letsencrypt.org/docs/certificate-compatibility/">ISRG/LetsEncrypt</a>. The information is standardized in that library, and updated into this database to be cross-referenced against active certs.</p>
+            <p>The goal of this feature is to eventually automate root selection when configuring servers or obtaining new certificates.</p>
             % if RootStores:
                 ${admin_partials.nav_pagination(pager)}
                 ${admin_partials.table_RootStores(RootStores)}

@@ -386,6 +386,7 @@ class _OperationsUnified(_mixin_mapping):
         1006: "operations__nginx_cache_expire",
         1007: "operations__nginx_cache_flush",
         1008: "operations__reconcile_cas",
+        1009: "action__refresh_roots",
     }
 
 

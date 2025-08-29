@@ -22,7 +22,7 @@ with open(os.path.join(HERE, "src", "peter_sslers", "__init__.py")) as v_file:
 
 requires = [
     "alembic>=1.16.0",
-    "cert_utils>=1.0.6",
+    "cert_utils>=1.1.0",
     "configobj",  # used to read Certbot files
     "cryptography>42.0.0",
     "dnspython",
@@ -107,6 +107,7 @@ setup(
       initialize_peter_sslers_db = peter_sslers.web.scripts.initializedb:main
       periodic_tasks = peter_sslers.web.scripts.periodic_tasks:main
       refresh_pebble_ca_certs = peter_sslers.web.scripts.refresh_pebble_ca_certs:main
+      refresh_roots = peter_sslers.web.scripts.refresh_roots:main
       register_acme_servers = peter_sslers.web.scripts.register_acme_servers:main
       routine__automatic_orders = peter_sslers.web.scripts.routine__automatic_orders:main
       routine__clear_old_ari_checks = peter_sslers.web.scripts.routine__clear_old_ari_checks:main

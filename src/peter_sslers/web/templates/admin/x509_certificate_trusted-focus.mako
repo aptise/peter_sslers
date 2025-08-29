@@ -55,22 +55,11 @@
                         <td>
                             % if X509CertificateTrusted.is_trusted_root:
                                 <label class="label label-success">Y</label>
-                            % endif
-                            % if X509CertificateTrusted.to_root_store_versions:
-                                <ul class="list list-unstyled">
-                                    % for to_root_store_version in X509CertificateTrusted.to_root_store_versions:
-                                        <li>
-                                            <a href="${admin_prefix}/root-store-version/${to_root_store_version.root_store_version.id}"
-                                               class="label label-info"
-                                            >
-                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                RootStoreVersion-${to_root_store_version.root_store_version.id}
-                                            </a>
-                                            <code>${to_root_store_version.root_store_version.root_store.name}</code>&nbsp;
-                                            <code>${to_root_store_version.root_store_version.version_string}</code>
-                                        </li>
-                                    % endfor
-                                </ul>
+                                <h4>Root Stores</h4>
+                                % if X509CertificateTrusted.to_root_store_versions:
+                                    <% root_store_versions = [to_root_store_version.root_store_version for to_root_store_version in X509CertificateTrusted.to_root_store_versions] %>
+                                    ${admin_partials.table_RootStoreVersions(root_store_versions, perspective="X509CertificateTrusted")}
+                                % endif
                             % endif
                         </td>
                     </tr>

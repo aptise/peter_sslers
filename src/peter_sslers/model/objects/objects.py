@@ -4097,6 +4097,9 @@ class RootStore(Base, _Mixin_Timestamps_Pretty):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
+    is_cert_utils_discovery: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -4124,7 +4127,7 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
         sa.Index(
             "uidx_root_store_version",
             "root_store_id",
-            model_utils.indexable_lower(sa.text("version_string")),
+            model_utils.indexable_lower(sa.text("version_min")),
             unique=True,
         ),
     )
@@ -4133,9 +4136,18 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
     root_store_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("root_store.id"), nullable=False
     )
-    version_string: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
+    )
+    version_min: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    version_max: Mapped[str] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+    version_notes: Mapped[str] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+    is_cert_utils_discovery: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4160,7 +4172,9 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             # - -
             "name": self.root_store.name,
-            "version_string": self.version_string,
+            "version_min": self.version_min,
+            "version_max": self.version_max,
+            "version_notes": self.version_notes,
         }
 
 

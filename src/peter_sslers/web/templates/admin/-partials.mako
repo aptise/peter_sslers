@@ -1633,6 +1633,78 @@
 </%def>
 
 
+<%def name="table_RootStoreVersions(root_store_versions, perspective=None)">
+    <%
+        show_name = False
+        show_certs = False
+        if perspective == "X509CertificateTrusted":
+            show_name = True
+        if perspective == "RootStore":
+            show_certs = True
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                % if show_name:
+                    <th>name</th>
+                % endif
+                <th>min</th>
+                <th>max</th>
+                <th>notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for root_store_version in root_store_versions:
+                <tr>
+                    <td>
+                        <a class="label label-info"
+                           href="${admin_prefix}/root-store-version/${root_store_version.id}"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            RootStoreVersion-${root_store_version.id}&nbsp;
+                        </a>
+                    </td>
+                    % if show_name:
+                        <td>
+                            <code>${root_store_version.root_store.name}</code>&nbsp;
+                        </td>
+                    % endif
+                    <td>
+                        <code>${root_store_version.version_min or ""}</code>
+                    </td>
+                    <td>
+                        <code>${root_store_version.version_max or ""}</code>
+                    </td>
+                    <td>
+                        <code>${root_store_version.version_notes or ""}</code>
+                    </td>
+                </tr>
+                % if show_certs:
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            <ul class="list list-unstyled">
+                                % for to_x509_certificate_trusted in root_store_version.to_x509_certificate_trusteds:
+                                    <li>
+                                        <a class="label label-info" href="${admin_prefix}/x509-certificate-trusted/${to_x509_certificate_trusted.x509_certificate_trusted_id}">
+                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                            X509CertificateTrusted-${to_x509_certificate_trusted.x509_certificate_trusted_id}
+                                        </a>
+                                        <code>${to_x509_certificate_trusted.x509_certificate_trusted.display_name}</code>
+                                    
+                                    </li>
+                                % endfor
+                            </ul>
+                        </td>
+                    </tr>
+                % endif
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_RoutineExecutions(routineExecutions)">
     <table class="table table-striped table-condensed">
         <thead>
