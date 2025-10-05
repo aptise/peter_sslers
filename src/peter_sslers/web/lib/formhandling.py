@@ -21,6 +21,8 @@ if False:
     """
     Determining what causes an form error may require monkeypatching-in
     an exception raise to get a stacktrace.
+
+    See https://github.com/jvanasco/pyramid_formencode_classic/issues/16
     """
 
     from pyramid_formencode_classic import FormStash  # noqa: F811

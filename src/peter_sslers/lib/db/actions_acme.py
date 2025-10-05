@@ -2366,7 +2366,6 @@ def do__AcmeV2_AcmeOrder__process(
                 ctx, authenticatedUser, dbAcmeOrder
             )
 
-            domains_challenged = dbAcmeOrder.domains_challenged
             if (
                 dbAcmeAuthorization.acme_status_authorization_id
                 == model_utils.Acme_Status_Authorization.ID_DISCOVERED
@@ -2380,12 +2379,14 @@ def do__AcmeV2_AcmeOrder__process(
                     updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
                     dbAcmeAuthorization=dbAcmeAuthorization,
                     acme_challenge_type_id__preferred=None,
-                    domains_challenged=domains_challenged,
+                    domains_challenged=dbAcmeOrder.domains_challenged,
                     transaction_commit=transaction_commit,
                 )
             else:
-                _challenge_type_id = domains_challenged.domain_to_challenge_type_id(
-                    dbAcmeAuthorization.domain.domain_name
+                _challenge_type_id = (
+                    dbAcmeOrder.domains_challenged.domain_to_challenge_type_id(
+                        dbAcmeAuthorization.domain.domain_name
+                    )
                 )
                 if _challenge_type_id == model_utils.AcmeChallengeType.http_01:
                     dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
@@ -2757,28 +2758,10 @@ def do__AcmeV2_AcmeOrder__new(
         # the backup can be generated afterwards
         account_selection = "primary"
 
-    #
-    # Domains Check
-    #
-    # TODO: MIGRATION START
-    #
-    # this is probably now unnecessary and might be migrated into
-    # `db.create.create_RenewalConfiguration`, or removed entirely
-    # This code is a legacy from before AcmeOrders were based on
-    # RenewalConfigurations.
-
-    domains_challenged = dbRenewalConfiguration.domains_challenged
-    domain_names = dbRenewalConfiguration.domains_as_list
-
     # ensure we have domains names!
     # this should be impossible otherwise, but be safe!
-    if not domain_names:
+    if not dbRenewalConfiguration.domains_as_list:
         raise ValueError("No `domain_names` detected for this request")
-
-    # raise a ValueError if `DomainsChallenged` object is incompatible
-    domains_challenged.ensure_parity(domain_names)
-
-    # TODO: MIGRATION END
 
     assert ctx.application_settings
     # this is REQUIRED for DNS-01; we don't really care about HTTP-01
@@ -3230,7 +3213,7 @@ def do__AcmeV2_AcmeOrder__new(
         # create the order on the ACME server
         (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
             ctx,
-            domain_names=domain_names,
+            domain_names=dbRenewalConfiguration.domains_as_list,
             dbUniqueFQDNSet=dbUniqueFQDNSet,
             transaction_commit=transaction_commit,
             replaces=replaces,
@@ -3260,7 +3243,7 @@ def do__AcmeV2_AcmeOrder__new(
                 acme_order_type_id=acme_order_type_id,
                 acme_order_processing_status_id=acme_order_processing_status_id,
                 acme_order_processing_strategy_id=acme_order_processing_strategy_id,
-                domains_challenged=domains_challenged,
+                domains_challenged=dbRenewalConfiguration.domains_challenged,
                 order_url=order_url,
                 certificate_type_id=certificate_type_id,
                 dbAcmeAccount=dbAcmeAccount,
