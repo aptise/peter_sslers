@@ -826,6 +826,7 @@ def form_domains_challenge_typed(
     formStash: "FormStash",
     http01_only: bool = False,
     dbAcmeDnsServer_GlobalDefault: Optional["AcmeDnsServer"] = None,
+    acme_challenge_duplicate_strategy_id: Optional[int] = None,
 ) -> model_utils.DomainsChallenged:
     domains_challenged = model_utils.DomainsChallenged()
     domain_names_all = []
@@ -850,14 +851,18 @@ def form_domains_challenge_typed(
 
         # 2: ensure there are domains
         if not domain_names_all:
-            formStash.fatal_form(error_main="no domain names submitted")
+            formStash.fatal_form(error_main="No domain names submitted.")
 
         # 3: ensure there is no overlap
-        domain_names_all_set = set(domain_names_all)
-        if len(domain_names_all) != len(domain_names_all_set):
-            formStash.fatal_form(
-                error_main="a domain name can only be associated to one challenge type",
-            )
+        if (
+            acme_challenge_duplicate_strategy_id
+            not in model_utils.AcmeChallengeDuplicateStrategy._options_Duplicates_id
+        ):
+            domain_names_all_set = set(domain_names_all)
+            if len(domain_names_all) != len(domain_names_all_set):
+                formStash.fatal_form(
+                    error_main="A domain name can only be associated to one challenge type.",
+                )
 
         # 4: maybe we only want http01 domains submitted?
         if http01_only:
@@ -866,7 +871,7 @@ def form_domains_challenge_typed(
                     continue
                 if v:
                     formStash.fatal_form(
-                        error_main="only http-01 domains are accepted by this form",
+                        error_main="Only http-01 domains are accepted by this form.",
                     )
 
         # ensure wildcards are only in dns-01
@@ -877,7 +882,7 @@ def form_domains_challenge_typed(
                 for d in ds:
                     if d[0] == "*":
                         formStash.fatal_form(
-                            error_main="wildcards (*) MUST use `dns-01`.",
+                            error_main="Wildcards (*) MUST use `dns-01`.",
                         )
 
         # see DOMAINS_CHALLENGED_FIELDS
@@ -889,8 +894,8 @@ def form_domains_challenge_typed(
                 )
 
     except ValueError as exc:  # noqa: F841
-        raise
-        formStash.fatal_form(error_main="invalid domain names detected")
+        # raise
+        formStash.fatal_form(error_main="Invalid domain names detected.")
 
     return domains_challenged
 
@@ -917,12 +922,12 @@ def form_single_domain_challenge_typed(
     if not domain_names:
         formStash.fatal_field(
             field="domain_name",
-            error_field="Found no domain names",
+            error_field="Found no domain names.",
         )
     if len(domain_names) != 1:
         formStash.fatal_field(
             field="domain_name",
-            error_field="This endpoint currently supports only 1 domain name",
+            error_field="This endpoint currently supports only 1 domain name.",
         )
 
     domains_challenged[challenge_type] = domain_names
@@ -1133,7 +1138,7 @@ def form_selections__NewOrderFreeform(
 
     if privateKeySelection.PrivateKey is None:
         if privateKeySelection.selection != "none":
-            raise ValueError("no PrivateKey parsed")
+            raise ValueError("No PrivateKey parsed.")
 
     return (acmeAccountSelection, privateKeySelection)
 

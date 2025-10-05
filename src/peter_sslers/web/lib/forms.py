@@ -304,6 +304,11 @@ class Form_AcmeDnsServer_import_domain(_Form_Schema_Base):
 class Form_AcmeOrder_new_freeform(_Form_Schema_Base):
 
     # CORE / Shared
+    acme_challenge_duplicate_strategy = OneOf(
+        model_utils.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration,
+        not_empty=False,
+        default=model_utils.AcmeChallengeDuplicateStrategy._DEFAULT_RenewalConfiguration,
+    )
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
@@ -591,6 +596,11 @@ class Form_EnrollmentFactory_new(Form_EnrollmentFactory_edit):
     # do not update on edit
     name = UnicodeString(not_empty=True, strip=True, max=64)
     label_template = UnicodeString(not_empty=True, if_missing=None, strip=True, max=64)
+    acme_challenge_duplicate_strategy = OneOf(
+        model_utils.AcmeChallengeDuplicateStrategy._options_EnrollmentFactory,
+        not_empty=False,
+        default=model_utils.AcmeChallengeDuplicateStrategy._DEFAULT_EnrollmentFactory,
+    )
 
 
 class Form_EnrollmentFactory_onboard(_Form_Schema_Base):
@@ -691,6 +701,11 @@ class Form_RenewalConfig_new_order(_Form_Schema_Base):
 class Form_RenewalConfig_new(_Form_Schema_Base):
 
     # CORE / Shared
+    acme_challenge_duplicate_strategy = OneOf(
+        model_utils.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration,
+        not_empty=False,
+        default=model_utils.AcmeChallengeDuplicateStrategy._DEFAULT_RenewalConfiguration,
+    )
     domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     note = UnicodeString(not_empty=False, if_missing=None, strip=True)
@@ -767,16 +782,6 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
 
 class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
 
-    if False:
-        # CORE / Shared
-        note = UnicodeString(not_empty=False, if_missing=None, strip=True)
-        label = UnicodeString(not_empty=False, if_missing=None, strip=True, max=64)
-        is_export_filesystem = OneOf(
-            model_utils.OptionsOnOff._options_RenewalConfiguration_isExportFilesystem,
-            not_empty=False,
-            if_missing="off",
-        )
-
     # PRIMARY cert
     account_key_option__primary = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic_reuse,
@@ -785,11 +790,6 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
     account_key_reuse__primary = UnicodeString(
         not_empty=False, if_missing=None, strip=True
     )
-    if False:
-        acme_account_id__primary = Int(not_empty=False, if_missing=None)
-        acme_account_url__primary = UnicodeString(
-            not_empty=False, if_missing=None, strip=True
-        )
 
     account_key_option__backup = OneOf(
         model_utils.AcmeAccountKeyOption.options_basic_backup_reuse,
@@ -799,14 +799,6 @@ class Form_RenewalConfig_new_configuration(Form_RenewalConfig_new):
     account_key_reuse__backup = UnicodeString(
         not_empty=False, if_missing=None, strip=True
     )
-    if False:
-        acme_account_id__backup = Int(not_empty=False, if_missing=None)
-        acme_account_url__backup = UnicodeString(
-            not_empty=False, if_missing=None, strip=True
-        )
-        acme_profile__primary = UnicodeString(
-            not_empty=False, if_missing=None, strip=True, max=64
-        )
 
 
 class Form_RenewalConfiguration_mark(_Form_Schema_Base):

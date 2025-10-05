@@ -2760,6 +2760,12 @@ def do__AcmeV2_AcmeOrder__new(
     #
     # Domains Check
     #
+    # TODO: MIGRATION START
+    #
+    # this is probably now unnecessary and might be migrated into
+    # `db.create.create_RenewalConfiguration`, or removed entirely
+    # This code is a legacy from before AcmeOrders were based on
+    # RenewalConfigurations.
 
     domains_challenged = dbRenewalConfiguration.domains_challenged
     domain_names = dbRenewalConfiguration.domains_as_list
@@ -2771,6 +2777,8 @@ def do__AcmeV2_AcmeOrder__new(
 
     # raise a ValueError if `DomainsChallenged` object is incompatible
     domains_challenged.ensure_parity(domain_names)
+
+    # TODO: MIGRATION END
 
     assert ctx.application_settings
     # this is REQUIRED for DNS-01; we don't really care about HTTP-01

@@ -62,6 +62,10 @@
                         <td>${admin_partials.formgroup__note()}</td>
                     </tr>
                     <tr>
+                        <th>ACME Challenge Duplicate Strategy</th>
+                        <td><code>${EnrollmentFactory.acme_challenge_duplicate_strategy}</code></td>
+                    </tr>
+                    <tr>
                         <th>Domain Templates - http01</th>
                         <td><code>${EnrollmentFactory.domain_template_http01}</code></td>
                     </tr>

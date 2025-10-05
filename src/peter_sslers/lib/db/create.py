@@ -912,6 +912,7 @@ def create__EnrollmentFactory(
     acme_profile__backup: Optional[str] = None,
     # misc
     note: Optional[str] = None,
+    acme_challenge_duplicate_strategy_id: Optional[int] = None,
     domain_template_http01: Optional[str] = None,
     domain_template_dns01: Optional[str] = None,
     label_template: Optional[str] = None,
@@ -919,6 +920,12 @@ def create__EnrollmentFactory(
 ) -> "EnrollmentFactory":
     if not domain_template_http01 and not domain_template_dns01:
         raise ValueError("at least one template is required")
+
+    if (not acme_challenge_duplicate_strategy_id) or (
+        acme_challenge_duplicate_strategy_id
+        not in model_utils.AcmeChallengeDuplicateStrategy._options_EnrollmentFactory_id
+    ):
+        raise ValueError("invalid acme_challenge_duplicate_strategy_id")
 
     if dbAcmeAccount__backup:
         if dbAcmeAccount__primary.id == dbAcmeAccount__backup.id:
@@ -961,6 +968,9 @@ def create__EnrollmentFactory(
         dbEnrollmentFactory.acme_profile__backup = acme_profile__backup
     # m
     dbEnrollmentFactory.note = note
+    dbEnrollmentFactory.acme_challenge_duplicate_strategy_id = (
+        acme_challenge_duplicate_strategy_id
+    )
     dbEnrollmentFactory.domain_template_http01 = domain_template_http01
     dbEnrollmentFactory.domain_template_dns01 = domain_template_dns01
     dbEnrollmentFactory.label_template = label_template
@@ -1100,6 +1110,7 @@ def create__RenewalConfiguration(
     private_key_cycle_id__backup: Optional[int] = None,
     acme_profile__backup: Optional[str] = None,
     # misc
+    acme_challenge_duplicate_strategy_id: Optional[int] = None,
     note: Optional[str] = None,
     label: Optional[str] = None,
     is_export_filesystem_id: int = model_utils.OptionsOnOff.OFF,
@@ -1124,6 +1135,7 @@ def create__RenewalConfiguration(
     :param private_key_cycle_id__backup: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param acme_profile__backup: (optional) A string of the server's profile
 
+    :param acme_challenge_duplicate_strategy_id: (required) Valid options are in :class:`model.utils.AcmeChallengeDuplicateStrategy`
     :param note: (optional) A string to be associated with this record
     :param dbEnrollmentFactory: (optional) A :class:`model.objects.EnrollmentFactory` object
     :param dbSystemConfiguration: (optional) A :class:`model.objects.SystemConfiguration` object
@@ -1202,6 +1214,24 @@ def create__RenewalConfiguration(
                 "is_export_filesystem_id",
                 "`is_export_filesystem_id` option requires an Enrollment Factory",
             )
+
+    if not acme_challenge_duplicate_strategy_id:
+        raise ValueError("requires acme_challenge_duplicate_strategy_id")
+    else:
+        if dbEnrollmentFactory:
+            if (
+                acme_challenge_duplicate_strategy_id
+                not in model_utils.AcmeChallengeDuplicateStrategy._options_RenewalConfigurationViaEnrollmentFactory_id
+            ):
+                raise ValueError(
+                    "invalid acme_challenge_duplicate_strategy_id for enrollment factory"
+                )
+        else:
+            if (
+                acme_challenge_duplicate_strategy_id
+                not in model_utils.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration_id
+            ):
+                raise ValueError("invalid acme_challenge_duplicate_strategy_id")
 
     assert ctx.timestamp
 
@@ -1319,6 +1349,9 @@ def create__RenewalConfiguration(
     dbRenewalConfiguration.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbRenewalConfiguration.uniquely_challenged_fqdn_set_id = (
         dbUniquelyChallengedFQDNSet.id
+    )
+    dbRenewalConfiguration.acme_challenge_duplicate_strategy_id = (
+        acme_challenge_duplicate_strategy_id
     )
 
     # primary cert

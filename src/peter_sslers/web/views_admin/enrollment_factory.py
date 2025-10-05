@@ -175,6 +175,22 @@ def submit__new(
             is_export_filesystem
         )
 
+        acme_challenge_duplicate_strategy = formStash.results[
+            "acme_challenge_duplicate_strategy"
+        ]
+        acme_challenge_duplicate_strategy_id = (
+            model_utils.AcmeChallengeDuplicateStrategy.from_string(
+                acme_challenge_duplicate_strategy
+            )
+        )
+        if (
+            acme_challenge_duplicate_strategy_id
+            not in model_utils.AcmeChallengeDuplicateStrategy._options_EnrollmentFactory_id
+        ):
+            formStash.fatal_field(
+                field="acme_challenge_duplicate_strategy", error_field="invalid"
+            )
+
         # these require some validation
         existingEnrollmentFactory = lib_db.get.get__EnrollmentFactory__by_name(
             request.api_context, name
@@ -276,6 +292,7 @@ def submit__new(
             acme_profile__backup=acme_profile__backup,
             # misc
             note=note,
+            acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
             domain_template_http01=domain_template_http01,
             domain_template_dns01=domain_template_dns01,
             label_template=label_template,
@@ -511,6 +528,7 @@ def submit__onboard(
             dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                 request.api_context,
                 domains_challenged=domains_challenged,
+                acme_challenge_duplicate_strategy_id=model_utils.AcmeChallengeDuplicateStrategy.via_enrollment_factory,
                 # PRIMARY cert
                 dbAcmeAccount__primary=dbEnrollmentFactory.acme_account__primary,
                 private_key_cycle_id__primary=dbEnrollmentFactory.private_key_cycle_id__primary,
@@ -1155,6 +1173,7 @@ class View_New(Handler):
                 "note": "note",
                 "label_template": "template used for RenewalConfiguration labels",
                 "is_export_filesystem": "export certs?",
+                "acme_challenge_duplicate_strategy": "How to handle duplicate challenges for a domain.",
                 "domain_template_http01": "template",
                 "domain_template_dns01": "template",
                 "acme_account_id__backup": "which provider",
@@ -1168,6 +1187,9 @@ class View_New(Handler):
             },
             "valid_options": {
                 "AcmeAccounts": "{RENDER_ON_REQUEST::as_json_label}",
+                "acme_challenge_duplicate_strategy": Form_EnrollmentFactory_new.fields[
+                    "acme_challenge_duplicate_strategy"
+                ].list,
                 "private_key_cycle__primary": Form_EnrollmentFactory_new.fields[
                     "private_key_cycle__primary"
                 ].list,

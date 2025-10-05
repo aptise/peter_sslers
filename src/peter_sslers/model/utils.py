@@ -784,6 +784,67 @@ class AcmeAccountKeySource(_mixin_mapping):
     IMPORTED = 2
 
 
+class AcmeChallengeDuplicateStrategy(_mixin_mapping):
+    """
+    The default strategy is to attempt only one challenge, either a specified
+    http-01 or dns-01.
+
+    This was developed as a configuration option to allow a backup attempt.
+
+    E.g. For a RenewalConfiguration: Try dns-01 first, fallback to http-01
+    """
+
+    via_enrollment_factory = 0
+    no_duplicates = 1
+    http_01__dns_01 = 2
+    dns_01__http_01 = 3
+
+    _mapping = {
+        0: "via_enrollment_factory",
+        1: "no_duplicates",
+        2: "http_01__dns_01",
+        3: "dns_01__http_01",
+    }
+
+    _DEFAULT_EnrollmentFactory = "no_duplicates"
+    _DEFAULT_RenewalConfiguration = "no_duplicates"
+
+    _options_Duplicates_id = (
+        2,
+        3,
+    )
+    _options_EnrollmentFactory_id = (
+        1,
+        2,
+        3,
+    )
+    _options_RenewalConfiguration_id = (
+        1,
+        2,
+        3,
+    )
+    _options_RenewalConfigurationViaEnrollmentFactory_id = (0,)
+
+
+# compute this for ease of `curl` options
+AcmeChallengeDuplicateStrategy._options_Duplicates = [
+    AcmeChallengeDuplicateStrategy._mapping[_id]
+    for _id in AcmeChallengeDuplicateStrategy._options_Duplicates_id
+]
+AcmeChallengeDuplicateStrategy._options_EnrollmentFactory = [
+    AcmeChallengeDuplicateStrategy._mapping[_id]
+    for _id in AcmeChallengeDuplicateStrategy._options_EnrollmentFactory_id
+]
+AcmeChallengeDuplicateStrategy._options_RenewalConfiguration = [
+    AcmeChallengeDuplicateStrategy._mapping[_id]
+    for _id in AcmeChallengeDuplicateStrategy._options_RenewalConfiguration_id
+]
+AcmeChallengeDuplicateStrategy._options_RenewalConfigurationViaEnrollmentFactory = [
+    AcmeChallengeDuplicateStrategy._mapping[_id]
+    for _id in AcmeChallengeDuplicateStrategy._options_RenewalConfigurationViaEnrollmentFactory_id
+]
+
+
 class AcmeChallengeType(_mixin_mapping):
     """
     ACME supports multiple Challenge types
@@ -1085,11 +1146,19 @@ class DomainsChallenged(dict):
         return sorted(_domains)
 
     def ensure_parity(self, domains_to_test: List[str]) -> None:
-        """raise a ValueError if we do not have the exact set of domains"""
+        """
+        This is a simple check to ensure, irrespective of challenge type,
+        the `domains_to_test` are equivalent to this object
+        raises a ValueError if we do not have the exact set of domains
+        """
+        # TODO: This can probably be removed
+        #       This is a legacy from before AcmeOrders were
+        #       based on RenewalConfigurations
         if not isinstance(domains_to_test, list):
             raise ValueError("`domains_to_test` must be a list")
         domains_to_test = sorted(domains_to_test)
-        domain_names = self.domains_as_list
+        # the self.domains_as_list may have duplicates due to challenges
+        domain_names = [i for i in set(self.domains_as_list)]
         if domain_names != domains_to_test:
             raise ValueError("`%s` != `%s`" % (domain_names, domains_to_test))
 

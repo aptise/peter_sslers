@@ -17,6 +17,20 @@ if TYPE_CHECKING:
 
 # ==============================================================================
 
+if False:
+    """
+    Determining what causes an form error may require monkeypatching-in
+    an exception raise to get a stacktrace.
+    """
+
+    from pyramid_formencode_classic import FormStash  # noqa: F811
+
+    def x(cls, *args):
+        raise ValueError(args)
+
+    FormStash.fatal_field = x
+    FormStash.fatal_form = x
+
 
 TEMPLATE_FORMSTASH_ERRORS = (
     """<div class="alert alert-danger"><div class="control-group error">"""

@@ -10,6 +10,7 @@ leverages the test framework to start/manage a few background subprocess:
 """
 
 # stdlib
+import os
 import time
 
 # locals
@@ -17,6 +18,14 @@ import tests._utils
 from tests._utils import under_acme_dns
 from tests._utils import under_pebble
 from tests._utils import under_pebble_alt
+
+# ==============================================================================
+
+RUN_API_TESTS__PEBBLE = bool(int(os.environ.get("SSL_RUN_API_TESTS__PEBBLE", 0)))
+
+if not RUN_API_TESTS__PEBBLE:
+    print("env var `SSL_RUN_API_TESTS__PEBBLE=1` must be set")
+    exit(1)
 
 
 def run():

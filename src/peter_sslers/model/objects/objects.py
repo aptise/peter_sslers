@@ -3072,6 +3072,11 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     is_export_filesystem_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.OptionsOnOff
+    acme_challenge_duplicate_strategy_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        default=model_utils.AcmeChallengeDuplicateStrategy._DEFAULT_EnrollmentFactory,
+    )  # see .utils.AcmeChallengeDuplicateStrategy
 
     # for consumers
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True, default=None)
@@ -3128,6 +3133,12 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     )
 
     @property
+    def acme_challenge_duplicate_strategy(self) -> str:
+        return model_utils.AcmeChallengeDuplicateStrategy.as_string(
+            self.acme_challenge_duplicate_strategy_id
+        )
+
+    @property
     def is_export_filesystem(self) -> str:
         return model_utils.OptionsOnOff.as_string(self.is_export_filesystem_id)
 
@@ -3167,6 +3178,7 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
             "domain_template_dns01": self.domain_template_dns01,
             "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
+            "acme_challenge_duplicate_strategy_id": self.acme_challenge_duplicate_strategy,
             "acme_profile__primary": self.acme_profile__primary,
             "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,
@@ -3870,6 +3882,11 @@ class RenewalConfiguration(
     unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
+    acme_challenge_duplicate_strategy_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        default=model_utils.AcmeChallengeDuplicateStrategy._DEFAULT_RenewalConfiguration,
+    )  # see .utils.AcmeChallengeDuplicateStrategy
     enrollment_factory_id__via: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("enrollment_factory.id"), nullable=True
     )
@@ -3964,6 +3981,12 @@ class RenewalConfiguration(
     _domains_challenged: Optional[model_utils.DomainsChallenged] = None
 
     @property
+    def acme_challenge_duplicate_strategy(self) -> str:
+        return model_utils.AcmeChallengeDuplicateStrategy.as_string(
+            self.acme_challenge_duplicate_strategy_id
+        )
+
+    @property
     def domains_as_list(self) -> List[str]:
         return self.unique_fqdn_set.domains_as_list
 
@@ -4036,6 +4059,7 @@ class RenewalConfiguration(
             # - -
             "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
+            "acme_challenge_duplicate_strategy": self.acme_challenge_duplicate_strategy,
             "acme_profile__primary": self.acme_profile__primary,
             "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,
@@ -4707,7 +4731,7 @@ class UniquelyChallengedFQDNSet2Domain(Base):
         sa.Integer, sa.ForeignKey("domain.id"), primary_key=True
     )
     acme_challenge_type_id: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
+        sa.Integer, primary_key=True
     )  # `model_utils.AcmeChallengeType`
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

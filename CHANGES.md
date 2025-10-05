@@ -317,6 +317,8 @@
     CertificateCAPreference is renamed to X509CertificateTrustPreferencePolicyItem
     CertificateCAPreferencePolicy is renamed to X509CertificateTrustPreferencePolicy
     
+    RenewalConfiguration and EnrollmentFactory may now allow conflicting DNS-01/HTTP-01 doomains via ACME Challenge Duplicate Strategy
+    
 0.6.0
     py3.7+ only (sqlalchemy requirement)
     lib.cert_utils is now a pypi package, cert_utils, that is only py3

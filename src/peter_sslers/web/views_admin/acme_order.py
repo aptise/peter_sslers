@@ -76,10 +76,28 @@ def submit__new_freeform(
     if not result:
         raise formhandling.FormInvalid(formStash)
 
+    # how to handle duplicate challenges for a domain?
+    acme_challenge_duplicate_strategy = formStash.results[
+        "acme_challenge_duplicate_strategy"
+    ]
+    acme_challenge_duplicate_strategy_id = (
+        model_utils.AcmeChallengeDuplicateStrategy.from_string(
+            acme_challenge_duplicate_strategy
+        )
+    )
+    if (
+        acme_challenge_duplicate_strategy_id
+        not in model_utils.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration_id
+    ):
+        formStash.fatal_field(
+            field="acme_challenge_duplicate_strategy", error_field="invalid"
+        )
+
     domains_challenged = form_utils.form_domains_challenge_typed(
         request,
         formStash,
         dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
+        acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
     )
 
     is_duplicate_renewal_configuration = None
@@ -232,6 +250,7 @@ def submit__new_freeform(
             dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                 request.api_context,
                 domains_challenged=domains_challenged,
+                acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
                 # PRIMARY cert
                 dbAcmeAccount__primary=acmeAccountSelection__primary.AcmeAccount,
                 private_key_cycle_id__primary=private_key_cycle_id__primary,
@@ -253,6 +272,9 @@ def submit__new_freeform(
             is_duplicate_renewal_configuration = True
             # we could raise exc to abort, but this is likely preferred
             dbRenewalConfiguration = exc.args[0]
+
+        # commit this
+        request.api_context.pyramid_transaction_commit()
 
         # unused because we're not uploading accounts
         # migrate_a = formStash.results["account__order_default_private_key_technology"]
@@ -1376,6 +1398,7 @@ class View_New(Handler):
             "instructions": "curl {ADMIN_PREFIX}/acme-order/new/freeform.json",
             "form_fields": {
                 # ALL certs
+                "acme_challenge_duplicate_strategy": "How to handle duplicate challenges for a domain.",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "note": "A string to associate with the AcmeOrder.",
@@ -1438,6 +1461,9 @@ class View_New(Handler):
                 ].list,
                 "account_key_option__primary": Form_AcmeOrder_new_freeform.fields[
                     "account_key_option__primary"
+                ].list,
+                "acme_challenge_duplicate_strategy": Form_AcmeOrder_new_freeform.fields[
+                    "acme_challenge_duplicate_strategy"
                 ].list,
                 "private_key_cycle__backup": Form_AcmeOrder_new_freeform.fields[
                     "private_key_cycle__backup"

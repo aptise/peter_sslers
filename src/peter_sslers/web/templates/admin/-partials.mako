@@ -2468,6 +2468,35 @@
 </%def>
 
 
+<%def name="formgroup__AcmeChallengeDuplicateStrategy(via='EnrollmentFactory', default=None)">
+    <%
+        options = []
+        if via == "EnrollmentFactory":
+            options = model_websafe.AcmeChallengeDuplicateStrategy._options_EnrollmentFactory
+            if default is None:
+                default = model_websafe.AcmeChallengeDuplicateStrategy._DEFAULT_EnrollmentFactory
+        elif via == "RenewalConfiguration":
+            options = model_websafe.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration
+            if default is None:
+                default = model_websafe.AcmeChallengeDuplicateStrategy._DEFAULT_RenewalConfiguration
+    %>
+    <div class="form-group">
+        <label for="acme_challenge_duplicate_strategy">ACME Challenge Duplicate Strategy</label>
+        <select class="form-control" name="acme_challenge_duplicate_strategy">
+            % for _option_text in options:
+                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+        <p class="help-block">
+            An ACME Order only needs to pass a single challenge per-domain.
+            An ACME Order will immediately fail if any challenge fails.
+            This setting will configure the first listed challenge as the default for ACME Orders.
+            If that challenge fails, it will allow for a second order attempt with second listed challenge.
+        </p>
+    </div>
+</%def>
+
+
 <%def name="formgroup__X509CertificateTrusted_Chain_file(show_text=False)">
     <div class="form-group clearfix">
         <label for="f1-chain_file">Chain File</label>

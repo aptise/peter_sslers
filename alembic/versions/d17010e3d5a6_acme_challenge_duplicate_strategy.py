@@ -1,0 +1,142 @@
+"""acme_challenge_duplicate_strategy
+
+Revision ID: d17010e3d5a6
+Revises: 3d47851c18a1
+Create Date: 2025-09-29 23:58:48.867730
+
+"""
+
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# edited template
+from peter_sslers.model.utils import AcmeChallengeDuplicateStrategy
+
+# revision identifiers, used by Alembic.
+revision: str = "d17010e3d5a6"
+down_revision: Union[str, Sequence[str], None] = "3d47851c18a1"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+
+    #
+    # acme_authorization_potential
+    #
+
+    with op.batch_alter_table("acme_authorization_potential", schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f("uidx_acme_authorization_potential"))
+        batch_op.create_index(
+            "uidx_acme_authorization_potential",
+            ["acme_order_id", "domain_id", "acme_challenge_type_id"],
+            unique=True,
+        )
+
+    #
+    # enrollment_factory
+    #
+    with op.batch_alter_table("enrollment_factory", schema=None) as batch_op:
+        batch_op.add_column(
+            sa.Column(
+                "acme_challenge_duplicate_strategy_id", sa.Integer(), nullable=True
+            )
+        )
+
+    op.execute(
+        "UPDATE enrollment_factory SET acme_challenge_duplicate_strategy_id = %s ;"
+        % AcmeChallengeDuplicateStrategy.from_string(
+            AcmeChallengeDuplicateStrategy._DEFAULT_EnrollmentFactory
+        )
+    )
+
+    with op.batch_alter_table("enrollment_factory", schema=None) as batch_op:
+        batch_op.alter_column(
+            "acme_challenge_duplicate_strategy_id",
+            nullable=False,
+            existing_nullable=True,
+        )
+
+    #
+    # renewal_configuration
+    #
+
+    with op.batch_alter_table("renewal_configuration", schema=None) as batch_op:
+        batch_op.add_column(
+            sa.Column(
+                "acme_challenge_duplicate_strategy_id", sa.Integer(), nullable=True
+            )
+        )
+
+    op.execute(
+        "UPDATE renewal_configuration SET acme_challenge_duplicate_strategy_id = %s ;"
+        % AcmeChallengeDuplicateStrategy.from_string(
+            AcmeChallengeDuplicateStrategy._DEFAULT_RenewalConfiguration
+        )
+    )
+
+    with op.batch_alter_table("renewal_configuration", schema=None) as batch_op:
+        batch_op.alter_column(
+            "acme_challenge_duplicate_strategy_id",
+            nullable=False,
+            existing_nullable=True,
+        )
+
+    #
+    # uniquely_challenged_fqdn_set_2_domain
+    #
+
+    with op.batch_alter_table(
+        "uniquely_challenged_fqdn_set_2_domain", schema=None
+    ) as batch_op:
+        batch_op.create_primary_key(
+            constraint_name="pkey_uniquely_challenged_fqdn_set_2_domain",
+            columns=[
+                "uniquely_challenged_fqdn_set_id",
+                "domain_id",
+                "acme_challenge_type_id",
+            ],
+        )
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+
+    # uniquely_challenged_fqdn_set_2_domain
+
+    if False:
+        # this is not reversible, as new records are likely to violate this constraint
+        with op.batch_alter_table(
+            "uniquely_challenged_fqdn_set_2_domain", schema=None
+        ) as batch_op:
+            batch_op.create_primary_key(
+                constraint_name="pkey_uniquely_challenged_fqdn_set_2_domain",
+                columns=[
+                    "uniquely_challenged_fqdn_set_id",
+                    "domain_id",
+                ],
+            )
+
+    with op.batch_alter_table("renewal_configuration", schema=None) as batch_op:
+        batch_op.drop_column("acme_challenge_duplicate_strategy_id")
+
+    with op.batch_alter_table("enrollment_factory", schema=None) as batch_op:
+        batch_op.drop_column("acme_challenge_duplicate_strategy_id")
+
+    if False:
+        # this is not reversible, as new records are likely to violate this constraint
+        with op.batch_alter_table(
+            "acme_authorization_potential", schema=None
+        ) as batch_op:
+            batch_op.drop_index(batch_op.f("uidx_acme_authorization_potential"))
+            batch_op.create_index(
+                "uidx_acme_authorization_potential",
+                ["acme_order_id", "domain_id"],
+                unique=True,
+            )
+
+    # ### end Alembic commands ###

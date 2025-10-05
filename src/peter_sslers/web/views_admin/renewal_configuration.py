@@ -129,10 +129,28 @@ def submit__new(
     if not result:
         raise formhandling.FormInvalid(formStash)
 
+    # how to handle duplicate challenges for a domain?
+    acme_challenge_duplicate_strategy = formStash.results[
+        "acme_challenge_duplicate_strategy"
+    ]
+    acme_challenge_duplicate_strategy_id = (
+        model_utils.AcmeChallengeDuplicateStrategy.from_string(
+            acme_challenge_duplicate_strategy
+        )
+    )
+    if (
+        acme_challenge_duplicate_strategy_id
+        not in model_utils.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration_id
+    ):
+        formStash.fatal_field(
+            field="acme_challenge_duplicate_strategy", error_field="invalid"
+        )
+
     domains_challenged = form_utils.form_domains_challenge_typed(
         request,
         formStash,
         dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
+        acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
     )
 
     acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
@@ -227,6 +245,7 @@ def submit__new(
             dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                 request.api_context,
                 domains_challenged=domains_challenged,
+                acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
                 # PRIMARY cert
                 dbAcmeAccount__primary=acmeAccountSelection.AcmeAccount,
                 private_key_technology_id__primary=private_key_technology_id__primary,
@@ -311,10 +330,29 @@ def submit__new_configuration(
         raise formhandling.FormInvalid(formStash)
 
     try:
+
+        # how to handle duplicate challenges for a domain?
+        acme_challenge_duplicate_strategy = formStash.results[
+            "acme_challenge_duplicate_strategy"
+        ]
+        acme_challenge_duplicate_strategy_id = (
+            model_utils.AcmeChallengeDuplicateStrategy.from_string(
+                acme_challenge_duplicate_strategy
+            )
+        )
+        if (
+            acme_challenge_duplicate_strategy_id
+            not in model_utils.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration_id
+        ):
+            formStash.fatal_field(
+                field="acme_challenge_duplicate_strategy", error_field="invalid"
+            )
+
         domains_challenged = form_utils.form_domains_challenge_typed(
             request,
             formStash,
             dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
+            acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
         )
 
         acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
@@ -439,6 +477,7 @@ def submit__new_configuration(
                 dbRenewalConfiguration_new = lib_db.create.create__RenewalConfiguration(
                     request.api_context,
                     domains_challenged=domains_challenged,
+                    acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
                     # PRIMARY cert
                     dbAcmeAccount__primary=acmeAccountSelection.AcmeAccount,
                     private_key_cycle_id__primary=private_key_cycle_id__primary,
@@ -1154,6 +1193,7 @@ class View_Focus_New(View_Focus):
             "instructions": "curl {ADMIN_PREFIX}/renewal-configuration/1/new-configuration.json",
             "form_fields": {
                 # ALL certs
+                "acme_challenge_duplicate_strategy": "How to handle duplicate challenges for a domain.",
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
                 "note": "A string to associate with the RenewalConfiguration.",
@@ -1201,6 +1241,9 @@ class View_Focus_New(View_Focus):
                 ].list,
                 "account_key_option__backup": Form_RenewalConfig_new.fields[
                     "account_key_option__backup"
+                ].list,
+                "acme_challenge_duplicate_strategy": Form_RenewalConfig_new.fields[
+                    "acme_challenge_duplicate_strategy"
                 ].list,
                 "private_key_cycle__primary": Form_RenewalConfig_new_configuration.fields[
                     "private_key_cycle__primary"
@@ -1388,6 +1431,7 @@ class View_New(Handler):
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
                 "note": "A string to associate with the RenewalConfiguration.",
                 "label": "A short string used to label the RenewalConfiguration on exports. [Optional]",
+                "acme_challenge_duplicate_strategy": "How to handle duplicate challenges for a domain.",
                 # primary cert
                 "account_key_option__primary": "How is the AcmeAccount specified?",
                 "account_key_global__primary": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option__primary==account_key_global__primary`; used to ensure the default did not change.",
@@ -1438,6 +1482,9 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
                 ].list,
                 "account_key_option__backup": Form_RenewalConfig_new.fields[
                     "account_key_option__backup"
+                ].list,
+                "acme_challenge_duplicate_strategy": Form_RenewalConfig_new.fields[
+                    "acme_challenge_duplicate_strategy"
                 ].list,
                 "private_key_cycle__primary": Form_RenewalConfig_new.fields[
                     "private_key_cycle__primary"

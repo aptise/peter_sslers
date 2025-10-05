@@ -104,6 +104,10 @@
                         <th>domain templates</th>
                         <td>
                             <p>
+                                <b>ACME Challenge Duplicate Strategy</b>
+                                <code>${EnrollmentFactory.acme_challenge_duplicate_strategy}</code>
+                            </p>
+                            <p>
                                 <b>HTTP-01</b>
                                 <code>${EnrollmentFactory.domain_template_http01}</code>
                             </p>
