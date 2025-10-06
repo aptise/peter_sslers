@@ -632,6 +632,21 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>AcmeOrder - Retried</th>
+                        <td>
+                            % if AcmeOrder.acme_order__retried:
+                                <a
+                                    class="label label-info"
+                                    href="${admin_prefix}/acme-order/${AcmeOrder.acme_order__retried.id}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${AcmeOrder.acme_order__retried.id}
+                                </a>
+                            % endif
+                        </td>
+                    </tr>
+
+                    <tr>
                         <th>AcmeOrder - Renewal Of</th>
                         <td>
                             % if AcmeOrder.acme_order_id__renewal_of:

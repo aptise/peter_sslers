@@ -1366,6 +1366,65 @@ def get__AcmeOrder__by_X509CertificateRequest__paginated(
     return items_paged
 
 
+def get__AcmeOrder_originalRetryOf_by_acmeOrderId(
+    ctx: "ApiContext",
+    acme_order_id: int,
+) -> Optional[AcmeOrder]:
+    # TODO: redo as a CTE/Recursive query
+
+    # Grab the first item
+    # This block only exists for error handling;
+    # this could be avoided and only the next block used
+    dbAcmeOrderRetried = (
+        ctx.dbSession.query(AcmeOrder).filter(AcmeOrder.id == acme_order_id).first()
+    )
+    if not dbAcmeOrderRetried:
+        return None
+    if not dbAcmeOrderRetried.acme_order_id__retry_of:
+        return dbAcmeOrderRetried
+
+    # err: Optional[str] = None
+    parent_id = dbAcmeOrderRetried.acme_order_id__retry_of
+    dbAcmeOrder: Optional[AcmeOrder] = None
+    while parent_id:
+        dbAcmeOrder = (
+            ctx.dbSession.query(AcmeOrder).filter(AcmeOrder.id == parent_id).first()
+        )
+        if not dbAcmeOrder:
+            # err = "invalid parent"
+            break
+        parent_id = dbAcmeOrderRetried.acme_order_id__retry_of
+    return dbAcmeOrder
+
+
+def get__AcmeOrder_retries_by_acmeOrderId(
+    ctx: "ApiContext",
+    acme_order_id: int,
+) -> List[AcmeOrder]:
+    # TODO: redo as a CTE/Recursive query
+    dbAcmeOrder_start = (
+        ctx.dbSession.query(AcmeOrder).filter(AcmeOrder.id == acme_order_id).first()
+    )
+    if not dbAcmeOrder_start:
+        return None
+
+    parent_id = dbAcmeOrder_start.id
+    dbAcmeOrders: List[AcmeOrder] = []
+    while parent_id:
+        dbAcmeOrder = (
+            ctx.dbSession.query(AcmeOrder)
+            .filter(AcmeOrder.acme_order_id__retry_of == parent_id)
+            .first()
+        )
+        if not dbAcmeOrder:
+            parent_id = None
+            break
+        dbAcmeOrders.append(dbAcmeOrder)
+        parent_id = dbAcmeOrder.id
+
+    return dbAcmeOrders
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

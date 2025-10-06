@@ -32,7 +32,7 @@ requires = [
     "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
-    "pyramid_formencode_classic>=0.10.0,<1.0",
+    "pyramid_formencode_classic>=0.11.0,<1.0",
     "pyramid_mako",
     "pyramid_route_7>=0.5.3",
     "pyramid_tm",

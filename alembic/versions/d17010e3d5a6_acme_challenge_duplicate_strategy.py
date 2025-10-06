@@ -14,6 +14,7 @@ import sqlalchemy as sa
 
 # edited template
 from peter_sslers.model.utils import AcmeChallengeDuplicateStrategy
+from peter_sslers.model.utils import AcmeOrderType
 
 # revision identifiers, used by Alembic.
 revision: str = "d17010e3d5a6"
@@ -35,6 +36,32 @@ def upgrade() -> None:
             "uidx_acme_authorization_potential",
             ["acme_order_id", "domain_id", "acme_challenge_type_id"],
             unique=True,
+        )
+
+    op.execute(
+        "UPDATE acme_order SET acme_order_type_id = %s WHERE acme_order_type_id = %s AND acme_order_id__retry_of IS NULL;"
+        % (
+            AcmeOrderType.RENEWAL_CONFIGURATION_REQUEST,
+            AcmeOrderType.RETRY,
+        )
+    )
+
+    with op.batch_alter_table("acme_order", schema=None) as batch_op:
+        batch_op.create_index(
+            "uidx_acme_order_id__retry_of",
+            ["acme_order_id__retry_of"],
+            unique=True,
+        )
+        batch_op.create_check_constraint(
+            batch_op.f("ck_acme_order_type_id"),
+            sa.text(
+                (
+                    "((acme_order_id__retry_of IS NULL) AND (acme_order_type_id != %s))"
+                    " OR "
+                    "((acme_order_id__retry_of IS NOT NULL) AND (acme_order_type_id == %s))"
+                )
+                % (AcmeOrderType.RETRY, AcmeOrderType.RETRY)
+            ),
         )
 
     #
@@ -127,6 +154,9 @@ def downgrade() -> None:
     with op.batch_alter_table("enrollment_factory", schema=None) as batch_op:
         batch_op.drop_column("acme_challenge_duplicate_strategy_id")
 
+    with op.batch_alter_table("acme_order", schema=None) as batch_op:
+        batch_op.drop_index("uidx_acme_order_id__retry_of")
+
     if False:
         # this is not reversible, as new records are likely to violate this constraint
         with op.batch_alter_table(
@@ -138,5 +168,3 @@ def downgrade() -> None:
                 ["acme_order_id", "domain_id"],
                 unique=True,
             )
-
-    # ### end Alembic commands ###

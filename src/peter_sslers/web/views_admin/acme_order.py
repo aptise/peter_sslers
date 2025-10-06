@@ -4,6 +4,7 @@ from typing import Dict
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
+from urllib.parse import quote_plus
 
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
@@ -1330,7 +1331,11 @@ class View_Focus_Manipulate(View_Focus):
                     return formatted_get_docs(self, "/acme-order/{ID}/retry.json")
             if not dbAcmeOrder.is_can_acme_server_sync:
                 raise errors.InvalidRequest(
-                    "ACME Retry is not allowed for this AcmeOrder"
+                    "ACME Retry is not allowed for this AcmeOrder (I)"
+                )
+            if not dbAcmeOrder.is_can_retry:
+                raise errors.InvalidRequest(
+                    "ACME Retry is not allowed for this AcmeOrder (II)"
                 )
             try:
                 dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__retry(
@@ -1356,6 +1361,21 @@ class View_Focus_Manipulate(View_Focus):
                         exc.as_querystring,
                     )
                 )
+            except errors.DuplicateAcmeOrder as exc:
+                if self.request.wants_json:
+                    return {
+                        "result": "error",
+                        "error": exc.args[0],
+                    }
+                return HTTPSeeOther(
+                    "%s/acme-order/%s?result=error&error=%s&opertion=retry+order"
+                    % (
+                        self.request.admin_url,
+                        dbAcmeOrder.id,
+                        quote_plus(exc.args[0]),
+                    )
+                )
+
             if self.request.wants_json:
                 return {
                     "result": "success",

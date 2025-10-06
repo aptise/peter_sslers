@@ -1636,6 +1636,17 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "acme_order"
+    __table_args__ = (
+        sa.CheckConstraint(
+            (
+                "((acme_order_id__retry_of IS NULL) AND (acme_order_type_id != %s))"
+                " OR "
+                "((acme_order_id__retry_of IS NOT NULL) AND (acme_order_type_id == %s))"
+            )
+            % (model_utils.AcmeOrderType.RETRY, model_utils.AcmeOrderType.RETRY),
+            name="ck_acme_order_type_id",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     is_processing: Mapped[Optional[bool]] = mapped_column(
@@ -1753,6 +1764,20 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="AcmeOrder.id==AcmeAuthorizationPotential.acme_order_id",
         back_populates="acme_order",
     )
+    acme_order__retry_of = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="AcmeOrder.acme_order_id__retry_of==remote(AcmeOrder.id)",
+        uselist=False,
+        back_populates="acme_order__retried",
+    )
+    acme_order__retried = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="AcmeOrder.id==remote(AcmeOrder.acme_order_id__retry_of)",
+        uselist=False,
+        back_populates="acme_order__retry_of",
+    )
+    # TODO: acme_order__retry_of__original
+    # TODO: acme_order__retries_all
     acme_polling_errors = sa_orm_relationship(
         "AcmePollingError",
         primaryjoin="AcmeOrder.id==AcmePollingError.acme_order_id",
@@ -2002,6 +2027,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_retry(self) -> bool:
+        # only allow a single retry to simplify lineage
+        if self.acme_order__retried:
+            return False
         if self.acme_status_order not in model_utils.Acme_Status_Order.OPTIONS_RETRY:
             return False
         return True
@@ -2074,6 +2102,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             # - -
             "acme_authorization_ids": self.acme_authorization_ids,
             "acme_status_order": self.acme_status_order,
+            "acme_order_id__retry_of": self.acme_order_id__retry_of,
+            "acme_order_id__retried": (
+                self.acme_order__retried.id if self.acme_order__retried else None
+            ),
+            "acme_order_id__renewal_of": self.acme_order_id__renewal_of,
             "acme_order_type": self.acme_order_type,
             "acme_order_processing_status": self.acme_order_processing_status,
             "acme_order_processing_strategy": self.acme_order_processing_strategy,
@@ -3178,7 +3211,7 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
             "domain_template_dns01": self.domain_template_dns01,
             "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
-            "acme_challenge_duplicate_strategy_id": self.acme_challenge_duplicate_strategy,
+            "acme_challenge_duplicate_strategy": self.acme_challenge_duplicate_strategy,
             "acme_profile__primary": self.acme_profile__primary,
             "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,
@@ -3987,6 +4020,21 @@ class RenewalConfiguration(
         )
 
     @property
+    def acme_challenge_duplicate_strategy_id__effective(self) -> str:
+        if (
+            self.acme_challenge_duplicate_strategy_id
+            == model_utils.AcmeChallengeDuplicateStrategy.via_enrollment_factory
+        ):
+            return self.enrollment_factory.acme_challenge_duplicate_strategy_id
+        return self.acme_challenge_duplicate_strategy_id
+
+    @property
+    def acme_challenge_duplicate_strategy__effective(self) -> str:
+        return model_utils.AcmeChallengeDuplicateStrategy.as_string(
+            self.acme_challenge_duplicate_strategy_id__effective
+        )
+
+    @property
     def domains_as_list(self) -> List[str]:
         return self.unique_fqdn_set.domains_as_list
 
@@ -4060,6 +4108,7 @@ class RenewalConfiguration(
             "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
             "acme_challenge_duplicate_strategy": self.acme_challenge_duplicate_strategy,
+            "acme_challenge_duplicate_strategy__effective": self.acme_challenge_duplicate_strategy__effective,
             "acme_profile__primary": self.acme_profile__primary,
             "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,

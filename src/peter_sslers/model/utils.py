@@ -21,7 +21,10 @@ from typing_extensions import TypedDict
 from ..lib.errors import UnsupportedKeyTechnology
 
 if TYPE_CHECKING:
+    from .objects.objects import AcmeOrder
     from .objects.objects import Domain
+
+    from ..lib.context import ApiContext
 
 # ==============================================================================
 
@@ -464,6 +467,7 @@ class _Acme_Status_All(_mixin_mapping):
         410: "*410*",  # "Gone"; usually used by testing for something that was disabled
     }
 
+    # not all of these need to be referenced in code
     INVALID = 3
     DEACTIVATED = 4
     X_404_X = 404
@@ -1128,8 +1132,22 @@ class DomainsChallenged(dict):
     _challenge_types = [
         "http-01",
         "dns-01",
-        "tls-alpn-01",
+        # "tls-alpn-01",
     ]
+    _challenge_types_order = {
+        AcmeChallengeDuplicateStrategy.no_duplicates: [
+            "http-01",
+            "dns-01",
+        ],
+        AcmeChallengeDuplicateStrategy.http_01__dns_01: [
+            "http-01",
+            "dns-01",
+        ],
+        AcmeChallengeDuplicateStrategy.dns_01__http_01: [
+            "dns-01",
+            "http-01",
+        ],
+    }
 
     def __init__(self, *args, **kwargs):
         if args or kwargs:
@@ -1179,12 +1197,69 @@ class DomainsChallenged(dict):
         if self.DEFAULT != "http-01":
             raise ValueError("`DomainsChallenged.DEFAULT` must be `http-01`")
 
-    def domain_to_challenge_type_id(self, domain_name: str) -> int:
-        for _acme_challenge_type in self.keys():
-            if self[_acme_challenge_type]:
-                for _domain_name in self[_acme_challenge_type]:
-                    if _domain_name == domain_name:
-                        return AcmeChallengeType.from_string(_acme_challenge_type)
+    def domain_to_challenge_type_id(
+        self,
+        ctx: "ApiContext",
+        domain_name: str,
+        dbAcmeOrder: Optional["AcmeOrder"] = None,
+    ) -> int:
+        #
+        challenge_types_order = (
+            self._challenge_types
+            if not dbAcmeOrder
+            else self._challenge_types_order[
+                dbAcmeOrder.renewal_configuration.acme_challenge_duplicate_strategy_id__effective
+            ]
+        )
+        if dbAcmeOrder:
+            # challenge retry logic
+            if dbAcmeOrder.acme_order_id__retry_of:
+                strategy = (
+                    dbAcmeOrder.renewal_configuration.acme_challenge_duplicate_strategy__effective
+                )
+                if strategy != AcmeChallengeDuplicateStrategy.no_duplicates:
+                    # we can only retry an order once, so we only need to look at
+                    # the above order for a potential failure and alternate
+                    failed_challenge_type_id = None
+                    for (
+                        _to_authz
+                    ) in dbAcmeOrder.acme_order__retry_of.to_acme_authorizations:
+                        if (
+                            _to_authz.acme_authorization.domain.domain_name
+                            == domain_name
+                        ):
+                            if (
+                                _to_authz.acme_authorization.acme_status_authorization_id
+                                == Acme_Status_Authorization.INVALID
+                            ):
+                                for (
+                                    _challenge
+                                ) in _to_authz.acme_authorization.acme_challenges:
+                                    if (
+                                        _challenge.acme_status_challenge_id
+                                        == Acme_Status_Challenge.INVALID
+                                    ):
+                                        failed_challenge_type_id = (
+                                            _challenge.acme_challenge_type_id
+                                        )
+                    if failed_challenge_type_id:
+                        # failed_challenge_type = AcmeChallengeType.as_string(failed_challenge_type_id)
+                        # if strategy == AcmeChallengeDuplicateStrategy.http_01__dns_01:
+                        # elif strategy == AcmeChallengeDuplicateStrategy.dns_01__http_01:
+                        # TODO: this isn't scalable
+                        # however, it doesn't matter what failed as we're just
+                        # toggling between the same two dns01/http01 options
+                        # in both scenarios
+                        if failed_challenge_type_id == AcmeChallengeType.http_01:
+                            return AcmeChallengeType.dns_01
+                        return AcmeChallengeType.http_01
+
+        for _acme_challenge_type in challenge_types_order:
+            if _acme_challenge_type not in self:
+                continue
+            for _domain_name in self[_acme_challenge_type]:
+                if _domain_name == domain_name:
+                    return AcmeChallengeType.from_string(_acme_challenge_type)
         raise ValueError("domain is not challenged")
 
     def serialize_names(self) -> str:

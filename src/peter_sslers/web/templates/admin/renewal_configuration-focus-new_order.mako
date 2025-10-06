@@ -137,6 +137,12 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>ACME Challenge Duplicate Strategy</th>
+                        <td>
+                            <code>${RenewalConfiguration.acme_challenge_duplicate_strategy}</code>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>private_key_cycle [Primary]</th>
                         <td>
                             <code>${RenewalConfiguration.private_key_cycle__primary}</code>

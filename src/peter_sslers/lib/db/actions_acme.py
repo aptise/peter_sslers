@@ -2378,6 +2378,7 @@ def do__AcmeV2_AcmeOrder__process(
                     update_AcmeChallenge_status=update_AcmeChallenge_status,
                     updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
                     dbAcmeAuthorization=dbAcmeAuthorization,
+                    dbAcmeOrder=dbAcmeOrder,
                     acme_challenge_type_id__preferred=None,
                     domains_challenged=dbAcmeOrder.domains_challenged,
                     transaction_commit=transaction_commit,
@@ -2385,7 +2386,9 @@ def do__AcmeV2_AcmeOrder__process(
             else:
                 _challenge_type_id = (
                     dbAcmeOrder.domains_challenged.domain_to_challenge_type_id(
-                        dbAcmeAuthorization.domain.domain_name
+                        ctx=ctx,
+                        domain_name=dbAcmeAuthorization.domain.domain_name,
+                        dbAcmeOrder=dbAcmeOrder,
                     )
                 )
                 if _challenge_type_id == model_utils.AcmeChallengeType.http_01:
@@ -3257,6 +3260,7 @@ def do__AcmeV2_AcmeOrder__new(
                 transaction_commit=transaction_commit,  # this is optional
                 # optionals
                 is_save_alternate_chains=dbRenewalConfiguration.is_save_alternate_chains,
+                dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
                 note=note,
             )
 
