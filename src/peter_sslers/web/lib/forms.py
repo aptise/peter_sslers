@@ -307,7 +307,7 @@ class Form_AcmeOrder_new_freeform(_Form_Schema_Base):
     acme_challenge_duplicate_strategy = OneOf(
         model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration,
         not_empty=False,
-        default=model_utils.AcmeChallenge_DuplicateStrategy._DEFAULT_RenewalConfiguration,
+        if_missing=model_utils.AcmeChallenge_DuplicateStrategy._DEFAULT_RenewalConfiguration,
     )
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
@@ -582,7 +582,7 @@ class Form_EnrollmentFactory_new(Form_EnrollmentFactory_edit):
     acme_challenge_duplicate_strategy = OneOf(
         model_utils.AcmeChallenge_DuplicateStrategy._options_EnrollmentFactory,
         not_empty=False,
-        default=model_utils.AcmeChallenge_DuplicateStrategy._DEFAULT_EnrollmentFactory,
+        if_missing=model_utils.AcmeChallenge_DuplicateStrategy._DEFAULT_EnrollmentFactory,
     )
 
 
@@ -687,7 +687,7 @@ class Form_RenewalConfig_new(_Form_Schema_Base):
     acme_challenge_duplicate_strategy = OneOf(
         model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration,
         not_empty=False,
-        default=model_utils.AcmeChallenge_DuplicateStrategy._DEFAULT_RenewalConfiguration,
+        if_missing=model_utils.AcmeChallenge_DuplicateStrategy._DEFAULT_RenewalConfiguration,
     )
     domain_names_http01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
     domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None, strip=True)
