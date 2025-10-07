@@ -413,7 +413,14 @@ def main(argv=sys.argv):
                     print("successful check")
         # !!!: distpatch[acme-order]
         elif command == "acme-order":
-            # TODO - process and sync
+            # TODO: process
+            # TODO: mark
+            # TODO: server-sync
+            # TODO: server-sync_authorizations
+            # TODO: server-deactivate_authorizations
+            # TODO: server-download_certificate
+            # TODO: server-process
+            # TODO: server-finalize
 
             # !!!: - focus
             if subcommand == "focus":

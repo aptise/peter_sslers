@@ -1109,6 +1109,7 @@ def create__RateLimited(
 def create__RenewalConfiguration(
     ctx: "ApiContext",
     domains_challenged: "DomainsChallenged",
+    acme_challenge_duplicate_strategy_id: int,
     # Primary cert
     dbAcmeAccount__primary: "AcmeAccount",
     private_key_technology_id__primary: int,
@@ -1120,7 +1121,6 @@ def create__RenewalConfiguration(
     private_key_cycle_id__backup: Optional[int] = None,
     acme_profile__backup: Optional[str] = None,
     # misc
-    acme_challenge_duplicate_strategy_id: Optional[int] = None,
     note: Optional[str] = None,
     label: Optional[str] = None,
     is_export_filesystem_id: int = model_utils.Options_OnOff.OFF,
@@ -1225,23 +1225,29 @@ def create__RenewalConfiguration(
                 "`is_export_filesystem_id` option requires an Enrollment Factory",
             )
 
-    if not acme_challenge_duplicate_strategy_id:
-        raise ValueError("requires acme_challenge_duplicate_strategy_id")
+    if (
+        acme_challenge_duplicate_strategy_id
+        not in model_utils.AcmeChallenge_DuplicateStrategy._mapping
+    ):
+        raise ValueError(
+            "Unsupported `acme_challenge_duplicate_strategy_id`: %s"
+            % acme_challenge_duplicate_strategy_id
+        )
+
+    if dbEnrollmentFactory:
+        if (
+            acme_challenge_duplicate_strategy_id
+            not in model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfigurationViaEnrollmentFactory_id
+        ):
+            raise ValueError(
+                "invalid acme_challenge_duplicate_strategy_id for enrollment factory"
+            )
     else:
-        if dbEnrollmentFactory:
-            if (
-                acme_challenge_duplicate_strategy_id
-                not in model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfigurationViaEnrollmentFactory_id
-            ):
-                raise ValueError(
-                    "invalid acme_challenge_duplicate_strategy_id for enrollment factory"
-                )
-        else:
-            if (
-                acme_challenge_duplicate_strategy_id
-                not in model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration_id
-            ):
-                raise ValueError("invalid acme_challenge_duplicate_strategy_id")
+        if (
+            acme_challenge_duplicate_strategy_id
+            not in model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration_id
+        ):
+            raise ValueError("invalid acme_challenge_duplicate_strategy_id")
 
     assert ctx.timestamp
 

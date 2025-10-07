@@ -409,6 +409,7 @@ def api_domains__certificate_if_needed(
                     dbRenewalConfiguration = create.create__RenewalConfiguration(
                         ctx,
                         domains_challenged=_domains_challenged__single,
+                        acme_challenge_duplicate_strategy_id=model_utils.AcmeChallenge_DuplicateStrategy.no_duplicates,
                         # Primary cert
                         dbAcmeAccount__primary=dbAcmeAccount__primary,
                         private_key_technology_id__primary=model_utils.KeyTechnology.from_string(

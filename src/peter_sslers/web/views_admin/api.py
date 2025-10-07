@@ -750,6 +750,7 @@ class ViewAdminApi_Domain(Handler):
                     dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                         self.request.api_context,
                         domains_challenged=domains_challenged,
+                        acme_challenge_duplicate_strategy_id=model_utils.AcmeChallenge_DuplicateStrategy.no_duplicates,
                         # PRIMARY cert
                         dbAcmeAccount__primary=dbSystemConfiguration_autocert.acme_account__primary,
                         private_key_cycle_id__primary=dbSystemConfiguration_autocert.private_key_cycle_id__primary,

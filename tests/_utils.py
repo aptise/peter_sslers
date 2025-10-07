@@ -3012,6 +3012,7 @@ class AppTest(AppTestCore):
                     _dbRenewalConfiguration = db.create.create__RenewalConfiguration(
                         self.ctx,
                         domains_challenged=_domains_challenged,
+                        acme_challenge_duplicate_strategy_id=model_utils.AcmeChallenge_DuplicateStrategy.no_duplicates,
                         dbAcmeAccount__primary=_dbAcmeAccount_1,
                         private_key_cycle_id__primary=_private_key_cycle_id__renewal,
                         private_key_technology_id__primary=_dbPrivateKey_1.key_technology_id,

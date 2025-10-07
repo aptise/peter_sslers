@@ -1004,7 +1004,10 @@ class View_Focus_Manipulate(View_Focus):
     )
     def acme_server_deactivate_authorizations(self):
         """
-        deactivate any auths on the server.
+        Deactivate any auths on the server.
+        Note: Authz are not necessarily bound to a single order, such as with
+              LetsEncrypt; therefore, deactivating an AcmeOrder will not
+              necessarily deactivate the Authz.
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
@@ -1301,7 +1304,10 @@ class View_Focus_Manipulate(View_Focus):
     )
     def mark_order(self):
         """
-        Mark an order
+        Mark an AcmeOrder
+        Note: Authz are not necessarily bound to a single order, such as with
+              LetsEncrypt; therefore, deactivating an AcmeOrder will not
+              necessarily deactivate the Authz.
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":

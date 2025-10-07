@@ -23,6 +23,7 @@ from ...lib.context import ApiContext
 from ...model.objects import AcmeAccount
 from ...model.objects import AcmeServer
 from ...model.utils import AcmeAccountKey_Source
+from ...model.utils import AcmeChallenge_DuplicateStrategy
 from ...model.utils import DomainsChallenged
 from ...model.utils import PrivateKey_Cycle
 from ...model.utils import PrivateKey_Source
@@ -344,6 +345,7 @@ def import_certbot(
                         dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(  # noqa: F841
                             ctx,
                             domains_challenged=_domains_challenged,
+                            acme_challenge_duplicate_strategy_id=AcmeChallenge_DuplicateStrategy.no_duplicates,
                             # Primary cert
                             dbAcmeAccount__primary=_dbAcmeAccount,
                             private_key_technology_id__primary=dbPrivateKey.key_technology_id,
