@@ -21,18 +21,18 @@ with open(os.path.join(HERE, "src", "peter_sslers", "__init__.py")) as v_file:
     VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
 requires = [
-    "alembic>=1.16.0",
-    "cert_utils>=1.1.0",
+    "alembic>=1.16.0,<2.0",
+    "cert_utils>=1.1.1,<2.0",
     "configobj",  # used to read Certbot files
     "cryptography>42.0.0",
     "dnspython",
-    "formencode>=2.0.0",
+    "formencode>=2.0.0,<3.0",
     "josepy>=2.0.0",
     "psutil>=4.4.0",
     "packaging",
     "pyacmedns",  # not used by all, but it's small
     "pypages",
-    "pyramid_formencode_classic>=0.11.0,<1.0",
+    "pyramid_formencode_classic>=0.11.1,<1.0",
     "pyramid_mako",
     "pyramid_route_7>=0.5.3",
     "pyramid_tm",
@@ -40,8 +40,8 @@ requires = [
     "python-dateutil",
     "redis",
     "requests",
-    "SQLAlchemy>2",
-    "tldextract>=5.2.0",
+    "SQLAlchemy>2,<3",
+    "tldextract>=5.2.0,6",
     "typing_extensions",
     "urllib3>2.4.0",
     "waitress",

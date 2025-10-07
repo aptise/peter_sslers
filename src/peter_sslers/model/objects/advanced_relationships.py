@@ -338,15 +338,6 @@ AcmeDnsServer.acme_dns_server_accounts__5 = sa_orm_relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-# note: AcmeOrder.acme_order__retry_of
-AcmeOrder.acme_order__retry_of = sa_orm_relationship(
-    AcmeOrderAlt,
-    primaryjoin=(AcmeOrder.acme_order_id__retry_of == AcmeOrderAlt.id),
-    uselist=False,
-    viewonly=True,
-)
-
-
 # note: AcmeOrder.acme_order__renewal_of
 AcmeOrder.acme_order__renewal_of = sa_orm_relationship(
     AcmeOrderAlt,

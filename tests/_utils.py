@@ -1253,9 +1253,9 @@ TEST_FILES: Dict = {
             "letsencrypt_intermediate_x4_cross",
         ),
         "cert": {
-            "trustid_root_x3": "letsencrypt-certs/trustid-x3-root.pem",
+            "trustid_root_x3": "letsencrypt-certs/deprecated/trustid-x3-root.pem",
             "isrg_root_x1": "letsencrypt-certs/isrgrootx1.pem",
-            "isrg_root_x1_cross": "letsencrypt-certs/isrg-root-x1-cross-signed.pem",
+            "isrg_root_x1_cross": "letsencrypt-certs/deprecated/isrg-root-x1-cross-signed.pem",
             "isrg_root_x2": "letsencrypt-certs/isrg-root-x2.pem",
             "isrg_root_x2_cross": "letsencrypt-certs/isrg-root-x2-cross-signed.pem",
             "letsencrypt_ocsp_root_x1": "letsencrypt-certs/isrg-root-ocsp-x1.pem",
@@ -1427,7 +1427,7 @@ TEST_FILES: Dict = {
 
 
 CERT_CA_SETS = {
-    "letsencrypt-certs/trustid-x3-root.pem": {
+    "letsencrypt-certs/deprecated/trustid-x3-root.pem": {
         "key_technology": "RSA",
         "spki_sha256": "563B3CAF8CFEF34C2335CAF560A7A95906E8488462EB75AC59784830DF9E5B2B",
         "spki_sha256.b64": "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=",
@@ -1451,7 +1451,7 @@ CERT_CA_SETS = {
         "issuer_uri": None,
         "authority_key_identifier": None,
     },
-    "letsencrypt-certs/isrg-root-x1-cross-signed.pem": {
+    "letsencrypt-certs/deprecated/isrg-root-x1-cross-signed.pem": {
         "key_technology": "RSA",
         "spki_sha256": "0B9FA5A59EED715C26C1020C711B4F6EC42D58B0015E14337A39DAD301C5AFC3",
         "spki_sha256.b64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",

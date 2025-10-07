@@ -373,10 +373,24 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
             self.assertFalse(_alternates and _alternate_of)
             if _alternates:
                 for _alternate in _alternates:
-                    self.assertIn(_alternate, letsencrypt_info.CERT_CAS_DATA)
-                    _alternate_payload = letsencrypt_info.CERT_CAS_DATA[_alternate]
+                    _alternate_payload = None
+                    _found = _alternate in letsencrypt_info.CERT_CAS_DATA
+                    if _found:
+                        _alternate_payload = letsencrypt_info.CERT_CAS_DATA[_alternate]
+                    else:
+                        _found = _alternate in letsencrypt_info.CERT_CAS_DEPRECATED
+                        if _found:
+                            _alternate_payload = letsencrypt_info.CERT_CAS_DEPRECATED[
+                                _alternate
+                            ]
+
+                    self.assertTrue(_found)
+                    self.assertIsNotNone(_alternate_payload)
+
                     self.assertEqual(cert_id, _alternate_payload["alternate_of"])
+
             if _alternate_of:
+                # TODO, handle deprecated
                 _alternate_payload = letsencrypt_info.CERT_CAS_DATA[_alternate_of]
                 self.assertIn("alternates", _alternate_payload)
 
@@ -384,11 +398,18 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
             _url_pem = cert_payload.get("url_pem")
             self.assertNotIn(_url_pem, seen["url_pem"])
             seen["url_pem"].append(_url_pem)
+            print(_url_pem)
 
-            # our display_name should be unique
-            _display_name = cert_payload.get("display_name")
-            self.assertNotIn(_display_name, seen["display_name"])
-            seen["display_name"].append(_display_name)
+            try:
+                # our display_name should be unique
+                _display_name = cert_payload.get("display_name")
+                print(_display_name)
+                self.assertNotIn(_display_name, seen["display_name"])
+                seen["display_name"].append(_display_name)
+            except Exception as _exc_:
+                import pdb
+
+                pdb.set_trace()
 
 
 class Test_ARI_DateConversion(unittest.TestCase):

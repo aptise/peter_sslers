@@ -4042,7 +4042,7 @@ class RenewalConfiguration(
             self.acme_challenge_duplicate_strategy_id
             == model_utils.AcmeChallenge_DuplicateStrategy.via_enrollment_factory
         ):
-            return self.enrollment_factory.acme_challenge_duplicate_strategy_id
+            return self.enrollment_factory__via.acme_challenge_duplicate_strategy_id
         return self.acme_challenge_duplicate_strategy_id
 
     @property

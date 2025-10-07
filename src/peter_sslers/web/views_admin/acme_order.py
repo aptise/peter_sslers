@@ -390,6 +390,8 @@ def submit__retry(
         request,
         schema=Form_AcmeOrder_retry,
         validate_get=False,
+        # allow an empty POST, which will then invoke `if_missing` for the default
+        allow_empty=True,
     )
     if not result:
         raise formhandling.FormInvalid(formStash)

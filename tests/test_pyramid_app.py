@@ -4301,8 +4301,9 @@ class FunctionalTests_X509CertificateTrusted(AppTest):
         # we may not have created this
         assert res2.json["X509CertificateTrusted"]["created"] in (True, False)
         assert (
-            res2.json["X509CertificateTrusted"]["id"] == 3
-        )  # this is the 3rd item in letsencrypt_info._CERT_CAS_ORDER
+            res2.json["X509CertificateTrusted"]["id"] == 23
+        )  # this is the 23rd item in letsencrypt_info._CERT_CAS_ORDER
+        # originally this was 3rd, but it's been deprecated
         obj_id = res2.json["X509CertificateTrusted"]["id"]
         res3 = self.testapp.get(
             "/.well-known/peter_sslers/x509-certificate-trusted/%s" % obj_id, status=200
@@ -13665,7 +13666,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert res4.json["result"] == "error"
         assert (
             res4.json["form_errors"]["domain_name"]
-            == "This endpoint currently supports only 1 domain name"
+            == "This endpoint currently supports only 1 domain name."
         )
 
         # Pass 3 - Try a failure domain
