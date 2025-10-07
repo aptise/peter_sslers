@@ -3538,9 +3538,8 @@ class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
         # default X509CertificateTrusted preferences
         # format: (slot_id, sha1[:8])
         expected_preferences_initial = (
-            ("1", "DAC9024F"),  # trustid_root_x3
-            ("2", "BDB1B93C"),  # isrg_root_x2
-            ("3", "CABD2A79"),  # isrg_root_x1
+            ("1", "BDB1B93C"),  # isrg_root_x2
+            ("2", "CABD2A79"),  # isrg_root_x1
         )
         # calculate the expected matrix after an alteration
         # in this alteration, we swap the first and second items
@@ -3660,8 +3659,11 @@ class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
             """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. This item can not be increased in priority.</span></div></div>"""
             in res2.text
         )
+
+        idx_last__human = len(expected_preferences_initial)
+
         # last item can not decrease in priority
-        _form = res_forms["form-preferred-prioritize_decrease-3"]
+        _form = res_forms["form-preferred-prioritize_decrease-%s" % idx_last__human]
         res3 = _form.submit()
         assert res3.status_code == 200
         assert (
@@ -3745,7 +3747,7 @@ class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
         _ensure_compliance_form(res3, expected_preferences_added)
 
         # delete
-        form_del = res3.forms["form-preferred-delete-4"]
+        form_del = res3.forms["form-preferred-delete-%s" % (idx_last__human + 1)]
         _submit_fields = dict(form_del.submit_fields())
         assert "fingerprint_sha1" in _submit_fields
         assert (
@@ -3964,9 +3966,10 @@ class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
 
         # last item can not decrease in priority
         # but we MUST use full fingerprints in this context
+        idx_last__human = len(expected_preferences_initial)
         _payload = {
-            "slot": "3",
-            "fingerprint_sha1": expected_preferences_initial[2][1],
+            "slot": idx_last__human,
+            "fingerprint_sha1": expected_preferences_initial[idx_last__human - 1][1],
             "priority": "decrease",
         }
         res = self.testapp.post(
@@ -4091,7 +4094,7 @@ class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
 
         # delete
         _payload = {
-            "slot": 4,
+            "slot": idx_last__human + 1,
             "fingerprint_sha1": dbX509CertificateTrusted_add.fingerprint_sha1,
         }
         res = self.testapp.post(
