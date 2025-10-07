@@ -110,7 +110,7 @@ RE_AcmeOrder = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)(?:\?is_duplicate_renewal_configuration=true)?$"""
 )
 RE_AcmeOrder_retry = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)\?result=success&operation=retry\+order$"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)\?result=success&operation=retry$"""
 )
 RE_AcmeOrder_deactivated = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)\?result=success&operation=mark&action=deactivate$"""

@@ -1639,9 +1639,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     __table_args__ = (
         sa.CheckConstraint(
             (
-                "((acme_order_id__retry_of IS NULL) AND (acme_order_type_id != %s))"
+                "((acme_order_id__retry_of IS NULL) AND (acme_order_type_id != %s) AND (acme_order_retry_strategy_id IS NULL))"
                 " OR "
-                "((acme_order_id__retry_of IS NOT NULL) AND (acme_order_type_id == %s))"
+                "((acme_order_id__retry_of IS NOT NULL) AND (acme_order_type_id == %s) AND (acme_order_retry_strategy_id IS NOT NULL))"
             )
             % (model_utils.AcmeOrderType.RETRY, model_utils.AcmeOrderType.RETRY),
             name="ck_acme_order_type_id",
@@ -1746,6 +1746,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.ForeignKey("acme_order.id"),
         nullable=True,
     )
+    acme_order_retry_strategy_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=True
+    )  # see .utils.AcmeOrder_RetryStrategy
     acme_order_id__renewal_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_order.id"),
@@ -1868,6 +1871,14 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return model_utils.AcmeOrder_ProcessingStatus.as_string(
             self.acme_order_processing_status_id
         )
+
+    @reify
+    def acme_order_retry_strategy(self) -> str:
+        if self.acme_order_retry_strategy_id:
+            return model_utils.AcmeOrder_RetryStrategy.as_string(
+                self.acme_order_retry_strategy_id
+            )
+        return None
 
     @property
     def acme_authorization_ids(self) -> List[int]:
@@ -2110,6 +2121,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "acme_order_type": self.acme_order_type,
             "acme_order_processing_status": self.acme_order_processing_status,
             "acme_order_processing_strategy": self.acme_order_processing_strategy,
+            "acme_order_retry_strategy": self.acme_order_retry_strategy,
             "acme_process_steps": self.acme_process_steps,
             "x509_certificate_request_id": self.x509_certificate_request_id,
             "certificate_type": self.certificate_type,

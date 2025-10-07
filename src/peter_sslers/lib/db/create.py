@@ -220,6 +220,7 @@ def create__AcmeOrder(
     note: Optional[str] = None,
     is_save_alternate_chains: bool = True,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
+    acme_order_retry_strategy_id: Optional[int] = None,
     dbX509CertificateRequest: Optional["X509CertificateRequest"] = None,
     transaction_commit: Optional[bool] = None,  # this is Optional
 ) -> "AcmeOrder":
@@ -247,6 +248,7 @@ def create__AcmeOrder(
     :param note: (optional) A string to be associated with this order
     :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
+    :param acme_order_retry_strategy_id: (optional) A value from :class:`model_utils.AcmeOrderRetryStrategy`
     :param dbX509CertificateRequest: (optional) The :class:`model.objects.X509CertificateRequest` associated with the order
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` associated with the order
     :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
@@ -296,6 +298,10 @@ def create__AcmeOrder(
                 raise ValueError("received conflicting X509CertificateRequests.")
         else:
             dbX509CertificateRequest = dbAcmeOrder_retry_of.x509_certificate_request
+        if not acme_order_retry_strategy_id:
+            raise ValueError(
+                "Must specify a `acme_order_retry_strategy_id` for retries"
+            )
 
     if dbPrivateKey.acme_account_id__owner:
         if dbAcmeAccount.id != dbPrivateKey.acme_account_id__owner:
@@ -380,6 +386,7 @@ def create__AcmeOrder(
     dbAcmeOrder.timestamp_updated = datetime.datetime.now(datetime.timezone.utc)
     if dbAcmeOrder_retry_of:
         dbAcmeOrder.acme_order_id__retry_of = dbAcmeOrder_retry_of.id
+        dbAcmeOrder.acme_order_retry_strategy_id = acme_order_retry_strategy_id
     ctx.dbSession.add(dbAcmeOrder)
     ctx.dbSession.flush(objects=[dbAcmeOrder])
 

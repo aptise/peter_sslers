@@ -19,6 +19,7 @@ from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
 from ..lib.forms import Form_AcmeOrder_new_freeform
+from ..lib.forms import Form_AcmeOrder_retry
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
@@ -370,6 +371,60 @@ def submit__new_freeform(
             error_field="Unknown acme_profile (%s); not one of: %s."
             % (exc.args[1], exc.args[2]),
         )
+
+
+def submit__retry(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> AcmeOrder:
+    """
+    returns [AcmeOrder, error]
+    note: AcmeOrder can be returned with an error
+    """
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_AcmeOrder_retry,
+        validate_get=False,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+
+    if not dbAcmeOrder.is_can_acme_server_sync:
+        formStash.fatal_form(
+            error_main="ACME Retry is not allowed for this AcmeOrder (I)"
+        )
+    if not dbAcmeOrder.is_can_retry:
+        formStash.fatal_form(
+            error_main="ACME Retry is not allowed for this AcmeOrder (II)"
+        )
+
+    acme_order_retry_strategy_id = model_utils.AcmeOrder_RetryStrategy.from_string(
+        formStash.results["acme_order_retry_strategy"]
+    )
+
+    try:
+        dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__retry(
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+            acme_order_retry_strategy_id=acme_order_retry_strategy_id,
+            transaction_commit=True,
+        )
+        return dbAcmeOrderNew, None
+    except errors.AcmeOrderCreatedError as exc:
+        # unpack a `errors.AcmeOrderCreatedError` to local vars
+        dbAcmeOrderNew = exc.acme_order
+        exc = exc.original_exception
+        return dbAcmeOrderNew, exc.args[0]
+
+    except errors.DuplicateAcmeOrder as exc:
+        return None, exc.args[0]
+
+    except Exception as exc:
+        return None, exc.args[0]
 
 
 class View_List(Handler):
@@ -1318,6 +1373,14 @@ class View_Focus_Manipulate(View_Focus):
             "GET": None,
             "instructions": "curl {ADMIN_PREFIX}/acme-order/1/retry.json",
             "example": "curl -X POST {ADMIN_PREFIX}/acme-order/1/retry.json",
+            "form_fields": {
+                "acme_order_retry_strategy": "What is the retry strategy?",
+            },
+            "valid_options": {
+                "acme_order_retry_strategy": Form_AcmeOrder_retry.fields[
+                    "acme_order_retry_strategy"
+                ].list,
+            },
         }
     )
     def retry_order(self):
@@ -1325,78 +1388,51 @@ class View_Focus_Manipulate(View_Focus):
         Retry should create a new order
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(self, "/acme-order/{ID}/retry.json")
+            return HTTPSeeOther(
+                "%s?result=error&operation=retry&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
-            if self.request.method != "POST":
-                if self.request.wants_json:
-                    return formatted_get_docs(self, "/acme-order/{ID}/retry.json")
-            if not dbAcmeOrder.is_can_acme_server_sync:
-                raise errors.InvalidRequest(
-                    "ACME Retry is not allowed for this AcmeOrder (I)"
-                )
-            if not dbAcmeOrder.is_can_retry:
-                raise errors.InvalidRequest(
-                    "ACME Retry is not allowed for this AcmeOrder (II)"
-                )
-            try:
-                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__retry(
-                    self.request.api_context,
-                    dbAcmeOrder=dbAcmeOrder,
-                    transaction_commit=True,
-                )
-            except errors.AcmeOrderCreatedError as exc:
-                # unpack a `errors.AcmeOrderCreatedError` to local vars
-                dbAcmeOrderNew = exc.acme_order
-                exc = exc.original_exception
+            (dbAcmeOrderNew, error) = submit__retry(
+                self.request,
+                dbAcmeOrder=dbAcmeOrder,
+                acknowledge_transaction_commits=True,
+            )
+            if error:
                 if self.request.wants_json:
                     return {
                         "result": "error",
-                        "error": exc.args[0],
+                        "error": error,
                         "AcmeOrder": dbAcmeOrderNew.as_json,
                     }
                 return HTTPSeeOther(
-                    "%s/acme-order/%s?result=error&error=%s&opertion=retry+order"
-                    % (
-                        self.request.admin_url,
-                        dbAcmeOrderNew.id,
-                        exc.as_querystring,
-                    )
+                    "%s/acme-order/%s?result=error&error=%s&operation=retry"
+                    % (self.request.admin_url, quote_plus(error), dbAcmeOrderNew.id)
                 )
-            except errors.DuplicateAcmeOrder as exc:
-                if self.request.wants_json:
-                    return {
-                        "result": "error",
-                        "error": exc.args[0],
-                    }
-                return HTTPSeeOther(
-                    "%s/acme-order/%s?result=error&error=%s&opertion=retry+order"
-                    % (
-                        self.request.admin_url,
-                        dbAcmeOrder.id,
-                        quote_plus(exc.args[0]),
-                    )
-                )
-
             if self.request.wants_json:
                 return {
                     "result": "success",
                     "AcmeOrder": dbAcmeOrderNew.as_json,
                 }
             return HTTPSeeOther(
-                "%s/acme-order/%s?result=success&operation=retry+order"
+                "%s/acme-order/%s?result=success&operation=retry"
                 % (self.request.admin_url, dbAcmeOrderNew.id)
             )
-        except (
-            errors.AcmeError,
-            errors.InvalidRequest,
-        ) as exc:
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {
                     "result": "error",
-                    "error": exc.args[0],
+                    "form_errors": exc.formStash.errors,
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=%s&operation=retry+order"
-                % (self._focus_url, exc.as_querystring)
+                "%s?result=error&error=%s&operation=retry"
+                % (
+                    self._focus_url,
+                    errors.formstash_to_querystring(exc.formStash),
+                )
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

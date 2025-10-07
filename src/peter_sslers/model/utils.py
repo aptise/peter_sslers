@@ -23,7 +23,6 @@ from ..lib.errors import UnsupportedKeyTechnology
 if TYPE_CHECKING:
     from .objects.objects import AcmeOrder
     from .objects.objects import Domain
-
     from ..lib.context import ApiContext
 
 # ==============================================================================
@@ -951,6 +950,22 @@ class AcmeOrder_ProcessingStatus(_mixin_mapping):
     IDS_CAN_PROCESS_CHALLENGES = (2, 3)
 
 
+class AcmeOrder_RetryStrategy(_mixin_mapping):
+    NORMAL = 1
+    BACKUP = 2
+
+    _mapping = {
+        1: "normal",
+        2: "backup",
+    }
+
+    OPTIONS = (
+        "normal",
+        "backup",
+    )
+    OPTION_DEFAULT = "normal"
+
+
 class AcmeOrderType(_mixin_mapping):
     """
     How was the AcmeOrder created?
@@ -1217,42 +1232,47 @@ class DomainsChallenged(dict):
                 strategy = (
                     dbAcmeOrder.renewal_configuration.acme_challenge_duplicate_strategy__effective
                 )
+                # we can only retry an order once, so we only need to look at
+                # the above order for a potential failure and alternate
                 if strategy != AcmeChallengeDuplicateStrategy.no_duplicates:
-                    # we can only retry an order once, so we only need to look at
-                    # the above order for a potential failure and alternate
-                    failed_challenge_type_id = None
-                    for (
-                        _to_authz
-                    ) in dbAcmeOrder.acme_order__retry_of.to_acme_authorizations:
-                        if (
-                            _to_authz.acme_authorization.domain.domain_name
-                            == domain_name
-                        ):
+                    # only do this if the order is being invoked for a "try backups" context
+                    if (
+                        dbAcmeOrder.acme_order_retry_strategy_id
+                        == AcmeOrder_RetryStrategy.BACKUP
+                    ):
+                        failed_challenge_type_id = None
+                        for (
+                            _to_authz
+                        ) in dbAcmeOrder.acme_order__retry_of.to_acme_authorizations:
                             if (
-                                _to_authz.acme_authorization.acme_status_authorization_id
-                                == Acme_Status_Authorization.INVALID
+                                _to_authz.acme_authorization.domain.domain_name
+                                == domain_name
                             ):
-                                for (
-                                    _challenge
-                                ) in _to_authz.acme_authorization.acme_challenges:
-                                    if (
-                                        _challenge.acme_status_challenge_id
-                                        == Acme_Status_Challenge.INVALID
-                                    ):
-                                        failed_challenge_type_id = (
-                                            _challenge.acme_challenge_type_id
-                                        )
-                    if failed_challenge_type_id:
-                        # failed_challenge_type = AcmeChallengeType.as_string(failed_challenge_type_id)
-                        # if strategy == AcmeChallengeDuplicateStrategy.http_01__dns_01:
-                        # elif strategy == AcmeChallengeDuplicateStrategy.dns_01__http_01:
-                        # TODO: this isn't scalable
-                        # however, it doesn't matter what failed as we're just
-                        # toggling between the same two dns01/http01 options
-                        # in both scenarios
-                        if failed_challenge_type_id == AcmeChallengeType.http_01:
-                            return AcmeChallengeType.dns_01
-                        return AcmeChallengeType.http_01
+                                if (
+                                    _to_authz.acme_authorization.acme_status_authorization_id
+                                    == Acme_Status_Authorization.INVALID
+                                ):
+                                    for (
+                                        _challenge
+                                    ) in _to_authz.acme_authorization.acme_challenges:
+                                        if (
+                                            _challenge.acme_status_challenge_id
+                                            == Acme_Status_Challenge.INVALID
+                                        ):
+                                            failed_challenge_type_id = (
+                                                _challenge.acme_challenge_type_id
+                                            )
+                        if failed_challenge_type_id:
+                            # failed_challenge_type = AcmeChallengeType.as_string(failed_challenge_type_id)
+                            # if strategy == AcmeChallengeDuplicateStrategy.http_01__dns_01:
+                            # elif strategy == AcmeChallengeDuplicateStrategy.dns_01__http_01:
+                            # TODO: this isn't scalable
+                            # however, it doesn't matter what failed as we're just
+                            # toggling between the same two dns01/http01 options
+                            # in both scenarios
+                            if failed_challenge_type_id == AcmeChallengeType.http_01:
+                                return AcmeChallengeType.dns_01
+                            return AcmeChallengeType.http_01
 
         for _acme_challenge_type in challenge_types_order:
             if _acme_challenge_type not in self:

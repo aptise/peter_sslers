@@ -2586,6 +2586,7 @@ def do__AcmeV2_AcmeOrder__new(
     ] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
+    acme_order_retry_strategy_id: Optional[int] = None,
     transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
@@ -2650,8 +2651,9 @@ def do__AcmeV2_AcmeOrder__new(
             (not dbAcmeOrder_retry_of)
             or (acme_order_type_id != model_utils.AcmeOrderType.RETRY)
             or (dbPrivateKey != dbAcmeOrder_retry_of.private_key)
+            or (not acme_order_retry_strategy_id)
         ):
-            raise ValueError("Retry invokved incorrectly.")
+            raise ValueError("Retry invoked incorrectly.")
 
     account_selection: Optional[Literal["primary", "backup"]] = None
     if acme_order_type_id in (
@@ -3261,6 +3263,7 @@ def do__AcmeV2_AcmeOrder__new(
                 # optionals
                 is_save_alternate_chains=dbRenewalConfiguration.is_save_alternate_chains,
                 dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
+                acme_order_retry_strategy_id=acme_order_retry_strategy_id,
                 note=note,
             )
 
@@ -3365,6 +3368,7 @@ def do__AcmeV2_AcmeOrder__new(
 def do__AcmeV2_AcmeOrder__retry(
     ctx: "ApiContext",
     dbAcmeOrder: "AcmeOrder",
+    acme_order_retry_strategy_id: int,
     transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
@@ -3402,6 +3406,7 @@ def do__AcmeV2_AcmeOrder__retry(
         # Optionals
         dbPrivateKey=dbAcmeOrder.private_key,
         dbAcmeOrder_retry_of=dbAcmeOrder,
+        acme_order_retry_strategy_id=acme_order_retry_strategy_id,
         replaces=dbAcmeOrder.replaces,
         replaces_type=model_utils.ReplacesType_Enum.RETRY,
         transaction_commit=transaction_commit,

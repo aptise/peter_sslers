@@ -399,6 +399,14 @@ class Form_AcmeOrder_new_freeform(_Form_Schema_Base):
     ]
 
 
+class Form_AcmeOrder_retry(_Form_Schema_Base):
+    acme_order_retry_strategy = OneOf(
+        model_utils.AcmeOrder_RetryStrategy.OPTIONS,
+        not_empty=False,
+        if_missing=model_utils.AcmeOrder_RetryStrategy.OPTION_DEFAULT,
+    )
+
+
 class Form_AcmeServer_mark(_Form_Schema_Base):
     action = OneOf(
         (

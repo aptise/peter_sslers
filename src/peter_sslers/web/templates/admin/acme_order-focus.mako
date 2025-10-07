@@ -189,9 +189,17 @@
                                     <td>
                                         % if AcmeOrder.is_can_retry:
                                             <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/retry" method="POST" style="display:inline;" id="acme_order-retry">
+                                                <input type="hidden" name="acme_order_retry_strategy" value="normal" />
                                                 <button class="btn btn-xs btn-primary" type="submit" name="submit" value="submit">
                                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                                    Retry (New) Order
+                                                    Retry (New) Order [Normal]
+                                                </button>
+                                            </form>
+                                            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/retry" method="POST" style="display:inline;" id="acme_order-retry">
+                                                <input type="hidden" name="acme_order_retry_strategy" value="backup" />
+                                                <button class="btn btn-xs btn-primary" type="submit" name="submit" value="submit">
+                                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                    Retry (New) Order [Backup]
                                                 </button>
                                             </form>
                                         % else:
@@ -426,8 +434,6 @@
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         EnrollmentFactory-${AcmeOrder.renewal_configuration.enrollment_factory_id__via}
                                     </a>
-                                
-                                
                                 % endif
                             % endif
                         </td>
@@ -613,6 +619,16 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>acme_challenge_duplicate_strategy</th>
+                        <td>
+                            % if AcmeOrder.renewal_configuration:
+                                <code>${AcmeOrder.renewal_configuration.acme_challenge_duplicate_strategy__effective}</code>
+                                (via RenewalConfiguration)
+                            % endif
+                        </td>
+                    </tr>
+
+                    <tr>
                         <th><hr/></th>
                         <th><hr/></th>
                     </tr>
@@ -628,6 +644,14 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeOrder-${AcmeOrder.acme_order_id__retry_of}
                                 </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AcmeOrder - Retry Strategy</th>
+                        <td>
+                            % if AcmeOrder.acme_order_retry_strategy_id:
+                                <code>${AcmeOrder.acme_order_retry_strategy}</code>
                             % endif
                         </td>
                     </tr>

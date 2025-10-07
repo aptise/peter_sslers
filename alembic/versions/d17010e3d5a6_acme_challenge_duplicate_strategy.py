@@ -14,6 +14,7 @@ import sqlalchemy as sa
 
 # edited template
 from peter_sslers.model.utils import AcmeChallengeDuplicateStrategy
+from peter_sslers.model.utils import AcmeOrder_RetryStrategy
 from peter_sslers.model.utils import AcmeOrderType
 
 # revision identifiers, used by Alembic.
@@ -52,13 +53,26 @@ def upgrade() -> None:
             ["acme_order_id__retry_of"],
             unique=True,
         )
+        batch_op.add_column(
+            sa.Column("acme_order_retry_strategy_id", sa.Integer(), nullable=True)
+        )
+
+    # this needs to be done in a second migration
+    with op.batch_alter_table("acme_order", schema=None) as batch_op:
+        op.execute(
+            "UPDATE acme_order SET acme_order_retry_strategy_id = %s WHERE acme_order_type_id = %s;"
+            % (
+                AcmeOrder_RetryStrategy.NORMAL,
+                AcmeOrderType.RETRY,
+            )
+        )
         batch_op.create_check_constraint(
             batch_op.f("ck_acme_order_type_id"),
             sa.text(
                 (
-                    "((acme_order_id__retry_of IS NULL) AND (acme_order_type_id != %s))"
+                    "((acme_order_id__retry_of IS NULL) AND (acme_order_type_id != %s) AND (acme_order_retry_strategy_id IS NULL))"
                     " OR "
-                    "((acme_order_id__retry_of IS NOT NULL) AND (acme_order_type_id == %s))"
+                    "((acme_order_id__retry_of IS NOT NULL) AND (acme_order_type_id == %s) AND (acme_order_retry_strategy_id IS NOT NULL))"
                 )
                 % (AcmeOrderType.RETRY, AcmeOrderType.RETRY)
             ),
@@ -156,6 +170,8 @@ def downgrade() -> None:
 
     with op.batch_alter_table("acme_order", schema=None) as batch_op:
         batch_op.drop_index("uidx_acme_order_id__retry_of")
+        batch_op.drop_constraint("ck_acme_order_type_id")
+        batch_op.drop_column("acme_order_retry_strategy_id")
 
     if False:
         # this is not reversible, as new records are likely to violate this constraint
