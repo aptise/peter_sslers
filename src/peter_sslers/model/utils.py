@@ -828,6 +828,11 @@ class AcmeChallengeDuplicateStrategy(_mixin_mapping):
     )
     _options_RenewalConfigurationViaEnrollmentFactory_id = (0,)
 
+    _options_Duplicates: List[str]
+    _options_EnrollmentFactory: List[str]
+    _options_RenewalConfiguration: List[str]
+    _options_RenewalConfigurationViaEnrollmentFactory: List[str]
+
 
 # compute this for ease of `curl` options
 AcmeChallengeDuplicateStrategy._options_Duplicates = [

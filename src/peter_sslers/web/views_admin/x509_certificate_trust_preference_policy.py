@@ -24,6 +24,9 @@ from ...model.objects import X509CertificateTrustPreferencePolicy
 
 if TYPE_CHECKING:
     from pyramid_formencode_classic import FormStash
+
+    from ...model.objects import X509CertificateTrusted
+
 # ==============================================================================
 
 
@@ -239,6 +242,7 @@ class View_Preferred(View_Focus):
                 raise ValueError("too many items in the preference queue")
 
             fingerprint_sha1 = formStash.results["fingerprint_sha1"]
+            dbX509CertificateTrusted: Optional["X509CertificateTrusted"]
             if len(fingerprint_sha1) == 8:
                 matching_certs = lib_db.get.get__X509CertificateTrusteds__by_fingerprint_sha1_substring(
                     self.request.api_context,

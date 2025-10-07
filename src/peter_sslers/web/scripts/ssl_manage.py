@@ -413,8 +413,10 @@ def main(argv=sys.argv):
                     print("successful check")
         # !!!: distpatch[acme-order]
         elif command == "acme-order":
+            # TODO - process and sync
+
             # !!!: - focus
-            if command == "focus":
+            if subcommand == "focus":
                 _dbAcmeOrder = _get_AcmeOrder()
                 render_data(_dbAcmeOrder.as_json)
             # !!!: - list
@@ -438,12 +440,13 @@ def main(argv=sys.argv):
                         dbAcmeOrder=_dbAcmeOrder,
                         acknowledge_transaction_commits=True,
                     )
+                    if _error:
+                        print("error", _error)
                     if not RENDER_JSON:
                         if not _error:
                             print("success")
-                        else:
-                            print("error", _error)
-                    render_data(_dbAcmeOrderNew.as_json)
+                    if _dbAcmeOrderNew:
+                        render_data(_dbAcmeOrderNew.as_json)
                 except formhandling.FormInvalid as exc:
                     if not RENDER_JSON:
                         print("Errors:")

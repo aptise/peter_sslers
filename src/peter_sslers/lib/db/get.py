@@ -1406,9 +1406,9 @@ def get__AcmeOrder_retries_by_acmeOrderId(
         ctx.dbSession.query(AcmeOrder).filter(AcmeOrder.id == acme_order_id).first()
     )
     if not dbAcmeOrder_start:
-        return None
+        return []
 
-    parent_id = dbAcmeOrder_start.id
+    parent_id: Optional[int] = dbAcmeOrder_start.id
     dbAcmeOrders: List[AcmeOrder] = []
     while parent_id:
         dbAcmeOrder = (

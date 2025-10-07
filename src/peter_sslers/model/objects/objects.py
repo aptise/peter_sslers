@@ -1746,7 +1746,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.ForeignKey("acme_order.id"),
         nullable=True,
     )
-    acme_order_retry_strategy_id: Mapped[int] = mapped_column(
+    acme_order_retry_strategy_id: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True
     )  # see .utils.AcmeOrder_RetryStrategy
     acme_order_id__renewal_of: Mapped[Optional[int]] = mapped_column(
@@ -1873,7 +1873,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         )
 
     @reify
-    def acme_order_retry_strategy(self) -> str:
+    def acme_order_retry_strategy(self) -> Optional[str]:
         if self.acme_order_retry_strategy_id:
             return model_utils.AcmeOrder_RetryStrategy.as_string(
                 self.acme_order_retry_strategy_id
@@ -4032,7 +4032,7 @@ class RenewalConfiguration(
         )
 
     @property
-    def acme_challenge_duplicate_strategy_id__effective(self) -> str:
+    def acme_challenge_duplicate_strategy_id__effective(self) -> int:
         if (
             self.acme_challenge_duplicate_strategy_id
             == model_utils.AcmeChallengeDuplicateStrategy.via_enrollment_factory
@@ -4225,10 +4225,10 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
         TZDateTime(timezone=True), nullable=False
     )
     version_min: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    version_max: Mapped[str] = mapped_column(
+    version_max: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, default=None
     )
-    version_notes: Mapped[str] = mapped_column(
+    version_notes: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, default=None
     )
     is_cert_utils_discovery: Mapped[bool] = mapped_column(

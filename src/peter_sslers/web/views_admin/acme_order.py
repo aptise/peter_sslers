@@ -1,5 +1,6 @@
 # stdlib
 import logging
+from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import Tuple
@@ -377,7 +378,7 @@ def submit__retry(
     request: "Request",
     dbAcmeOrder: "AcmeOrder",
     acknowledge_transaction_commits: Optional[Literal[True]] = None,
-) -> AcmeOrder:
+) -> Tuple[Optional[AcmeOrder], Optional[str]]:
     """
     returns [AcmeOrder, error]
     note: AcmeOrder can be returned with an error
@@ -1403,15 +1404,23 @@ class View_Focus_Manipulate(View_Focus):
             )
             if error:
                 if self.request.wants_json:
-                    return {
+                    rval: Dict[str, Any] = {
                         "result": "error",
                         "error": error,
-                        "AcmeOrder": dbAcmeOrderNew.as_json,
                     }
+                    if dbAcmeOrderNew:
+                        rval["AcmeOrder"] = dbAcmeOrderNew.as_json
+                    return rval
                 return HTTPSeeOther(
                     "%s/acme-order/%s?result=error&error=%s&operation=retry"
-                    % (self.request.admin_url, quote_plus(error), dbAcmeOrderNew.id)
+                    % (
+                        self.request.admin_url,
+                        quote_plus(error),
+                        dbAcmeOrderNew.id if dbAcmeOrderNew else dbAcmeOrder.id,
+                    )
                 )
+            if TYPE_CHECKING:
+                assert dbAcmeOrderNew
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -1608,7 +1617,7 @@ class View_New(Handler):
             )
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                rval = {
+                rval: Dict[str, Any] = {
                     "result": "error",
                     "form_errors": exc.formStash.errors,
                 }
