@@ -22,6 +22,7 @@ from webob.multidict import MultiDict
 from ..lib import formhandling
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeDnsServer_new
+from ..lib.forms import Form_AcmeOrder_retry
 from ..lib.forms import Form_EnrollmentFactory_new
 from ..lib.forms import Form_EnrollmentFactory_onboard
 from ..lib.forms import Form_EnrollmentFactory_query
@@ -34,6 +35,7 @@ from ..lib.forms import Form_SystemConfiguration_Global_edit
 from ..lib.forms import Form_X509Certificate_mark
 from ..views_admin import acme_account as v_acme_account
 from ..views_admin import acme_dns_server as v_acme_dns_server
+from ..views_admin import acme_order as v_acme_order
 from ..views_admin import api as v_api
 from ..views_admin import enrollment_factory as v_enrollment_factory
 from ..views_admin import renewal_configuration as v_renewal_configuration
@@ -72,6 +74,7 @@ COMMANDS: Dict[str, List[str]] = {
     "acme-order": [
         "focus",
         "list",
+        "retry",
     ],
     "acme-server": [
         "list",
@@ -422,6 +425,30 @@ def main(argv=sys.argv):
                     lib_db.get.get__AcmeOrder__count,
                     lib_db.get.get__AcmeOrder__paginated,
                 )
+            # !!!: - retry
+            elif subcommand == "retry":
+                # !!!: - retry - help
+                if "help" in options:
+                    render_data(Form_AcmeOrder_retry.fields)
+                    exit(0)
+                try:
+                    _dbAcmeOrder = _get_AcmeOrder()
+                    _dbAcmeOrderNew, _error = v_acme_order.submit__retry(
+                        request,
+                        dbAcmeOrder=_dbAcmeOrder,
+                        acknowledge_transaction_commits=True,
+                    )
+                    if not RENDER_JSON:
+                        if not _error:
+                            print("success")
+                        else:
+                            print("error", _error)
+                    render_data(_dbAcmeOrderNew.as_json)
+                except formhandling.FormInvalid as exc:
+                    if not RENDER_JSON:
+                        print("Errors:")
+                    render_data(exc.formStash.errors)
+                    exit(1)
         # !!!: distpatch[acme-server]
         elif command == "acme-server":
             # !!!: - list
