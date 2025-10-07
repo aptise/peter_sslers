@@ -41,7 +41,7 @@ requires = [
     "redis",
     "requests",
     "SQLAlchemy>2,<3",
-    "tldextract>=5.2.0,6",
+    "tldextract>=5.2.0,<6",
     "typing_extensions",
     "urllib3>2.4.0",
     "waitress",
