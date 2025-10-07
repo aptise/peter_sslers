@@ -375,6 +375,34 @@ def submit__new_freeform(
         )
 
 
+def submit__process(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[Optional[AcmeOrder], Optional[Exception]]:
+    """
+    Returns: AcmeOrder
+    """
+    try:
+        if not acknowledge_transaction_commits:
+            raise errors.AcknowledgeTransactionCommitRequired()
+
+        if not dbAcmeOrder.is_can_acme_process:
+            raise errors.InvalidRequest(
+                "ACME Process is not allowed for this AcmeOrder"
+            )
+
+        dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__process(
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+        return dbAcmeOrder, None
+
+    except Exception as exc:
+        return None, exc
+
+
 def submit__mark(
     request: "Request",
     dbAcmeOrder: "AcmeOrder",
@@ -1212,15 +1240,13 @@ class View_Focus_Manipulate(View_Focus):
                 % self._focus_url
             )
         try:
-            if not dbAcmeOrder.is_can_acme_process:
-                raise errors.InvalidRequest(
-                    "ACME Process is not allowed for this AcmeOrder"
-                )
-            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__process(
-                self.request.api_context,
+            dbAcmeOrder, exc = submit__process(
+                self.request,
                 dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
+                acknowledge_transaction_commits=True,
             )
+            if exc:
+                raise exc
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -1230,31 +1256,19 @@ class View_Focus_Manipulate(View_Focus):
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+process" % self._focus_url
             )
-        except (
-            errors.AcmeError,
-            errors.InvalidRequest,
-        ) as exc:
-            if self.request.wants_json:
-                return {
-                    "result": "error",
-                    "operation": "acme-process",
-                    "error": str(exc),
-                }
-            return HTTPSeeOther(
-                "%s?result=error&error=%s&operation=acme+process"
-                % (self._focus_url, exc.as_querystring)
-            )
         except Exception as exc:
-            log.critical("Exception: %s", exc)
+            error = str(exc)
+            if isinstance(exc, (errors.AcmeError, errors.InvalidRequest)):
+                error = exc.args[0]
             if self.request.wants_json:
                 return {
                     "result": "error",
                     "operation": "acme-process",
-                    "error": str(exc),
+                    "error": error,
                 }
             return HTTPSeeOther(
                 "%s?result=error&error=%s&operation=acme+process"
-                % (self._focus_url, str(exc))
+                % (self._focus_url, quote_plus(error))
             )
 
     @view_config(route_name="admin:acme_order:focus:acme_finalize", renderer=None)
