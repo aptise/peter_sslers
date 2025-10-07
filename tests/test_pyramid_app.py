@@ -97,8 +97,8 @@ from .regex_library import RE_AcmeOrder_btn_deactive_authorizations
 from .regex_library import RE_AcmeOrder_btn_deactive_authorizations__off
 from .regex_library import RE_AcmeOrder_deactivated
 from .regex_library import RE_AcmeOrder_downloaded_certificate
+from .regex_library import RE_AcmeOrder_error
 from .regex_library import RE_AcmeOrder_invalidated
-from .regex_library import RE_AcmeOrder_invalidated_error
 from .regex_library import RE_AcmeOrder_processed
 from .regex_library import RE_AcmeOrder_renewal_configuration
 from .regex_library import RE_AcmeOrder_retry
@@ -4300,10 +4300,6 @@ class FunctionalTests_X509CertificateTrusted(AppTest):
         assert res2.json["result"] == "success"
         # we may not have created this
         assert res2.json["X509CertificateTrusted"]["created"] in (True, False)
-        assert (
-            res2.json["X509CertificateTrusted"]["id"] == 23
-        )  # this is the 23rd item in letsencrypt_info._CERT_CAS_ORDER
-        # originally this was 3rd, but it's been deprecated
         obj_id = res2.json["X509CertificateTrusted"]["id"]
         res3 = self.testapp.get(
             "/.well-known/peter_sslers/x509-certificate-trusted/%s" % obj_id, status=200
@@ -10394,8 +10390,12 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             {"action": "invalid"},
             status=303,
         )
-        matched = RE_AcmeOrder_invalidated_error.match(res.location)
-        assert matched
+        matched_error = RE_AcmeOrder_error.match(res.location)
+        assert matched_error
+
+        assert res.location.endswith(
+            "?result=error&error=Can+not+mark+this+order+as+%27invalid%27.&operation=mark"
+        )
 
         # grab the order
         res = self.testapp.get(

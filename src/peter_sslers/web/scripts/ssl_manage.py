@@ -22,6 +22,7 @@ from webob.multidict import MultiDict
 from ..lib import formhandling
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeDnsServer_new
+from ..lib.forms import Form_AcmeOrder_mark
 from ..lib.forms import Form_AcmeOrder_retry
 from ..lib.forms import Form_EnrollmentFactory_new
 from ..lib.forms import Form_EnrollmentFactory_onboard
@@ -42,6 +43,7 @@ from ..views_admin import renewal_configuration as v_renewal_configuration
 from ..views_admin import system_configuration as v_system_configuration
 from ..views_admin import x509_certificate as v_x509_certificate
 from ...lib import db as lib_db  # noqa: F401
+from ...lib import errors
 from ...lib import utils_nginx
 from ...lib.utils import validate_config_uri
 from ...model import objects as model_objects
@@ -74,6 +76,7 @@ COMMANDS: Dict[str, List[str]] = {
     "acme-order": [
         "focus",
         "list",
+        "mark",
         "retry",
     ],
     "acme-server": [
@@ -414,7 +417,6 @@ def main(argv=sys.argv):
         # !!!: distpatch[acme-order]
         elif command == "acme-order":
             # TODO: process
-            # TODO: mark
             # TODO: server-sync
             # TODO: server-sync_authorizations
             # TODO: server-deactivate_authorizations
@@ -434,6 +436,27 @@ def main(argv=sys.argv):
                     lib_db.get.get__AcmeOrder__count,
                     lib_db.get.get__AcmeOrder__paginated,
                 )
+            # !!!: - mark
+            elif subcommand == "mark":
+                # !!!: - mark - help
+                if "help" in options:
+                    render_data(Form_AcmeOrder_mark.fields)
+                    exit(0)
+                try:
+                    _dbAcmeOrder = _get_AcmeOrder()
+                    _dbAcmeOrder, _action = v_acme_order.submit__mark(
+                        request,
+                        dbAcmeOrder=_dbAcmeOrder,
+                        acknowledge_transaction_commits=True,
+                    )
+                    if not RENDER_JSON:
+                        print("success")
+                    render_data(_dbAcmeOrder.as_json)
+                except (errors.InvalidRequest, errors.InvalidTransition) as exc:
+                    if not RENDER_JSON:
+                        print("Errors:")
+                    render_data({"status": "error", "error": exc.args[0]})
+                    exit(1)
             # !!!: - retry
             elif subcommand == "retry":
                 # !!!: - retry - help

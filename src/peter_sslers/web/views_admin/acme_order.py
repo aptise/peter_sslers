@@ -19,6 +19,7 @@ from ..lib import form_utils
 from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
+from ..lib.forms import Form_AcmeOrder_mark
 from ..lib.forms import Form_AcmeOrder_new_freeform
 from ..lib.forms import Form_AcmeOrder_retry
 from ..lib.handler import Handler
@@ -372,6 +373,43 @@ def submit__new_freeform(
             error_field="Unknown acme_profile (%s); not one of: %s."
             % (exc.args[1], exc.args[2]),
         )
+
+
+def submit__mark(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[AcmeOrder, Optional[str]]:
+    """
+    Returns: Tuple[AcmeOrder, action]
+    """
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    action = request.params.get("action", None)
+    if action == "invalid":
+        if not dbAcmeOrder.is_can_mark_invalid:
+            raise errors.InvalidRequest("Can not mark this order as 'invalid'.")
+        lib_db.actions_acme.updated_AcmeOrder_status(
+            request.api_context,
+            dbAcmeOrder,
+            {
+                "status": "invalid",
+            },
+            transaction_commit=True,
+        )
+
+    elif action == "deactivate":
+        lib_db.update.update_AcmeOrder_deactivate(
+            request.api_context,
+            dbAcmeOrder,
+            is_manual=True,
+        )
+
+    else:
+        raise errors.InvalidRequest("invalid `action`")
+
+    return dbAcmeOrder, action
 
 
 def submit__retry(
@@ -1203,7 +1241,7 @@ class View_Focus_Manipulate(View_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=%s&operation=process+order"
+                "%s?result=error&error=%s&operation=acme+process"
                 % (self._focus_url, exc.as_querystring)
             )
         except Exception as exc:
@@ -1215,7 +1253,7 @@ class View_Focus_Manipulate(View_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=%s&operation=process+order"
+                "%s?result=error&error=%s&operation=acme+process"
                 % (self._focus_url, str(exc))
             )
 
@@ -1297,10 +1335,7 @@ class View_Focus_Manipulate(View_Focus):
                 "action": "The action",
             },
             "valid_options": {
-                "action": [
-                    "invalid",
-                    "deactivate",
-                ]
+                "action": Form_AcmeOrder_mark.fields["action"].list,
             },
         }
     )
@@ -1319,30 +1354,13 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=error&operation=mark&message=HTTP+POST+required"
                 % self._focus_url
             )
-        action = self.request.params.get("action", None)
+        action: Optional[str] = None
         try:
-            if action == "invalid":
-                if not dbAcmeOrder.is_can_mark_invalid:
-                    raise errors.InvalidRequest("Can not mark this order as 'invalid'.")
-                lib_db.actions_acme.updated_AcmeOrder_status(
-                    self.request.api_context,
-                    dbAcmeOrder,
-                    {
-                        "status": "invalid",
-                    },
-                    transaction_commit=True,
-                )
-
-            elif action == "deactivate":
-                lib_db.update.update_AcmeOrder_deactivate(
-                    self.request.api_context,
-                    dbAcmeOrder,
-                    is_manual=True,
-                )
-
-            else:
-                raise errors.InvalidRequest("invalid `action`")
-
+            (dbAcmeOrder, action) = submit__mark(
+                self.request,
+                dbAcmeOrder=dbAcmeOrder,
+                acknowledge_transaction_commits=True,
+            )
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -1359,11 +1377,11 @@ class View_Focus_Manipulate(View_Focus):
                 return {
                     "result": "error",
                     "operation": "mark",
-                    "error": str(exc),
+                    "error": exc.args[0],
                 }
             url_failure = "%s?result=error&error=%s&operation=mark" % (
                 self._focus_url,
-                exc.as_querystring,
+                quote_plus(exc.args[0]),
             )
             if action:
                 url_failure = "%s&action=%s" % (url_failure, action)

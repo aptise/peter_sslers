@@ -157,6 +157,9 @@ RE_AcmeOrder_btn_deactive_authorizations__off = re.compile(
 # this should be hinted better...
 RE_AcmeOrder_status = re.compile(r"<th>status</th>\s*<td><code>(\w+)</code>")
 
+RE_AcmeOrder_error = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/peter_sslers/acme-order/(\d+)\?result=error&error=[^&]+&operation=[\w\-]+$"""
+)
 
 # note: X509CertificateTrusted
 

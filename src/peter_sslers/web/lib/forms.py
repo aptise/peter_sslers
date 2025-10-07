@@ -301,6 +301,16 @@ class Form_AcmeDnsServer_import_domain(_Form_Schema_Base):
     allowfrom = UnicodeString(not_empty=False, if_missing=None, strip=True)
 
 
+class Form_AcmeOrder_mark(_Form_Schema_Base):
+    action = OneOf(
+        (
+            "invalid",
+            "deactivate",
+        ),
+        not_empty=True,
+    )
+
+
 class Form_AcmeOrder_new_freeform(_Form_Schema_Base):
 
     # CORE / Shared
