@@ -242,11 +242,11 @@
                         <th>Certificate Types</th>
                         <td>
                             ## <code>${X509Certificate.certificate_type}</code>
-                            % if X509Certificate.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                            % if X509Certificate.certificate_type_id == model_websafe.X509CertificateType.MANAGED_PRIMARY:
                                 <span class="label label-success">${X509Certificate.certificate_type}</span>
-                            % elif X509Certificate.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                            % elif X509Certificate.certificate_type_id == model_websafe.X509CertificateType.MANAGED_BACKUP:
                                 <span class="label label-warning">${X509Certificate.certificate_type}</span>
-                            % elif X509Certificate.certificate_type_id == model_websafe.CertificateType.RAW_IMPORTED:
+                            % elif X509Certificate.certificate_type_id == model_websafe.X509CertificateType.RAW_IMPORTED:
                                 <span class="label label-default">${X509Certificate.certificate_type}</span>
                             % endif
                             % if X509Certificate.is_single_domain_cert is True:

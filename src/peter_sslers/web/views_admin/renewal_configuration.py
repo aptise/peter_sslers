@@ -134,13 +134,13 @@ def submit__new(
         "acme_challenge_duplicate_strategy"
     ]
     acme_challenge_duplicate_strategy_id = (
-        model_utils.AcmeChallengeDuplicateStrategy.from_string(
+        model_utils.AcmeChallenge_DuplicateStrategy.from_string(
             acme_challenge_duplicate_strategy
         )
     )
     if (
         acme_challenge_duplicate_strategy_id
-        not in model_utils.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration_id
+        not in model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration_id
     ):
         formStash.fatal_field(
             field="acme_challenge_duplicate_strategy", error_field="invalid"
@@ -174,7 +174,9 @@ def submit__new(
 
     # shared
     is_export_filesystem = formStash.results["is_export_filesystem"]
-    is_export_filesystem_id = model_utils.OptionsOnOff.from_string(is_export_filesystem)
+    is_export_filesystem_id = model_utils.Options_OnOff.from_string(
+        is_export_filesystem
+    )
     note = formStash.results["note"]
     label = formStash.results["label"]
     if label:
@@ -192,7 +194,7 @@ def submit__new(
         private_key_technology__primary
     )
     private_key_cycle__primary = formStash.results["private_key_cycle__primary"]
-    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+    private_key_cycle_id__primary = model_utils.PrivateKey_Cycle.from_string(
         private_key_cycle__primary
     )
     acme_profile__primary = formStash.results["acme_profile__primary"]
@@ -207,7 +209,7 @@ def submit__new(
     private_key_cycle__backup = formStash.results["private_key_cycle__backup"]
     private_key_cycle_id__backup = None
     if private_key_cycle__backup:
-        private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle_id__backup = model_utils.PrivateKey_Cycle.from_string(
             private_key_cycle__backup
         )
     acme_profile__backup = formStash.results["acme_profile__backup"]
@@ -336,13 +338,13 @@ def submit__new_configuration(
             "acme_challenge_duplicate_strategy"
         ]
         acme_challenge_duplicate_strategy_id = (
-            model_utils.AcmeChallengeDuplicateStrategy.from_string(
+            model_utils.AcmeChallenge_DuplicateStrategy.from_string(
                 acme_challenge_duplicate_strategy
             )
         )
         if (
             acme_challenge_duplicate_strategy_id
-            not in model_utils.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration_id
+            not in model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration_id
         ):
             formStash.fatal_field(
                 field="acme_challenge_duplicate_strategy", error_field="invalid"
@@ -394,7 +396,7 @@ def submit__new_configuration(
             private_key_technology__primary
         )
         private_key_cycle__primary = formStash.results["private_key_cycle__primary"]
-        private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle_id__primary = model_utils.PrivateKey_Cycle.from_string(
             private_key_cycle__primary
         )
 
@@ -410,7 +412,7 @@ def submit__new_configuration(
         private_key_cycle__backup = formStash.results["private_key_cycle__backup"]
         private_key_cycle_id__backup = None
         if private_key_cycle__backup:
-            private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle_id__backup = model_utils.PrivateKey_Cycle.from_string(
                 private_key_cycle__backup
             )
         acme_profile__backup = formStash.results["acme_profile__backup"]
@@ -575,7 +577,7 @@ def submit__new_order(
             request.api_context,
             dbRenewalConfiguration=dbRenewalConfiguration,
             processing_strategy=processing_strategy,
-            acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_REQUEST,
+            acme_order_type_id=model_utils.AcmeOrder_Type.RENEWAL_CONFIGURATION_REQUEST,
             note=note,
             replaces=replaces,
             replaces_type=model_utils.ReplacesType_Enum.MANUAL,
@@ -811,12 +813,10 @@ class View_Focus(Handler):
     ) -> List["X509Certificate"]:
         assert self.dbRenewalConfiguration
         if self._dbX509Certificate_replaces_candidates__primary is None:
-            self._dbX509Certificate_replaces_candidates__primary = (
-                lib_db.get.get__X509Certificate_replaces_candidates(
-                    self.request.api_context,
-                    dbRenewalConfiguration=self.dbRenewalConfiguration,
-                    certificate_type=model_utils.CertificateType_Enum.MANAGED_PRIMARY,
-                )
+            self._dbX509Certificate_replaces_candidates__primary = lib_db.get.get__X509Certificate_replaces_candidates(
+                self.request.api_context,
+                dbRenewalConfiguration=self.dbRenewalConfiguration,
+                certificate_type=model_utils.X509CertificateType_Enum.MANAGED_PRIMARY,
             )
         return self._dbX509Certificate_replaces_candidates__primary
 
@@ -834,7 +834,7 @@ class View_Focus(Handler):
                 self._dbX509Certificate_replaces_candidates__backup = lib_db.get.get__X509Certificate_replaces_candidates(
                     self.request.api_context,
                     dbRenewalConfiguration=self.dbRenewalConfiguration,
-                    certificate_type=model_utils.CertificateType_Enum.MANAGED_BACKUP,
+                    certificate_type=model_utils.X509CertificateType_Enum.MANAGED_BACKUP,
                 )
         return self._dbX509Certificate_replaces_candidates__backup
 

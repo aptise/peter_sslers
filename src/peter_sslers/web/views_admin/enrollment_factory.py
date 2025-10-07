@@ -57,14 +57,14 @@ def validate_formstash_domain_templates(
     domain_template_http01 = formStash.results["domain_template_http01"]
     if domain_template_http01:
         domain_template_http01, _err = validate_domains_template(
-            domain_template_http01, model_utils.AcmeChallengeType_Enum.HTTP_01
+            domain_template_http01, model_utils.AcmeChallenge_Type_Enum.HTTP_01
         )
         if not domain_template_http01:
             formStash.fatal_field(field="domain_template_http01", error_field=_err)
     domain_template_dns01 = formStash.results["domain_template_dns01"]
     if domain_template_dns01:
         domain_template_dns01, _err = validate_domains_template(
-            domain_template_dns01, model_utils.AcmeChallengeType_Enum.DNS_01
+            domain_template_dns01, model_utils.AcmeChallenge_Type_Enum.DNS_01
         )
         if not domain_template_dns01:
             formStash.fatal_field(field="domain_template_dns01", error_field=_err)
@@ -171,7 +171,7 @@ def submit__new(
         private_key_technology_id__backup: Optional[int]
         acme_profile__backup: Optional[str]
         is_export_filesystem = formStash.results["is_export_filesystem"]
-        is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
+        is_export_filesystem_id = model_utils.Options_OnOff.from_string(
             is_export_filesystem
         )
 
@@ -179,13 +179,13 @@ def submit__new(
             "acme_challenge_duplicate_strategy"
         ]
         acme_challenge_duplicate_strategy_id = (
-            model_utils.AcmeChallengeDuplicateStrategy.from_string(
+            model_utils.AcmeChallenge_DuplicateStrategy.from_string(
                 acme_challenge_duplicate_strategy
             )
         )
         if (
             acme_challenge_duplicate_strategy_id
-            not in model_utils.AcmeChallengeDuplicateStrategy._options_EnrollmentFactory_id
+            not in model_utils.AcmeChallenge_DuplicateStrategy._options_EnrollmentFactory_id
         ):
             formStash.fatal_field(
                 field="acme_challenge_duplicate_strategy", error_field="invalid"
@@ -221,7 +221,7 @@ def submit__new(
             assert dbAcmeAccount__primary
 
         private_key_cycle__primary = formStash.results["private_key_cycle__primary"]
-        private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle_id__primary = model_utils.PrivateKey_Cycle.from_string(
             private_key_cycle__primary
         )
         private_key_technology__primary = formStash.results[
@@ -245,7 +245,7 @@ def submit__new(
                 )
         private_key_cycle__backup = formStash.results["private_key_cycle__backup"]
         if private_key_cycle__backup:
-            private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle_id__backup = model_utils.PrivateKey_Cycle.from_string(
                 private_key_cycle__backup
             )
         private_key_technology__backup = formStash.results[
@@ -336,7 +336,7 @@ def submit__edit(
     try:
 
         is_export_filesystem = formStash.results["is_export_filesystem"]
-        is_export_filesystem_id = model_utils.OptionsOnOff.from_string(
+        is_export_filesystem_id = model_utils.Options_OnOff.from_string(
             is_export_filesystem
         )
 
@@ -528,7 +528,7 @@ def submit__onboard(
             dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                 request.api_context,
                 domains_challenged=domains_challenged,
-                acme_challenge_duplicate_strategy_id=model_utils.AcmeChallengeDuplicateStrategy.via_enrollment_factory,
+                acme_challenge_duplicate_strategy_id=model_utils.AcmeChallenge_DuplicateStrategy.via_enrollment_factory,
                 # PRIMARY cert
                 dbAcmeAccount__primary=dbEnrollmentFactory.acme_account__primary,
                 private_key_cycle_id__primary=dbEnrollmentFactory.private_key_cycle_id__primary,
@@ -554,7 +554,7 @@ def submit__onboard(
                 # misc
                 note=note,
                 label=label,
-                is_export_filesystem_id=model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT,
+                is_export_filesystem_id=model_utils.Options_OnOff.ENROLLMENT_FACTORY_DEFAULT,
                 dbEnrollmentFactory=dbEnrollmentFactory,
             )
 

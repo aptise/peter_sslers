@@ -141,7 +141,7 @@ class View_Focus(Handler):
         for extensions, see `cert_utils.EXTENSION_TO_MIME`
         """
         dbPrivateKey = self._focus()
-        if dbPrivateKey.private_key_type == model_utils.PrivateKeyType.PLACEHOLDER:
+        if dbPrivateKey.private_key_type == model_utils.PrivateKey_Type.PLACEHOLDER:
             return "*placeholder*"
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
@@ -416,8 +416,8 @@ class View_New(Handler):
 
                 dbPrivateKey = lib_db.create.create__PrivateKey(
                     self.request.api_context,
-                    private_key_source_id=model_utils.PrivateKeySource.GENERATED,
-                    private_key_type_id=model_utils.PrivateKeyType.STANDARD,
+                    private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
+                    private_key_type_id=model_utils.PrivateKey_Type.STANDARD,
                     key_technology_id=key_technology_id,
                     discovery_type="interface-new",
                 )
@@ -493,8 +493,8 @@ class View_New(Handler):
             ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
                 self.request.api_context,
                 private_key_pem,
-                private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
-                private_key_type_id=model_utils.PrivateKeyType.STANDARD,
+                private_key_source_id=model_utils.PrivateKey_Source.IMPORTED,
+                private_key_type_id=model_utils.PrivateKey_Type.STANDARD,
                 # TODO: We should infer the above based on the private_key_cycle
                 discovery_type="upload",
             )

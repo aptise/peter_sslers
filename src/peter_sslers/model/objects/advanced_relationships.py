@@ -731,7 +731,7 @@ Domain.x509_certificates__single_primary_5 = sa_orm_relationship(
                 )
                 .where(
                     AcmeOrder.certificate_type_id
-                    == model_utils.CertificateType.MANAGED_PRIMARY
+                    == model_utils.X509CertificateType.MANAGED_PRIMARY
                 )
                 .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
                 .order_by(X509Certificate.id.desc())
@@ -772,7 +772,7 @@ Domain.x509_certificates__single_backup_5 = sa_orm_relationship(
                 )
                 .where(
                     AcmeOrder.certificate_type_id
-                    == model_utils.CertificateType.MANAGED_BACKUP
+                    == model_utils.X509CertificateType.MANAGED_BACKUP
                 )
                 .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
                 .order_by(X509Certificate.id.desc())
@@ -1096,14 +1096,14 @@ RenewalConfiguration.x509_certificates__primary__5 = sa_orm_relationship(
             RenewalConfiguration.id
             == join_X509Certificate_AcmeOrder.c.acme_order_renewal_configuration_id,
             join_X509Certificate_AcmeOrder.c.acme_order_certificate_type_id
-            == model_utils.CertificateType.MANAGED_PRIMARY,
+            == model_utils.X509CertificateType.MANAGED_PRIMARY,
             X509Certificate.id.in_(
                 sa.select((X509Certificate.id))
                 .join(AcmeOrder, X509Certificate.id == AcmeOrder.x509_certificate_id)
                 .where(AcmeOrder.renewal_configuration_id == RenewalConfiguration.id)
                 .where(
                     AcmeOrder.certificate_type_id
-                    == model_utils.CertificateType.MANAGED_PRIMARY
+                    == model_utils.X509CertificateType.MANAGED_PRIMARY
                 )
                 .order_by(X509Certificate.id.desc())
                 .limit(5)
@@ -1125,14 +1125,14 @@ RenewalConfiguration.x509_certificates__backup__5 = sa_orm_relationship(
             RenewalConfiguration.id
             == join_X509Certificate_AcmeOrder.c.acme_order_renewal_configuration_id,
             join_X509Certificate_AcmeOrder.c.acme_order_certificate_type_id
-            == model_utils.CertificateType.MANAGED_BACKUP,
+            == model_utils.X509CertificateType.MANAGED_BACKUP,
             X509Certificate.id.in_(
                 sa.select((X509Certificate.id))
                 .join(AcmeOrder, X509Certificate.id == AcmeOrder.x509_certificate_id)
                 .where(AcmeOrder.renewal_configuration_id == RenewalConfiguration.id)
                 .where(
                     AcmeOrder.certificate_type_id
-                    == model_utils.CertificateType.MANAGED_BACKUP
+                    == model_utils.X509CertificateType.MANAGED_BACKUP
                 )
                 .order_by(X509Certificate.id.desc())
                 .limit(5)

@@ -13,9 +13,9 @@ import sqlalchemy as sa
 
 
 # edited template
-from peter_sslers.model.utils import AcmeChallengeDuplicateStrategy
+from peter_sslers.model.utils import AcmeChallenge_DuplicateStrategy
 from peter_sslers.model.utils import AcmeOrder_RetryStrategy
-from peter_sslers.model.utils import AcmeOrderType
+from peter_sslers.model.utils import AcmeOrder_Type
 
 # revision identifiers, used by Alembic.
 revision: str = "d17010e3d5a6"
@@ -42,8 +42,8 @@ def upgrade() -> None:
     op.execute(
         "UPDATE acme_order SET acme_order_type_id = %s WHERE acme_order_type_id = %s AND acme_order_id__retry_of IS NULL;"
         % (
-            AcmeOrderType.RENEWAL_CONFIGURATION_REQUEST,
-            AcmeOrderType.RETRY,
+            AcmeOrder_Type.RENEWAL_CONFIGURATION_REQUEST,
+            AcmeOrder_Type.RETRY,
         )
     )
 
@@ -63,7 +63,7 @@ def upgrade() -> None:
             "UPDATE acme_order SET acme_order_retry_strategy_id = %s WHERE acme_order_type_id = %s;"
             % (
                 AcmeOrder_RetryStrategy.NORMAL,
-                AcmeOrderType.RETRY,
+                AcmeOrder_Type.RETRY,
             )
         )
         batch_op.create_check_constraint(
@@ -74,7 +74,7 @@ def upgrade() -> None:
                     " OR "
                     "((acme_order_id__retry_of IS NOT NULL) AND (acme_order_type_id == %s) AND (acme_order_retry_strategy_id IS NOT NULL))"
                 )
-                % (AcmeOrderType.RETRY, AcmeOrderType.RETRY)
+                % (AcmeOrder_Type.RETRY, AcmeOrder_Type.RETRY)
             ),
         )
 
@@ -90,8 +90,8 @@ def upgrade() -> None:
 
     op.execute(
         "UPDATE enrollment_factory SET acme_challenge_duplicate_strategy_id = %s ;"
-        % AcmeChallengeDuplicateStrategy.from_string(
-            AcmeChallengeDuplicateStrategy._DEFAULT_EnrollmentFactory
+        % AcmeChallenge_DuplicateStrategy.from_string(
+            AcmeChallenge_DuplicateStrategy._DEFAULT_EnrollmentFactory
         )
     )
 
@@ -115,8 +115,8 @@ def upgrade() -> None:
 
     op.execute(
         "UPDATE renewal_configuration SET acme_challenge_duplicate_strategy_id = %s ;"
-        % AcmeChallengeDuplicateStrategy.from_string(
-            AcmeChallengeDuplicateStrategy._DEFAULT_RenewalConfiguration
+        % AcmeChallenge_DuplicateStrategy.from_string(
+            AcmeChallenge_DuplicateStrategy._DEFAULT_RenewalConfiguration
         )
     )
 

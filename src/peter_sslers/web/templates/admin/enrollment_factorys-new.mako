@@ -171,7 +171,7 @@
                         <tr>
                             <th>ACME Challenge Duplicate Strategy</th>
                             <td>
-                                ${admin_partials.formgroup__AcmeChallengeDuplicateStrategy(via="EnrollmentFactory")}
+                                ${admin_partials.formgroup__AcmeChallenge_DuplicateStrategy(via="EnrollmentFactory")}
                             </td>
                         </tr>
                         <tr>

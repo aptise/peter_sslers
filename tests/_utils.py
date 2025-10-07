@@ -2571,8 +2571,8 @@ class AppTest(AppTestCore):
         ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
             self.ctx,
             _pkey_pem,
-            private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
-            private_key_type_id=model_utils.PrivateKeyType.STANDARD,
+            private_key_source_id=model_utils.PrivateKey_Source.IMPORTED,
+            private_key_type_id=model_utils.PrivateKey_Type.STANDARD,
         )
         _chain_filename = (
             filename_template
@@ -2636,7 +2636,7 @@ class AppTest(AppTestCore):
             cert_domains_expected=_cert_domains_expected,
             dbX509CertificateTrustChain=_dbChain,
             dbPrivateKey=_dbPrivateKey,
-            certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
+            certificate_type_id=model_utils.X509CertificateType.RAW_IMPORTED,
             # optionals
             dbX509CertificateTrustChains_alt=dbX509CertificateTrustChains_alt,
             dbUniqueFQDNSet=_dbUniqueFQDNSet,
@@ -2710,7 +2710,7 @@ class AppTest(AppTestCore):
                             _is_created,
                         ) = db.getcreate.getcreate__AcmeAccount(
                             self.ctx,
-                            acme_account_key_source_id=model_utils.AcmeAccountKeySource.IMPORTED,
+                            acme_account_key_source_id=model_utils.AcmeAccountKey_Source.IMPORTED,
                             key_pem=key_pem,
                             contact=TEST_FILES["AcmeAccount"][_id]["contact"],
                             acme_server_id=(
@@ -2720,7 +2720,7 @@ class AppTest(AppTestCore):
                                 else _dbAcmeServer_2.id
                             ),
                             event_type="AcmeAccount__insert",
-                            order_default_private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
+                            order_default_private_key_cycle_id=model_utils.PrivateKey_Cycle.from_string(
                                 _order_default_private_key_cycle
                             ),
                             order_default_private_key_technology_id=model_utils.KeyTechnology.from_string(
@@ -2789,8 +2789,8 @@ class AppTest(AppTestCore):
                         ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
                             self.ctx,
                             _pkey_pem,
-                            private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
-                            private_key_type_id=model_utils.PrivateKeyType.STANDARD,
+                            private_key_source_id=model_utils.PrivateKey_Source.IMPORTED,
+                            private_key_type_id=model_utils.PrivateKey_Type.STANDARD,
                         )
 
                         if pkey_id == "5":
@@ -2838,8 +2838,8 @@ class AppTest(AppTestCore):
                         ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
                             self.ctx,
                             pkey_pem,
-                            private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
-                            private_key_type_id=model_utils.PrivateKeyType.STANDARD,
+                            private_key_source_id=model_utils.PrivateKey_Source.IMPORTED,
+                            private_key_type_id=model_utils.PrivateKey_Type.STANDARD,
                         )
                         # print(_dbPrivateKey, _is_created)
                         # self.ctx.pyramid_transaction_commit()
@@ -2883,7 +2883,7 @@ class AppTest(AppTestCore):
                             cert_pem,
                             cert_domains_expected=_cert_domains_expected,
                             dbX509CertificateTrustChain=_dbX509CertificateTrustChain_SelfSigned,
-                            certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
+                            certificate_type_id=model_utils.X509CertificateType.RAW_IMPORTED,
                             dbPrivateKey=_dbPrivateKey,
                             # optionals
                             dbUniqueFQDNSet=_dbUniqueFQDNSet,
@@ -2932,7 +2932,7 @@ class AppTest(AppTestCore):
                     ) = db.getcreate.getcreate__X509CertificateRequest__by_pem_text(
                         self.ctx,
                         csr_pem,
-                        x509_certificate_request_source_id=model_utils.X509CertificateRequestSource.IMPORTED,
+                        x509_certificate_request_source_id=model_utils.X509CertificateRequest_Source.IMPORTED,
                         dbPrivateKey=_dbPrivateKey_1,
                         domain_names=[
                             TEST_FILES["X509Certificates"]["SelfSigned"]["1"]["domain"],
@@ -2974,7 +2974,7 @@ class AppTest(AppTestCore):
                         ],
                     }
                     _acme_order_type_id = (
-                        model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM
+                        model_utils.AcmeOrder_Type.ACME_ORDER_NEW_FREEFORM
                     )
                     _acme_order_processing_status_id = (
                         model_utils.AcmeOrder_ProcessingStatus.created_acme
@@ -2983,10 +2983,10 @@ class AppTest(AppTestCore):
                         model_utils.AcmeOrder_ProcessingStrategy.create_order
                     )
                     _private_key_cycle_id__renewal = (
-                        model_utils.PrivateKeyCycle.SINGLE_USE
+                        model_utils.PrivateKey_Cycle.SINGLE_USE
                     )
                     _private_key_strategy_id__requested = (
-                        model_utils.PrivateKeyStrategy.SPECIFIED
+                        model_utils.PrivateKey_Strategy.SPECIFIED
                     )
                     key_technology_id = model_utils.KeyTechnology.RSA_2048
                     _acme_event_id = model_utils.AcmeEvent.from_string("v2|newOrder")
@@ -3029,7 +3029,7 @@ class AppTest(AppTestCore):
                         acme_order_processing_strategy_id=_acme_order_processing_strategy_id,
                         domains_challenged=_domains_challenged,
                         order_url="https://example.com/acme/order/acmeOrder-1",
-                        certificate_type_id=model_utils.CertificateType.MANAGED_PRIMARY,
+                        certificate_type_id=model_utils.X509CertificateType.MANAGED_PRIMARY,
                         dbAcmeAccount=_dbAcmeAccount_1,
                         dbUniqueFQDNSet=_dbUniqueFQDNSet_1,
                         dbEventLogged=_dbAcmeEventLog,

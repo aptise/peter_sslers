@@ -103,12 +103,6 @@ from .regex_library import RE_AcmeOrder_processed
 from .regex_library import RE_AcmeOrder_renewal_configuration
 from .regex_library import RE_AcmeOrder_retry
 from .regex_library import RE_AcmeOrder_status
-from .regex_library import RE_X509CertificateTrusted_uploaded
-from .regex_library import RE_X509CertificateTrustChain_uploaded
-from .regex_library import RE_X509Certificate_button
-from .regex_library import RE_X509Certificate_main
-from .regex_library import RE_X509Certificate_operation_nginx_expire
-from .regex_library import RE_X509Certificate_operation_nginx_expire__GET
 from .regex_library import RE_CoverageAssuranceEvent_mark
 from .regex_library import RE_CoverageAssuranceEvent_mark_nochange
 from .regex_library import RE_Domain_new
@@ -119,6 +113,12 @@ from .regex_library import RE_RenewalConfiguration
 from .regex_library import RE_RenewalConfiguration_link
 from .regex_library import RE_UniqueFQDNSet_modify
 from .regex_library import RE_UniqueFQDNSet_new
+from .regex_library import RE_X509Certificate_button
+from .regex_library import RE_X509Certificate_main
+from .regex_library import RE_X509Certificate_operation_nginx_expire
+from .regex_library import RE_X509Certificate_operation_nginx_expire__GET
+from .regex_library import RE_X509CertificateTrustChain_uploaded
+from .regex_library import RE_X509CertificateTrusted_uploaded
 
 if TYPE_CHECKING:
     from requests import Response
@@ -6780,7 +6780,7 @@ class FunctionalTests_PrivateKey(AppTest):
             .filter(
                 model_objects.PrivateKey.is_active.is_(True),
                 model_objects.PrivateKey.private_key_type_id
-                != model_utils.PrivateKeyType.PLACEHOLDER,
+                != model_utils.PrivateKey_Type.PLACEHOLDER,
             )
             .order_by(model_objects.PrivateKey.id.desc())
             .first()
@@ -12585,9 +12585,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
             print("just: routine__renew_expiring-2")
 
 
-class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
+class IntegratedTests_AcmeOrder_PrivateKey_Cycles(AppTestWSGI):
     """
-    python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeOrder_PrivateKeyCycles
+    python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeOrder_PrivateKey_Cycles
     """
 
     @unittest.skipUnless(RUN_API_TESTS__EXTENDED, "Not Running Extended Tests")
@@ -12602,7 +12602,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
 
         def _update_AcmeAccount(acc__pkey_cycle: str, acc__pkey_technology: str):
             dbAcmeAccount.order_default_private_key_cycle_id = (
-                model_utils.PrivateKeyCycle.from_string(acc__pkey_cycle)
+                model_utils.PrivateKey_Cycle.from_string(acc__pkey_cycle)
             )
             dbAcmeAccount.order_default_private_key_technology_id = (
                 model_utils.KeyTechnology.from_string(acc__pkey_technology)
@@ -12611,7 +12611,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
 
         # # original idea was to edit a RenewalConfiguration, but RCs do not support edit
         # def _update_RenewalConfiguration(rc__pkey_cycle: str, rc__pkey_technology: str):
-        #    dbRenewalConfiguration.private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(rc__pkey_cycle)
+        #    dbRenewalConfiguration.private_key_cycle_id = model_utils.PrivateKey_Cycle.from_string(rc__pkey_cycle)
         #    dbRenewalConfiguration.private_key_technology_id = model_utils.KeyTechnology.from_string(rc__pkey_technology)
         #    self.ctx.pyramid_transaction_commit()
 
@@ -12647,7 +12647,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
         # iterate: AcmeAccount.private_key_cycle
         for (
             acc__pkey_cycle
-        ) in model_utils.PrivateKeyCycle._options_AcmeAccount_order_default:
+        ) in model_utils.PrivateKey_Cycle._options_AcmeAccount_order_default:
             # iterate: AcmeAccount.private_key_technology
             for (
                 acc__pkey_technology
@@ -12662,7 +12662,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
                 for (
                     rc__pkey_cycle
                 ) in (
-                    model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle
+                    model_utils.PrivateKey_Cycle._options_RenewalConfiguration_private_key_cycle
                 ):
 
                     # iterate: RenewalConfiguration.private_key_technology

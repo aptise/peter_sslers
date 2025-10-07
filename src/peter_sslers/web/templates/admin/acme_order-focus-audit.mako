@@ -229,11 +229,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>PrivateKeyStrategy - requested</th>
+                        <th>PrivateKey_Strategy - requested</th>
                         <td><code>${AcmeOrder.private_key_strategy__requested}</code></td>
                     </tr>
                     <tr>
-                        <th>PrivateKeyStrategy - final</th>
+                        <th>PrivateKey_Strategy - final</th>
                         <td><code>${AcmeOrder.private_key_strategy__final}</code></td>
                     </tr>
                     <tr>

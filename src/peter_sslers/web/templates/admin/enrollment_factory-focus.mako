@@ -68,7 +68,7 @@
                     <tr>
                         <th>is_export_filesystem</th>
                         <td>
-                            % if EnrollmentFactory.is_export_filesystem_id == model_websafe.OptionsOnOff.ON:
+                            % if EnrollmentFactory.is_export_filesystem_id == model_websafe.Options_OnOff.ON:
                                 <span class="label label-success">
                                     on
                                 </span>

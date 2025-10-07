@@ -742,7 +742,7 @@ def get__AcmeChallenges__by_DomainId__active(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_id: (required) An id for an instance of :class:`model.objects.Domain`
-    :param acme_challenge_type_id: (optional) A specific type of challenge, referencing :class:`model.utils.AcmeChallengeType`
+    :param acme_challenge_type_id: (optional) A specific type of challenge, referencing :class:`model.utils.AcmeChallenge_Type`
 
     returns: list
 
@@ -776,7 +776,7 @@ def get__AcmeChallenges__by_DomainId__active(
         .filter(
             AcmeChallenge.domain_id == domain_id,
             # ???: http challenges only
-            # AcmeChallenge.acme_challenge_type_id == model_utils.AcmeChallengeType.http_01,
+            # AcmeChallenge.acme_challenge_type_id == model_utils.AcmeChallenge_Type.http_01,
             sqlalchemy.or_(
                 # Path1 - Order Based Authorizations
                 sqlalchemy.and_(
@@ -808,7 +808,7 @@ def get__AcmeChallenge__by_DomainId__count(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_id: (required) An id for an instance of :class:`model.objects.Domain`
-    :param acme_challenge_type_id: (optional) A specific type of challenge, referencing :class:`model.utils.AcmeChallengeType`
+    :param acme_challenge_type_id: (optional) A specific type of challenge, referencing :class:`model.utils.AcmeChallenge_Type`
     """
     query = ctx.dbSession.query(AcmeChallenge).filter(
         AcmeChallenge.domain_id == domain_id
@@ -2067,7 +2067,7 @@ def _get__Domains_challenged__core(ctx: "ApiContext"):
         # shared filters
         .filter(
             # ???: http challenges only
-            # AcmeChallenge.acme_challenge_type_id == model_utils.AcmeChallengeType.http_01,
+            # AcmeChallenge.acme_challenge_type_id == model_utils.AcmeChallenge_Type.http_01,
             sqlalchemy.or_(
                 # Path1 - Order Based Authorizations
                 sqlalchemy.and_(
@@ -2560,7 +2560,7 @@ def get__PrivateKey__by_id(
 
 def get__PrivateKey_CurrentWeek_Global(ctx: "ApiContext") -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id == model_utils.PrivateKeyType.GLOBAL_WEEKLY,
+        PrivateKey.private_key_type_id == model_utils.PrivateKey_Type.GLOBAL_WEEKLY,
         model_utils.year_week(PrivateKey.timestamp_created)
         == model_utils.year_week(ctx.timestamp),
         PrivateKey.is_compromised.is_not(True),
@@ -2572,7 +2572,7 @@ def get__PrivateKey_CurrentWeek_Global(ctx: "ApiContext") -> Optional[PrivateKey
 
 def get__PrivateKey_CurrentDay_Global(ctx: "ApiContext") -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id == model_utils.PrivateKeyType.GLOBAL_DAILY,
+        PrivateKey.private_key_type_id == model_utils.PrivateKey_Type.GLOBAL_DAILY,
         model_utils.year_day(PrivateKey.timestamp_created)
         == model_utils.year_day(ctx.timestamp),
         PrivateKey.is_compromised.is_not(True),
@@ -2586,7 +2586,7 @@ def get__PrivateKey_CurrentWeek_AcmeAccount(
     ctx: "ApiContext", acme_account_id: int
 ) -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id == model_utils.PrivateKeyType.ACCOUNT_WEEKLY,
+        PrivateKey.private_key_type_id == model_utils.PrivateKey_Type.ACCOUNT_WEEKLY,
         model_utils.year_week(PrivateKey.timestamp_created)
         == model_utils.year_week(ctx.timestamp),
         PrivateKey.is_compromised.is_not(True),
@@ -2601,7 +2601,7 @@ def get__PrivateKey_CurrentDay_AcmeAccount(
     ctx: "ApiContext", acme_account_id: int
 ) -> Optional[PrivateKey]:
     q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id == model_utils.PrivateKeyType.ACCOUNT_DAILY,
+        PrivateKey.private_key_type_id == model_utils.PrivateKey_Type.ACCOUNT_DAILY,
         model_utils.year_day(PrivateKey.timestamp_created)
         == model_utils.year_day(ctx.timestamp),
         PrivateKey.is_compromised.is_not(True),
@@ -3629,9 +3629,9 @@ def get__X509Certificate_replaces_candidates(
     ctx: "ApiContext",
     dbRenewalConfiguration: RenewalConfiguration,
     certificate_type: Literal[
-        model_utils.CertificateType_Enum.MANAGED_PRIMARY,
-        model_utils.CertificateType_Enum.MANAGED_BACKUP,
-    ] = model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+        model_utils.X509CertificateType_Enum.MANAGED_PRIMARY,
+        model_utils.X509CertificateType_Enum.MANAGED_BACKUP,
+    ] = model_utils.X509CertificateType_Enum.MANAGED_PRIMARY,
     timestamp_min_expiry: Optional[datetime.datetime] = None,
 ) -> List[X509Certificate]:
     """
@@ -3645,7 +3645,7 @@ def get__X509Certificate_replaces_candidates(
         # maths: add these times from the current timestamp
         timestamp_min_expiry = ctx.timestamp - TIMEDELTA_days
 
-    if certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
+    if certificate_type == model_utils.X509CertificateType_Enum.MANAGED_BACKUP:
         if not dbRenewalConfiguration.acme_account_id__backup:
             return []
     q = (
@@ -3669,13 +3669,13 @@ def get__X509Certificate_replaces_candidates(
             X509Certificate.timestamp_not_after > timestamp_min_expiry,
         )
     )
-    if certificate_type == model_utils.CertificateType_Enum.MANAGED_PRIMARY:
+    if certificate_type == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY:
         # !!!: Filter- lock down to the same AcmeServer
         q = q.filter(
             AcmeAccount.acme_server_id
             == dbRenewalConfiguration.acme_account__primary.acme_server_id,
         )
-    elif certificate_type == model_utils.CertificateType_Enum.MANAGED_BACKUP:
+    elif certificate_type == model_utils.X509CertificateType_Enum.MANAGED_BACKUP:
         # !!!: Filter- lock down to the same AcmeServer
         q = q.filter(
             AcmeAccount.acme_server_id
@@ -4239,7 +4239,7 @@ def get_X509Certificates_renew_now(
         .filter(
             # this is MANAGED_PRIMARY & MANAGED_BACKUP
             AcmeOrder.certificate_type_id.in_(
-                model_utils.CertificateType._options_AcmeOrder_id
+                model_utils.X509CertificateType._options_AcmeOrder_id
             ),
             # Do not renew deactivated certs
             X509Certificate.is_active.is_(True),
@@ -4247,7 +4247,7 @@ def get_X509Certificates_renew_now(
             RenewalConfiguration.is_active.is_(True),
             # this is the same info as `AcmeOrder.certificate_type_id`
             # the cert role might change though; the order role will never change
-            # X509Certificate.certificate_type_id.in_(model_utils.CertificateType._options_AcmeOrder_id),
+            # X509Certificate.certificate_type_id.in_(model_utils.X509CertificateType._options_AcmeOrder_id),
             # only need one of these; ari_identifier is not guaranteed
             X509Certificate.x509_certificate_id__replaced_by.is_(None),
             # X509Certificate.ari_identifier__replaced_by.is_(None),

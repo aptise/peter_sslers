@@ -45,7 +45,7 @@
 
     Removed:
         AcmeFlow/AcmeOrderless - this was not worth maintaining
-        removed obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
+        removed obj: `model.objects.AcmeOrder2AcmeChallenge_TypeSpecific`
             replaced by UniquelyChallengedFQDNSet
         removed configuration options; both deprecated in cert_utis and not needed:
             openssl_path
@@ -353,7 +353,7 @@
 
     Model Changes:
         Support for specifying the AcmeChallenge on orders:
-            new obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
+            new obj: `model.objects.AcmeOrder2AcmeChallenge_TypeSpecific`
             new rel: `model.objects.AcmeOrder.acme_order_2_acme_challenge_type_specifics`
             new rel: `model.objects.Domain.acme_order_2_acme_challenge_type_specifics`
             new rel: `model.objects.AcmeAuthorization.acme_order_2_acme_challenge_type_specifics`

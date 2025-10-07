@@ -117,7 +117,7 @@
                                 selected = AcmeAccount.order_default_private_key_cycle
                             %>
                             <select class="form-control" name="account__order_default_private_key_cycle">
-                                % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_order_default:
+                                % for _option_text in model_websafe.PrivateKey_Cycle._options_AcmeAccount_order_default:
                                     <%
                                         _selected = ' selected' if _option_text == selected else ''
                                     %>

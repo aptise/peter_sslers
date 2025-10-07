@@ -72,7 +72,7 @@ def main(argv=sys.argv):
             ctx.dbSession.query(model_objects.EnrollmentFactory)
             .filter(
                 model_objects.EnrollmentFactory.is_export_filesystem_id
-                == model_utils.OptionsOnOff.ON,
+                == model_utils.Options_OnOff.ON,
             )
             .all()
         )
@@ -92,7 +92,7 @@ def main(argv=sys.argv):
                     == dbFactory.id,
                     model_objects.RenewalConfiguration.is_active.is_(True),
                     model_objects.RenewalConfiguration.is_export_filesystem_id
-                    == model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT,
+                    == model_utils.Options_OnOff.ENROLLMENT_FACTORY_DEFAULT,
                 )
                 .all()
             )
@@ -142,7 +142,7 @@ def main(argv=sys.argv):
                 model_objects.RenewalConfiguration.enrollment_factory_id__via.is_(None),
                 model_objects.RenewalConfiguration.is_active.is_(True),
                 model_objects.RenewalConfiguration.is_export_filesystem_id
-                == model_utils.OptionsOnOff.ON,
+                == model_utils.Options_OnOff.ON,
             )
             .all()
         )

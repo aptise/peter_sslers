@@ -163,7 +163,7 @@ def acme_dns__ensure_accounts(
         )
         .filter(
             model_objects.UniquelyChallengedFQDNSet2Domain.acme_challenge_type_id
-            == model_utils.AcmeChallengeType.dns_01,
+            == model_utils.AcmeChallenge_Type.dns_01,
         )
         .all()
     )
@@ -222,14 +222,14 @@ def api_domains__certificate_if_needed(
 
     :param dbAcmeAccount__primary: (required) A :class:`model.objects.AcmeAccount` object
     :param dbPrivateKey__primary: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
-    :param private_key_cycle__primary: (required)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_cycle__primary: (required)  A value from :class:`model.utils.PrivateKey_Cycle`
     :param private_key_technology__primary: (required)  A value from :class:`model.utils.PrivateKeyTechnology`
     :param acme_profile__primary: (optional)
 
     :param dbAcmeAccount__backup: (optional) A :class:`model.objects.AcmeAccount` object
     :param dbPrivateKey__backup: (optional) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param acme_profile__backup: (optional)  str
-    :param private_key_cycle__backup: (optional)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_cycle__backup: (optional)  A value from :class:`model.utils.PrivateKey_Cycle`
     :param private_key_technology__backup: (optional)  A value from :class:`model.utils.PrivateKeyTechnology`
 
     :param note: (optional)  user note
@@ -268,7 +268,7 @@ def api_domains__certificate_if_needed(
     acme_order_processing_strategy_id = (
         model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
-    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+    private_key_cycle_id__primary = model_utils.PrivateKey_Cycle.from_string(
         private_key_cycle__primary
     )
     private_key_cycle_id__backup: Optional[int] = None
@@ -281,7 +281,7 @@ def api_domains__certificate_if_needed(
         if not private_key_technology__backup:
             raise errors.DisplayableError("missing `private_key_technology__backup`")
 
-        private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle_id__backup = model_utils.PrivateKey_Cycle.from_string(
             private_key_cycle__backup
         )
         private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
@@ -436,7 +436,7 @@ def api_domains__certificate_if_needed(
                     ctx,
                     dbRenewalConfiguration=dbRenewalConfiguration,
                     processing_strategy=processing_strategy,
-                    acme_order_type_id=model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
+                    acme_order_type_id=model_utils.AcmeOrder_Type.CERTIFICATE_IF_NEEDED,
                     dbPrivateKey=dbPrivateKey__primary,
                     replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
                     transaction_commit=True,
@@ -1613,7 +1613,7 @@ def routine__order_missing(
             model_objects.AcmeOrder.renewal_configuration_id
             == model_objects.RenewalConfiguration.id,
             model_objects.AcmeOrder.certificate_type_id
-            == model_utils.CertificateType.MANAGED_BACKUP,
+            == model_utils.X509CertificateType.MANAGED_BACKUP,
             model_objects.AcmeOrder.is_processing.is_not(True),
         )
         .exists()
@@ -1643,7 +1643,7 @@ def routine__order_missing(
             model_objects.AcmeOrder.renewal_configuration_id
             == model_objects.RenewalConfiguration.id,
             model_objects.AcmeOrder.certificate_type_id
-            == model_utils.CertificateType.MANAGED_PRIMARY,
+            == model_utils.X509CertificateType.MANAGED_PRIMARY,
             model_objects.AcmeOrder.is_processing.is_not(True),
         )
         .exists()
@@ -1703,7 +1703,7 @@ def routine__order_missing(
 
             def _order_missing(
                 _dbRenewalConfiguration: "RenewalConfiguration",
-                replaces_certificate_type: model_utils.CertificateType_Enum,
+                replaces_certificate_type: model_utils.X509CertificateType_Enum,
             ):
                 nonlocal count_renewals
                 nonlocal count_failures
@@ -1711,12 +1711,12 @@ def routine__order_missing(
                 certificate_concept: str
                 if (
                     replaces_certificate_type
-                    == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                    == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
                 ):
                     certificate_concept = "backup"
                 elif (
                     replaces_certificate_type
-                    == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                    == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
                 ):
                     certificate_concept = "primary"
                 else:
@@ -1742,7 +1742,7 @@ def routine__order_missing(
                         ctx,
                         dbRenewalConfiguration=_dbRenewalConfiguration,
                         processing_strategy="process_single",
-                        acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                        acme_order_type_id=model_utils.AcmeOrder_Type.RENEWAL_CONFIGURATION_AUTOMATED,
                         note=RENEWAL_RUN,
                         replaces=certificate_concept,
                         replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
@@ -1783,7 +1783,7 @@ def routine__order_missing(
                     if "ACME Account" in exc.args[0]:
                         if (
                             replaces_certificate_type
-                            == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                            == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
                         ):
                             print(
                                 "AcmeAccount.id=",
@@ -1791,7 +1791,7 @@ def routine__order_missing(
                             )
                         if (
                             replaces_certificate_type
-                            == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                            == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
                         ):
                             print(
                                 "AcmeAccount.id=",
@@ -1800,7 +1800,7 @@ def routine__order_missing(
                     if "ACME Server" in exc.args[0]:
                         if (
                             replaces_certificate_type
-                            == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                            == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
                         ):
                             print(
                                 "AcmeServer.id=",
@@ -1808,7 +1808,7 @@ def routine__order_missing(
                             )
                         if (
                             replaces_certificate_type
-                            == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                            == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
                         ):
                             print(
                                 "AcmeServer.id=",
@@ -1837,7 +1837,7 @@ def routine__order_missing(
             for _dbRenewalConfiguration in dbRenewalConfigurations__backup:
                 _order_missing(
                     _dbRenewalConfiguration,
-                    model_utils.CertificateType_Enum.MANAGED_BACKUP,
+                    model_utils.X509CertificateType_Enum.MANAGED_BACKUP,
                 )
                 total_runs += 1
                 if limit and total_runs >= limit:
@@ -1846,7 +1846,7 @@ def routine__order_missing(
             for _dbRenewalConfiguration in dbRenewalConfigurations__primary:
                 _order_missing(
                     _dbRenewalConfiguration,
-                    model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+                    model_utils.X509CertificateType_Enum.MANAGED_PRIMARY,
                 )
                 total_runs += 1
                 if limit and total_runs >= limit:
@@ -2116,7 +2116,7 @@ def routine__renew_expiring(
                 else:
                     try:
                         replaces_certificate_type = (
-                            model_utils.CertificateType.to_CertificateType_Enum(
+                            model_utils.X509CertificateType.to_X509CertificateType_Enum(
                                 dbX509Certificate.acme_order.certificate_type_id
                             )
                         )
@@ -2124,7 +2124,7 @@ def routine__renew_expiring(
                             ctx,
                             dbRenewalConfiguration=dbX509Certificate.acme_order.renewal_configuration,
                             processing_strategy="process_single",
-                            acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                            acme_order_type_id=model_utils.AcmeOrder_Type.RENEWAL_CONFIGURATION_AUTOMATED,
                             note=RENEWAL_RUN,
                             replaces=dbX509Certificate.ari_identifier,
                             replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,

@@ -84,13 +84,13 @@ def submit__new_freeform(
         "acme_challenge_duplicate_strategy"
     ]
     acme_challenge_duplicate_strategy_id = (
-        model_utils.AcmeChallengeDuplicateStrategy.from_string(
+        model_utils.AcmeChallenge_DuplicateStrategy.from_string(
             acme_challenge_duplicate_strategy
         )
     )
     if (
         acme_challenge_duplicate_strategy_id
-        not in model_utils.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration_id
+        not in model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration_id
     ):
         formStash.fatal_field(
             field="acme_challenge_duplicate_strategy", error_field="invalid"
@@ -142,7 +142,7 @@ def submit__new_freeform(
         # PRIMARY cert
         acme_profile__primary = formStash.results["acme_profile__primary"]
         private_key_cycle__primary = formStash.results["private_key_cycle__primary"]
-        private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle_id__primary = model_utils.PrivateKey_Cycle.from_string(
             private_key_cycle__primary
         )
         private_key_technology_id__primary = (
@@ -171,7 +171,7 @@ def submit__new_freeform(
                     field="private_key_cycle__backup",
                     error_field="Required for Backup Certificates",
                 )
-            private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle_id__backup = model_utils.PrivateKey_Cycle.from_string(
                 private_key_cycle__backup
             )
             private_key_technology_id__backup = (
@@ -304,7 +304,7 @@ def submit__new_freeform(
                 request.api_context,
                 dbRenewalConfiguration=dbRenewalConfiguration,
                 processing_strategy=processing_strategy,
-                acme_order_type_id=model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM,
+                acme_order_type_id=model_utils.AcmeOrder_Type.ACME_ORDER_NEW_FREEFORM,
                 note=note,
                 dbPrivateKey=privateKeySelection__primary.PrivateKey,
                 transaction_commit=True,

@@ -2068,7 +2068,7 @@ class AuthenticatedUser(object):
 
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param authorization_url: (required) The url of the authorization
-        :param acme_challenge_type_id__preferred: An `int` representing a :class:`model.utils.AcmeChallengeType` challenge; `domains_challenged`
+        :param acme_challenge_type_id__preferred: An `int` representing a :class:`model.utils.AcmeChallenge_Type` challenge; `domains_challenged`
         :param domains_challenged: An instance of
             :class:`model.utils.DomainsChallenged` that can indicate which
             challenge is preferred; or `acme_challenge_type_id__preferred`
@@ -2110,7 +2110,7 @@ class AuthenticatedUser(object):
         if acme_challenge_type_id__preferred:
             if (
                 acme_challenge_type_id__preferred
-                not in model_utils.AcmeChallengeType._mapping
+                not in model_utils.AcmeChallenge_Type._mapping
             ):
                 raise ValueError("invalid `acme_challenge_type_id__preferred`")
 
@@ -2218,7 +2218,7 @@ class AuthenticatedUser(object):
                 "http-01",
             ],
         )
-        _acme_challenge_type = model_utils.AcmeChallengeType._mapping[
+        _acme_challenge_type = model_utils.AcmeChallenge_Type._mapping[
             acme_challenge_type_id__preferred
         ]
         _acme_challenge_selected = filter_specific_challenge(

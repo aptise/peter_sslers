@@ -56,13 +56,13 @@ class _MixIn_AcmeAccount(object):
             key_pem = self._filedata_testfile(_key_filename)
 
         _kwargs["acme_account_key_source_id"] = (
-            model_utils.AcmeAccountKeySource.IMPORTED
+            model_utils.AcmeAccountKey_Source.IMPORTED
         )
         _kwargs["key_pem"] = key_pem
         _kwargs["acme_server_id"] = 1  # pebble
         _kwargs["contact"] = contact
         _kwargs["order_default_private_key_cycle_id"] = (
-            model_utils.PrivateKeyCycle.from_string(private_key_cycle)
+            model_utils.PrivateKey_Cycle.from_string(private_key_cycle)
         )
 
         (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(

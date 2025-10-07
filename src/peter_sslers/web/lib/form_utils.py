@@ -244,7 +244,7 @@ class AcmeAccountUploadParser(object):
                 field="account__order_default_private_key_cycle",
                 error_field="No PrivateKey cycle submitted for AcmeOrder defaults.",
             )
-        order_default_private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+        order_default_private_key_cycle_id = model_utils.PrivateKey_Cycle.from_string(
             order_default_private_key_cycle
         )
 
@@ -369,7 +369,7 @@ class AcmeAccountUploadParser(object):
                 field="account__order_default_private_key_cycle",
                 error_field="No PrivateKey cycle submitted for AcmeOrder defaults.",
             )
-        order_default_private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+        order_default_private_key_cycle_id = model_utils.PrivateKey_Cycle.from_string(
             order_default_private_key_cycle
         )
 
@@ -481,7 +481,7 @@ class AcmeAccountUploadParser(object):
         key_create_args["key_pem"] = key_pem
         key_create_args["event_type"] = "AcmeAccount__create"
         key_create_args["acme_account_key_source_id"] = (
-            model_utils.AcmeAccountKeySource.GENERATED
+            model_utils.AcmeAccountKey_Source.GENERATED
         )
         return key_create_args
 
@@ -856,7 +856,7 @@ def form_domains_challenge_typed(
         # 3: ensure there is no overlap
         if (
             acme_challenge_duplicate_strategy_id
-            not in model_utils.AcmeChallengeDuplicateStrategy._options_Duplicates_id
+            not in model_utils.AcmeChallenge_DuplicateStrategy._options_Duplicates_id
         ):
             domain_names_all_set = set(domain_names_all)
             if len(domain_names_all) != len(domain_names_all_set):
@@ -1086,7 +1086,7 @@ def form_selections__NewOrderFreeform(
         assert acmeAccountSelection.upload_parsed
         key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
         key_create_args["acme_account_key_source_id"] = (
-            model_utils.AcmeAccountKeySource.IMPORTED
+            model_utils.AcmeAccountKey_Source.IMPORTED
         )
         key_create_args["event_type"] = "AcmeAccount__insert"
         (
@@ -1116,8 +1116,10 @@ def form_selections__NewOrderFreeform(
         key_create_args = privateKeySelection.upload_parsed.getcreate_args
         key_create_args["discovery_type"] = "upload"
         key_create_args["event_type"] = "PrivateKey__insert"
-        key_create_args["private_key_source_id"] = model_utils.PrivateKeySource.IMPORTED
-        key_create_args["private_key_type_id"] = model_utils.PrivateKeyType.STANDARD
+        key_create_args["private_key_source_id"] = (
+            model_utils.PrivateKey_Source.IMPORTED
+        )
+        key_create_args["private_key_type_id"] = model_utils.PrivateKey_Type.STANDARD
         # TODO: We should infer the above based on the private_key_cycle
         (
             dbPrivateKey,

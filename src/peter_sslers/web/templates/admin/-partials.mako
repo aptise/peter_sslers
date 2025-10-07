@@ -695,11 +695,11 @@
                                 % endif
                             % elif c == 'acme_order_types':
                                 <span class="label label-default">${acme_order.acme_order_type}</span>
-                                % if acme_order.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                                % if acme_order.certificate_type_id == model_websafe.X509CertificateType.MANAGED_PRIMARY:
                                     <span class="label label-success">${acme_order.certificate_type}</span>
-                                % elif acme_order.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                                % elif acme_order.certificate_type_id == model_websafe.X509CertificateType.MANAGED_BACKUP:
                                     <span class="label label-warning">${acme_order.certificate_type}</span>
-                                % elif acme_order.certificate_type_id == model_websafe.CertificateType.RAW_IMPORTED:
+                                % elif acme_order.certificate_type_id == model_websafe.X509CertificateType.RAW_IMPORTED:
                                     <span class="label label-default">${acme_order.certificate_type}</span>
                                 % endif
                                 
@@ -964,7 +964,7 @@
                             </td>
                         % elif c == 'AcmeOrder':
                             <td>
-                                % if x509_certificate_request.x509_certificate_request_source_id == model_websafe.X509CertificateRequestSource.ACME_ORDER:
+                                % if x509_certificate_request.x509_certificate_request_source_id == model_websafe.X509CertificateRequest_Source.ACME_ORDER:
                                     <a  class="label label-info"
                                     href="${admin_prefix}/acme-order/${x509_certificate_request.acme_orders[0].id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -1029,11 +1029,11 @@
                             ${'Active' if cert.is_active else 'inactive'}
                         </span>
                     % endif
-                    % if cert.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                    % if cert.certificate_type_id == model_websafe.X509CertificateType.MANAGED_PRIMARY:
                         <span class="label label-success">${cert.certificate_type}</span>
-                    % elif cert.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                    % elif cert.certificate_type_id == model_websafe.X509CertificateType.MANAGED_BACKUP:
                         <span class="label label-warning">${cert.certificate_type}</span>
-                    % elif cert.certificate_type_id == model_websafe.CertificateType.RAW_IMPORTED:
+                    % elif cert.certificate_type_id == model_websafe.X509CertificateType.RAW_IMPORTED:
                         <span class="label label-default">${cert.certificate_type}</span>
                     % endif
                 </td>
@@ -2340,8 +2340,8 @@
     <div class="form-group">
         <label for="account__order_default_private_key_cycle">Orders: Default PrivateKey Cycling</label>
         <select class="form-control" name="account__order_default_private_key_cycle">
-            <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccount_order_default %>
-            % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_order_default:
+            <% _default = model_websafe.PrivateKey_Cycle._DEFAULT_AcmeAccount_order_default %>
+            % for _option_text in model_websafe.PrivateKey_Cycle._options_AcmeAccount_order_default:
                 <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
             % endfor
         </select>
@@ -2468,17 +2468,17 @@
 </%def>
 
 
-<%def name="formgroup__AcmeChallengeDuplicateStrategy(via='EnrollmentFactory', default=None)">
+<%def name="formgroup__AcmeChallenge_DuplicateStrategy(via='EnrollmentFactory', default=None)">
     <%
         options = []
         if via == "EnrollmentFactory":
-            options = model_websafe.AcmeChallengeDuplicateStrategy._options_EnrollmentFactory
+            options = model_websafe.AcmeChallenge_DuplicateStrategy._options_EnrollmentFactory
             if default is None:
-                default = model_websafe.AcmeChallengeDuplicateStrategy._DEFAULT_EnrollmentFactory
+                default = model_websafe.AcmeChallenge_DuplicateStrategy._DEFAULT_EnrollmentFactory
         elif via == "RenewalConfiguration":
-            options = model_websafe.AcmeChallengeDuplicateStrategy._options_RenewalConfiguration
+            options = model_websafe.AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration
             if default is None:
-                default = model_websafe.AcmeChallengeDuplicateStrategy._DEFAULT_RenewalConfiguration
+                default = model_websafe.AcmeChallenge_DuplicateStrategy._DEFAULT_RenewalConfiguration
     %>
     <div class="form-group">
         <label for="acme_challenge_duplicate_strategy">ACME Challenge Duplicate Strategy</label>
@@ -2767,11 +2767,11 @@
 
 
 <%def name="formgroup__private_key_cycle(default=None, field_name='private_key_cycle', label='')">
-    <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
+    <% default = default or model_websafe.PrivateKey_Cycle._DEFAULT_AcmeOrder %>
     <div class="form-group">
         <label for="${field_name}">Private Key Cycle - Renewals ${label}</label>
         <select class="form-control" name="${field_name}">
-            % for _option_text in model_websafe.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle:
+            % for _option_text in model_websafe.PrivateKey_Cycle._options_RenewalConfiguration_private_key_cycle:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
             % endfor
         </select>
@@ -3208,7 +3208,7 @@
                                     <a class="label label-info" href="${admin_prefix}/uniquely-challenged-fqdn-set/${dbUniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     UniquelyChallengedFQDNSet-${dbUniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id}</a>
-                                    <code>${model_websafe.AcmeChallengeType._mapping[dbUniquelyChallengedFQDNSet2Domain.acme_challenge_type_id]}</code>
+                                    <code>${model_websafe.AcmeChallenge_Type._mapping[dbUniquelyChallengedFQDNSet2Domain.acme_challenge_type_id]}</code>
                                 </td>
                             </tr>
                         % endfor

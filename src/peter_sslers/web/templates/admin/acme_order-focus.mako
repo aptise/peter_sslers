@@ -340,9 +340,9 @@
                                 if AcmeOrder.x509_certificate and not AcmeOrder.x509_certificate.ari_identifier__replaced_by:
                                     _replaces = "?replaces.id=%s" % AcmeOrder.x509_certificate_id
                                 else:
-                                    if AcmeOrder.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                                    if AcmeOrder.certificate_type_id == model_websafe.X509CertificateType.MANAGED_PRIMARY:
                                         _replaces = "?replaces.id=primary"
-                                    elif AcmeOrder.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                                    elif AcmeOrder.certificate_type_id == model_websafe.X509CertificateType.MANAGED_BACKUP:
                                         _replaces = "?replaces.id=backup"
                             %>
                             <a  class="btn btn-xs btn-primary ${quick_btn_class}"
@@ -505,14 +505,14 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateType</th>
+                        <th>X509CertificateType</th>
                         <td>
                             ##<code>${AcmeOrder.certificate_type}</code>
-                            % if AcmeOrder.certificate_type_id == model_websafe.CertificateType.MANAGED_PRIMARY:
+                            % if AcmeOrder.certificate_type_id == model_websafe.X509CertificateType.MANAGED_PRIMARY:
                                 <span class="label label-success">${AcmeOrder.certificate_type}</span>
-                            % elif AcmeOrder.certificate_type_id == model_websafe.CertificateType.MANAGED_BACKUP:
+                            % elif AcmeOrder.certificate_type_id == model_websafe.X509CertificateType.MANAGED_BACKUP:
                                 <span class="label label-warning">${AcmeOrder.certificate_type}</span>
-                            % elif AcmeOrder.certificate_type_id == model_websafe.CertificateType.RAW_IMPORTED:
+                            % elif AcmeOrder.certificate_type_id == model_websafe.X509CertificateType.RAW_IMPORTED:
                                 ## impossible in AcmeOrder context
                                 <span class="label label-default">${AcmeOrder.certificate_type}</span>
                             % endif

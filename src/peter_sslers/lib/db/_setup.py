@@ -103,8 +103,8 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
     dbObject.spki_sha256 = _placeholder_text
     dbObject.is_active = True
     dbObject.operations_event_id__created = dbOperationsEvent.id
-    dbObject.private_key_source_id = model_utils.PrivateKeySource.PLACEHOLDER
-    dbObject.private_key_type_id = model_utils.PrivateKeyType.PLACEHOLDER
+    dbObject.private_key_source_id = model_utils.PrivateKey_Source.PLACEHOLDER
+    dbObject.private_key_type_id = model_utils.PrivateKey_Type.PLACEHOLDER
     # SYSTEM_DEFAULT
     dbObject.key_technology_id = model_utils.KeyTechnology._DEFAULT_id
     ctx.dbSession.add(dbObject)
@@ -176,10 +176,10 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
             model_utils.KeyTechnology.ACCOUNT_DEFAULT
         )
         dbSystemConfiguration.private_key_cycle_id__primary = (
-            model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
+            model_utils.PrivateKey_Cycle.ACCOUNT_DEFAULT
         )
         dbSystemConfiguration.private_key_cycle_id__backup = (
-            model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
+            model_utils.PrivateKey_Cycle.ACCOUNT_DEFAULT
         )
         dbSystemConfiguration.acme_profile__primary = "@"
         dbSystemConfiguration.acme_profile__backup = "@"

@@ -398,7 +398,7 @@ class View_New(Handler):
 
             key_create_args["event_type"] = "AcmeAccount__insert"
             key_create_args["acme_account_key_source_id"] = (
-                model_utils.AcmeAccountKeySource.IMPORTED
+                model_utils.AcmeAccountKey_Source.IMPORTED
             )
             dbAcmeAccount = None
             _dbAcmeAccount = None

@@ -93,7 +93,7 @@
                 <hr/>
 
                 <h3>Shared Configuration</h3>
-                ${admin_partials.formgroup__AcmeChallengeDuplicateStrategy(via="RenewalConfiguration")}
+                ${admin_partials.formgroup__AcmeChallenge_DuplicateStrategy(via="RenewalConfiguration")}
                 ${admin_partials.formgroup__domain_names(
                     specify_challenge=True,
                     domain_names_http01=domain_names_http01,

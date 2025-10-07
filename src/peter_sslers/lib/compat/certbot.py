@@ -22,12 +22,12 @@ from ...lib import errors
 from ...lib.context import ApiContext
 from ...model.objects import AcmeAccount
 from ...model.objects import AcmeServer
-from ...model.utils import AcmeAccountKeySource
-from ...model.utils import CertificateType
+from ...model.utils import AcmeAccountKey_Source
 from ...model.utils import DomainsChallenged
-from ...model.utils import PrivateKeyCycle
-from ...model.utils import PrivateKeySource
-from ...model.utils import PrivateKeyType
+from ...model.utils import PrivateKey_Cycle
+from ...model.utils import PrivateKey_Source
+from ...model.utils import PrivateKey_Type
+from ...model.utils import X509CertificateType
 
 
 # ==============================================================================
@@ -142,7 +142,7 @@ def import_certbot(
             # load the data...
             key_create_args: lib_db.getcreate.getcreate__AcmeAccount__kwargs = {}
             key_create_args["acme_account_key_source_id"] = (
-                AcmeAccountKeySource.IMPORTED
+                AcmeAccountKey_Source.IMPORTED
             )
             key_create_args["event_type"] = "AcmeAccount__insert"
             # key_create_args["acme_server_id"] = do not supply if le_* kwargs are submitted
@@ -271,8 +271,8 @@ def import_certbot(
             ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
                 ctx,
                 private_key_pem,
-                private_key_source_id=PrivateKeySource.IMPORTED,
-                private_key_type_id=PrivateKeyType.STANDARD,  # certbot does not reuse by default, but might
+                private_key_source_id=PrivateKey_Source.IMPORTED,
+                private_key_type_id=PrivateKey_Type.STANDARD,  # certbot does not reuse by default, but might
                 acme_account_id__owner=_acme_account_id,
                 discovery_type="Certbot Import",
             )
@@ -316,7 +316,7 @@ def import_certbot(
                 certificate_pem,
                 cert_domains_expected=_certificate_domain_names,
                 dbX509CertificateTrustChain=dbX509CertificateTrustChain,
-                certificate_type_id=CertificateType.RAW_IMPORTED,
+                certificate_type_id=X509CertificateType.RAW_IMPORTED,
                 # optionals
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,
@@ -347,7 +347,7 @@ def import_certbot(
                             # Primary cert
                             dbAcmeAccount__primary=_dbAcmeAccount,
                             private_key_technology_id__primary=dbPrivateKey.key_technology_id,
-                            private_key_cycle_id__primary=PrivateKeyCycle.SINGLE_USE,
+                            private_key_cycle_id__primary=PrivateKey_Cycle.SINGLE_USE,
                             # Backup cert
                             # misc
                             note="certbot import",
