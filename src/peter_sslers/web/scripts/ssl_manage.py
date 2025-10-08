@@ -1,3 +1,43 @@
+"""
+
+Example usage:
+
+    ssl_manage data_development/config.ini acme-account list
+    ssl_manage data_development/config.ini acme-account list as_json=1
+    ssl_manage data_development/config.ini acme-account focus id=4
+    ssl_manage data_development/config.ini acme-account focus id=4 as_json=1
+    ssl_manage data_development/config.ini acme-account check id=4
+    ssl_manage data_development/config.ini acme-account check id=4 as_json=1
+    ssl_manage data_development/config.ini acme-account authenticate id=4
+    ssl_manage data_development/config.ini acme-account authenticate id=4 as_json=1
+
+    ssl_manage data_development/config.ini acme-dns-server list
+    ssl_manage data_development/config.ini acme-dns-server list as_json=1
+    ssl_manage data_development/config.ini acme-dns-server new help
+    ssl_manage data_development/config.ini acme-dns-server new as_json=1
+    ssl_manage data_development/config.ini acme-dns-server check id=1
+
+    ssl_manage data_development/config.ini acme-order list
+    ssl_manage data_development/config.ini acme-order list as_json=1
+    ssl_manage data_development/config.ini acme-order focus id=40
+    ssl_manage data_development/config.ini acme-order focus id=40 as_json=1
+    ssl_manage data_development/config.ini acme-order retry id=39
+    ssl_manage data_development/config.ini acme-order process id=40
+    ssl_manage data_development/config.ini acme-order retry id=40 as_json=1
+    ssl_manage data_development/config.ini acme-order mark id=41 as_json=1
+    ssl_manage data_development/config.ini acme-order mark id=41 as_json=1 action=invalid
+
+    ssl_manage data_development/config.ini acme-order mark id=41 as_json=1 action=invalid
+    ssl_manage data_development/config.ini acme-order retry id=41 as_json=1
+
+    ssl_manage data_development/config.ini acme-order server_sync id=41 as_json=1
+    ssl_manage data_development/config.ini acme-order server_sync_authz id=41 as_json=1
+    ssl_manage data_development/config.ini acme-order deactivate_authz id=41 as_json=1
+    ssl_manage data_development/config.ini acme-order download_certificate id=41 as_json=1
+
+    ssl_manage data_development/config.ini action deactivate_expired as_json=1
+"""
+
 # stdlib
 import json
 import os
@@ -76,8 +116,15 @@ COMMANDS: Dict[str, List[str]] = {
     "acme-order": [
         "focus",
         "list",
+        "process",
         "mark",
         "retry",
+        # these use the same api
+        "deactivate_authz",
+        "download_certificate",
+        "finalize",
+        "server_sync",
+        "server_sync_authz",
     ],
     "acme-server": [
         "list",
@@ -155,20 +202,54 @@ def main(argv=sys.argv):
     # GLOBAL varlue
     RENDER_JSON = True if options.get("as_json", "").upper() in ("TRUE", "1") else False
 
-    if command not in COMMANDS:
-        print("`%s` is not a valid command" % command)
-        exit(1)
-    if subcommand not in COMMANDS[command]:
-        print("`%s` is not a valid subcommand for `%s`" % (subcommand, command))
-        exit(1)
-
-    def render_data(data: Any) -> None:
+    def render_data(
+        data: Any,
+        error: Optional[Any] = None,
+        success: Optional[Any] = None,
+    ) -> None:
+        """
+        If data is just formfields, do not set "success".
+        If error is supplied, set succes to False
+        """
         # determine as_json on the fly;
         # the pyramid integration code expects the options to all be strings
+        if error:
+            if success is None:
+                success = False
+            if success is not False:
+                raise ValueError("`success` must be `False` if `error` is submitted")
         if RENDER_JSON:
-            print(json.dumps(data))
+            payload = {
+                "result": "success" if success else ("error" if error else None),
+                "payload": data,
+            }
+            if error:
+                payload["error"] = str(error) if isinstance(error, Exception) else error
+            if success:
+                if not isinstance(success, bool):
+                    payload["success"] = success
+            print(json.dumps(payload))
         else:
+            print("=" * 80)
+            if success:
+                print("success")
+                if not isinstance(success, bool):
+                    print(success)
+            if error:
+                print("error", error)
+            print("- " * 40)
             pprint.pprint(data)
+            print("=" * 80)
+
+    if command not in COMMANDS:
+        render_data(None, error="`%s` is not a valid command" % command)
+        exit(1)
+    if subcommand not in COMMANDS[command]:
+        render_data(
+            None,
+            error="`%s` is not a valid subcommand for `%s`" % (subcommand, command),
+        )
+        exit(1)
 
     # don't use this, as we need a real pyramid request
     # ctx = new_scripts_setup(config_uri, options=options)
@@ -181,6 +262,7 @@ def main(argv=sys.argv):
 
         # generic functions
         def _list_items(
+            obj_name: str,
             f_count: Optional[Callable],
             f_paginated: Callable,
             is_extended=True,
@@ -197,9 +279,18 @@ def main(argv=sys.argv):
                 dbItemsCount = None
             dbItems = f_paginated(request.api_context, offset=offset, limit=limit)
             if RENDER_JSON:
-                # TODO: print these asjson, but needs to be wrapped into caller
+                payload = {
+                    obj_name: [i.as_json for i in dbItems],
+                    "pagination": {
+                        "total": dbItemsCount,
+                        "offset": offset,
+                        "limit": limit,
+                    },
+                }
+                render_data(payload, success=True)
                 return
             for _dbItem in dbItems:
+                print(obj_name)
                 print("-----")
                 if condensed:
                     if isinstance(_dbItem, model_objects.X509Certificate):
@@ -234,7 +325,7 @@ def main(argv=sys.argv):
                 request.api_context, acme_account_id
             )
             if not _dbAcmeAccount:
-                print("invalid `AcmeAccount`")
+                render_data(None, error="invalid `AcmeAccount`")
                 exit(1)
             return _dbAcmeAccount
 
@@ -246,7 +337,7 @@ def main(argv=sys.argv):
                 request.api_context, acme_dns_server_id
             )
             if not _dbAcmeDnsServer:
-                print("invalid `AcmeDnsServer`")
+                render_data(None, error="invalid `AcmeDnsServer`")
                 exit(1)
             return _dbAcmeDnsServer
 
@@ -256,7 +347,7 @@ def main(argv=sys.argv):
                 request.api_context, acme_ord_id
             )
             if not _dbAcmeOrder:
-                print("invalid `AcmeOrder`")
+                render_data(None, error="invalid `AcmeOrder`")
                 exit(1)
             return _dbAcmeOrder
 
@@ -268,7 +359,7 @@ def main(argv=sys.argv):
                 request.api_context, enrollment_factory_id
             )
             if not _dbEnrollmentFactory:
-                print("invalid `EnrollmentFactory`")
+                render_data(None, error="invalid `EnrollmentFactory`")
                 exit(1)
             return _dbEnrollmentFactory
 
@@ -280,7 +371,7 @@ def main(argv=sys.argv):
                 request.api_context, renewal_configuration_id
             )
             if not _dbRenewalConfiguration:
-                print("invalid `RenewalConfiguration`")
+                render_data(None, error="invalid `RenewalConfiguration`")
                 exit(1)
             return _dbRenewalConfiguration
 
@@ -292,7 +383,7 @@ def main(argv=sys.argv):
                 request.api_context, system_configuration_id
             )
             if not _dbSystemConfiguration:
-                print("invalid `SystemConfiguration`")
+                render_data(None, error="invalid `SystemConfiguration`")
                 exit(1)
             return _dbSystemConfiguration
 
@@ -304,7 +395,7 @@ def main(argv=sys.argv):
                 request.api_context, x509_certificate_id
             )
             if not _dbX509Certificate:
-                print("invalid `X509Certificate`")
+                render_data(None, error="invalid `X509Certificate`")
                 exit(1)
             return _dbX509Certificate
 
@@ -320,32 +411,36 @@ def main(argv=sys.argv):
             # !!!: focus
             if subcommand == "focus":
                 _dbAcmeAccount = _get_AcmeAccount()
-                render_data(_dbAcmeAccount.as_json)
+                render_data(_dbAcmeAccount.as_json, success=True)
+                exit(0)
             # !!!: - list
             elif subcommand == "list":
-                if not RENDER_JSON:
-                    print("ACME Accounts:")
                 _list_items(
+                    "AcmeAccount",
                     lib_db.get.get__AcmeAccount__count,
                     lib_db.get.get__AcmeAccount__paginated,
                 )
+                exit(0)
             # !!!: - new
             elif subcommand == "new":
                 # !!!: - new - help
                 if "help" in options:
-                    render_data(Form_AcmeAccount_new__auth.fields)
+                    payload = {"fields": Form_AcmeAccount_new__auth.fields}
+                    render_data(payload)
                     exit(0)
                 try:
                     _dbAcmeAccount, _is_created = v_acme_account.submit__new_auth(
                         request,
                         acknowledge_transaction_commits=True,
                     )
-                    if not RENDER_JSON:
-                        print("success", "[CREATED]" if _is_created else "")
-                    render_data(_dbAcmeAccount.as_json)
+                    render_data(
+                        _dbAcmeAccount.as_json,
+                        success="[CREATED]" if _is_created else True,
+                    )
                 except formhandling.FormInvalid as exc:
-                    print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
+                    exit(1)
+                exit(0)
             # !!!: - authenticate/check
             elif subcommand in (
                 "authenticate",
@@ -353,7 +448,7 @@ def main(argv=sys.argv):
             ):
                 # !!!: - authenticate/check - help
                 if "help" in options:
-                    print('%s id="{INT}' % subcommand)
+                    render_data({"note": '%s id="{INT}' % subcommand})
                     exit(0)
                 _dbAcmeAccount = _get_AcmeAccount()
                 if subcommand == "authenticate":
@@ -368,79 +463,91 @@ def main(argv=sys.argv):
                         dbAcmeAccount=_dbAcmeAccount,
                         acknowledge_transaction_commits=True,
                     )
-                if _result:
-                    print("successful %s" % subcommand)
-                    exit(0)
-                print("error", _err)
+                render_data(_result, success=(not bool(_err)), error=_err)
+                exit(0)
 
         # !!!: distpatch[acme-dns-server]
         elif command == "acme-dns-server":
             # !!!: - list
             if subcommand == "list":
-                if not RENDER_JSON:
-                    print("acme-dns Servers:")
                 _list_items(
+                    "AcmeDnsServer",
                     lib_db.get.get__AcmeDnsServer__count,
                     lib_db.get.get__AcmeDnsServer__paginated,
                 )
+                exit(0)
             # !!!: - new
             elif subcommand == "new":
                 # !!!: - new - help
                 if "help" in options:
-                    render_data(Form_AcmeDnsServer_new.fields)
+                    payload = {"fields": Form_AcmeDnsServer_new.fields}
+                    render_data(payload)
                     exit(0)
                 try:
                     _dbAcmeDnsServer, _is_created = v_acme_dns_server.submit__new(
                         request,
                         acknowledge_transaction_commits=True,
                     )
-                    if not RENDER_JSON:
-                        print("success", "[CREATED]" if _is_created else "")
-                    render_data(_dbAcmeDnsServer.as_json)
+                    render_data(
+                        _dbAcmeDnsServer.as_json,
+                        success="[CREATED]" if _is_created else True,
+                    )
+                    exit(0)
                 except formhandling.FormInvalid as exc:
-                    print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
+                    exit(1)
+                except Exception as exc:
+                    render_data(None, error=str(exc))
                     exit(1)
             # !!!: - check
             elif subcommand == "check":
                 # !!!: - check - help
                 if "help" in options:
-                    print('check id="{INT}')
+                    render_data({"note": 'check id="{INT}'})
                     exit(0)
                 _dbAcmeDnsServer = _get_AcmeDnsServer()
                 _result = v_acme_dns_server.submit__check(  # noqa: F841
                     request,
                     dbAcmeDnsServer=_dbAcmeDnsServer,
                 )
-                if not RENDER_JSON:
-                    print("successful check")
+                render_data(_result, success=(not bool(_result)))
+                exit(0)
+
         # !!!: distpatch[acme-order]
         elif command == "acme-order":
-            # TODO: process
-            # TODO: server-sync
-            # TODO: server-sync_authorizations
-            # TODO: server-deactivate_authorizations
-            # TODO: server-download_certificate
-            # TODO: server-process
-            # TODO: server-finalize
-
             # !!!: - focus
             if subcommand == "focus":
                 _dbAcmeOrder = _get_AcmeOrder()
-                render_data(_dbAcmeOrder.as_json)
+                render_data(_dbAcmeOrder.as_json, success=True)
+                exit(0)
+
             # !!!: - list
             elif subcommand == "list":
-                if not RENDER_JSON:
-                    print("ACME Orders:")
                 _list_items(
+                    "AcmeOrder",
                     lib_db.get.get__AcmeOrder__count,
                     lib_db.get.get__AcmeOrder__paginated,
                 )
+                exit(0)
+
+            # !!!: - process
+            elif subcommand == "process":
+                _dbAcmeOrder = _get_AcmeOrder()
+                _dbAcmeOrder, _error = v_acme_order.submit__process(
+                    request,
+                    dbAcmeOrder=_dbAcmeOrder,
+                    acknowledge_transaction_commits=True,
+                )
+                render_data(
+                    _dbAcmeOrder.as_json, success=(not bool(_error)), error=_error
+                )
+                exit(0)
             # !!!: - mark
             elif subcommand == "mark":
                 # !!!: - mark - help
                 if "help" in options:
-                    render_data(Form_AcmeOrder_mark.fields)
+                    payload = {"fields": Form_AcmeOrder_mark.fields}
+                    render_data(payload)
                     exit(0)
                 try:
                     _dbAcmeOrder = _get_AcmeOrder()
@@ -449,49 +556,76 @@ def main(argv=sys.argv):
                         dbAcmeOrder=_dbAcmeOrder,
                         acknowledge_transaction_commits=True,
                     )
-                    if not RENDER_JSON:
-                        print("success")
-                    render_data(_dbAcmeOrder.as_json)
+                    render_data(_dbAcmeOrder.as_json, success=True)
+                    exit(0)
                 except (errors.InvalidRequest, errors.InvalidTransition) as exc:
-                    if not RENDER_JSON:
-                        print("Errors:")
-                    render_data({"status": "error", "error": exc.args[0]})
+                    render_data(None, error=str(exc))
                     exit(1)
             # !!!: - retry
             elif subcommand == "retry":
                 # !!!: - retry - help
                 if "help" in options:
-                    render_data(Form_AcmeOrder_retry.fields)
+                    payload = {"fields": Form_AcmeOrder_retry.fields}
+                    render_data(payload)
                     exit(0)
                 try:
                     _dbAcmeOrder = _get_AcmeOrder()
-                    _dbAcmeOrderNew, _error = v_acme_order.submit__retry(
+                    _dbAcmeOrderNew, _exc = v_acme_order.submit__retry(
                         request,
                         dbAcmeOrder=_dbAcmeOrder,
                         acknowledge_transaction_commits=True,
                     )
-                    if _error:
-                        print("error", _error)
-                    if not RENDER_JSON:
-                        if not _error:
-                            print("success")
-                    if _dbAcmeOrderNew:
-                        render_data(_dbAcmeOrderNew.as_json)
+                    render_data(
+                        _dbAcmeOrderNew.as_json if _dbAcmeOrderNew else None,
+                        success=(not bool(_exc)),
+                        error=_exc,
+                    )
+                    exit(1 if _exc else 0)
                 except formhandling.FormInvalid as exc:
-                    if not RENDER_JSON:
-                        print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
                     exit(1)
+            # !!!: - deactivate_authz
+            # !!!: - download_certificate
+            # !!!: - finalize
+            # !!!: - server_sync
+            # !!!: - server_sync_authz
+            elif subcommand in (
+                "deactivate_authz",
+                "download_certificate",
+                "finalize",
+                "server_sync",
+                "server_sync_authz",
+            ):
+                _defs: Dict[str, Callable] = {
+                    "deactivate_authz": v_acme_order.submit__acme_server_deactivate_authorizations,
+                    "download_certificate": v_acme_order.submit__acme_server_download_certificate,
+                    "finalize": v_acme_order.submit__acme_server_finalize,
+                    "server_sync": v_acme_order.submit__acme_server_sync,
+                    "server_sync_authz": v_acme_order.submit__acme_server_sync_authorizations,
+                }
+                _dbAcmeOrder = _get_AcmeOrder()
+                _dbAcmeOrder, _error = _defs[subcommand](
+                    request,
+                    dbAcmeOrder=_dbAcmeOrder,
+                    acknowledge_transaction_commits=True,
+                )
+                render_data(
+                    _dbAcmeOrder.as_json,
+                    success=(not bool(_error)),
+                    error=_error,
+                )
+                exit(0 if not _error else 1)
+
         # !!!: distpatch[acme-server]
         elif command == "acme-server":
             # !!!: - list
             if subcommand == "list":
-                if not RENDER_JSON:
-                    print("ACME Servers:")
                 _list_items(
+                    "AcmeServer",
                     None,
                     lib_db.get.get__AcmeServer__paginated,
                 )
+                exit(0)
 
         # !!!: distpatch[action]
         elif command == "action":
@@ -500,13 +634,14 @@ def main(argv=sys.argv):
                     request,
                     acknowledge_transaction_commits=True,
                 )
-                render_data(rval)
+                render_data(rval, success=True)
+
             elif subcommand == "reconcile_cas":
                 operations_event = lib_db.actions.operations_reconcile_cas(
                     request.api_context,
                 )
                 request.api_context.pyramid_transaction_commit()
-                render_data(operations_event.as_json)
+                render_data(operations_event.as_json, success=True)
 
             elif subcommand == "prime_redis":
                 dbEvent, total_primed = v_api.actual__prime_redis(
@@ -517,7 +652,8 @@ def main(argv=sys.argv):
                     "OperationsEvent": dbEvent.as_json,
                     "total_primed": total_primed,
                 }
-                render_data(rval)
+                render_data(rval, success=True)
+
             elif subcommand == "flush_nginx":
                 request.api_context._ensure_nginx()
                 success, dbEvent, servers_status = utils_nginx.nginx_flush_cache(
@@ -525,7 +661,7 @@ def main(argv=sys.argv):
                     request.api_context,
                 )
                 request.api_context.pyramid_transaction_commit()
-                render_data(servers_status)
+                render_data(servers_status, success=True)
 
             elif subcommand == "status_nginx":
                 request.api_context._ensure_nginx()
@@ -534,25 +670,26 @@ def main(argv=sys.argv):
                     request.api_context,
                 )
                 request.api_context.pyramid_transaction_commit()
-                render_data(servers_status)
+                render_data(servers_status, success=True)
 
             elif subcommand == "update_recents":
                 operations_event = lib_db.actions.operations_update_recents__global(
                     request.api_context,
                 )
                 request.api_context.pyramid_transaction_commit()
-                render_data(operations_event.as_json)
+                render_data(operations_event.as_json, success=True)
+            exit(0)
 
         # !!!: distpatch[domain]
         elif command == "domain":
             # !!!: - list
             if subcommand == "list":
-                if not RENDER_JSON:
-                    print("Domains:")
                 _list_items(
+                    "Domain",
                     None,
                     lib_db.get.get__Domain__paginated,
                 )
+                exit(0)
         # !!!: distpatch[enrollment-factory]
         elif command == "enrollment-factory":
             # !!!: focus
@@ -561,7 +698,8 @@ def main(argv=sys.argv):
                 # ssl_manage data_development enrollment-factory focus id=1 query=1 domain_name=example.com
                 if "query" in options:
                     if "help" in options:
-                        render_data(Form_EnrollmentFactory_query.fields)
+                        payload = {"fields": Form_EnrollmentFactory_query.fields}
+                        render_data(payload)
                         exit(0)
                     (formStash, dbRenewalConfiguration, dbX509Certificates) = (
                         v_enrollment_factory.submit__query(
@@ -579,15 +717,20 @@ def main(argv=sys.argv):
                         ),
                         "X509Certificates": [i.as_json for i in dbX509Certificates],
                     }
-                    render_data(_formatted)
+                    render_data(_formatted, success=True)
                 else:
-                    render_data(_dbEnrollmentFactory.as_json)
+                    render_data(_dbEnrollmentFactory.as_json, success=True)
+                exit(0)
+
             # !!!: - onboard
             elif subcommand == "onboard":
                 # !!!: - onboard - help
                 if "help" in options:
-                    print("MUST submit `id`")
-                    render_data(Form_EnrollmentFactory_onboard.fields)
+                    payload = {
+                        "note": "MUST submit `id`",
+                        "fields": Form_EnrollmentFactory_onboard.fields,
+                    }
+                    render_data(payload)
                     exit(0)
                 _dbEnrollmentFactory = _get_EnrollmentFactory()
                 try:
@@ -598,57 +741,61 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     )
-                    print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    render_data(_dbRenewalConfiguration.as_json)
+                    render_data(
+                        _dbRenewalConfiguration.as_json,
+                        success="[DUPLICATE]" if _is_duplicate else True,
+                    )
+                    exit(0)
                 except formhandling.FormInvalid as exc:
-                    print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
+                    exit(1)
             # !!!: - list
             elif subcommand == "list":
-                if not RENDER_JSON:
-                    print("Enrollment Factories:")
                 _list_items(
+                    "EnrollmentFactory",
                     lib_db.get.get__EnrollmentFactory__count,
                     lib_db.get.get__EnrollmentFactory__paginated,
                 )
+                exit(0)
             # !!!: - new
             elif subcommand == "new":
                 # !!!: - new - help
                 if "help" in options:
-                    render_data(Form_EnrollmentFactory_new.fields)
+                    payload = {"fields": Form_EnrollmentFactory_new.fields}
+                    render_data(payload)
                     exit(0)
                 try:
                     _dbEnrollmentFactory = v_enrollment_factory.submit__new(
                         request,
                         acknowledge_transaction_commits=True,
                     )
-                    render_data(_dbEnrollmentFactory.as_json_docs)
+                    render_data(_dbEnrollmentFactory.as_json_docs, success=True)
+
                 except formhandling.FormInvalid as exc:
-                    if not RENDER_JSON:
-                        print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
                     exit(1)
 
         # !!!: distpatch[rate-limited]
         elif command == "rate-limited":
             # !!!: - list
             if subcommand == "list":
-                if not RENDER_JSON:
-                    print("RateLimiteds:")
                 _list_items(
+                    "RateLimited",
                     None,
                     lib_db.get.get__RateLimited__paginated,
                 )
+                exit(0)
             # !!!: - clear
             elif subcommand == "clear":
                 # !!!: - clear - help
                 if "help" in options:
-                    print(
-                        "submit either `acme_account_id=INT` or `acme_server_id=INT`."
-                    )
-                    print(
-                        "you may submit `unique_fqdn_set_id=INT` with `acme_server_id`."
-                    )
+                    payload = {
+                        "note": [
+                            "submit either `acme_account_id=INT` or `acme_server_id=INT`.",
+                            "you may submit `unique_fqdn_set_id=INT` with `acme_server_id`.",
+                        ],
+                    }
+                    render_data(payload)
                     exit(0)
                 acme_account_id = options.get("acme_account_id", None)
                 acme_server_id = options.get("acme_server_id", None)
@@ -658,8 +805,9 @@ def main(argv=sys.argv):
                     lib_db.delete.delete__RateLimited__by_AcmeAccountId(
                         request.api_context, acme_account_id
                     )
-                    print("delete__RateLimited__by_AcmeAccountId")
+                    render_data("delete__RateLimited__by_AcmeAccountId", success=True)
                     request.api_context.pyramid_transaction_commit()
+                    exit(0)
                 elif acme_server_id is not None:
                     acme_server_id = int(acme_server_id)
                     if unique_fqdn_set_id is not None:
@@ -667,38 +815,48 @@ def main(argv=sys.argv):
                         lib_db.delete.delete__RateLimited__by_AcmeServerId_UniqueFQDNSetId(
                             request.api_context, acme_server_id, unique_fqdn_set_id
                         )
-                        print("delete__RateLimited__by_AcmeServerId_UniqueFQDNSetId")
+                        render_data(
+                            "delete__RateLimited__by_AcmeServerId_UniqueFQDNSetId",
+                            success=True,
+                        )
                         request.api_context.pyramid_transaction_commit()
                     else:
                         lib_db.delete.delete__RateLimited__by_AcmeServerId(
                             request.api_context, acme_server_id
                         )
-                        print("delete__RateLimited__by_AcmeServerId")
+                        render_data(
+                            "delete__RateLimited__by_AcmeServerId", success=True
+                        )
                         request.api_context.pyramid_transaction_commit()
+                    exit(0)
                 else:
-                    raise ValueError(
-                        "must supply `acme_account_id` or `acme_server_id`; `unique_fqdn_set_id` can be submitted with `acme_server_id`"
+                    render_data(
+                        None,
+                        error="must supply `acme_account_id` or `acme_server_id`; `unique_fqdn_set_id` can be submitted with `acme_server_id`",
                     )
+                    exit(1)
 
         # !!!: distpatch[renewal-configuration]
         elif command == "renewal-configuration":
             # !!!: focus
             if subcommand == "focus":
                 _dbRenewalConfiguration = _get_RenewalConfiguration()
-                render_data(_dbRenewalConfiguration.as_json)
+                render_data(_dbRenewalConfiguration.as_json, success=True)
+                exit(0)
             # !!!: - list
             elif subcommand == "list":
-                if not RENDER_JSON:
-                    print("Renewal Configurations:")
                 _list_items(
+                    "RenewalConfiguration",
                     lib_db.get.get__RenewalConfiguration__count,
                     lib_db.get.get__RenewalConfiguration__paginated,
                 )
+                exit(0)
             # !!!: - mark
             elif subcommand == "mark":
                 # !!!: - mark - help
                 if "help" in options:
-                    render_data(Form_RenewalConfiguration_mark.fields)
+                    payload = {"fields": Form_RenewalConfiguration_mark.fields}
+                    render_data(payload)
                     exit(0)
                 try:
                     _dbRenewalConfiguration = _get_RenewalConfiguration()
@@ -709,19 +867,17 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     )
-                    if not RENDER_JSON:
-                        print("success", _action)
-                    render_data(_dbRenewalConfiguration.as_json)
+                    render_data(_dbRenewalConfiguration.as_json, success=True)
+                    exit(0)
                 except formhandling.FormInvalid as exc:
-                    if not RENDER_JSON:
-                        print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
                     exit(1)
             # !!!: - new
             elif subcommand == "new":
                 # !!!: - new - help
                 if "help" in options:
-                    render_data(Form_RenewalConfig_new.fields)
+                    payload = {"fields": Form_RenewalConfig_new.fields}
+                    render_data(payload)
                     exit(0)
                 try:
                     _dbRenewalConfiguration, _is_duplicate = (
@@ -730,19 +886,21 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     )
-                    if not RENDER_JSON:
-                        print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    render_data(_dbRenewalConfiguration.as_json)
+                    render_data(
+                        _dbRenewalConfiguration.as_json,
+                        success="[DUPLICATE]" if _is_duplicate else True,
+                    )
                 except formhandling.FormInvalid as exc:
-                    print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
                     exit(1)
+
             # !!!: - new-configuration
             elif subcommand == "new-configuration":
+
                 # !!!: - new-configuration - help
                 if "help" in options:
-                    print("MUST submit `id`")
-                    render_data(Form_RenewalConfig_new_configuration.fields)
+                    payload = {"fields": Form_RenewalConfig_new_configuration.fields}
+                    render_data(payload)
                     exit(0)
                 _dbRenewalConfiguration = _get_RenewalConfiguration()
                 try:
@@ -753,18 +911,21 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     )
-                    if not RENDER_JSON:
-                        print("success", "[DUPLICATE]" if _is_duplicate else "")
-                    render_data(_dbRenewalConfigurationNew.as_json)
+                    render_data(
+                        _dbRenewalConfigurationNew.as_json,
+                        success="[DUPLICATE]" if _is_duplicate else True,
+                    )
+                    exit(0)
                 except formhandling.FormInvalid as exc:
-                    print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
+                    exit(1)
+
             # !!!: - new-order
             elif subcommand == "new-order":
                 # !!!: - new-order - help
                 if "help" in options:
-                    print("MUST submit `id`")
-                    render_data(Form_RenewalConfig_new_order.fields)
+                    payload = {"fields": Form_RenewalConfig_new_order.fields}
+                    render_data(payload)
                     exit(0)
                 _dbRenewalConfiguration = _get_RenewalConfiguration()
                 try:
@@ -775,40 +936,42 @@ def main(argv=sys.argv):
                             acknowledge_transaction_commits=True,
                         )
                     )
-                    if not RENDER_JSON:
-                        print(
-                            "success",
-                            (
-                                "[NonFatalError: %s]" % _excAcmeOrder
-                                if _excAcmeOrder
-                                else ""
-                            ),
+                    if _excAcmeOrder:
+                        render_data(
+                            _dbAcmeOrder.as_json,
+                            success=True,
+                            error=_excAcmeOrder,
                         )
-                    render_data(_dbAcmeOrder.as_json)
+                        exit(1)
+                    render_data(_dbAcmeOrder.as_json, success=True)
+                    exit(0)
                 except formhandling.FormInvalid as exc:
-                    print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
+                    exit(1)
+
         # !!!: distpatch[system-configuration]
         elif command == "system-configuration":
             # _dbRenewalConfiguration: Optional["RenewalConfiguration"]  # type: ignore[no-redef]
 
             # !!!: - list
             if subcommand == "list":
-                if not RENDER_JSON:
-                    print("Renewal Configurations:")
                 _list_items(
+                    "SystemConfiguration",
                     lib_db.get.get__SystemConfiguration__count,
                     lib_db.get.get__SystemConfiguration__paginated,
                 )
+                exit(0)
+
             # !!!: - edit
             elif subcommand == "edit":
                 # !!!: - edit - help
                 if "help" in options:
-                    print("MUST submit `id`")
-                    print("Global:")
-                    render_data(Form_SystemConfiguration_Global_edit.fields)
-                    print("Others:")
-                    render_data(Form_SystemConfiguration_edit.fields)
+                    _payload = {
+                        "note": "`id=` is required",
+                        "fields.global": Form_SystemConfiguration_Global_edit.fields,
+                        "fields.others": Form_SystemConfiguration_edit.fields,
+                    }
+                    render_data(_payload)
                     exit(0)
                 _dbSystemConfiguration = _get_SystemConfiguration()
                 try:
@@ -826,31 +989,33 @@ def main(argv=sys.argv):
                             dbSystemConfiguration=_dbSystemConfiguration,
                             acknowledge_transaction_commits=True,
                         )
-                    if not RENDER_JSON:
-                        print("success")
-                    render_data(_dbSystemConfiguration.as_json)
+                    render_data(_dbSystemConfiguration.as_json, success=True)
+                    exit(0)
                 except formhandling.FormInvalid as exc:
-                    print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
+                    exit(1)
+
         # !!!: distpatch[x509-certificate]
         elif command == "x509-certificate":
             # !!!: focus
             if subcommand == "focus":
                 _dbX509Certificate = _get_X509Certificate()
-                render_data(_dbX509Certificate.as_json)
+                render_data(_dbX509Certificate.as_json, success=True)
+                exit(0)
             elif subcommand == "list":
-                if not RENDER_JSON:
-                    print("X509Certificates:")
                 _list_items(
+                    "X509Certificate",
                     lib_db.get.get__X509Certificate__count,
                     lib_db.get.get__X509Certificate__paginated,
                     condensed=True,
                 )
+                exit(0)
             # !!!: - mark
             elif subcommand == "mark":
                 # !!!: - mark - help
                 if "help" in options:
-                    render_data(Form_X509Certificate_mark.fields)
+                    payload = {"fields": Form_X509Certificate_mark.fields}
+                    render_data(payload)
                     exit(0)
                 try:
                     _dbX509Certificate = _get_X509Certificate()
@@ -859,11 +1024,11 @@ def main(argv=sys.argv):
                         dbX509Certificate=_dbX509Certificate,
                         acknowledge_transaction_commits=True,
                     )
-                    if not RENDER_JSON:
-                        print("success", _action)
-                    render_data(_dbX509Certificate.as_json)
+                    render_data(
+                        _dbX509Certificate.as_json,
+                        success={"action", _action},
+                    )
+                    exit(0)
                 except formhandling.FormInvalid as exc:
-                    if not RENDER_JSON:
-                        print("Errors:")
-                    render_data(exc.formStash.errors)
+                    render_data(None, error=exc.formStash.errors)
                     exit(1)

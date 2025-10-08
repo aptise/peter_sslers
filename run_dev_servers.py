@@ -6,7 +6,9 @@ leverages the test framework to start/manage a few background subprocess:
 * pebble_alt
 * acme_dns
 
+Run this as a normal user with the relevant ENV vars.
 
+acme_dns will request an admin password to bind to port 53
 """
 
 # stdlib
@@ -22,10 +24,14 @@ from tests._utils import under_pebble_alt
 # ==============================================================================
 
 RUN_API_TESTS__PEBBLE = bool(int(os.environ.get("SSL_RUN_API_TESTS__PEBBLE", 0)))
+PEBBLE_REAL_CHALLENGES = bool(int(os.environ.get("PEBBLE_REAL_CHALLENGES", 0)))
+
 
 if not RUN_API_TESTS__PEBBLE:
     print("env var `SSL_RUN_API_TESTS__PEBBLE=1` must be set")
     exit(1)
+
+print("PEBBLE_REAL_CHALLENGES", PEBBLE_REAL_CHALLENGES)
 
 
 def run():

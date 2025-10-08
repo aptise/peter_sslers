@@ -827,6 +827,7 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
 
     """
 
+    __tablename__ = "acme_authorization_potential"
     __table_args__ = (
         sa.Index(
             "uidx_acme_authorization_potential",
@@ -835,8 +836,8 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
             unique=True,
         ),
     )
+    __mapper_args__ = {"confirm_deleted_rows": False}
 
-    __tablename__ = "acme_authorization_potential"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     acme_order_id: Mapped[int] = mapped_column(
         sa.Integer,
@@ -2008,10 +2009,12 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         can we download a X509Certificate from the AcmeServer?
         only works for VALID AcmeOrder if we do not have a X509Certificate
         """
+        # TODO: limit to within cert lifetime
         if self.acme_status_order == "valid":
             if self.certificate_url:
                 if not self.x509_certificate_id:
                     return True
+                return True  # redownload??
         return False
 
     @property

@@ -2428,7 +2428,9 @@ def do__AcmeV2_AcmeOrder__process(
                     transaction_commit=transaction_commit,
                 )
             else:
-                raise errors.GarfieldMinusGarfield("unsure how this happened")
+                raise errors.GarfieldMinusGarfield(
+                    "unsure how this happened; status not in ('pending', 'ready')"
+                )
     elif dbAcmeOrder.acme_status_order == "ready":
         dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
             ctx,
@@ -2437,7 +2439,9 @@ def do__AcmeV2_AcmeOrder__process(
             transaction_commit=transaction_commit,
         )
     else:
-        raise errors.GarfieldMinusGarfield("unsure how this happened")
+        raise errors.GarfieldMinusGarfield(
+            "unsure how this happened; status not 'pending'"
+        )
 
     return dbAcmeOrder
 
