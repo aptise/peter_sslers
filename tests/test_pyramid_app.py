@@ -10312,6 +10312,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert RE_AcmeOrder_btn_deactive_authorizations__off.findall(res.text)
 
         # "admin:acme_order:focus:retry",
+        # TODO: test "acme_order-retry-backup" too
         assert "acme_order-retry" in res.forms
         form = res.forms["acme_order-retry"]
         res = form.submit()
@@ -10410,6 +10411,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         obj_id__4: int
 
         # "admin:acme_order:focus:retry",
+        # TODO: test "acme_order-retry-backup" too
         if "acme_order-retry" in res.forms:
             form = res.forms["acme_order-retry"]
             res = form.submit()

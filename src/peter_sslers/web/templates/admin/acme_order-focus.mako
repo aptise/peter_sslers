@@ -195,7 +195,7 @@
                                                     Retry (New) Order [Normal]
                                                 </button>
                                             </form>
-                                            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/retry" method="POST" style="display:inline;" id="acme_order-retry">
+                                            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/retry" method="POST" style="display:inline;" id="acme_order-retry-backup">
                                                 <input type="hidden" name="acme_order_retry_strategy" value="backup" />
                                                 <button class="btn btn-xs btn-primary" type="submit" name="submit" value="submit">
                                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
