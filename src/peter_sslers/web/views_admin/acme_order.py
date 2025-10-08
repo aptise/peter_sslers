@@ -99,9 +99,12 @@ def submit__acme_server_download_certificate(
         if not acknowledge_transaction_commits:
             raise errors.AcknowledgeTransactionCommitRequired()
 
+        if dbAcmeOrder.is_certificate_downloaded:
+            raise errors.InvalidRequest("The Certificate has already been downloaded.")
+
         if not dbAcmeOrder.is_can_acme_server_download_certificate:
             raise errors.InvalidRequest(
-                "ACME Certificate Download is not allowed for this AcmeOrder"
+                "ACME Certificate Download is not allowed for this AcmeOrder."
             )
 
         dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(

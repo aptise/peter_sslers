@@ -2014,8 +2014,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             if self.certificate_url:
                 if not self.x509_certificate_id:
                     return True
-                return True  # redownload??
         return False
+
+    @property
+    def is_certificate_downloaded(self) -> bool:
+        return bool(self.x509_certificate_id)
 
     @property
     def is_can_acme_process(self) -> bool:
