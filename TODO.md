@@ -1,5 +1,20 @@
 URGENT
-=====
+======
+
+* Support IP Certificates
+* Backup Challenges
+    Currently the system will fail an AcmeOrder, and requires a manual "try backup"
+    A better approach would be:
+        When processing an AcmeOrder, failover an authorization if it fails a precheck
+        E.g. Attempt HTTP-01 first; if a precheck fails, failover to DNS-01
+
+        The current system is:
+            Order 1 [normal] = HTTP-01 Challenge
+            Order 2 [backup] = Determine failed challenge in last order to be HTTP-01
+                               Attempt a DNS-01 Challenge
+        The ideal system is:
+            Order 1 [normal] = HTTP-01 Challenge is preferred
+                               If a HTTP-01 prechec fails, attempt a DNS-01 precheck
 
 AcmePollingError
     bug on server; could have a dict;;  converting to json but ensure this is okay
@@ -21,7 +36,6 @@ Audit:
 x509CertificateTrusted
     descope into Root + Intermediates
         they can still share a table via polymorphic identity
-
 
 Audit/Remove? OperationsEvent tracking
 Audit/Remove? CoverageAssuranceEvent tracking
@@ -166,7 +180,7 @@ Application
 
 Questions:
 ----------
-* Should we ensure an AcmeAccountKey is unique (not used across servers)
+* Should we ensure an AcmeAccountKey is unique (not used across servers)?
 * ACME Client
     better track nonces from headers
     track header metadata hook, as LetsEncrypt wil offer info
@@ -177,7 +191,7 @@ Questions:
 * Create a "Renewable Configuration"; renewals should be based on that.
     [x] create object and routes
     [x] remap as central object for renewals
-    [ ] import letsencrypt renewals
+    [ ] import letsencrypt renewals into RCs
 
 AuthorizationPotential
     [x] focus page to remove manually
@@ -221,15 +235,6 @@ TODO:
 Operations Log
     Deserialize the Payloads and explore
     This is important for `operations__reconcile_cas`, as there may be CA failures
-
-
-DATABASE MIGRATIONS
-====================
-
-v 1.0.0 is a fresh install
-
-Moving forward, Alembic must be used
-* integrate ALEMEBIC and migrate the database_migrations file to it
 
 
 UNDECIDED
