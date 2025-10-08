@@ -10319,9 +10319,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert res.status_code == 303
 
         matched = RE_AcmeOrder_retry.match(res.location)
-        if not matched:
-            print(res.location)
-
         assert matched
         acme_order_5__id = int(matched.groups()[0])
 
@@ -10429,8 +10426,6 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             dbAllDamains = {d.id: d.domain_name for d in self.ctx.dbSession.query(model_objects.Domain).all()}
 
             """
-            if not matched:
-                print(res.location)
             assert matched
             obj_id__4 = int(matched.groups()[0])
 
