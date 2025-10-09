@@ -220,6 +220,7 @@ def create__AcmeOrder(
     note: Optional[str] = None,
     is_save_alternate_chains: bool = True,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
+    acme_order_retry_strategy_id: Optional[int] = None,
     dbX509CertificateRequest: Optional["X509CertificateRequest"] = None,
     transaction_commit: Optional[bool] = None,  # this is Optional
 ) -> "AcmeOrder":
@@ -231,25 +232,26 @@ def create__AcmeOrder(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
 
     :param acme_order_rfc__original: (required) dictionary object from the server, representing an ACME payload
-    :param acme_order_type_id: (required) What type of order is this? Valid options are in :class:`model.utils.AcmeOrderType`
+    :param acme_order_type_id: (required) What type of order is this? Valid options are in :class:`model.utils.AcmeOrder_Type`
     :param acme_order_processing_status_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStatus`
     :param acme_order_processing_strategy_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
     :param order_url: (required) the url of the object
-    :param certificate_type_id: (required) The value of :class:`model.utils.CertificateType`
+    :param certificate_type_id: (required) The value of :class:`model.utils.X509CertificateType`
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` associated with the order
     :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
     :param dbRenewalConfiguration: (required) The :class:`model.objects.RenewalConfiguration` associated with the order
-    :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKey_Cycle`
     :param private_key_deferred_id: (required) See `model.utils.PrivateKeyDeferred`
 
     :param note: (optional) A string to be associated with this order
     :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
+    :param acme_order_retry_strategy_id: (optional) A value from :class:`model_utils.AcmeOrderRetryStrategy`
     :param dbX509CertificateRequest: (optional) The :class:`model.objects.X509CertificateRequest` associated with the order
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` associated with the order
-    :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
+    :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKey_Strategy`
 
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
 
@@ -258,10 +260,10 @@ def create__AcmeOrder(
     if not transaction_commit:
         raise ValueError("`create__AcmeOrder` must persist to the database.")
 
-    if acme_order_type_id not in model_utils.AcmeOrderType._mapping:
+    if acme_order_type_id not in model_utils.AcmeOrder_Type._mapping:
         raise ValueError("Unsupported `acme_order_type_id`: %s" % acme_order_type_id)
 
-    if certificate_type_id not in model_utils.CertificateType._options_AcmeOrder_id:
+    if certificate_type_id not in model_utils.X509CertificateType._options_AcmeOrder_id:
         raise ValueError("Unsupported `certificate_type_id`: %s" % certificate_type_id)
 
     if acme_order_rfc__original is None:
@@ -296,6 +298,10 @@ def create__AcmeOrder(
                 raise ValueError("received conflicting X509CertificateRequests.")
         else:
             dbX509CertificateRequest = dbAcmeOrder_retry_of.x509_certificate_request
+        if not acme_order_retry_strategy_id:
+            raise ValueError(
+                "Must specify a `acme_order_retry_strategy_id` for retries"
+            )
 
     if dbPrivateKey.acme_account_id__owner:
         if dbAcmeAccount.id != dbPrivateKey.acme_account_id__owner:
@@ -305,7 +311,10 @@ def create__AcmeOrder(
         raise ValueError("missing `private_key_strategy_id__requested`")
 
     # DEBUG
-    if model_utils.PrivateKeyCycle.as_string(private_key_cycle_id) == "account_default":
+    if (
+        model_utils.PrivateKey_Cycle.as_string(private_key_cycle_id)
+        == "account_default"
+    ):
         # this should be computer BEFORE creating the order
         raise ValueError("account_default should never be here")
 
@@ -380,6 +389,7 @@ def create__AcmeOrder(
     dbAcmeOrder.timestamp_updated = datetime.datetime.now(datetime.timezone.utc)
     if dbAcmeOrder_retry_of:
         dbAcmeOrder.acme_order_id__retry_of = dbAcmeOrder_retry_of.id
+        dbAcmeOrder.acme_order_retry_strategy_id = acme_order_retry_strategy_id
     ctx.dbSession.add(dbAcmeOrder)
     ctx.dbSession.flush(objects=[dbAcmeOrder])
 
@@ -398,7 +408,7 @@ def create__AcmeOrder(
         # domains_ = list of domains
         if not domains_:
             continue
-        acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(act_)
+        acme_challenge_type_id = model_utils.AcmeChallenge_Type.from_string(act_)
 
         # create a potential object
         for domain_name_ in domains_:
@@ -486,7 +496,7 @@ def create__AcmeChallenge(
     Create a new Challenge
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbDomain: (required) The :class:`model.objects.Domain`
-    :param acme_challenge_type_id: (required) An option from :class:`model_utils.AcmeChallengeType`.
+    :param acme_challenge_type_id: (required) An option from :class:`model_utils.AcmeChallenge_Type`.
     :param dbAcmeAuthorization: (optional) The :class:`model.objects.AcmeAuthorization`
     :param challenge_url: (optional) challenge_url token
     :param token: (optional) string token
@@ -502,7 +512,7 @@ def create__AcmeChallenge(
 
     if not acme_challenge_type_id:
         raise ValueError("must be invoked with `acme_challenge_type_id`")
-    if acme_challenge_type_id not in model_utils.AcmeChallengeType._mapping:
+    if acme_challenge_type_id not in model_utils.AcmeChallenge_Type._mapping:
         raise ValueError("invalid `acme_challenge_type_id`")
 
     if not challenge_url:
@@ -912,13 +922,20 @@ def create__EnrollmentFactory(
     acme_profile__backup: Optional[str] = None,
     # misc
     note: Optional[str] = None,
+    acme_challenge_duplicate_strategy_id: Optional[int] = None,
     domain_template_http01: Optional[str] = None,
     domain_template_dns01: Optional[str] = None,
     label_template: Optional[str] = None,
-    is_export_filesystem_id: int = model_utils.OptionsOnOff.OFF,
+    is_export_filesystem_id: int = model_utils.Options_OnOff.OFF,
 ) -> "EnrollmentFactory":
     if not domain_template_http01 and not domain_template_dns01:
         raise ValueError("at least one template is required")
+
+    if (not acme_challenge_duplicate_strategy_id) or (
+        acme_challenge_duplicate_strategy_id
+        not in model_utils.AcmeChallenge_DuplicateStrategy._options_EnrollmentFactory_id
+    ):
+        raise ValueError("invalid acme_challenge_duplicate_strategy_id")
 
     if dbAcmeAccount__backup:
         if dbAcmeAccount__primary.id == dbAcmeAccount__backup.id:
@@ -935,7 +952,7 @@ def create__EnrollmentFactory(
 
     if (
         is_export_filesystem_id
-        not in model_utils.OptionsOnOff._options_EnrollmentFactory_isExportFilesystem_id
+        not in model_utils.Options_OnOff._options_EnrollmentFactory_isExportFilesystem_id
     ):
         raise ValueError("`is_export_filesystem_id` not valid for EnrollmentFactory")
 
@@ -961,6 +978,9 @@ def create__EnrollmentFactory(
         dbEnrollmentFactory.acme_profile__backup = acme_profile__backup
     # m
     dbEnrollmentFactory.note = note
+    dbEnrollmentFactory.acme_challenge_duplicate_strategy_id = (
+        acme_challenge_duplicate_strategy_id
+    )
     dbEnrollmentFactory.domain_template_http01 = domain_template_http01
     dbEnrollmentFactory.domain_template_dns01 = domain_template_dns01
     dbEnrollmentFactory.label_template = label_template
@@ -1022,8 +1042,8 @@ def create__PrivateKey(
     This function is a bit weird, because we invoke a GetCreate
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param int private_key_source_id: (required) An int matching a source in A :class:`lib.utils.PrivateKeySource`
-    :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKeyType`
+    :param int private_key_source_id: (required) An int matching a source in A :class:`lib.utils.PrivateKey_Source`
+    :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKey_Type`
     :param int private_key_id__replaces: (required) if this key replaces a compromised key, note it.
     :param int key_technology_id: (required) see `modul.utils.KeyTechnology`
     # :param int bits_rsa: (required) how many bits for the RSA PrivateKey, see `key_technology_id`
@@ -1089,6 +1109,7 @@ def create__RateLimited(
 def create__RenewalConfiguration(
     ctx: "ApiContext",
     domains_challenged: "DomainsChallenged",
+    acme_challenge_duplicate_strategy_id: int,
     # Primary cert
     dbAcmeAccount__primary: "AcmeAccount",
     private_key_technology_id__primary: int,
@@ -1102,7 +1123,7 @@ def create__RenewalConfiguration(
     # misc
     note: Optional[str] = None,
     label: Optional[str] = None,
-    is_export_filesystem_id: int = model_utils.OptionsOnOff.OFF,
+    is_export_filesystem_id: int = model_utils.Options_OnOff.OFF,
     dbEnrollmentFactory: Optional["EnrollmentFactory"] = None,
     dbSystemConfiguration: Optional["SystemConfiguration"] = None,
 ) -> "RenewalConfiguration":
@@ -1116,14 +1137,15 @@ def create__RenewalConfiguration(
 
     :param dbAcmeAccount__primary: (required) A :class:`model.objects.AcmeAccount` object
     :param private_key_technology_id__primary: (required) Valid options are in :class:`model.utils.KeyTechnology`
-    :param private_key_cycle_id__primary: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param private_key_cycle_id__primary: (required) Valid options are in :class:`model.utils.PrivateKey_Cycle`
     :param acme_profile__primary: (optional) A string of the server's profile
 
     :param dbAcmeAccount__backup: (required) A :class:`model.objects.AcmeAccount` object
     :param private_key_technology_id__backup: (required) Valid options are in :class:`model.utils.KeyTechnology`
-    :param private_key_cycle_id__backup: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param private_key_cycle_id__backup: (required) Valid options are in :class:`model.utils.PrivateKey_Cycle`
     :param acme_profile__backup: (optional) A string of the server's profile
 
+    :param acme_challenge_duplicate_strategy_id: (required) Valid options are in :class:`model.utils.AcmeChallenge_DuplicateStrategy`
     :param note: (optional) A string to be associated with this record
     :param dbEnrollmentFactory: (optional) A :class:`model.objects.EnrollmentFactory` object
     :param dbSystemConfiguration: (optional) A :class:`model.objects.SystemConfiguration` object
@@ -1133,7 +1155,7 @@ def create__RenewalConfiguration(
     """
     if (
         private_key_cycle_id__primary
-        not in model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id__alt
+        not in model_utils.PrivateKey_Cycle._options_RenewalConfiguration_private_key_cycle_id__alt
     ):
         # alt -- allowed for Sysconfig CIN/AutoCert
         raise errors.FieldError(
@@ -1196,12 +1218,36 @@ def create__RenewalConfiguration(
                     dbAcmeAccount__backup.acme_server.profiles_list,
                 )
 
-    if is_export_filesystem_id == model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT:
+    if is_export_filesystem_id == model_utils.Options_OnOff.ENROLLMENT_FACTORY_DEFAULT:
         if not dbEnrollmentFactory:
             raise errors.FieldError(
                 "is_export_filesystem_id",
                 "`is_export_filesystem_id` option requires an Enrollment Factory",
             )
+
+    if (
+        acme_challenge_duplicate_strategy_id
+        not in model_utils.AcmeChallenge_DuplicateStrategy._mapping
+    ):
+        raise ValueError(
+            "Unsupported `acme_challenge_duplicate_strategy_id`: %s"
+            % acme_challenge_duplicate_strategy_id
+        )
+
+    if dbEnrollmentFactory:
+        if (
+            acme_challenge_duplicate_strategy_id
+            not in model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfigurationViaEnrollmentFactory_id
+        ):
+            raise ValueError(
+                "invalid acme_challenge_duplicate_strategy_id for enrollment factory"
+            )
+    else:
+        if (
+            acme_challenge_duplicate_strategy_id
+            not in model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration_id
+        ):
+            raise ValueError("invalid acme_challenge_duplicate_strategy_id")
 
     assert ctx.timestamp
 
@@ -1319,6 +1365,9 @@ def create__RenewalConfiguration(
     dbRenewalConfiguration.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbRenewalConfiguration.uniquely_challenged_fqdn_set_id = (
         dbUniquelyChallengedFQDNSet.id
+    )
+    dbRenewalConfiguration.acme_challenge_duplicate_strategy_id = (
+        acme_challenge_duplicate_strategy_id
     )
 
     # primary cert
@@ -1489,7 +1538,7 @@ def create__X509Certificate(
     if not dbX509CertificateTrustChain:
         raise ValueError("must submit `dbX509CertificateTrustChain`")
 
-    if certificate_type_id not in model_utils.CertificateType._mapping:
+    if certificate_type_id not in model_utils.X509CertificateType._mapping:
         raise ValueError("invalid `certificate_type_id`")
 
     assert ctx.timestamp
@@ -1715,7 +1764,7 @@ def create__X509CertificateRequest(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param csr_pem: (required) A Certificate Signing Request with PEM formatting
-    :param x509_certificate_request_source_id: (required) What is the source of this? Valid options are in :class:`model.utils.X509CertificateRequestSource`
+    :param x509_certificate_request_source_id: (required) What is the source of this? Valid options are in :class:`model.utils.X509CertificateRequest_Source`
     :param dbPrivateKey: (required) Private Key used to sign the CSR
     :param domain_names: (required) A list of domain names
     :param dbX509Certificate__issued: (optional) a `model_objects.X509Certificate`
@@ -1723,7 +1772,7 @@ def create__X509CertificateRequest(
     """
     if (
         x509_certificate_request_source_id
-        not in model_utils.X509CertificateRequestSource._mapping
+        not in model_utils.X509CertificateRequest_Source._mapping
     ):
         raise ValueError(
             "Unsupported `x509_certificate_request_source_id`: %s"
@@ -1733,14 +1782,14 @@ def create__X509CertificateRequest(
     _event_type_id = None
     if (
         x509_certificate_request_source_id
-        == model_utils.X509CertificateRequestSource.IMPORTED
+        == model_utils.X509CertificateRequest_Source.IMPORTED
     ):
         _event_type_id = model_utils.OperationsEventType.from_string(
             "X509CertificateRequest__new__imported"
         )
     elif (
         x509_certificate_request_source_id
-        == model_utils.X509CertificateRequestSource.ACME_ORDER
+        == model_utils.X509CertificateRequest_Source.ACME_ORDER
     ):
         _event_type_id = model_utils.OperationsEventType.from_string(
             "X509CertificateRequest__new__acme_order"

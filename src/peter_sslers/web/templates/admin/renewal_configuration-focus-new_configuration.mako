@@ -61,7 +61,6 @@
                         
                     </div>
                 % endif
-                
 
                 <h3>AcmeAccount - Primary</h3>
                 ${admin_partials.formgroup__AcmeAccount_selector__primary(
@@ -103,6 +102,8 @@
                     default=RenewalConfiguration.private_key_technology__backup,
                 )}
 
+                <h3>Shared Configuration</h3>
+                ${admin_partials.formgroup__AcmeChallenge_DuplicateStrategy(via="RenewalConfiguration", default=RenewalConfiguration.acme_challenge_duplicate_strategy)}
                 ${admin_partials.formgroup__domain_names(
                     specify_challenge=True,
                     domain_names_http01=RenewalConfiguration.domains_challenged_liststr("http-01"),

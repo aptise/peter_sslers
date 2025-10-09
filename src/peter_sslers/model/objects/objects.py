@@ -109,7 +109,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     )  # see .utils.KeyTechnology
     order_default_private_key_cycle_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyCycle
+    )  # see .utils.PrivateKey_Cycle
     order_default_acme_profile: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(64), nullable=True
     )
@@ -278,7 +278,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def order_default_private_key_cycle(self) -> str:
-        return model_utils.PrivateKeyCycle.as_string(
+        return model_utils.PrivateKey_Cycle.as_string(
             self.order_default_private_key_cycle_id
         )
 
@@ -428,7 +428,7 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     acme_account_key_source_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.AcmeAccountKeySource
+    )  # see .utils.AcmeAccountKey_Source
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -454,7 +454,7 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @reify
     def acme_account_key_source(self) -> str:
-        return model_utils.AcmeAccountKeySource.as_string(
+        return model_utils.AcmeAccountKey_Source.as_string(
             self.acme_account_key_source_id
         )
 
@@ -644,7 +644,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "and_("
             "AcmeAuthorization.id==AcmeChallenge.acme_authorization_id,"
             "AcmeChallenge.acme_challenge_type_id==%s"
-            ")" % model_utils.AcmeChallengeType.http_01
+            ")" % model_utils.AcmeChallenge_Type.http_01
         ),
         uselist=False,
         overlaps="acme_challenges,acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
@@ -655,7 +655,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "and_("
             "AcmeAuthorization.id==AcmeChallenge.acme_authorization_id,"
             "AcmeChallenge.acme_challenge_type_id==%s"
-            ")" % model_utils.AcmeChallengeType.dns_01
+            ")" % model_utils.AcmeChallenge_Type.dns_01
         ),
         uselist=False,
         overlaps="acme_challenges,acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
@@ -666,7 +666,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "and_("
             "AcmeAuthorization.id==AcmeChallenge.acme_authorization_id,"
             "AcmeChallenge.acme_challenge_type_id==%s"
-            ")" % model_utils.AcmeChallengeType.tls_alpn_01
+            ")" % model_utils.AcmeChallenge_Type.tls_alpn_01
         ),
         uselist=False,
         overlaps="acme_challenges,acme_challenge_dns_01,acme_challenge_http_01,acme_challenge_tls_alpn_01",
@@ -827,6 +827,7 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
 
     """
 
+    __tablename__ = "acme_authorization_potential"
     __table_args__ = (
         sa.Index(
             "uidx_acme_authorization_potential",
@@ -835,8 +836,8 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
             unique=True,
         ),
     )
+    __mapper_args__ = {"confirm_deleted_rows": False}
 
-    __tablename__ = "acme_authorization_potential"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     acme_order_id: Mapped[int] = mapped_column(
         sa.Integer,
@@ -851,7 +852,7 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
     )
     acme_challenge_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # `model_utils.AcmeChallengeType`
+    )  # `model_utils.AcmeChallenge_Type`
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # this is used to easily grab an AcmeAccount, and also deactivate orders on backref
@@ -871,7 +872,7 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
     @property
     def acme_challenge_type(self) -> Optional[str]:
         if self.acme_challenge_type_id:
-            return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
+            return model_utils.AcmeChallenge_Type.as_string(self.acme_challenge_type_id)
         return None
 
     @property
@@ -987,7 +988,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     # in all situations, we need to track these:
     acme_challenge_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # `model_utils.AcmeChallengeType`
+    )  # `model_utils.AcmeChallenge_Type`
     acme_status_challenge_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # Acme_Status_Challenge
@@ -1050,7 +1051,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     @property
     def acme_challenge_type(self) -> Optional[str]:
         if self.acme_challenge_type_id:
-            return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
+            return model_utils.AcmeChallenge_Type.as_string(self.acme_challenge_type_id)
         return None
 
     @property
@@ -1636,6 +1637,17 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "acme_order"
+    __table_args__ = (
+        sa.CheckConstraint(
+            (
+                "((acme_order_id__retry_of IS NULL) AND (acme_order_type_id != %s) AND (acme_order_retry_strategy_id IS NULL))"
+                " OR "
+                "((acme_order_id__retry_of IS NOT NULL) AND (acme_order_type_id == %s) AND (acme_order_retry_strategy_id IS NOT NULL))"
+            )
+            % (model_utils.AcmeOrder_Type.RETRY, model_utils.AcmeOrder_Type.RETRY),
+            name="ck_acme_order_type_id",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     is_processing: Mapped[Optional[bool]] = mapped_column(
@@ -1650,7 +1662,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )
     acme_order_type_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see: `.utils.AcmeOrderType`
+    )  # see: `.utils.AcmeOrder_Type`
     acme_status_order_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, default=0
     )  # see: `.utils.Acme_Status_Order`; 0 is `*discovered*` an internal marker
@@ -1660,7 +1672,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     acme_order_processing_status_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see: `utils.AcmeOrder_ProcessingStatus`
-    # utils.CertificateType.[RAW_IMPORTED, MANAGED_PRIMARY, MANAGED_BACKUP]
+    # utils.X509CertificateType.[RAW_IMPORTED, MANAGED_PRIMARY, MANAGED_BACKUP]
     # AcmeOrder.certificate_type_id MUST never change; X509Certificate.certificate_type_id MAY change
     certificate_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     order_url: Mapped[Optional[str]] = mapped_column(
@@ -1678,10 +1690,10 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )
     private_key_strategy_id__requested: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True
-    )  # see .utils.PrivateKeyStrategy; how are we specifying the private key? NOW or deferred?
+    )  # see .utils.PrivateKey_Strategy; how are we specifying the private key? NOW or deferred?
     private_key_strategy_id__final: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True
-    )  # see .utils.PrivateKeyStrategy; how did we end up choosing a private key?
+    )  # see .utils.PrivateKey_Strategy; how did we end up choosing a private key?
     acme_event_log_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_event_log.id"), nullable=False
     )  # When was this created?  AcmeEvent['v2|newOrder']
@@ -1707,7 +1719,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )
     private_key_cycle_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyCycle
+    )  # see .utils.PrivateKey_Cycle
     renewal_configuration_id: Mapped[int] = mapped_column(
         sa.Integer,
         sa.ForeignKey("renewal_configuration.id", use_alter=True),
@@ -1735,6 +1747,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.ForeignKey("acme_order.id"),
         nullable=True,
     )
+    acme_order_retry_strategy_id: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, nullable=True
+    )  # see .utils.AcmeOrder_RetryStrategy
     acme_order_id__renewal_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_order.id"),
@@ -1753,6 +1768,20 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="AcmeOrder.id==AcmeAuthorizationPotential.acme_order_id",
         back_populates="acme_order",
     )
+    acme_order__retry_of = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="AcmeOrder.acme_order_id__retry_of==remote(AcmeOrder.id)",
+        uselist=False,
+        back_populates="acme_order__retried",
+    )
+    acme_order__retried = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="AcmeOrder.id==remote(AcmeOrder.acme_order_id__retry_of)",
+        uselist=False,
+        back_populates="acme_order__retry_of",
+    )
+    # TODO: acme_order__retry_of__original
+    # TODO: acme_order__retries_all
     acme_polling_errors = sa_orm_relationship(
         "AcmePollingError",
         primaryjoin="AcmeOrder.id==AcmePollingError.acme_order_id",
@@ -1830,7 +1859,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     @reify
     def acme_order_type(self) -> str:
-        return model_utils.AcmeOrderType.as_string(self.acme_order_type_id)
+        return model_utils.AcmeOrder_Type.as_string(self.acme_order_type_id)
 
     @property
     def acme_order_processing_strategy(self) -> str:
@@ -1843,6 +1872,14 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return model_utils.AcmeOrder_ProcessingStatus.as_string(
             self.acme_order_processing_status_id
         )
+
+    @reify
+    def acme_order_retry_strategy(self) -> Optional[str]:
+        if self.acme_order_retry_strategy_id:
+            return model_utils.AcmeOrder_RetryStrategy.as_string(
+                self.acme_order_retry_strategy_id
+            )
+        return None
 
     @property
     def acme_authorization_ids(self) -> List[int]:
@@ -1925,7 +1962,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def certificate_type(self) -> str:
-        return model_utils.CertificateType.as_string(self.certificate_type_id)
+        return model_utils.X509CertificateType.as_string(self.certificate_type_id)
 
     @property
     def domains_as_list(self) -> List[str]:
@@ -1972,11 +2009,16 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         can we download a X509Certificate from the AcmeServer?
         only works for VALID AcmeOrder if we do not have a X509Certificate
         """
+        # TODO: limit to within cert lifetime
         if self.acme_status_order == "valid":
             if self.certificate_url:
                 if not self.x509_certificate_id:
                     return True
         return False
+
+    @property
+    def is_certificate_downloaded(self) -> bool:
+        return bool(self.x509_certificate_id)
 
     @property
     def is_can_acme_process(self) -> bool:
@@ -2002,6 +2044,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_retry(self) -> bool:
+        # only allow a single retry to simplify lineage
+        if self.acme_order__retried:
+            return False
         if self.acme_status_order not in model_utils.Acme_Status_Order.OPTIONS_RETRY:
             return False
         return True
@@ -2029,7 +2074,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     @reify
     def private_key_strategy__requested(self) -> str:
         return (
-            model_utils.PrivateKeyStrategy.as_string(
+            model_utils.PrivateKey_Strategy.as_string(
                 self.private_key_strategy_id__requested
             )
             if self.private_key_strategy_id__requested
@@ -2039,7 +2084,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     @reify
     def private_key_strategy__final(self) -> str:
         return (
-            model_utils.PrivateKeyStrategy.as_string(
+            model_utils.PrivateKey_Strategy.as_string(
                 self.private_key_strategy_id__final
             )
             if self.private_key_strategy_id__final
@@ -2048,7 +2093,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def private_key_cycle(self) -> str:
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id)
+        return model_utils.PrivateKey_Cycle.as_string(self.private_key_cycle_id)
 
     @property
     def as_json(self) -> Dict:
@@ -2074,9 +2119,15 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             # - -
             "acme_authorization_ids": self.acme_authorization_ids,
             "acme_status_order": self.acme_status_order,
+            "acme_order_id__retry_of": self.acme_order_id__retry_of,
+            "acme_order_id__retried": (
+                self.acme_order__retried.id if self.acme_order__retried else None
+            ),
+            "acme_order_id__renewal_of": self.acme_order_id__renewal_of,
             "acme_order_type": self.acme_order_type,
             "acme_order_processing_status": self.acme_order_processing_status,
             "acme_order_processing_strategy": self.acme_order_processing_strategy,
+            "acme_order_retry_strategy": self.acme_order_retry_strategy,
             "acme_process_steps": self.acme_process_steps,
             "x509_certificate_request_id": self.x509_certificate_request_id,
             "certificate_type": self.certificate_type,
@@ -3071,7 +3122,12 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     )
     is_export_filesystem_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.OptionsOnOff
+    )  # see .utils.Options_OnOff
+    acme_challenge_duplicate_strategy_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        default=model_utils.AcmeChallenge_DuplicateStrategy._DEFAULT_EnrollmentFactory,
+    )  # see .utils.AcmeChallenge_DuplicateStrategy
 
     # for consumers
     note: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True, default=None)
@@ -3085,7 +3141,7 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     )  # see .utils.KeyTechnology
     private_key_cycle_id__primary: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyCycle
+    )  # see .utils.PrivateKey_Cycle
     acme_profile__primary: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(64), nullable=True
     )
@@ -3099,7 +3155,7 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     )  # see .utils.KeyTechnology
     private_key_cycle_id__backup: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True
-    )  # see .utils.PrivateKeyCycle
+    )  # see .utils.PrivateKey_Cycle
     acme_profile__backup: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(64), nullable=True
     )
@@ -3128,8 +3184,14 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
     )
 
     @property
+    def acme_challenge_duplicate_strategy(self) -> str:
+        return model_utils.AcmeChallenge_DuplicateStrategy.as_string(
+            self.acme_challenge_duplicate_strategy_id
+        )
+
+    @property
     def is_export_filesystem(self) -> str:
-        return model_utils.OptionsOnOff.as_string(self.is_export_filesystem_id)
+        return model_utils.Options_OnOff.as_string(self.is_export_filesystem_id)
 
     @property
     def private_key_technology__primary(self) -> str:
@@ -3147,13 +3209,15 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
 
     @property
     def private_key_cycle__primary(self) -> str:
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__primary)
+        return model_utils.PrivateKey_Cycle.as_string(
+            self.private_key_cycle_id__primary
+        )
 
     @property
     def private_key_cycle__backup(self) -> Optional[str]:
         if self.private_key_cycle_id__backup is None:
             return None
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
+        return model_utils.PrivateKey_Cycle.as_string(self.private_key_cycle_id__backup)
 
     @property
     def as_json(self) -> Dict:
@@ -3167,6 +3231,7 @@ class EnrollmentFactory(Base, _Mixin_AcmeAccount_Effective):
             "domain_template_dns01": self.domain_template_dns01,
             "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
+            "acme_challenge_duplicate_strategy": self.acme_challenge_duplicate_strategy,
             "acme_profile__primary": self.acme_profile__primary,
             "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,
@@ -3542,11 +3607,11 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )
     private_key_source_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.PrivateKeySource
+    )  # see .utils.PrivateKey_Source
     private_key_type_id: Mapped[int] = mapped_column(
         sa.Integer,
         nullable=False,
-    )  # see .utils.PrivateKeyType
+    )  # see .utils.PrivateKey_Type
     acme_account_id__owner: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
     )  # lock a PrivateKey to an AcmeAccount
@@ -3617,7 +3682,10 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     def autogenerated_calendar_repr(self) -> str:
         if not self.is_autogenerated_calendar:
             return ""
-        if self.private_key_type in model_utils.PrivateKeyType._options_calendar_weekly:
+        if (
+            self.private_key_type
+            in model_utils.PrivateKey_Type._options_calendar_weekly
+        ):
             return "%s.%s" % self.timestamp_created.isocalendar()[0:2]
         # daily
         return "%s.%s.%s" % self.timestamp_created.isocalendar()[0:3]
@@ -3630,7 +3698,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def is_autogenerated_calendar(self) -> bool:
-        if self.private_key_type in model_utils.PrivateKeyType._options_calendar:
+        if self.private_key_type in model_utils.PrivateKey_Type._options_calendar:
             return True
         return False
 
@@ -3671,11 +3739,11 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @reify
     def private_key_source(self) -> str:
-        return model_utils.PrivateKeySource.as_string(self.private_key_source_id)
+        return model_utils.PrivateKey_Source.as_string(self.private_key_source_id)
 
     @reify
     def private_key_type(self) -> str:
-        return model_utils.PrivateKeyType.as_string(self.private_key_type_id)
+        return model_utils.PrivateKey_Type.as_string(self.private_key_type_id)
 
     @property
     def as_json(self) -> Dict:
@@ -3861,7 +3929,7 @@ class RenewalConfiguration(
     )
     is_export_filesystem_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.OptionsOnOff
+    )  # see .utils.Options_OnOff
 
     # core
     uniquely_challenged_fqdn_set_id: Mapped[int] = mapped_column(
@@ -3870,6 +3938,11 @@ class RenewalConfiguration(
     unique_fqdn_set_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
+    acme_challenge_duplicate_strategy_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        default=model_utils.AcmeChallenge_DuplicateStrategy._DEFAULT_RenewalConfiguration,
+    )  # see .utils.AcmeChallenge_DuplicateStrategy
     enrollment_factory_id__via: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("enrollment_factory.id"), nullable=True
     )
@@ -3887,7 +3960,7 @@ class RenewalConfiguration(
     )
     private_key_cycle_id__primary: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyCycle
+    )  # see .utils.PrivateKey_Cycle
     private_key_technology_id__primary: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology
@@ -3899,7 +3972,7 @@ class RenewalConfiguration(
     acme_account_id__backup: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True, default=None
     )
-    # see .utils.PrivateKeyCycle
+    # see .utils.PrivateKey_Cycle
     private_key_cycle_id__backup: Mapped[Optional[int]] = mapped_column(
         sa.Integer, nullable=True, default=None
     )
@@ -3964,6 +4037,27 @@ class RenewalConfiguration(
     _domains_challenged: Optional[model_utils.DomainsChallenged] = None
 
     @property
+    def acme_challenge_duplicate_strategy(self) -> str:
+        return model_utils.AcmeChallenge_DuplicateStrategy.as_string(
+            self.acme_challenge_duplicate_strategy_id
+        )
+
+    @property
+    def acme_challenge_duplicate_strategy_id__effective(self) -> int:
+        if (
+            self.acme_challenge_duplicate_strategy_id
+            == model_utils.AcmeChallenge_DuplicateStrategy.via_enrollment_factory
+        ):
+            return self.enrollment_factory__via.acme_challenge_duplicate_strategy_id
+        return self.acme_challenge_duplicate_strategy_id
+
+    @property
+    def acme_challenge_duplicate_strategy__effective(self) -> str:
+        return model_utils.AcmeChallenge_DuplicateStrategy.as_string(
+            self.acme_challenge_duplicate_strategy_id__effective
+        )
+
+    @property
     def domains_as_list(self) -> List[str]:
         return self.unique_fqdn_set.domains_as_list
 
@@ -3993,7 +4087,7 @@ class RenewalConfiguration(
 
     @property
     def is_export_filesystem(self) -> str:
-        return model_utils.OptionsOnOff.as_string(self.is_export_filesystem_id)
+        return model_utils.Options_OnOff.as_string(self.is_export_filesystem_id)
 
     @property
     def private_key_technology__primary(self) -> str:
@@ -4003,7 +4097,9 @@ class RenewalConfiguration(
 
     @property
     def private_key_cycle__primary(self) -> str:
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__primary)
+        return model_utils.PrivateKey_Cycle.as_string(
+            self.private_key_cycle_id__primary
+        )
 
     @property
     def private_key_technology__backup(self) -> Optional[str]:
@@ -4017,7 +4113,7 @@ class RenewalConfiguration(
     def private_key_cycle__backup(self) -> Optional[str]:
         if self.private_key_cycle_id__backup is None:
             return None
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
+        return model_utils.PrivateKey_Cycle.as_string(self.private_key_cycle_id__backup)
 
     @property
     def as_json(self) -> Dict:
@@ -4036,6 +4132,8 @@ class RenewalConfiguration(
             # - -
             "acme_account_id__primary": self.acme_account_id__primary,
             "acme_account_id__backup": self.acme_account_id__backup,
+            "acme_challenge_duplicate_strategy": self.acme_challenge_duplicate_strategy,
+            "acme_challenge_duplicate_strategy__effective": self.acme_challenge_duplicate_strategy__effective,
             "acme_profile__primary": self.acme_profile__primary,
             "acme_profile__primary__effective": self.acme_profile__primary__effective,
             "acme_profile__backup": self.acme_profile__backup,
@@ -4097,6 +4195,9 @@ class RootStore(Base, _Mixin_Timestamps_Pretty):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
+    is_cert_utils_discovery: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -4124,7 +4225,7 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
         sa.Index(
             "uidx_root_store_version",
             "root_store_id",
-            model_utils.indexable_lower(sa.text("version_string")),
+            model_utils.indexable_lower(sa.text("version_min")),
             unique=True,
         ),
     )
@@ -4133,9 +4234,18 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
     root_store_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("root_store.id"), nullable=False
     )
-    version_string: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
+    )
+    version_min: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    version_max: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+    version_notes: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, default=None
+    )
+    is_cert_utils_discovery: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4160,7 +4270,9 @@ class RootStoreVersion(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             # - -
             "name": self.root_store.name,
-            "version_string": self.version_string,
+            "version_min": self.version_min,
+            "version_max": self.version_max,
+            "version_notes": self.version_notes,
         }
 
 
@@ -4211,7 +4323,7 @@ class SystemConfiguration(Base, _Mixin_AcmeAccount_Effective):
     )  # see .utils.KeyTechnology
     private_key_cycle_id__primary: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyCycle
+    )  # see .utils.PrivateKey_Cycle
     acme_profile__primary: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(64), nullable=True
     )
@@ -4229,7 +4341,7 @@ class SystemConfiguration(Base, _Mixin_AcmeAccount_Effective):
         sa.Integer,
         nullable=True,
         default=None,
-    )  # see .utils.PrivateKeyCycle
+    )  # see .utils.PrivateKey_Cycle
     acme_profile__backup: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(64),
         nullable=True,
@@ -4270,13 +4382,15 @@ class SystemConfiguration(Base, _Mixin_AcmeAccount_Effective):
 
     @property
     def private_key_cycle__primary(self) -> str:
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__primary)
+        return model_utils.PrivateKey_Cycle.as_string(
+            self.private_key_cycle_id__primary
+        )
 
     @property
     def private_key_cycle__backup(self) -> Optional[str]:
         if self.private_key_cycle_id__backup is None:
             return None
-        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__backup)
+        return model_utils.PrivateKey_Cycle.as_string(self.private_key_cycle_id__backup)
 
     @property
     def slug(self) -> Union[str, int]:
@@ -4574,7 +4688,7 @@ class UniquelyChallengedFQDNSet(Base, _Mixin_Timestamps_Pretty):
             "and_("
             "UniquelyChallengedFQDNSet.id==UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id,"
             "UniquelyChallengedFQDNSet2Domain.acme_challenge_type_id==%s"
-            ")" % model_utils.AcmeChallengeType.dns_01
+            ")" % model_utils.AcmeChallenge_Type.dns_01
         ),
         viewonly=True,
     )
@@ -4584,7 +4698,7 @@ class UniquelyChallengedFQDNSet(Base, _Mixin_Timestamps_Pretty):
             "and_("
             "UniquelyChallengedFQDNSet.id==UniquelyChallengedFQDNSet2Domain.uniquely_challenged_fqdn_set_id,"
             "UniquelyChallengedFQDNSet2Domain.acme_challenge_type_id==%s"
-            ")" % model_utils.AcmeChallengeType.http_01
+            ")" % model_utils.AcmeChallenge_Type.http_01
         ),
         viewonly=True,
     )
@@ -4668,7 +4782,10 @@ class UniquelyChallengedFQDNSet(Base, _Mixin_Timestamps_Pretty):
     def as_json__dns01(self) -> Dict:
         rval = {}
         for to_domain in self.to_domains:
-            if to_domain.acme_challenge_type_id == model_utils.AcmeChallengeType.dns_01:
+            if (
+                to_domain.acme_challenge_type_id
+                == model_utils.AcmeChallenge_Type.dns_01
+            ):
                 rval[to_domain.domain.domain_name] = {
                     "id": to_domain.domain.id,
                     "domain_name": to_domain.domain.domain_name,
@@ -4693,15 +4810,15 @@ class UniquelyChallengedFQDNSet2Domain(Base):
         sa.Integer, sa.ForeignKey("domain.id"), primary_key=True
     )
     acme_challenge_type_id: Mapped[int] = mapped_column(
-        sa.Integer, nullable=False
-    )  # `model_utils.AcmeChallengeType`
+        sa.Integer, primary_key=True
+    )  # `model_utils.AcmeChallenge_Type`
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
     def acme_challenge_type(self) -> Optional[str]:
         if self.acme_challenge_type_id:
-            return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
+            return model_utils.AcmeChallenge_Type.as_string(self.acme_challenge_type_id)
         return None
 
     domain = sa_orm_relationship(
@@ -4742,7 +4859,7 @@ class X509CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )
     x509_certificate_request_source_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
-    )  # see .utils.X509CertificateRequestSource
+    )  # see .utils.X509CertificateRequest_Source
     csr_pem: Mapped[str] = mapped_column(sa.Text, nullable=False)
     csr_pem_md5: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
     spki_sha256: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
@@ -4799,7 +4916,7 @@ class X509CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @reify
     def x509_certificate_request_source(self) -> str:
-        return model_utils.X509CertificateRequestSource.as_string(
+        return model_utils.X509CertificateRequest_Source.as_string(
             self.x509_certificate_request_source_id
         )
 
@@ -4936,7 +5053,7 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         sa.ForeignKey("x509_certificate_request.id", use_alter=True),
         nullable=True,
     )
-    # utils.CertificateType.[RAW_IMPORTED, MANAGED_PRIMARY, MANAGED_BACKUP]
+    # utils.X509CertificateType.[RAW_IMPORTED, MANAGED_PRIMARY, MANAGED_BACKUP]
     # AcmeOrder.certificate_type_id MUST never change; X509Certificate.certificate_type_id MAY change
     certificate_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     operations_event_id__created: Mapped[int] = mapped_column(
@@ -5222,7 +5339,7 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     @property
     def certificate_type(self) -> str:
-        return model_utils.CertificateType.as_string(self.certificate_type_id)
+        return model_utils.X509CertificateType.as_string(self.certificate_type_id)
 
     @property
     def domains_as_list(self) -> List[str]:
@@ -5339,20 +5456,20 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             _private_key_cycle = self.acme_order.private_key_cycle
             if _private_key_cycle != "account_default":
                 _private_key_strategy = (
-                    model_utils.PrivateKeyStrategy.from_private_key_cycle(
+                    model_utils.PrivateKey_Strategy.from_private_key_cycle(
                         _private_key_cycle
                     )
                 )
             else:
                 _private_key_strategy = (
-                    model_utils.PrivateKeyStrategy.from_private_key_cycle(
+                    model_utils.PrivateKey_Strategy.from_private_key_cycle(
                         self.acme_order.acme_account.private_key_cycle
                     )
                 )
-            return model_utils.PrivateKeyStrategy.from_string(_private_key_strategy)
+            return model_utils.PrivateKey_Strategy.from_string(_private_key_strategy)
         else:
-            return model_utils.PrivateKeyStrategy.from_string(
-                model_utils.PrivateKeyStrategy._DEFAULT_system_renewal
+            return model_utils.PrivateKey_Strategy.from_string(
+                model_utils.PrivateKey_Strategy._DEFAULT_system_renewal
             )
 
     def valid_x509_certificate_trust_chain(self, x509_certificate_trust_chain_id=None):
@@ -5604,6 +5721,12 @@ class X509CertificateTrusted(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
 
     __tablename__ = "x509_certificate_trusted"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(is_untrusted_root IS NOT True) OR ((is_untrusted_root IS True) AND (is_trusted_root IS True))",
+            name="ck_x509_certificate_trusted__untrusted_root",
+        ),
+    )
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     display_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     discovery_type: Mapped[Optional[str]] = mapped_column(
@@ -5614,6 +5737,10 @@ class X509CertificateTrusted(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     is_trusted_root: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
     )  # this is just used to track if we know this cert is in trusted root stores.
+    is_untrusted_root: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )  # specifically mark this as untrusted; MUST also set is_trusted_root
+
     key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False
     )  # see .utils.KeyTechnology

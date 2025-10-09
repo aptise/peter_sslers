@@ -95,7 +95,9 @@ def update_AcmeAccount__order_defaults(
     if dbAcmeAccount.order_default_private_key_cycle != order_default_private_key_cycle:
         try:
             order_default_private_key_cycle_id = (
-                model_utils.PrivateKeyCycle.from_string(order_default_private_key_cycle)
+                model_utils.PrivateKey_Cycle.from_string(
+                    order_default_private_key_cycle
+                )
             )
         except KeyError:
             raise errors.InvalidTransition(
@@ -103,7 +105,7 @@ def update_AcmeAccount__order_defaults(
             )
         if (
             order_default_private_key_cycle_id
-            not in model_utils.PrivateKeyCycle._options_AcmeAccount_order_default_id
+            not in model_utils.PrivateKey_Cycle._options_AcmeAccount_order_default_id
         ):
             raise errors.InvalidTransition(
                 "Invalid option: `order_default_private_key_cycle`"
@@ -769,7 +771,7 @@ def update_EnrollmentFactory(
 
     changes = False
 
-    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+    private_key_cycle_id__primary = model_utils.PrivateKey_Cycle.from_string(
         private_key_cycle__primary
     )
     private_key_technology_id__primary = model_utils.KeyTechnology.from_string(
@@ -777,7 +779,7 @@ def update_EnrollmentFactory(
     )
 
     private_key_cycle_id__backup = (
-        model_utils.PrivateKeyCycle.from_string(private_key_cycle__backup)
+        model_utils.PrivateKey_Cycle.from_string(private_key_cycle__backup)
         if private_key_cycle__backup
         else None
     )
@@ -908,18 +910,18 @@ def update_RenewalConfiguration__update_exports(
     if action == "is_export_filesystem-on":
         if (
             dbRenewalConfiguration.is_export_filesystem_id
-            == model_utils.OptionsOnOff.ON
+            == model_utils.Options_OnOff.ON
         ):
             raise errors.InvalidTransition("`is_export_filesystem` already on")
-        dbRenewalConfiguration.is_export_filesystem_id = model_utils.OptionsOnOff.ON
+        dbRenewalConfiguration.is_export_filesystem_id = model_utils.Options_OnOff.ON
         event_status = "RenewalConfiguration__mark__is_export_filesystem__on"
     elif action == "is_export_filesystem-off":
         if (
             dbRenewalConfiguration.is_export_filesystem_id
-            == model_utils.OptionsOnOff.OFF
+            == model_utils.Options_OnOff.OFF
         ):
             raise errors.InvalidTransition("`is_export_filesystem` already off")
-        dbRenewalConfiguration.is_export_filesystem_id = model_utils.OptionsOnOff.OFF
+        dbRenewalConfiguration.is_export_filesystem_id = model_utils.Options_OnOff.OFF
         event_status = "RenewalConfiguration__mark__is_export_filesystem__off"
     ctx.dbSession.flush(objects=[dbRenewalConfiguration])
     return event_status
@@ -962,7 +964,7 @@ def update_SystemConfiguration(
 
     changes = []
 
-    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+    private_key_cycle_id__primary = model_utils.PrivateKey_Cycle.from_string(
         private_key_cycle__primary
     )
     private_key_technology_id__primary = model_utils.KeyTechnology.from_string(
@@ -970,7 +972,7 @@ def update_SystemConfiguration(
     )
 
     private_key_cycle_id__backup = (
-        model_utils.PrivateKeyCycle.from_string(private_key_cycle__backup)
+        model_utils.PrivateKey_Cycle.from_string(private_key_cycle__backup)
         if private_key_cycle__backup
         else None
     )
@@ -986,7 +988,10 @@ def update_SystemConfiguration(
         # primary
         if acme_profile__primary != "@":
             raise errors.InvalidTransition("Global `acme_profile__primary` MUST be `@`")
-        if private_key_cycle_id__primary != model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
+        if (
+            private_key_cycle_id__primary
+            != model_utils.PrivateKey_Cycle.ACCOUNT_DEFAULT
+        ):
             raise errors.InvalidTransition(
                 "Global `private_key_cycle__primary` MUST be `account_default`"
             )
@@ -1000,7 +1005,7 @@ def update_SystemConfiguration(
         # backup
         if acme_profile__backup != "@":
             raise errors.InvalidTransition("Global `acme_profile__backup` MUST be `@`")
-        if private_key_cycle_id__backup != model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT:
+        if private_key_cycle_id__backup != model_utils.PrivateKey_Cycle.ACCOUNT_DEFAULT:
             raise errors.InvalidTransition(
                 "Global `private_key_cycle__backup` MUST be `account_default`"
             )

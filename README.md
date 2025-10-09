@@ -7,15 +7,19 @@ PeterSSLers is a bundled ACME Client, Certificate Manager, OpenResty/Nginx Plugi
 and Python-based framework designed for programmatically managing SSL Certificates.
 
 This project started at Aptise Media as an internal tool for obtaining and managing
-SSL Certificates for partner/customer domains. The project integrated an ACME(v1)
-Client, a SQL based Certificate Manager, and an OpenResty plugin for dynamic
-certificate loading.
+SSL Certificates for whitelabeled systems (e.g. partner and customer domains).
+The project integrated an ACME(v1) Client, a SQL based Certificate Manager, and
+an OpenResty plugin for dynamic certificate loading.
 
 ACME-V2 support involved a large rewrite of the Client and the Certificate
 Manager's design. The central object changed from a `X509Certificate` to the
 `AcmeOrder`, which caused a ripple effect.  The V1 release again changed the
 central object to a new `RenewalConfiguration` concept and streamlined operations.
 
+Aside from offering scalable and programmatic management, the project also
+supports Backup Certificates procured against a secondary CA and can be
+configured to support Backup Challenges (failing over to DNS-01 if HTTP-01 is
+unavailable, and vice-versa).
 
 peter_sslers README
 ===================

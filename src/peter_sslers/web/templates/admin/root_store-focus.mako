@@ -57,18 +57,7 @@
                         <th>Versions</th>
                         <td>
                             % if RootStore.root_store_versions:
-                                <ul class="list list-unstyled">
-                                    % for root_store_version in RootStore.root_store_versions:
-                                        <li>
-                                            <a class="label label-info"
-                                               href="${admin_prefix}/root-store-version/${root_store_version.id}"
-                                            >
-                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                RootStoreVersion-${root_store_version.id}&nbsp;
-                                            </a>
-                                            <code>${root_store_version.version_string}</code>
-                                    % endfor
-                                </ul>
+                                ${admin_partials.table_RootStoreVersions(RootStore.root_store_versions, perspective="RootStore")}
                             % endif
                         </td>
                     </tr>

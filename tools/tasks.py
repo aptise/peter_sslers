@@ -14,11 +14,10 @@ from invoke import task
 # local
 import peter_sslers.commandline
 
-# ==============================================================================
-
 if TYPE_CHECKING:
     from invoke.context import Context
 
+# ==============================================================================
 
 # export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/peter_sslers"
 DEFAULT_SERVER_ROOT = os.environ.get("PETER_SSLERS_SERVER_ROOT", "")

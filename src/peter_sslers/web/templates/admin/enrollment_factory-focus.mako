@@ -68,7 +68,7 @@
                     <tr>
                         <th>is_export_filesystem</th>
                         <td>
-                            % if EnrollmentFactory.is_export_filesystem_id == model_websafe.OptionsOnOff.ON:
+                            % if EnrollmentFactory.is_export_filesystem_id == model_websafe.Options_OnOff.ON:
                                 <span class="label label-success">
                                     on
                                 </span>
@@ -103,6 +103,10 @@
                     <tr>
                         <th>domain templates</th>
                         <td>
+                            <p>
+                                <b>ACME Challenge Duplicate Strategy</b>
+                                <code>${EnrollmentFactory.acme_challenge_duplicate_strategy}</code>
+                            </p>
                             <p>
                                 <b>HTTP-01</b>
                                 <code>${EnrollmentFactory.domain_template_http01}</code>

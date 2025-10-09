@@ -750,6 +750,7 @@ class ViewAdminApi_Domain(Handler):
                     dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                         self.request.api_context,
                         domains_challenged=domains_challenged,
+                        acme_challenge_duplicate_strategy_id=model_utils.AcmeChallenge_DuplicateStrategy.no_duplicates,
                         # PRIMARY cert
                         dbAcmeAccount__primary=dbSystemConfiguration_autocert.acme_account__primary,
                         private_key_cycle_id__primary=dbSystemConfiguration_autocert.private_key_cycle_id__primary,
@@ -785,7 +786,7 @@ class ViewAdminApi_Domain(Handler):
                     self.request.api_context,
                     dbRenewalConfiguration=dbRenewalConfiguration,
                     processing_strategy="process_single",
-                    acme_order_type_id=model_utils.AcmeOrderType.AUTOCERT,
+                    acme_order_type_id=model_utils.AcmeOrder_Type.AUTOCERT,
                     dbPrivateKey=dbPrivateKey,
                     replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
                     transaction_commit=True,

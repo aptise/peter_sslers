@@ -56,13 +56,13 @@ class _MixIn_AcmeAccount(object):
             key_pem = self._filedata_testfile(_key_filename)
 
         _kwargs["acme_account_key_source_id"] = (
-            model_utils.AcmeAccountKeySource.IMPORTED
+            model_utils.AcmeAccountKey_Source.IMPORTED
         )
         _kwargs["key_pem"] = key_pem
         _kwargs["acme_server_id"] = 1  # pebble
         _kwargs["contact"] = contact
         _kwargs["order_default_private_key_cycle_id"] = (
-            model_utils.PrivateKeyCycle.from_string(private_key_cycle)
+            model_utils.PrivateKey_Cycle.from_string(private_key_cycle)
         )
 
         (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(
@@ -373,10 +373,24 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
             self.assertFalse(_alternates and _alternate_of)
             if _alternates:
                 for _alternate in _alternates:
-                    self.assertIn(_alternate, letsencrypt_info.CERT_CAS_DATA)
-                    _alternate_payload = letsencrypt_info.CERT_CAS_DATA[_alternate]
+                    _alternate_payload = None
+                    _found = _alternate in letsencrypt_info.CERT_CAS_DATA
+                    if _found:
+                        _alternate_payload = letsencrypt_info.CERT_CAS_DATA[_alternate]
+                    else:
+                        _found = _alternate in letsencrypt_info.CERT_CAS_DEPRECATED
+                        if _found:
+                            _alternate_payload = letsencrypt_info.CERT_CAS_DEPRECATED[
+                                _alternate
+                            ]
+
+                    self.assertTrue(_found)
+                    self.assertIsNotNone(_alternate_payload)
+
                     self.assertEqual(cert_id, _alternate_payload["alternate_of"])
+
             if _alternate_of:
+                # TODO, handle deprecated
                 _alternate_payload = letsencrypt_info.CERT_CAS_DATA[_alternate_of]
                 self.assertIn("alternates", _alternate_payload)
 
@@ -384,11 +398,18 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
             _url_pem = cert_payload.get("url_pem")
             self.assertNotIn(_url_pem, seen["url_pem"])
             seen["url_pem"].append(_url_pem)
+            print(_url_pem)
 
-            # our display_name should be unique
-            _display_name = cert_payload.get("display_name")
-            self.assertNotIn(_display_name, seen["display_name"])
-            seen["display_name"].append(_display_name)
+            try:
+                # our display_name should be unique
+                _display_name = cert_payload.get("display_name")
+                print(_display_name)
+                self.assertNotIn(_display_name, seen["display_name"])
+                seen["display_name"].append(_display_name)
+            except Exception as _exc_:
+                import pdb
+
+                pdb.set_trace()
 
 
 class Test_ARI_DateConversion(unittest.TestCase):

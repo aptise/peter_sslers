@@ -122,7 +122,7 @@ def getcreate__AcmeAccount(
         tuple(`model.utils.AcmeAccount`, `is_created[Boolean]`)
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param acme_account_key_source_id: (required) id corresponding to a :class:`model.utils.AcmeAccountKeySource`
+    :param acme_account_key_source_id: (required) id corresponding to a :class:`model.utils.AcmeAccountKey_Source`
     :param key_pem: (optional) an account key in PEM format.
         if not provided, all of the following must be supplied:
         * le_meta_jsons
@@ -139,7 +139,7 @@ def getcreate__AcmeAccount(
     :param terms_of_service: (optional) str
     :param account_url: (optional)
     :param private_key_technology_id: (optional) id corresponding to a :class:`model.utils.KeyTechnology`
-    :param order_default_private_key_cycle_id: (optional) id corresponding to a :class:`model.utils.PrivateKeyCycle`
+    :param order_default_private_key_cycle_id: (optional) id corresponding to a :class:`model.utils.PrivateKey_Cycle`
     :param order_default_private_key_technology_id: (optional) id corresponding to a :class:`model.utils.KeyTechnology`
     """
     if (key_pem) and any((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
@@ -172,12 +172,12 @@ def getcreate__AcmeAccount(
 
     # AcmeOrder Defaults
     if order_default_private_key_cycle_id is None:
-        order_default_private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
-            model_utils.PrivateKeyCycle._DEFAULT_AcmeAccount_order_default
+        order_default_private_key_cycle_id = model_utils.PrivateKey_Cycle.from_string(
+            model_utils.PrivateKey_Cycle._DEFAULT_AcmeAccount_order_default
         )
     if (
         order_default_private_key_cycle_id
-        not in model_utils.PrivateKeyCycle._options_AcmeAccount_order_default_id
+        not in model_utils.PrivateKey_Cycle._options_AcmeAccount_order_default_id
     ):
         raise ValueError("invalid `order_default_private_key_cycle_id`")
 
@@ -706,7 +706,7 @@ def getcreate__AcmeChallenges_via_payload(
             continue
         challenge_url = acme_challenge["url"]
         challenge_status = acme_challenge["status"]
-        acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
+        acme_challenge_type_id = model_utils.AcmeChallenge_Type.from_string(
             acme_challenge["type"]
         )
         acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
@@ -912,6 +912,7 @@ def getcreate__X509CertificateTrusted__by_pem_text(
     display_name: Optional[str] = None,
     discovery_type: Optional[str] = None,
     is_trusted_root: Optional[bool] = None,
+    is_untrusted_root: Optional[bool] = None,
     key_technology_id: Optional[int] = None,
 ) -> Tuple["X509CertificateTrusted", bool]:
     """
@@ -921,7 +922,8 @@ def getcreate__X509CertificateTrusted__by_pem_text(
     :param cert_pem: (required)
     :param display_name: a name to display this as
     :param discovery_type:
-    :param is_trusted_root:
+    :param is_trusted_root: bool
+    :param: is_untrusted_root: bool
     :param key_technology_id:  :class:`lib.utils.KeyTechnology` value
 
     """
@@ -972,6 +974,7 @@ def getcreate__X509CertificateTrusted__by_pem_text(
         dbX509CertificateTrusted.discovery_type = discovery_type
         dbX509CertificateTrusted.key_technology_id = key_technology_id
         dbX509CertificateTrusted.is_trusted_root = is_trusted_root
+        dbX509CertificateTrusted.is_untrusted_root = is_untrusted_root
         dbX509CertificateTrusted.timestamp_created = ctx.timestamp
         dbX509CertificateTrusted.cert_pem = cert_pem
         dbX509CertificateTrusted.cert_pem_md5 = cert_pem_md5
@@ -1117,8 +1120,8 @@ def getcreate__PrivateKey__by_pem_text(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param str key_pem:
-    :param int private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKeySource`
-    :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKeyType`
+    :param int private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKey_Source`
+    :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKey_Type`
     :param int acme_account_id__owner: (optional) the id of a :class:`model.objects.AcmeAccount` which owns this :class:`model.objects.PrivateKey`
     :param int private_key_id__replaces: (optional) if this key replaces a compromised key, note it.
     :param str discovery_type:
@@ -1154,7 +1157,7 @@ def getcreate__PrivateKey__by_pem_text(
         _event_type_id = model_utils.OperationsEventType.from_string(
             "PrivateKey__insert"
         )
-        if private_key_type_id in model_utils.PrivateKeyType._options_calendar:
+        if private_key_type_id in model_utils.PrivateKey_Type._options_calendar:
             _event_type_id = model_utils.OperationsEventType.from_string(
                 "PrivateKey__insert_autogenerated_calendar"
             )
@@ -1211,7 +1214,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` that owns the certificate
     :param key_technology_id: (optional) Valid options are in :class:`model.utils.KeyTechnology`
-    :param private_key_cycle_id: (optional) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param private_key_cycle_id: (optional) Valid options are in :class:`model.utils.PrivateKey_Cycle`
     :param private_key_id__replaces: (optional) Passthrough to `create__PrivateKey`
 
     """
@@ -1220,7 +1223,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
         private_key_cycle_id = dbAcmeAccount.order_default_private_key_cycle_id
         private_key_cycle = dbAcmeAccount.order_default_private_key_cycle
     else:
-        private_key_cycle = model_utils.PrivateKeyCycle._mapping[private_key_cycle_id]
+        private_key_cycle = model_utils.PrivateKey_Cycle._mapping[private_key_cycle_id]
 
     if key_technology_id is None:
         key_technology_id = dbAcmeAccount.order_default_private_key_technology_id
@@ -1236,8 +1239,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         # NOTE: AcmeAccountNeedsPrivateKey ; single_use
         dbPrivateKey_new = create__PrivateKey(
             ctx,
-            private_key_source_id=model_utils.PrivateKeySource.GENERATED,
-            private_key_type_id=model_utils.PrivateKeyType.SINGLE_USE,
+            private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
+            private_key_type_id=model_utils.PrivateKey_Type.SINGLE_USE,
             key_technology_id=key_technology_id,
             acme_account_id__owner=acme_account_id__owner,
             private_key_id__replaces=private_key_id__replaces,
@@ -1252,8 +1255,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
 
         dbPrivateKey_new = create__PrivateKey(
             ctx,
-            private_key_source_id=model_utils.PrivateKeySource.GENERATED,
-            private_key_type_id=model_utils.PrivateKeyType.SINGLE_USE__REUSE_1_YEAR,
+            private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
+            private_key_type_id=model_utils.PrivateKey_Type.SINGLE_USE__REUSE_1_YEAR,
             key_technology_id=key_technology_id,
             acme_account_id__owner=acme_account_id__owner,
             private_key_id__replaces=private_key_id__replaces,
@@ -1270,8 +1273,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
-                private_key_type_id=model_utils.PrivateKeyType.ACCOUNT_DAILY,
+                private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
+                private_key_type_id=model_utils.PrivateKey_Type.ACCOUNT_DAILY,
                 key_technology_id=key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
             )
@@ -1284,8 +1287,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
-                private_key_type_id=model_utils.PrivateKeyType.GLOBAL_DAILY,
+                private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
+                private_key_type_id=model_utils.PrivateKey_Type.GLOBAL_DAILY,
                 key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
             is_created = True
@@ -1300,8 +1303,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
-                private_key_type_id=model_utils.PrivateKeyType.ACCOUNT_WEEKLY,
+                private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
+                private_key_type_id=model_utils.PrivateKey_Type.ACCOUNT_WEEKLY,
                 key_technology_id=dbAcmeAccount.private_key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
             )
@@ -1314,8 +1317,8 @@ def getcreate__PrivateKey_for_AcmeAccount(
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                private_key_source_id=model_utils.PrivateKeySource.GENERATED,
-                private_key_type_id=model_utils.PrivateKeyType.GLOBAL_WEEKLY,
+                private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
+                private_key_type_id=model_utils.PrivateKey_Type.GLOBAL_WEEKLY,
                 key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
             )
             is_created = True
@@ -1324,7 +1327,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
     elif private_key_cycle == "account_default":
         # NOTE: AcmeAccountNeedsPrivateKey ; account_default | INVALID
         # this should never happen
-        # while it is a valid `model_utils.PrivateKeyCycle` option,
+        # while it is a valid `model_utils.PrivateKey_Cycle` option,
         # anything calling this function should not pass it in
         raise ValueError("Invalid option: `account_default`")
 
@@ -1537,7 +1540,7 @@ def getcreate__UniquelyChallengedFQDNSet__by_domainObjects_domainsChallenged(
         for _ct, _domains in domainsChallenged.items():
             if not _domains:
                 continue
-            acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(_ct)
+            acme_challenge_type_id = model_utils.AcmeChallenge_Type.from_string(_ct)
             for _domain_name in _domains:
                 dbDomain = domainObjects[_domain_name]
 
@@ -1649,7 +1652,7 @@ def getcreate__X509Certificate(
             "getcreate__X509Certificate must be provided with all of (cert_pem, dbX509CertificateTrustChain, dbPrivateKey)"
         )
 
-    if certificate_type_id not in model_utils.CertificateType._mapping:
+    if certificate_type_id not in model_utils.X509CertificateType._mapping:
         raise ValueError("invalid `certificate_type_id`")
 
     is_created = False
@@ -1761,7 +1764,7 @@ def getcreate__X509CertificateRequest__by_pem_text(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param csr_pem:
-    :param x509_certificate_request_source_id: Must match an option in :class:`model.utils.X509CertificateRequestSource`
+    :param x509_certificate_request_source_id: Must match an option in :class:`model.utils.X509CertificateRequest_Source`
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
     :param domain_names: (required) A list of fully qualified domain names
     :param dbX509Certificate__issued: (optional) The :class:`model.objects.X509Certificate` this issued as

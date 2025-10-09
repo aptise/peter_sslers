@@ -6,13 +6,11 @@ from typing import TYPE_CHECKING
 
 # pypi
 import cert_utils
-import sqlalchemy
 from typing_extensions import Literal
 
 # local
 from . import actions as db_actions
 from . import create as db_create
-from . import get as db_get
 from . import getcreate as db_getcreate
 from .logger import log__OperationsEvent
 from ...lib import utils
@@ -105,8 +103,8 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
     dbObject.spki_sha256 = _placeholder_text
     dbObject.is_active = True
     dbObject.operations_event_id__created = dbOperationsEvent.id
-    dbObject.private_key_source_id = model_utils.PrivateKeySource.PLACEHOLDER
-    dbObject.private_key_type_id = model_utils.PrivateKeyType.PLACEHOLDER
+    dbObject.private_key_source_id = model_utils.PrivateKey_Source.PLACEHOLDER
+    dbObject.private_key_type_id = model_utils.PrivateKey_Type.PLACEHOLDER
     # SYSTEM_DEFAULT
     dbObject.key_technology_id = model_utils.KeyTechnology._DEFAULT_id
     ctx.dbSession.add(dbObject)
@@ -118,158 +116,19 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
 
     # !!!: CertificateAuthorities
 
-    # nestle this import, so we do not load it on every run
-    from cert_utils import letsencrypt_info
-
-    certs = letsencrypt_info.CERT_CAS_DATA
-    certs_order = letsencrypt_info._CERT_CAS_ORDER
-
-    # do a quick check
-    _cert_ids = set(certs.keys())
-    _cert_ids_order = set(certs_order)
-    _missing_data = _cert_ids_order - _cert_ids
-    if _missing_data:
-        raise ValueError(
-            "Missing from `letsencrypt_info.CERT_CAS_DATA`: %s" % _missing_data
-        )
-    _unordered = _cert_ids - _cert_ids_order
-    if _unordered:
-        raise ValueError(
-            "Missing from `letsencrypt_info._CERT_CAS_ORDER`: %s" % _unordered
-        )
-    # end check
-
-    certs_discovered = []
-    certs_modified = []
-    certs_lookup = {}  # stash the ones we create for a moment
-    for cert_id in certs_order:
-        cert_data = certs[cert_id]
-        assert cert_data["cert_pem"]
-        _is_created = False
-        dbX509CertificateTrusted = db_get.get__X509CertificateTrusted__by_pem_text(
-            ctx, cert_data["cert_pem"]
-        )
-        if not dbX509CertificateTrusted:
-            is_trusted_root = cert_data.get("is_trusted_root")
-            (
-                dbX509CertificateTrusted,
-                _is_created,
-            ) = db_getcreate.getcreate__X509CertificateTrusted__by_pem_text(
-                ctx,
-                cert_data["cert_pem"],
-                display_name=cert_data["display_name"],
-                is_trusted_root=is_trusted_root,
-                discovery_type="initial setup",
-            )
-            if _is_created:
-                certs_discovered.append(dbX509CertificateTrusted)
-        if "is_trusted_root" in cert_data:
-            if dbX509CertificateTrusted.is_trusted_root != cert_data["is_trusted_root"]:
-                dbX509CertificateTrusted.is_trusted_root = cert_data["is_trusted_root"]
-                if dbX509CertificateTrusted not in certs_discovered:
-                    certs_modified.append(dbX509CertificateTrusted)
-        else:
-            attrs = ("display_name",)
-            for _k in attrs:
-                if getattr(dbX509CertificateTrusted, _k) is None:
-                    setattr(dbX509CertificateTrusted, _k, cert_data[_k])  # type: ignore[literal-required]
-                    if dbX509CertificateTrusted not in certs_discovered:
-                        certs_modified.append(dbX509CertificateTrusted)
-
-        if ("compatibility" in cert_data) and (cert_data["compatibility"] is not None):
-            # TODO: migrate to getcreate
-            # TODO: log creation
-            for platform_info in cert_data["compatibility"].items():
-                dbRootStore = (
-                    ctx.dbSession.query(model_objects.RootStore)
-                    .filter(
-                        sqlalchemy.func.lower(model_objects.RootStore.name)
-                        == platform_info[0].lower(),
-                    )
-                    .first()
-                )
-                if not dbRootStore:
-                    dbRootStore = model_objects.RootStore()
-                    dbRootStore.name = platform_info[0]
-                    dbRootStore.timestamp_created = ctx.timestamp
-                    ctx.dbSession.add(dbRootStore)
-                    ctx.dbSession.flush(
-                        objects=[
-                            dbRootStore,
-                        ]
-                    )
-                dbRootStoreVersion = (
-                    ctx.dbSession.query(model_objects.RootStoreVersion)
-                    .filter(
-                        model_objects.RootStoreVersion.root_store_id == dbRootStore.id,
-                        sqlalchemy.func.lower(
-                            model_objects.RootStoreVersion.version_string
-                        )
-                        == platform_info[1].lower(),
-                    )
-                    .first()
-                )
-                if not dbRootStoreVersion:
-                    dbRootStoreVersion = model_objects.RootStoreVersion()
-                    dbRootStoreVersion.root_store_id = dbRootStore.id
-                    dbRootStoreVersion.version_string = platform_info[1]
-                    dbRootStoreVersion.timestamp_created = ctx.timestamp
-                    ctx.dbSession.add(dbRootStoreVersion)
-                    ctx.dbSession.flush(
-                        objects=[
-                            dbRootStoreVersion,
-                        ]
-                    )
-
-                dbRootStoreVersion2X509CertificateTrusted = (
-                    ctx.dbSession.query(
-                        model_objects.RootStoreVersion_2_X509CertificateTrusted
-                    )
-                    .filter(
-                        model_objects.RootStoreVersion_2_X509CertificateTrusted.root_store_version_id
-                        == dbRootStoreVersion.id,
-                        model_objects.RootStoreVersion_2_X509CertificateTrusted.x509_certificate_trusted_id
-                        == dbX509CertificateTrusted.id,
-                    )
-                    .first()
-                )
-                if not dbRootStoreVersion2X509CertificateTrusted:
-                    dbRootStoreVersion2X509CertificateTrusted = (
-                        model_objects.RootStoreVersion_2_X509CertificateTrusted()
-                    )
-                    dbRootStoreVersion2X509CertificateTrusted.root_store_version_id = (
-                        dbRootStoreVersion.id
-                    )
-                    dbRootStoreVersion2X509CertificateTrusted.x509_certificate_trusted_id = (
-                        dbX509CertificateTrusted.id
-                    )
-                    ctx.dbSession.add(dbRootStoreVersion2X509CertificateTrusted)
-                    ctx.dbSession.flush(
-                        objects=[
-                            dbRootStoreVersion2X509CertificateTrusted,
-                        ]
-                    )
-        certs_lookup[cert_id] = dbX509CertificateTrusted
-
-    # bookkeeping update
-    event_payload_dict["is_certificates_discovered"] = (
-        True if certs_discovered else False
+    dbOperationsEventTrusts, certs_lookup = db_actions.refresh_roots(
+        ctx,
+        dbOperationsEvent_child_of=dbOperationsEvent,
     )
-    event_payload_dict["is_certificates_updated"] = True if certs_modified else False
-    event_payload_dict["ids_discovered"] = [c.id for c in certs_discovered]
-    event_payload_dict["ids_modified"] = [c.id for c in certs_modified]
-
-    dbOperationsEvent.set_event_payload(event_payload_dict)
-    ctx.dbSession.flush(objects=[dbOperationsEvent])
 
     # now install the default preference chain
     # _now = datetime.datetime.now(datetime.timezone.utc)
     # _buffer = datetime.timedelta(90)
     # date_cutoff = _now + _buffer
-
     dbX509CertificateTrustPreferencePolicy = (
         db_create.create__X509CertificateTrustPreferencePolicy(ctx, "global")
     )
+    from cert_utils import letsencrypt_info
 
     for cert_id in letsencrypt_info.DEFAULT_CA_PREFERENCES:
         # cert_payload = letsencrypt_info.CERT_CAS_DATA[cert_id]
@@ -317,10 +176,10 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
             model_utils.KeyTechnology.ACCOUNT_DEFAULT
         )
         dbSystemConfiguration.private_key_cycle_id__primary = (
-            model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
+            model_utils.PrivateKey_Cycle.ACCOUNT_DEFAULT
         )
         dbSystemConfiguration.private_key_cycle_id__backup = (
-            model_utils.PrivateKeyCycle.ACCOUNT_DEFAULT
+            model_utils.PrivateKey_Cycle.ACCOUNT_DEFAULT
         )
         dbSystemConfiguration.acme_profile__primary = "@"
         dbSystemConfiguration.acme_profile__backup = "@"

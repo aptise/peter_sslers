@@ -21,7 +21,9 @@ from typing_extensions import TypedDict
 from ..lib.errors import UnsupportedKeyTechnology
 
 if TYPE_CHECKING:
+    from .objects.objects import AcmeOrder
     from .objects.objects import Domain
+    from ..lib.context import ApiContext
 
 # ==============================================================================
 
@@ -386,6 +388,7 @@ class _OperationsUnified(_mixin_mapping):
         1006: "operations__nginx_cache_expire",
         1007: "operations__nginx_cache_flush",
         1008: "operations__reconcile_cas",
+        1009: "action__refresh_roots",
     }
 
 
@@ -463,6 +466,7 @@ class _Acme_Status_All(_mixin_mapping):
         410: "*410*",  # "Gone"; usually used by testing for something that was disabled
     }
 
+    # not all of these need to be referenced in code
     INVALID = 3
     DEACTIVATED = 4
     X_404_X = 404
@@ -716,7 +720,7 @@ Acme_Status_Order.IDS_finished = [
 ]
 
 
-class AcmeAccountKeyOption(object):
+class AcmeAccountKey_Option(object):
 
     # legacy options
     options_all = (
@@ -769,7 +773,7 @@ class AcmeAccountKeyOption(object):
     )
 
 
-class AcmeAccountKeySource(_mixin_mapping):
+class AcmeAccountKey_Source(_mixin_mapping):
     """
     How was the AcmeAccountKey generated?
     """
@@ -783,7 +787,73 @@ class AcmeAccountKeySource(_mixin_mapping):
     IMPORTED = 2
 
 
-class AcmeChallengeType(_mixin_mapping):
+class AcmeChallenge_DuplicateStrategy(_mixin_mapping):
+    """
+    The default strategy is to attempt only one challenge, either a specified
+    http-01 or dns-01.
+
+    This was developed as a configuration option to allow a backup attempt.
+
+    E.g. For a RenewalConfiguration: Try dns-01 first, fallback to http-01
+    """
+
+    via_enrollment_factory = 0
+    no_duplicates = 1
+    http_01__dns_01 = 2
+    dns_01__http_01 = 3
+
+    _mapping = {
+        0: "via_enrollment_factory",
+        1: "no_duplicates",
+        2: "http_01__dns_01",
+        3: "dns_01__http_01",
+    }
+
+    _DEFAULT_EnrollmentFactory = "no_duplicates"
+    _DEFAULT_RenewalConfiguration = "no_duplicates"
+
+    _options_Duplicates_id = (
+        2,
+        3,
+    )
+    _options_EnrollmentFactory_id = (
+        1,
+        2,
+        3,
+    )
+    _options_RenewalConfiguration_id = (
+        1,
+        2,
+        3,
+    )
+    _options_RenewalConfigurationViaEnrollmentFactory_id = (0,)
+
+    _options_Duplicates: List[str]
+    _options_EnrollmentFactory: List[str]
+    _options_RenewalConfiguration: List[str]
+    _options_RenewalConfigurationViaEnrollmentFactory: List[str]
+
+
+# compute this for ease of `curl` options
+AcmeChallenge_DuplicateStrategy._options_Duplicates = [
+    AcmeChallenge_DuplicateStrategy._mapping[_id]
+    for _id in AcmeChallenge_DuplicateStrategy._options_Duplicates_id
+]
+AcmeChallenge_DuplicateStrategy._options_EnrollmentFactory = [
+    AcmeChallenge_DuplicateStrategy._mapping[_id]
+    for _id in AcmeChallenge_DuplicateStrategy._options_EnrollmentFactory_id
+]
+AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration = [
+    AcmeChallenge_DuplicateStrategy._mapping[_id]
+    for _id in AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration_id
+]
+AcmeChallenge_DuplicateStrategy._options_RenewalConfigurationViaEnrollmentFactory = [
+    AcmeChallenge_DuplicateStrategy._mapping[_id]
+    for _id in AcmeChallenge_DuplicateStrategy._options_RenewalConfigurationViaEnrollmentFactory_id
+]
+
+
+class AcmeChallenge_Type(_mixin_mapping):
     """
     ACME supports multiple Challenge types
     """
@@ -800,12 +870,12 @@ class AcmeChallengeType(_mixin_mapping):
     DEFAULT = "http-01"
 
 
-class AcmeChallengeType_Enum(Enum):
-    HTTP_01 = AcmeChallengeType.http_01
-    DNS_01 = AcmeChallengeType.dns_01
+class AcmeChallenge_Type_Enum(Enum):
+    HTTP_01 = AcmeChallenge_Type.http_01
+    DNS_01 = AcmeChallenge_Type.dns_01
 
 
-class AcmeChallengeFailType(_mixin_mapping):
+class AcmeChallenge_FailType(_mixin_mapping):
     """
     Used for Acme Logging
     """
@@ -885,7 +955,23 @@ class AcmeOrder_ProcessingStatus(_mixin_mapping):
     IDS_CAN_PROCESS_CHALLENGES = (2, 3)
 
 
-class AcmeOrderType(_mixin_mapping):
+class AcmeOrder_RetryStrategy(_mixin_mapping):
+    NORMAL = 1
+    BACKUP = 2
+
+    _mapping = {
+        1: "normal",
+        2: "backup",
+    }
+
+    OPTIONS = (
+        "normal",
+        "backup",
+    )
+    OPTION_DEFAULT = "normal"
+
+
+class AcmeOrder_Type(_mixin_mapping):
     """
     How was the AcmeOrder created?
     """
@@ -962,55 +1048,6 @@ class AddressType(_mixin_mapping):
     }
 
 
-class X509CertificateRequestSource(_mixin_mapping):
-    """
-    How was the X509CertificateRequest generated?
-    - imported - just records the CSR; uploaded into our system
-    - acme_order - part of an acme order
-    """
-
-    IMPORTED = 1
-    ACME_ORDER = 2
-
-    _mapping = {
-        1: "imported",
-        2: "acme_order",
-    }
-
-
-class CertificateType(_mixin_mapping):
-    """
-    What role is the certificate
-    """
-
-    RAW_IMPORTED = 1
-    MANAGED_PRIMARY = 2
-    MANAGED_BACKUP = 3
-
-    _mapping = {
-        1: "RawImported",
-        2: "ManagedPrimary",
-        3: "ManagedBackup",
-    }
-
-    _options_AcmeOrder_id = [2, 3]
-
-    @classmethod
-    def to_CertificateType_Enum(cls, id_) -> Optional["CertificateType_Enum"]:
-        if id_ == CertificateType.RAW_IMPORTED:
-            return None
-        elif id_ == CertificateType.MANAGED_PRIMARY:
-            return CertificateType_Enum.MANAGED_PRIMARY
-        elif id_ == CertificateType.MANAGED_BACKUP:
-            return CertificateType_Enum.MANAGED_BACKUP
-        raise ValueError("invalid id_")
-
-
-class CertificateType_Enum(Enum):
-    MANAGED_PRIMARY = CertificateType.MANAGED_PRIMARY
-    MANAGED_BACKUP = CertificateType.MANAGED_BACKUP
-
-
 class CoverageAssuranceEventType(_mixin_mapping):
     _mapping = {
         1: "PrivateKey_compromised_mark",  # we mark it as compromised
@@ -1059,15 +1096,29 @@ class DomainsChallenged(dict):
     """
     standardized mapping for `domains_challenged` items
 
-    keep in sync with `AcmeChallengeType._mapping`
+    keep in sync with `AcmeChallenge_Type._mapping`
     """
 
-    DEFAULT = AcmeChallengeType.DEFAULT
+    DEFAULT = AcmeChallenge_Type.DEFAULT
     _challenge_types = [
         "http-01",
         "dns-01",
-        "tls-alpn-01",
+        # "tls-alpn-01",
     ]
+    _challenge_types_order = {
+        AcmeChallenge_DuplicateStrategy.no_duplicates: [
+            "http-01",
+            "dns-01",
+        ],
+        AcmeChallenge_DuplicateStrategy.http_01__dns_01: [
+            "http-01",
+            "dns-01",
+        ],
+        AcmeChallenge_DuplicateStrategy.dns_01__http_01: [
+            "dns-01",
+            "http-01",
+        ],
+    }
 
     def __init__(self, *args, **kwargs):
         if args or kwargs:
@@ -1084,11 +1135,19 @@ class DomainsChallenged(dict):
         return sorted(_domains)
 
     def ensure_parity(self, domains_to_test: List[str]) -> None:
-        """raise a ValueError if we do not have the exact set of domains"""
+        """
+        This is a simple check to ensure, irrespective of challenge type,
+        the `domains_to_test` are equivalent to this object
+        raises a ValueError if we do not have the exact set of domains
+        """
+        # TODO: This can probably be removed
+        #       This is a legacy from before AcmeOrders were
+        #       based on RenewalConfigurations
         if not isinstance(domains_to_test, list):
             raise ValueError("`domains_to_test` must be a list")
         domains_to_test = sorted(domains_to_test)
-        domain_names = self.domains_as_list
+        # the self.domains_as_list may have duplicates due to challenges
+        domain_names = [i for i in set(self.domains_as_list)]
         if domain_names != domains_to_test:
             raise ValueError("`%s` != `%s`" % (domain_names, domains_to_test))
 
@@ -1109,12 +1168,74 @@ class DomainsChallenged(dict):
         if self.DEFAULT != "http-01":
             raise ValueError("`DomainsChallenged.DEFAULT` must be `http-01`")
 
-    def domain_to_challenge_type_id(self, domain_name: str) -> int:
-        for _acme_challenge_type in self.keys():
-            if self[_acme_challenge_type]:
-                for _domain_name in self[_acme_challenge_type]:
-                    if _domain_name == domain_name:
-                        return AcmeChallengeType.from_string(_acme_challenge_type)
+    def domain_to_challenge_type_id(
+        self,
+        ctx: "ApiContext",
+        domain_name: str,
+        dbAcmeOrder: Optional["AcmeOrder"] = None,
+    ) -> int:
+        #
+        challenge_types_order = (
+            self._challenge_types
+            if not dbAcmeOrder
+            else self._challenge_types_order[
+                dbAcmeOrder.renewal_configuration.acme_challenge_duplicate_strategy_id__effective
+            ]
+        )
+        if dbAcmeOrder:
+            # challenge retry logic
+            if dbAcmeOrder.acme_order_id__retry_of:
+                strategy = (
+                    dbAcmeOrder.renewal_configuration.acme_challenge_duplicate_strategy__effective
+                )
+                # we can only retry an order once, so we only need to look at
+                # the above order for a potential failure and alternate
+                if strategy != AcmeChallenge_DuplicateStrategy.no_duplicates:
+                    # only do this if the order is being invoked for a "try backups" context
+                    if (
+                        dbAcmeOrder.acme_order_retry_strategy_id
+                        == AcmeOrder_RetryStrategy.BACKUP
+                    ):
+                        failed_challenge_type_id = None
+                        for (
+                            _to_authz
+                        ) in dbAcmeOrder.acme_order__retry_of.to_acme_authorizations:
+                            if (
+                                _to_authz.acme_authorization.domain.domain_name
+                                == domain_name
+                            ):
+                                if (
+                                    _to_authz.acme_authorization.acme_status_authorization_id
+                                    == Acme_Status_Authorization.INVALID
+                                ):
+                                    for (
+                                        _challenge
+                                    ) in _to_authz.acme_authorization.acme_challenges:
+                                        if (
+                                            _challenge.acme_status_challenge_id
+                                            == Acme_Status_Challenge.INVALID
+                                        ):
+                                            failed_challenge_type_id = (
+                                                _challenge.acme_challenge_type_id
+                                            )
+                        if failed_challenge_type_id:
+                            # failed_challenge_type = AcmeChallenge_Type.as_string(failed_challenge_type_id)
+                            # if strategy == AcmeChallenge_DuplicateStrategy.http_01__dns_01:
+                            # elif strategy == AcmeChallenge_DuplicateStrategy.dns_01__http_01:
+                            # TODO: this isn't scalable
+                            # however, it doesn't matter what failed as we're just
+                            # toggling between the same two dns01/http01 options
+                            # in both scenarios
+                            if failed_challenge_type_id == AcmeChallenge_Type.http_01:
+                                return AcmeChallenge_Type.dns_01
+                            return AcmeChallenge_Type.http_01
+
+        for _acme_challenge_type in challenge_types_order:
+            if _acme_challenge_type not in self:
+                continue
+            for _domain_name in self[_acme_challenge_type]:
+                if _domain_name == domain_name:
+                    return AcmeChallenge_Type.from_string(_acme_challenge_type)
         raise ValueError("domain is not challenged")
 
     def serialize_names(self) -> str:
@@ -1309,7 +1430,7 @@ class NotificationType(_mixin_mapping):
     }
 
 
-class OptionsOnOff(_mixin_mapping):
+class Options_OnOff(_mixin_mapping):
     OFF = 0
     ON = 1
     ENROLLMENT_FACTORY_DEFAULT = 2
@@ -1328,21 +1449,21 @@ class OptionsOnOff(_mixin_mapping):
 
 
 # compute this for ease of `curl` options
-OptionsOnOff._options_EnrollmentFactory_isExportFilesystem = [
-    OptionsOnOff._mapping[_id]
-    for _id in OptionsOnOff._options_EnrollmentFactory_isExportFilesystem_id
+Options_OnOff._options_EnrollmentFactory_isExportFilesystem = [
+    Options_OnOff._mapping[_id]
+    for _id in Options_OnOff._options_EnrollmentFactory_isExportFilesystem_id
 ]
-OptionsOnOff._options_RenewalConfiguration_isExportFilesystem = [
-    OptionsOnOff._mapping[_id]
-    for _id in OptionsOnOff._options_RenewalConfiguration_isExportFilesystem_id
+Options_OnOff._options_RenewalConfiguration_isExportFilesystem = [
+    Options_OnOff._mapping[_id]
+    for _id in Options_OnOff._options_RenewalConfiguration_isExportFilesystem_id
 ]
-OptionsOnOff._options_RenewalConfigurationFactory_isExportFilesystem = [
-    OptionsOnOff._mapping[_id]
-    for _id in OptionsOnOff._options_RenewalConfigurationFactory_isExportFilesystem_id
+Options_OnOff._options_RenewalConfigurationFactory_isExportFilesystem = [
+    Options_OnOff._mapping[_id]
+    for _id in Options_OnOff._options_RenewalConfigurationFactory_isExportFilesystem_id
 ]
 
 
-class PrivateKeyCycle(_mixin_mapping):
+class PrivateKey_Cycle(_mixin_mapping):
     """
     How should a PrivateKey be cycled on renewal?
     """
@@ -1416,21 +1537,21 @@ class PrivateKeyCycle(_mixin_mapping):
 
 
 # compute this for ease of `curl` options
-PrivateKeyCycle._options_AcmeAccount_order_default = [
-    PrivateKeyCycle._mapping[_id]
-    for _id in PrivateKeyCycle._options_AcmeAccount_order_default_id
+PrivateKey_Cycle._options_AcmeAccount_order_default = [
+    PrivateKey_Cycle._mapping[_id]
+    for _id in PrivateKey_Cycle._options_AcmeAccount_order_default_id
 ]
-PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle = [
-    PrivateKeyCycle._mapping[_id]
-    for _id in PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id
+PrivateKey_Cycle._options_RenewalConfiguration_private_key_cycle = [
+    PrivateKey_Cycle._mapping[_id]
+    for _id in PrivateKey_Cycle._options_RenewalConfiguration_private_key_cycle_id
 ]
-PrivateKeyCycle._options_CertificateIfNeeded_private_key_cycle = [
-    PrivateKeyCycle._mapping[_id]
-    for _id in PrivateKeyCycle._options_CertificateIfNeeded_private_key_cycle_id
+PrivateKey_Cycle._options_CertificateIfNeeded_private_key_cycle = [
+    PrivateKey_Cycle._mapping[_id]
+    for _id in PrivateKey_Cycle._options_CertificateIfNeeded_private_key_cycle_id
 ]
-PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle__alt = [
-    PrivateKeyCycle._mapping[_id]
-    for _id in PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle_id__alt
+PrivateKey_Cycle._options_RenewalConfiguration_private_key_cycle__alt = [
+    PrivateKey_Cycle._mapping[_id]
+    for _id in PrivateKey_Cycle._options_RenewalConfiguration_private_key_cycle_id__alt
 ]
 
 
@@ -1519,7 +1640,7 @@ class PrivateKeyDeferred(_mixin_mapping):
         raise ValueError("unsupported: `%s`" % key_technology_id)
 
 
-class PrivateKeyOption(object):
+class PrivateKey_Option(object):
 
     options_all = (
         "account_default",
@@ -1554,7 +1675,7 @@ class PrivateKeyOption(object):
     )
 
 
-class PrivateKeySource(_mixin_mapping):
+class PrivateKey_Source(_mixin_mapping):
     """
     How was the PrivateKey generated?
     """
@@ -1570,7 +1691,7 @@ class PrivateKeySource(_mixin_mapping):
     IMPORTED = 2
 
 
-class PrivateKeyStrategy(_mixin_mapping):
+class PrivateKey_Strategy(_mixin_mapping):
     """
     What is the strategy for associating the PrivateKey to the order?
     """
@@ -1592,7 +1713,7 @@ class PrivateKeyStrategy(_mixin_mapping):
 
     @classmethod
     def from_private_key_cycle(cls, private_key_cycle: str) -> str:
-        _PrivateKeyCycle_2_PrivateKeyStrategy = {
+        _PrivateKey_Cycle_2_PrivateKey_Strategy = {
             "single_use": "deferred-generate",
             "single_use__reuse_1_year": "deferred-associate",
             "account_daily": "deferred-associate",
@@ -1601,10 +1722,10 @@ class PrivateKeyStrategy(_mixin_mapping):
             "global_weekly": "deferred-associate",
             "account_default": "*lookup*",
         }
-        return _PrivateKeyCycle_2_PrivateKeyStrategy[private_key_cycle]
+        return _PrivateKey_Cycle_2_PrivateKey_Strategy[private_key_cycle]
 
 
-class PrivateKeyType(_mixin_mapping):
+class PrivateKey_Type(_mixin_mapping):
     """
     What kind of PrivateKey is this?
     """
@@ -1699,3 +1820,52 @@ class Routine(_mixin_mapping):
     routine__renew_expiring = 5
     routine__reconcile_blocks = 6
     unset_acme_server_caches = 7
+
+
+class X509CertificateRequest_Source(_mixin_mapping):
+    """
+    How was the X509CertificateRequest generated?
+    - imported - just records the CSR; uploaded into our system
+    - acme_order - part of an acme order
+    """
+
+    IMPORTED = 1
+    ACME_ORDER = 2
+
+    _mapping = {
+        1: "imported",
+        2: "acme_order",
+    }
+
+
+class X509CertificateType(_mixin_mapping):
+    """
+    What role is the certificate
+    """
+
+    RAW_IMPORTED = 1
+    MANAGED_PRIMARY = 2
+    MANAGED_BACKUP = 3
+
+    _mapping = {
+        1: "RawImported",
+        2: "ManagedPrimary",
+        3: "ManagedBackup",
+    }
+
+    _options_AcmeOrder_id = [2, 3]
+
+    @classmethod
+    def to_X509CertificateType_Enum(cls, id_) -> Optional["X509CertificateType_Enum"]:
+        if id_ == X509CertificateType.RAW_IMPORTED:
+            return None
+        elif id_ == X509CertificateType.MANAGED_PRIMARY:
+            return X509CertificateType_Enum.MANAGED_PRIMARY
+        elif id_ == X509CertificateType.MANAGED_BACKUP:
+            return X509CertificateType_Enum.MANAGED_BACKUP
+        raise ValueError("invalid id_")
+
+
+class X509CertificateType_Enum(Enum):
+    MANAGED_PRIMARY = X509CertificateType.MANAGED_PRIMARY
+    MANAGED_BACKUP = X509CertificateType.MANAGED_BACKUP

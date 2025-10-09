@@ -62,9 +62,21 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>version</th>
+                        <th>version_min</th>
                         <td>
-                            <code>${RootStoreVersion.version_string}</code>
+                            <code>${RootStoreVersion.version_min or ""}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>version_max</th>
+                        <td>
+                            <code>${RootStoreVersion.version_max or ""}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>version_notes</th>
+                        <td>
+                            <code>${RootStoreVersion.version_notes or ""}</code>
                         </td>
                     </tr>
                     <tr>

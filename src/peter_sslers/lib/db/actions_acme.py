@@ -965,7 +965,7 @@ def do__AcmeV2_AcmeAccount__key_change(
 
     if key_pem_new is not None:
         key_pem_new = cert_utils.cleanup_pem_text(key_pem_new)
-        acme_account_key_source_id = model_utils.AcmeAccountKeySource.IMPORTED
+        acme_account_key_source_id = model_utils.AcmeAccountKey_Source.IMPORTED
     else:
         # convert the args
         cu_new_args = model_utils.KeyTechnology.to_new_args(
@@ -976,7 +976,7 @@ def do__AcmeV2_AcmeAccount__key_change(
             rsa_bits=cu_new_args.get("rsa_bits"),
             ec_curve=cu_new_args.get("ec_curve"),
         )
-        acme_account_key_source_id = model_utils.AcmeAccountKeySource.GENERATED
+        acme_account_key_source_id = model_utils.AcmeAccountKey_Source.GENERATED
     dbAcmeAccountKeyNew = get__AcmeAccountKey__by_key_pem(ctx, key_pem_new)
     if dbAcmeAccountKeyNew:
         raise errors.ConflictingObject(
@@ -1875,7 +1875,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         try:
             # inner `try/except` catches `AcmeAccountNeedsPrivateKey`
 
-            private_key_type = model_utils.PrivateKeyType.from_private_key_cycle(
+            private_key_type = model_utils.PrivateKey_Type.from_private_key_cycle(
                 dbAcmeOrder.private_key_cycle
             )
 
@@ -1929,8 +1929,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
                         private_key_strategy__final = "deferred-generate"
                         dbPrivateKey_new = create__PrivateKey(
                             ctx,
-                            private_key_source_id=model_utils.PrivateKeySource.GENERATED,
-                            private_key_type_id=model_utils.PrivateKeyType.from_string(
+                            private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
+                            private_key_type_id=model_utils.PrivateKey_Type.from_string(
                                 private_key_type
                             ),
                             key_technology_id=key_technology_id,
@@ -2065,10 +2065,10 @@ def _do__AcmeV2_AcmeOrder__finalize(
         except PrivateKeyOk as exc:
             pass
 
-        # set the PrivateKeyStrategy
+        # set the PrivateKey_Strategy
         assert private_key_strategy__final
         dbAcmeOrder.private_key_strategy_id__final = (
-            model_utils.PrivateKeyStrategy.from_string(private_key_strategy__final)
+            model_utils.PrivateKey_Strategy.from_string(private_key_strategy__final)
         )
         ctx.dbSession.flush(objects=[dbAcmeOrder])
 
@@ -2092,7 +2092,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             dbX509CertificateRequest = create__X509CertificateRequest(
                 ctx,
                 csr_pem,
-                x509_certificate_request_source_id=model_utils.X509CertificateRequestSource.ACME_ORDER,
+                x509_certificate_request_source_id=model_utils.X509CertificateRequest_Source.ACME_ORDER,
                 dbPrivateKey=dbAcmeOrder.private_key,
                 domain_names=domain_names,
                 dbX509Certificate__issued=None,
@@ -2205,19 +2205,19 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
                 if (
                     dbAcmeOrder.renewal_configuration.is_export_filesystem_id
-                    == model_utils.OptionsOnOff.ON
+                    == model_utils.Options_OnOff.ON
                 ):
                     export = True
                     type_dir = "global"
 
                 elif (
                     dbAcmeOrder.renewal_configuration.is_export_filesystem_id
-                    == model_utils.OptionsOnOff.ENROLLMENT_FACTORY_DEFAULT
+                    == model_utils.Options_OnOff.ENROLLMENT_FACTORY_DEFAULT
                 ):
                     if dbAcmeOrder.renewal_configuration.enrollment_factory__via:
                         if (
                             dbAcmeOrder.renewal_configuration.enrollment_factory__via.is_export_filesystem_id
-                            == model_utils.OptionsOnOff.ON
+                            == model_utils.Options_OnOff.ON
                         ):
                             export = True
                             type_dir = (
@@ -2227,12 +2227,12 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     log.info("Writing Certificate to disk...")
                     if (
                         dbAcmeOrder.certificate_type_id
-                        == model_utils.CertificateType.MANAGED_PRIMARY
+                        == model_utils.X509CertificateType.MANAGED_PRIMARY
                     ):
                         subdir = "primary"
                     elif (
                         dbAcmeOrder.certificate_type_id
-                        == model_utils.CertificateType.MANAGED_BACKUP
+                        == model_utils.X509CertificateType.MANAGED_BACKUP
                     ):
                         subdir = "backup"
                     else:
@@ -2366,7 +2366,6 @@ def do__AcmeV2_AcmeOrder__process(
                 ctx, authenticatedUser, dbAcmeOrder
             )
 
-            domains_challenged = dbAcmeOrder.domains_challenged
             if (
                 dbAcmeAuthorization.acme_status_authorization_id
                 == model_utils.Acme_Status_Authorization.ID_DISCOVERED
@@ -2379,17 +2378,22 @@ def do__AcmeV2_AcmeOrder__process(
                     update_AcmeChallenge_status=update_AcmeChallenge_status,
                     updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
                     dbAcmeAuthorization=dbAcmeAuthorization,
+                    dbAcmeOrder=dbAcmeOrder,
                     acme_challenge_type_id__preferred=None,
-                    domains_challenged=domains_challenged,
+                    domains_challenged=dbAcmeOrder.domains_challenged,
                     transaction_commit=transaction_commit,
                 )
             else:
-                _challenge_type_id = domains_challenged.domain_to_challenge_type_id(
-                    dbAcmeAuthorization.domain.domain_name
+                _challenge_type_id = (
+                    dbAcmeOrder.domains_challenged.domain_to_challenge_type_id(
+                        ctx=ctx,
+                        domain_name=dbAcmeAuthorization.domain.domain_name,
+                        dbAcmeOrder=dbAcmeOrder,
+                    )
                 )
-                if _challenge_type_id == model_utils.AcmeChallengeType.http_01:
+                if _challenge_type_id == model_utils.AcmeChallenge_Type.http_01:
                     dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
-                elif _challenge_type_id == model_utils.AcmeChallengeType.dns_01:
+                elif _challenge_type_id == model_utils.AcmeChallenge_Type.dns_01:
                     dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_dns_01
                 else:
                     raise errors.InvalidRequest(
@@ -2424,7 +2428,9 @@ def do__AcmeV2_AcmeOrder__process(
                     transaction_commit=transaction_commit,
                 )
             else:
-                raise errors.GarfieldMinusGarfield("unsure how this happened")
+                raise errors.GarfieldMinusGarfield(
+                    "unsure how this happened; status not in ('pending', 'ready')"
+                )
     elif dbAcmeOrder.acme_status_order == "ready":
         dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
             ctx,
@@ -2433,7 +2439,9 @@ def do__AcmeV2_AcmeOrder__process(
             transaction_commit=transaction_commit,
         )
     else:
-        raise errors.GarfieldMinusGarfield("unsure how this happened")
+        raise errors.GarfieldMinusGarfield(
+            "unsure how this happened; status not 'pending'"
+        )
 
     return dbAcmeOrder
 
@@ -2563,7 +2571,7 @@ def do__AcmeV2_AcmeOrder__new(
     ctx: "ApiContext",
     dbRenewalConfiguration: "RenewalConfiguration",
     processing_strategy: str,
-    acme_order_type_id: int,  # model_utils.AcmeOrderType
+    acme_order_type_id: int,  # model_utils.AcmeOrder_Type
     # Optionals
     note: Optional[str] = None,
     replaces: Optional[str] = None,
@@ -2576,25 +2584,26 @@ def do__AcmeV2_AcmeOrder__new(
     ] = None,
     replaces_certificate_type: Optional[
         Literal[
-            model_utils.CertificateType_Enum.MANAGED_PRIMARY,
-            model_utils.CertificateType_Enum.MANAGED_BACKUP,
+            model_utils.X509CertificateType_Enum.MANAGED_PRIMARY,
+            model_utils.X509CertificateType_Enum.MANAGED_BACKUP,
         ]
     ] = None,
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
+    acme_order_retry_strategy_id: Optional[int] = None,
     transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbRenewalConfiguration: (required) A :class:`model.objects.RenewalConfiguration` object to use
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
-    :param acme_order_type_id: (required) A :class:`model_utils.AcmeOrderType` object to use for this order;
+    :param acme_order_type_id: (required) A :class:`model_utils.AcmeOrder_Type` object to use for this order;
     :param note: (optional)  A string to be associated with this AcmeOrder
     :param replaces: (optional)  ARI idenfifier of to-be-replaced cert, or "primary", or "backup".
     :param replaces_type: (optional) A :class:`model_utils.ReplacesType_Enum` object to use for this order;
          required if `replaces` is present and not null
          this describes how `replaces` was computed
-    :param replaces_certificate_type: (optional) A :class:`model_utils.CertificateType_Enum` object to use for this order;
+    :param replaces_certificate_type: (optional) A :class:`model_utils.X509CertificateType_Enum` object to use for this order;
          required for imported certs
 
     :param dbPrivateKey: (Optional) A :class:`model.objects.PrivateKey` object to use for this order;
@@ -2611,7 +2620,7 @@ def do__AcmeV2_AcmeOrder__new(
     if not dbRenewalConfiguration:
         raise ValueError("Must submit `dbRenewalConfiguration`")
 
-    if acme_order_type_id not in model_utils.AcmeOrderType._mapping:
+    if acme_order_type_id not in model_utils.AcmeOrder_Type._mapping:
         raise ValueError("invalid `acme_order_type_id`")
 
     # do we have a live order for this?
@@ -2641,18 +2650,19 @@ def do__AcmeV2_AcmeOrder__new(
     # scoping
     dbX509Certificate_replaces_candidate: Optional["X509Certificate"] = None
 
-    if dbAcmeOrder_retry_of or (acme_order_type_id == model_utils.AcmeOrderType.RETRY):
+    if dbAcmeOrder_retry_of or (acme_order_type_id == model_utils.AcmeOrder_Type.RETRY):
         if (
             (not dbAcmeOrder_retry_of)
-            or (acme_order_type_id != model_utils.AcmeOrderType.RETRY)
+            or (acme_order_type_id != model_utils.AcmeOrder_Type.RETRY)
             or (dbPrivateKey != dbAcmeOrder_retry_of.private_key)
+            or (not acme_order_retry_strategy_id)
         ):
-            raise ValueError("Retry invokved incorrectly.")
+            raise ValueError("Retry invoked incorrectly.")
 
     account_selection: Optional[Literal["primary", "backup"]] = None
     if acme_order_type_id in (
-        model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
-        model_utils.AcmeOrderType.AUTOCERT,
+        model_utils.AcmeOrder_Type.CERTIFICATE_IF_NEEDED,
+        model_utils.AcmeOrder_Type.AUTOCERT,
     ):
         account_selection = "primary"
 
@@ -2711,20 +2721,20 @@ def do__AcmeV2_AcmeOrder__new(
 
             if (
                 replaces_certificate_type
-                == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
             ):
                 account_selection = "primary"
 
             elif (
                 replaces_certificate_type
-                == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
             ):
                 account_selection = "backup"
 
             elif replaces_certificate_type is None:
                 if acme_order_type_id not in (
-                    model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
-                    model_utils.AcmeOrderType.AUTOCERT,
+                    model_utils.AcmeOrder_Type.CERTIFICATE_IF_NEEDED,
+                    model_utils.AcmeOrder_Type.AUTOCERT,
                 ):
                     raise ValueError(
                         "`replaces_certificate_type` only valid for `AUTOCERT` or `CERTIFICATE_IF_NEEDED`."
@@ -2735,7 +2745,7 @@ def do__AcmeV2_AcmeOrder__new(
                     )
                 account_selection = "primary"
                 replaces_certificate_type = (
-                    model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                    model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
                 )
             else:
                 raise ValueError("unsupported `replaces_certificate_type`")
@@ -2757,20 +2767,10 @@ def do__AcmeV2_AcmeOrder__new(
         # the backup can be generated afterwards
         account_selection = "primary"
 
-    #
-    # Domains Check
-    #
-
-    domains_challenged = dbRenewalConfiguration.domains_challenged
-    domain_names = dbRenewalConfiguration.domains_as_list
-
     # ensure we have domains names!
     # this should be impossible otherwise, but be safe!
-    if not domain_names:
+    if not dbRenewalConfiguration.domains_as_list:
         raise ValueError("No `domain_names` detected for this request")
-
-    # raise a ValueError if `DomainsChallenged` object is incompatible
-    domains_challenged.ensure_parity(domain_names)
 
     assert ctx.application_settings
     # this is REQUIRED for DNS-01; we don't really care about HTTP-01
@@ -2902,12 +2902,12 @@ def do__AcmeV2_AcmeOrder__new(
                     # but what to do about the account selection?
                     if (
                         replaces_certificate_type
-                        == model_utils.CertificateType.MANAGED_PRIMARY
+                        == model_utils.X509CertificateType.MANAGED_PRIMARY
                     ):
                         account_selection = "primary"
                     elif (
                         replaces_certificate_type
-                        == model_utils.CertificateType.MANAGED_BACKUP
+                        == model_utils.X509CertificateType.MANAGED_BACKUP
                     ):
                         account_selection = "backup"
                     elif replaces_certificate_type is None:
@@ -2934,7 +2934,7 @@ def do__AcmeV2_AcmeOrder__new(
         if replaces_certificate_type:
             if (
                 replaces_certificate_type
-                == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
             ):
                 if account_selection != "primary":
                     raise errors.FieldError(
@@ -2943,7 +2943,7 @@ def do__AcmeV2_AcmeOrder__new(
                     )
             elif (
                 replaces_certificate_type
-                == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
             ):
                 if account_selection != "backup":
                     raise errors.FieldError(
@@ -2954,7 +2954,7 @@ def do__AcmeV2_AcmeOrder__new(
                 raise ValueError("invalid logic")
 
         #
-        #   Figure out the PrivateKeyCycle and PrivateKeyTechnology
+        #   Figure out the PrivateKey_Cycle and PrivateKeyTechnology
         #
         private_key_cycle: str
         private_key_cycle__effective: str
@@ -3055,10 +3055,10 @@ def do__AcmeV2_AcmeOrder__new(
         else:
             raise ValueError("unknown `account_selection`: %s" % account_selection)
 
-        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle_id = model_utils.PrivateKey_Cycle.from_string(
             private_key_cycle
         )
-        private_key_cycle_id__effective = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle_id__effective = model_utils.PrivateKey_Cycle.from_string(
             private_key_cycle__effective
         )
         private_key_technology_id = model_utils.KeyTechnology.from_string(
@@ -3141,7 +3141,7 @@ def do__AcmeV2_AcmeOrder__new(
             # the key is specified
             private_key_deferred_id = model_utils.PrivateKeyDeferred.NOT_DEFERRED
             private_key_strategy_id__requested = (
-                model_utils.PrivateKeyStrategy.SPECIFIED
+                model_utils.PrivateKey_Strategy.SPECIFIED
             )
         else:
             # the key must be determined...
@@ -3164,14 +3164,14 @@ def do__AcmeV2_AcmeOrder__new(
                 "single_use__reuse_1_year",
             ):
                 private_key_strategy_id__requested = (
-                    model_utils.PrivateKeyStrategy.DEFERRED_ASSOCIATE
+                    model_utils.PrivateKey_Strategy.DEFERRED_ASSOCIATE
                 )
                 private_key_deferred_id = (
                     model_utils.PrivateKeyDeferred.ACCOUNT_ASSOCIATE
                 )
             elif private_key_cycle__effective in ("single_use",):
                 private_key_strategy_id__requested = (
-                    model_utils.PrivateKeyStrategy.DEFERRED_GENERATE
+                    model_utils.PrivateKey_Strategy.DEFERRED_GENERATE
                 )
 
                 # `private_key_technology_id__effective` was calculated above:
@@ -3189,11 +3189,11 @@ def do__AcmeV2_AcmeOrder__new(
         if account_selection == "primary":
             dbAcmeAccount = dbRenewalConfiguration.acme_account__primary
             profile = dbRenewalConfiguration.acme_profile__primary__effective
-            certificate_type_id = model_utils.CertificateType.MANAGED_PRIMARY
+            certificate_type_id = model_utils.X509CertificateType.MANAGED_PRIMARY
         elif account_selection == "backup":
             dbAcmeAccount = dbRenewalConfiguration.acme_account__backup
             profile = dbRenewalConfiguration.acme_profile__backup__effective
-            certificate_type_id = model_utils.CertificateType.MANAGED_BACKUP
+            certificate_type_id = model_utils.X509CertificateType.MANAGED_BACKUP
         else:
             # import pprint; pprint.pprint(locals())
             # import pdb; pdb.set_trace()
@@ -3222,7 +3222,7 @@ def do__AcmeV2_AcmeOrder__new(
         # create the order on the ACME server
         (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
             ctx,
-            domain_names=domain_names,
+            domain_names=dbRenewalConfiguration.domains_as_list,
             dbUniqueFQDNSet=dbUniqueFQDNSet,
             transaction_commit=transaction_commit,
             replaces=replaces,
@@ -3252,7 +3252,7 @@ def do__AcmeV2_AcmeOrder__new(
                 acme_order_type_id=acme_order_type_id,
                 acme_order_processing_status_id=acme_order_processing_status_id,
                 acme_order_processing_strategy_id=acme_order_processing_strategy_id,
-                domains_challenged=domains_challenged,
+                domains_challenged=dbRenewalConfiguration.domains_challenged,
                 order_url=order_url,
                 certificate_type_id=certificate_type_id,
                 dbAcmeAccount=dbAcmeAccount,
@@ -3266,6 +3266,8 @@ def do__AcmeV2_AcmeOrder__new(
                 transaction_commit=transaction_commit,  # this is optional
                 # optionals
                 is_save_alternate_chains=dbRenewalConfiguration.is_save_alternate_chains,
+                dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
+                acme_order_retry_strategy_id=acme_order_retry_strategy_id,
                 note=note,
             )
 
@@ -3370,6 +3372,7 @@ def do__AcmeV2_AcmeOrder__new(
 def do__AcmeV2_AcmeOrder__retry(
     ctx: "ApiContext",
     dbAcmeOrder: "AcmeOrder",
+    acme_order_retry_strategy_id: int,
     transaction_commit: Optional[bool] = None,
 ) -> "AcmeOrder":
     """
@@ -3403,10 +3406,11 @@ def do__AcmeV2_AcmeOrder__retry(
         ctx,
         dbRenewalConfiguration=dbAcmeOrder.renewal_configuration,
         processing_strategy=dbAcmeOrder.acme_order_processing_strategy,
-        acme_order_type_id=model_utils.AcmeOrderType.RETRY,
+        acme_order_type_id=model_utils.AcmeOrder_Type.RETRY,
         # Optionals
         dbPrivateKey=dbAcmeOrder.private_key,
         dbAcmeOrder_retry_of=dbAcmeOrder,
+        acme_order_retry_strategy_id=acme_order_retry_strategy_id,
         replaces=dbAcmeOrder.replaces,
         replaces_type=model_utils.ReplacesType_Enum.RETRY,
         transaction_commit=transaction_commit,

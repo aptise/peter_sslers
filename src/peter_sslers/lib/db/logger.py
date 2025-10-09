@@ -361,19 +361,19 @@ class AcmeLogger(object):
 
         :param acme_version: (required) The ACME version of the API we are using.
         :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
-        :param failtype: (required) A string from :class:`model_utils.AcmeChallengeFailType`
+        :param failtype: (required) A string from :class:`model_utils.AcmeChallenge_FailType`
         :param transaction_commit: (option) Boolean. If True, commit the transaction
         """
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
         if failtype in ("precheck-1", "precheck-2"):
             dbAcmeChallenge.acme_challenge_fail_type_id = (
-                model_utils.AcmeChallengeFailType.from_string("setup-prevalidation")
+                model_utils.AcmeChallenge_FailType.from_string("setup-prevalidation")
             )
             self.dbSession.flush()
         elif failtype in ("fail-1", "fail-2"):
             dbAcmeChallenge.acme_challenge_fail_type_id = (
-                model_utils.AcmeChallengeFailType.from_string("upstream-validation")
+                model_utils.AcmeChallenge_FailType.from_string("upstream-validation")
             )
             self.dbSession.flush()
         else:

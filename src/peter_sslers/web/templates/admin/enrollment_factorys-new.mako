@@ -169,6 +169,12 @@
                             </td>
                         </tr>
                         <tr>
+                            <th>ACME Challenge Duplicate Strategy</th>
+                            <td>
+                                ${admin_partials.formgroup__AcmeChallenge_DuplicateStrategy(via="EnrollmentFactory")}
+                            </td>
+                        </tr>
+                        <tr>
                             <th>label template</th>
                             <td>
                                 ${admin_partials.formgroup__label_template(default="{DOMAIN}")}

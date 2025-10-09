@@ -232,7 +232,13 @@
                 <li><a href="${admin_prefix}/coverage-assurance-events"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    coverage-assurance-events</a></li>
+                    Experimental: coverage-assurance-events</a></li>
+                <li><a href="${admin_prefix}/root-stores"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    Experimental: Root Stores</a></li>
+
+
             </ul>
             ${admin_partials.operations_options(enable_redis=enable_redis,
                                                 enable_nginx=enable_nginx,

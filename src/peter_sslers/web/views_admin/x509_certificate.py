@@ -774,8 +774,8 @@ class View_New(Handler):
             ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
                 self.request.api_context,
                 private_key_pem,
-                private_key_source_id=model_utils.PrivateKeySource.IMPORTED,
-                private_key_type_id=model_utils.PrivateKeyType.STANDARD,
+                private_key_source_id=model_utils.PrivateKey_Source.IMPORTED,
+                private_key_type_id=model_utils.PrivateKey_Type.STANDARD,
                 # TODO: We should infer the above based on the private_key_cycle
                 discovery_type="via upload x509_certificate",
             )
@@ -819,7 +819,7 @@ class View_New(Handler):
                 certificate_pem,
                 cert_domains_expected=_certificate_domain_names,
                 dbX509CertificateTrustChain=dbX509CertificateTrustChain,
-                certificate_type_id=model_utils.CertificateType.RAW_IMPORTED,
+                certificate_type_id=model_utils.X509CertificateType.RAW_IMPORTED,
                 # optionals
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,

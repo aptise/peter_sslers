@@ -97,18 +97,12 @@ from .regex_library import RE_AcmeOrder_btn_deactive_authorizations
 from .regex_library import RE_AcmeOrder_btn_deactive_authorizations__off
 from .regex_library import RE_AcmeOrder_deactivated
 from .regex_library import RE_AcmeOrder_downloaded_certificate
+from .regex_library import RE_AcmeOrder_error
 from .regex_library import RE_AcmeOrder_invalidated
-from .regex_library import RE_AcmeOrder_invalidated_error
 from .regex_library import RE_AcmeOrder_processed
 from .regex_library import RE_AcmeOrder_renewal_configuration
 from .regex_library import RE_AcmeOrder_retry
 from .regex_library import RE_AcmeOrder_status
-from .regex_library import RE_X509CertificateTrusted_uploaded
-from .regex_library import RE_X509CertificateTrustChain_uploaded
-from .regex_library import RE_X509Certificate_button
-from .regex_library import RE_X509Certificate_main
-from .regex_library import RE_X509Certificate_operation_nginx_expire
-from .regex_library import RE_X509Certificate_operation_nginx_expire__GET
 from .regex_library import RE_CoverageAssuranceEvent_mark
 from .regex_library import RE_CoverageAssuranceEvent_mark_nochange
 from .regex_library import RE_Domain_new
@@ -119,6 +113,12 @@ from .regex_library import RE_RenewalConfiguration
 from .regex_library import RE_RenewalConfiguration_link
 from .regex_library import RE_UniqueFQDNSet_modify
 from .regex_library import RE_UniqueFQDNSet_new
+from .regex_library import RE_X509Certificate_button
+from .regex_library import RE_X509Certificate_main
+from .regex_library import RE_X509Certificate_operation_nginx_expire
+from .regex_library import RE_X509Certificate_operation_nginx_expire__GET
+from .regex_library import RE_X509CertificateTrustChain_uploaded
+from .regex_library import RE_X509CertificateTrusted_uploaded
 
 if TYPE_CHECKING:
     from requests import Response
@@ -3538,9 +3538,8 @@ class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
         # default X509CertificateTrusted preferences
         # format: (slot_id, sha1[:8])
         expected_preferences_initial = (
-            ("1", "DAC9024F"),  # trustid_root_x3
-            ("2", "BDB1B93C"),  # isrg_root_x2
-            ("3", "CABD2A79"),  # isrg_root_x1
+            ("1", "BDB1B93C"),  # isrg_root_x2
+            ("2", "CABD2A79"),  # isrg_root_x1
         )
         # calculate the expected matrix after an alteration
         # in this alteration, we swap the first and second items
@@ -3660,8 +3659,11 @@ class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
             """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form. This item can not be increased in priority.</span></div></div>"""
             in res2.text
         )
+
+        idx_last__human = len(expected_preferences_initial)
+
         # last item can not decrease in priority
-        _form = res_forms["form-preferred-prioritize_decrease-3"]
+        _form = res_forms["form-preferred-prioritize_decrease-%s" % idx_last__human]
         res3 = _form.submit()
         assert res3.status_code == 200
         assert (
@@ -3745,7 +3747,7 @@ class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
         _ensure_compliance_form(res3, expected_preferences_added)
 
         # delete
-        form_del = res3.forms["form-preferred-delete-4"]
+        form_del = res3.forms["form-preferred-delete-%s" % (idx_last__human + 1)]
         _submit_fields = dict(form_del.submit_fields())
         assert "fingerprint_sha1" in _submit_fields
         assert (
@@ -3964,9 +3966,10 @@ class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
 
         # last item can not decrease in priority
         # but we MUST use full fingerprints in this context
+        idx_last__human = len(expected_preferences_initial)
         _payload = {
-            "slot": "3",
-            "fingerprint_sha1": expected_preferences_initial[2][1],
+            "slot": idx_last__human,
+            "fingerprint_sha1": expected_preferences_initial[idx_last__human - 1][1],
             "priority": "decrease",
         }
         res = self.testapp.post(
@@ -4091,7 +4094,7 @@ class FunctionalTests_X509CertificateTrustPreferencePolicy(AppTest):
 
         # delete
         _payload = {
-            "slot": 4,
+            "slot": idx_last__human + 1,
             "fingerprint_sha1": dbX509CertificateTrusted_add.fingerprint_sha1,
         }
         res = self.testapp.post(
@@ -4297,9 +4300,6 @@ class FunctionalTests_X509CertificateTrusted(AppTest):
         assert res2.json["result"] == "success"
         # we may not have created this
         assert res2.json["X509CertificateTrusted"]["created"] in (True, False)
-        assert (
-            res2.json["X509CertificateTrusted"]["id"] == 3
-        )  # this is the 3rd item in letsencrypt_info._CERT_CAS_ORDER
         obj_id = res2.json["X509CertificateTrusted"]["id"]
         res3 = self.testapp.get(
             "/.well-known/peter_sslers/x509-certificate-trusted/%s" % obj_id, status=200
@@ -6780,7 +6780,7 @@ class FunctionalTests_PrivateKey(AppTest):
             .filter(
                 model_objects.PrivateKey.is_active.is_(True),
                 model_objects.PrivateKey.private_key_type_id
-                != model_utils.PrivateKeyType.PLACEHOLDER,
+                != model_utils.PrivateKey_Type.PLACEHOLDER,
             )
             .order_by(model_objects.PrivateKey.id.desc())
             .first()
@@ -10312,6 +10312,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         assert RE_AcmeOrder_btn_deactive_authorizations__off.findall(res.text)
 
         # "admin:acme_order:focus:retry",
+        # TODO: test "acme_order-retry-backup" too
         assert "acme_order-retry" in res.forms
         form = res.forms["acme_order-retry"]
         res = form.submit()
@@ -10390,8 +10391,12 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
             {"action": "invalid"},
             status=303,
         )
-        matched = RE_AcmeOrder_invalidated_error.match(res.location)
-        assert matched
+        matched_error = RE_AcmeOrder_error.match(res.location)
+        assert matched_error
+
+        assert res.location.endswith(
+            "?result=error&error=Can+not+mark+this+order+as+%27invalid%27.&operation=mark"
+        )
 
         # grab the order
         res = self.testapp.get(
@@ -10403,6 +10408,7 @@ class IntegratedTests_AcmeServer_AcmeOrder(AppTest):
         obj_id__4: int
 
         # "admin:acme_order:focus:retry",
+        # TODO: test "acme_order-retry-backup" too
         if "acme_order-retry" in res.forms:
             form = res.forms["acme_order-retry"]
             res = form.submit()
@@ -12585,9 +12591,9 @@ class IntegratedTests_Renewals(AppTestWSGI):
             print("just: routine__renew_expiring-2")
 
 
-class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
+class IntegratedTests_AcmeOrder_PrivateKey_Cycles(AppTestWSGI):
     """
-    python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeOrder_PrivateKeyCycles
+    python -m unittest tests.test_pyramid_app.IntegratedTests_AcmeOrder_PrivateKey_Cycles
     """
 
     @unittest.skipUnless(RUN_API_TESTS__EXTENDED, "Not Running Extended Tests")
@@ -12602,7 +12608,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
 
         def _update_AcmeAccount(acc__pkey_cycle: str, acc__pkey_technology: str):
             dbAcmeAccount.order_default_private_key_cycle_id = (
-                model_utils.PrivateKeyCycle.from_string(acc__pkey_cycle)
+                model_utils.PrivateKey_Cycle.from_string(acc__pkey_cycle)
             )
             dbAcmeAccount.order_default_private_key_technology_id = (
                 model_utils.KeyTechnology.from_string(acc__pkey_technology)
@@ -12611,7 +12617,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
 
         # # original idea was to edit a RenewalConfiguration, but RCs do not support edit
         # def _update_RenewalConfiguration(rc__pkey_cycle: str, rc__pkey_technology: str):
-        #    dbRenewalConfiguration.private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(rc__pkey_cycle)
+        #    dbRenewalConfiguration.private_key_cycle_id = model_utils.PrivateKey_Cycle.from_string(rc__pkey_cycle)
         #    dbRenewalConfiguration.private_key_technology_id = model_utils.KeyTechnology.from_string(rc__pkey_technology)
         #    self.ctx.pyramid_transaction_commit()
 
@@ -12647,7 +12653,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
         # iterate: AcmeAccount.private_key_cycle
         for (
             acc__pkey_cycle
-        ) in model_utils.PrivateKeyCycle._options_AcmeAccount_order_default:
+        ) in model_utils.PrivateKey_Cycle._options_AcmeAccount_order_default:
             # iterate: AcmeAccount.private_key_technology
             for (
                 acc__pkey_technology
@@ -12662,7 +12668,7 @@ class IntegratedTests_AcmeOrder_PrivateKeyCycles(AppTestWSGI):
                 for (
                     rc__pkey_cycle
                 ) in (
-                    model_utils.PrivateKeyCycle._options_RenewalConfiguration_private_key_cycle
+                    model_utils.PrivateKey_Cycle._options_RenewalConfiguration_private_key_cycle
                 ):
 
                     # iterate: RenewalConfiguration.private_key_technology
@@ -13662,7 +13668,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert res4.json["result"] == "error"
         assert (
             res4.json["form_errors"]["domain_name"]
-            == "This endpoint currently supports only 1 domain name"
+            == "This endpoint currently supports only 1 domain name."
         )
 
         # Pass 3 - Try a failure domain

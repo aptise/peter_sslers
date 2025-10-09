@@ -1864,6 +1864,7 @@ class AuthenticatedUser(object):
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
                 updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
                 dbAcmeAuthorization=None,  # ???: should we have this?
+                dbAcmeOrder=dbAcmeOrder,
                 acme_challenge_type_id__preferred=None,
                 domains_challenged=domains_challenged,
                 transaction_commit=transaction_commit,
@@ -2053,6 +2054,7 @@ class AuthenticatedUser(object):
         update_AcmeChallenge_status: Callable,
         updated_AcmeOrder_ProcessingStatus: Callable,
         dbAcmeAuthorization: Optional["AcmeAuthorization"] = None,
+        dbAcmeOrder: Optional["AcmeOrder"] = None,
         acme_challenge_type_id__preferred: Optional[int] = None,
         domains_challenged: Optional["DomainsChallenged"] = None,
         transaction_commit: Optional[bool] = None,
@@ -2066,7 +2068,7 @@ class AuthenticatedUser(object):
 
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param authorization_url: (required) The url of the authorization
-        :param acme_challenge_type_id__preferred: An `int` representing a :class:`model.utils.AcmeChallengeType` challenge; `domains_challenged`
+        :param acme_challenge_type_id__preferred: An `int` representing a :class:`model.utils.AcmeChallenge_Type` challenge; `domains_challenged`
         :param domains_challenged: An instance of
             :class:`model.utils.DomainsChallenged` that can indicate which
             challenge is preferred; or `acme_challenge_type_id__preferred`
@@ -2081,6 +2083,7 @@ class AuthenticatedUser(object):
             dbAcmeChallenge, acme_order_processing_status_id, transaction_commit)``
         :param dbAcmeAuthorization: A :class:`model.objects.AcmeAuthorization`
             instance
+        :param dbAcmeOrder: A :class:`model.objects.Order` instance
         :param transaction_commit: (required) Boolean. Must indicate that we
             will invoke this outside of transactions
 
@@ -2107,7 +2110,7 @@ class AuthenticatedUser(object):
         if acme_challenge_type_id__preferred:
             if (
                 acme_challenge_type_id__preferred
-                not in model_utils.AcmeChallengeType._mapping
+                not in model_utils.AcmeChallenge_Type._mapping
             ):
                 raise ValueError("invalid `acme_challenge_type_id__preferred`")
 
@@ -2166,7 +2169,11 @@ class AuthenticatedUser(object):
         if not acme_challenge_type_id__preferred:
             assert domains_challenged
             acme_challenge_type_id__preferred = (
-                domains_challenged.domain_to_challenge_type_id(_response_domain)
+                domains_challenged.domain_to_challenge_type_id(
+                    ctx=ctx,
+                    domain_name=_response_domain,
+                    dbAcmeOrder=dbAcmeOrder,
+                )
             )
 
         # once we inspect the url, we have the domain
@@ -2211,7 +2218,7 @@ class AuthenticatedUser(object):
                 "http-01",
             ],
         )
-        _acme_challenge_type = model_utils.AcmeChallengeType._mapping[
+        _acme_challenge_type = model_utils.AcmeChallenge_Type._mapping[
             acme_challenge_type_id__preferred
         ]
         _acme_challenge_selected = filter_specific_challenge(

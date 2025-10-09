@@ -51,6 +51,15 @@ provide a commandline interface to batch POSTing data to the PeterSSLers server;
 one could use `curl` or write their own tools.
 
 
+## Why is there no user/account authorization?
+
+There is no concept of users/accounts for 3 primary reasons:
+
+1- Lack of necessity/utility.
+2- Significantly more complex.
+3- This would be an anti-pattern to commandline interface.
+
+
 ## What happens if multiple Certificates are available for a Domain ?
 
 Multiple Domains on a Certificate make this part of management epically &

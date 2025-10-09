@@ -191,8 +191,8 @@ def validate_label_template(template: str) -> Tuple[bool, Optional[str]]:
 def validate_domains_template(
     template: str,
     acme_challenge_type_id: Literal[
-        model_utils.AcmeChallengeType_Enum.DNS_01,
-        model_utils.AcmeChallengeType_Enum.HTTP_01,
+        model_utils.AcmeChallenge_Type_Enum.DNS_01,
+        model_utils.AcmeChallenge_Type_Enum.HTTP_01,
     ],
 ) -> Tuple[Optional[str], Optional[str]]:
     """
@@ -218,7 +218,7 @@ def validate_domains_template(
 
     ds = [i.strip() for i in _templated.split(",")]
     try:
-        if acme_challenge_type_id == model_utils.AcmeChallengeType_Enum.DNS_01:
+        if acme_challenge_type_id == model_utils.AcmeChallenge_Type_Enum.DNS_01:
             # IMPORTANT RFC 8738
             #       https://www.rfc-editor.org/rfc/rfc8738#section-7
             #       The existing "dns-01" challenge MUST NOT be used to validate IP identifiers.
@@ -229,7 +229,7 @@ def validate_domains_template(
                 allow_ipv4=False,
                 allow_ipv6=False,  # DNS-01 not allowed for IPs via RFC
             )
-        elif acme_challenge_type_id == model_utils.AcmeChallengeType_Enum.HTTP_01:
+        elif acme_challenge_type_id == model_utils.AcmeChallenge_Type_Enum.HTTP_01:
             cert_utils.validate_domains(
                 ds,
                 allow_hostname=True,

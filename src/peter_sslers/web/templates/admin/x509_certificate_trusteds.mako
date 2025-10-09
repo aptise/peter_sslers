@@ -14,6 +14,10 @@
 <%block name="page_header_col">
     <h2>X509CertificateTrusteds</h2>
     <p>
+        This contains X509 Certificates that are both TrustRoots and CertificateAuthority Intermediates.
+    </p>
+
+    <p>
         X509CertificateTrusteds can be initialized and updated by probing the LetsEncrypt service;
         see <a class="btn btn-xs btn-warning" href="${admin_prefix}/api">Api Endpoints</a>.
     

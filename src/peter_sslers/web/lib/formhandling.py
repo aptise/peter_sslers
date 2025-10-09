@@ -18,6 +18,10 @@ if TYPE_CHECKING:
 # ==============================================================================
 
 
+if False:
+    pyramid_formencode_classic.objects.DEBUG_FAILS = True
+
+
 TEMPLATE_FORMSTASH_ERRORS = (
     """<div class="alert alert-danger"><div class="control-group error">"""
     """<span class="help-inline">%(error)s</span>"""

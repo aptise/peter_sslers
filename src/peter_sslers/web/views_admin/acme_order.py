@@ -1,9 +1,11 @@
 # stdlib
 import logging
+from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
+from urllib.parse import quote_plus
 
 # pypi
 from pyramid.httpexceptions import HTTPNotFound
@@ -17,7 +19,9 @@ from ..lib import form_utils
 from ..lib import formhandling
 from ..lib.docs import docify
 from ..lib.docs import formatted_get_docs
+from ..lib.forms import Form_AcmeOrder_mark
 from ..lib.forms import Form_AcmeOrder_new_freeform
+from ..lib.forms import Form_AcmeOrder_retry
 from ..lib.handler import Handler
 from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
@@ -32,6 +36,178 @@ if TYPE_CHECKING:
 log = logging.getLogger("peter_sslers.web")
 
 # ==============================================================================
+
+
+def submit__acme_server_deactivate_authorizations(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[AcmeOrder, Optional[Exception]]:
+    """
+    Returns: AcmeOrder
+    """
+    try:
+        if not acknowledge_transaction_commits:
+            raise errors.AcknowledgeTransactionCommitRequired()
+
+        if not dbAcmeOrder.is_can_acme_server_deactivate_authorizations:
+            raise errors.InvalidRequest(
+                "ACME Server Deactivate Authorizations is not allowed for this AcmeOrder"
+            )
+        # deactivate the authz
+        result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(  # noqa: F841
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+        # then sync the authz
+        dbAcmeOrder = (
+            lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
+                request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
+            )
+        )
+        # then sync the AcmeOrder
+        dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+
+        # deactivate any authz potentials
+        lib_db.update.update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+        )
+
+        return dbAcmeOrder, None
+
+    except Exception as exc:
+        return dbAcmeOrder, exc
+
+
+def submit__acme_server_download_certificate(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[AcmeOrder, Optional[Exception]]:
+    """
+    Returns: AcmeOrder
+    """
+    try:
+        if not acknowledge_transaction_commits:
+            raise errors.AcknowledgeTransactionCommitRequired()
+
+        if dbAcmeOrder.is_certificate_downloaded:
+            raise errors.InvalidRequest("The Certificate has already been downloaded.")
+
+        if not dbAcmeOrder.is_can_acme_server_download_certificate:
+            raise errors.InvalidRequest(
+                "ACME Certificate Download is not allowed for this AcmeOrder."
+            )
+
+        dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+
+        return dbAcmeOrder, None
+
+    except Exception as exc:
+        return dbAcmeOrder, exc
+
+
+def submit__acme_server_finalize(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[AcmeOrder, Optional[Exception]]:
+    """
+    Returns: AcmeOrder
+    """
+    try:
+        if not acknowledge_transaction_commits:
+            raise errors.AcknowledgeTransactionCommitRequired()
+
+        if not dbAcmeOrder.is_can_acme_finalize:
+            raise errors.InvalidRequest(
+                "ACME Finalize is not allowed for this AcmeOrder"
+            )
+        dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+
+        return dbAcmeOrder, None
+
+    except Exception as exc:
+        return dbAcmeOrder, exc
+
+
+def submit__acme_server_sync(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[AcmeOrder, Optional[Exception]]:
+    """
+    Returns: AcmeOrder
+    """
+    try:
+        if not acknowledge_transaction_commits:
+            raise errors.AcknowledgeTransactionCommitRequired()
+
+        if not dbAcmeOrder.is_can_acme_server_sync:
+            raise errors.InvalidRequest(
+                "ACME Server Sync is not allowed for this AcmeOrder"
+            )
+        dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+        return dbAcmeOrder, None
+
+    except Exception as exc:
+        return dbAcmeOrder, exc
+
+
+def submit__acme_server_sync_authorizations(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[AcmeOrder, Optional[Exception]]:
+    """
+    Returns: AcmeOrder
+    """
+    try:
+        if not acknowledge_transaction_commits:
+            raise errors.AcknowledgeTransactionCommitRequired()
+
+        if not dbAcmeOrder.is_can_acme_server_sync:
+            raise errors.InvalidRequest(
+                "ACME Server Sync is not allowed for this AcmeOrder"
+            )
+        # sync the authz
+        dbAcmeOrder = (
+            lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
+                request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=True,
+            )
+        )
+        # sync the AcmeOrder just to be safe
+        dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+        return dbAcmeOrder, None
+
+    except Exception as exc:
+        return dbAcmeOrder, exc
 
 
 def submit__new_freeform(
@@ -76,10 +252,28 @@ def submit__new_freeform(
     if not result:
         raise formhandling.FormInvalid(formStash)
 
+    # how to handle duplicate challenges for a domain?
+    acme_challenge_duplicate_strategy = formStash.results[
+        "acme_challenge_duplicate_strategy"
+    ]
+    acme_challenge_duplicate_strategy_id = (
+        model_utils.AcmeChallenge_DuplicateStrategy.from_string(
+            acme_challenge_duplicate_strategy
+        )
+    )
+    if (
+        acme_challenge_duplicate_strategy_id
+        not in model_utils.AcmeChallenge_DuplicateStrategy._options_RenewalConfiguration_id
+    ):
+        formStash.fatal_field(
+            field="acme_challenge_duplicate_strategy", error_field="invalid"
+        )
+
     domains_challenged = form_utils.form_domains_challenge_typed(
         request,
         formStash,
         dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
+        acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
     )
 
     is_duplicate_renewal_configuration = None
@@ -121,7 +315,7 @@ def submit__new_freeform(
         # PRIMARY cert
         acme_profile__primary = formStash.results["acme_profile__primary"]
         private_key_cycle__primary = formStash.results["private_key_cycle__primary"]
-        private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle_id__primary = model_utils.PrivateKey_Cycle.from_string(
             private_key_cycle__primary
         )
         private_key_technology_id__primary = (
@@ -150,7 +344,7 @@ def submit__new_freeform(
                     field="private_key_cycle__backup",
                     error_field="Required for Backup Certificates",
                 )
-            private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle_id__backup = model_utils.PrivateKey_Cycle.from_string(
                 private_key_cycle__backup
             )
             private_key_technology_id__backup = (
@@ -232,6 +426,7 @@ def submit__new_freeform(
             dbRenewalConfiguration = lib_db.create.create__RenewalConfiguration(
                 request.api_context,
                 domains_challenged=domains_challenged,
+                acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
                 # PRIMARY cert
                 dbAcmeAccount__primary=acmeAccountSelection__primary.AcmeAccount,
                 private_key_cycle_id__primary=private_key_cycle_id__primary,
@@ -253,6 +448,9 @@ def submit__new_freeform(
             is_duplicate_renewal_configuration = True
             # we could raise exc to abort, but this is likely preferred
             dbRenewalConfiguration = exc.args[0]
+
+        # commit this
+        request.api_context.pyramid_transaction_commit()
 
         # unused because we're not uploading accounts
         # migrate_a = formStash.results["account__order_default_private_key_technology"]
@@ -279,7 +477,7 @@ def submit__new_freeform(
                 request.api_context,
                 dbRenewalConfiguration=dbRenewalConfiguration,
                 processing_strategy=processing_strategy,
-                acme_order_type_id=model_utils.AcmeOrderType.ACME_ORDER_NEW_FREEFORM,
+                acme_order_type_id=model_utils.AcmeOrder_Type.ACME_ORDER_NEW_FREEFORM,
                 note=note,
                 dbPrivateKey=privateKeySelection__primary.PrivateKey,
                 transaction_commit=True,
@@ -347,6 +545,128 @@ def submit__new_freeform(
             error_field="Unknown acme_profile (%s); not one of: %s."
             % (exc.args[1], exc.args[2]),
         )
+
+
+def submit__process(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[AcmeOrder, Optional[Exception]]:
+    """
+    Returns: AcmeOrder
+    """
+    try:
+        if not acknowledge_transaction_commits:
+            raise errors.AcknowledgeTransactionCommitRequired()
+
+        if not dbAcmeOrder.is_can_acme_process:
+            raise errors.InvalidRequest(
+                "ACME Process is not allowed for this AcmeOrder"
+            )
+
+        dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__process(
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+        return dbAcmeOrder, None
+
+    except Exception as exc:
+        return dbAcmeOrder, exc
+
+
+def submit__mark(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[AcmeOrder, Optional[str]]:
+    """
+    Returns: Tuple[AcmeOrder, action]
+    """
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    action = request.params.get("action", None)
+    if action == "invalid":
+        if not dbAcmeOrder.is_can_mark_invalid:
+            raise errors.InvalidRequest("Can not mark this order as 'invalid'.")
+        lib_db.actions_acme.updated_AcmeOrder_status(
+            request.api_context,
+            dbAcmeOrder,
+            {
+                "status": "invalid",
+            },
+            transaction_commit=True,
+        )
+
+    elif action == "deactivate":
+        lib_db.update.update_AcmeOrder_deactivate(
+            request.api_context,
+            dbAcmeOrder,
+            is_manual=True,
+        )
+
+    else:
+        raise errors.InvalidRequest("invalid `action`")
+
+    return dbAcmeOrder, action
+
+
+def submit__retry(
+    request: "Request",
+    dbAcmeOrder: "AcmeOrder",
+    acknowledge_transaction_commits: Optional[Literal[True]] = None,
+) -> Tuple[Optional[AcmeOrder], Optional[str]]:
+    """
+    returns [AcmeOrder, error]
+    note: AcmeOrder can be returned with an error
+    """
+    if not acknowledge_transaction_commits:
+        raise errors.AcknowledgeTransactionCommitRequired()
+
+    (result, formStash) = formhandling.form_validate(
+        request,
+        schema=Form_AcmeOrder_retry,
+        validate_get=False,
+        # allow an empty POST, which will then invoke `if_missing` for the default
+        allow_empty=True,
+    )
+    if not result:
+        raise formhandling.FormInvalid(formStash)
+
+    if not dbAcmeOrder.is_can_acme_server_sync:
+        formStash.fatal_form(
+            error_main="ACME Retry is not allowed for this AcmeOrder (I)"
+        )
+    if not dbAcmeOrder.is_can_retry:
+        formStash.fatal_form(
+            error_main="ACME Retry is not allowed for this AcmeOrder (II)"
+        )
+
+    acme_order_retry_strategy_id = model_utils.AcmeOrder_RetryStrategy.from_string(
+        formStash.results["acme_order_retry_strategy"]
+    )
+
+    try:
+        dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__retry(
+            request.api_context,
+            dbAcmeOrder=dbAcmeOrder,
+            acme_order_retry_strategy_id=acme_order_retry_strategy_id,
+            transaction_commit=True,
+        )
+        return dbAcmeOrderNew, None
+
+    except errors.AcmeOrderCreatedError as exc:
+        # unpack a `errors.AcmeOrderCreatedError` to local vars
+        dbAcmeOrderNew = exc.acme_order
+        exc = exc.original_exception
+        return dbAcmeOrderNew, exc.args[0]
+
+    except errors.DuplicateAcmeOrder as exc:
+        return None, exc.args[0]
+
+    except Exception as exc:
+        return None, exc.args[0]
 
 
 class View_List(Handler):
@@ -791,15 +1111,13 @@ class View_Focus_Manipulate(View_Focus):
                 % self._focus_url
             )
         try:
-            if not dbAcmeOrder.is_can_acme_server_sync:
-                raise errors.InvalidRequest(
-                    "ACME Server Sync is not allowed for this AcmeOrder"
-                )
-            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
-                self.request.api_context,
+            dbAcmeOrder, exc = submit__acme_server_sync(
+                self.request,
                 dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
+                acknowledge_transaction_commits=True,
             )
+            if exc:
+                raise exc
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -809,19 +1127,19 @@ class View_Focus_Manipulate(View_Focus):
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+sync" % self._focus_url
             )
-        except (
-            errors.AcmeError,
-            errors.InvalidRequest,
-        ) as exc:
+        except Exception as exc:
+            error = str(exc)
+            if isinstance(exc, (errors.AcmeError, errors.InvalidRequest)):
+                error = exc.args[0]
             if self.request.wants_json:
                 return {
                     "result": "error",
                     "operation": "acme-server/sync",
-                    "error": str(exc),
+                    "error": error,
                 }
             return HTTPSeeOther(
                 "%s?result=error&error=%s&operation=acme+server+sync"
-                % (self._focus_url, exc.as_querystring)
+                % (self._focus_url, quote_plus(error))
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -861,22 +1179,13 @@ class View_Focus_Manipulate(View_Focus):
                 % self._focus_url
             )
         try:
-            if not dbAcmeOrder.is_can_acme_server_sync:
-                raise errors.InvalidRequest(
-                    "ACME Server Sync is not allowed for this AcmeOrder"
-                )
-            # sync the authz
-            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
-                self.request.api_context,
+            dbAcmeOrder, exc = submit__acme_server_sync_authorizations(
+                self.request,
                 dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
+                acknowledge_transaction_commits=True,
             )
-            # sync the AcmeOrder just to be safe
-            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
-                self.request.api_context,
-                dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
-            )
+            if exc:
+                raise exc
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -887,19 +1196,19 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=success&operation=acme+server+sync+authorizations"
                 % self._focus_url
             )
-        except (
-            errors.AcmeError,
-            errors.InvalidRequest,
-        ) as exc:
+        except Exception as exc:
+            error = str(exc)
+            if isinstance(exc, (errors.AcmeError, errors.InvalidRequest)):
+                error = exc.args[0]
             if self.request.wants_json:
                 return {
                     "result": "error",
                     "operation": "acme-server/sync-authorizations",
-                    "error": str(exc),
+                    "error": error,
                 }
             return HTTPSeeOther(
                 "%s?result=error&error=%s&operation=acme+server+sync+authorizations"
-                % (self._focus_url, exc.as_querystring)
+                % (self._focus_url, quote_plus(error))
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -925,7 +1234,10 @@ class View_Focus_Manipulate(View_Focus):
     )
     def acme_server_deactivate_authorizations(self):
         """
-        deactivate any auths on the server.
+        Deactivate any auths on the server.
+        Note: Authz are not necessarily bound to a single order, such as with
+              LetsEncrypt; therefore, deactivating an AcmeOrder will not
+              necessarily deactivate the Authz.
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
@@ -939,35 +1251,13 @@ class View_Focus_Manipulate(View_Focus):
                 % self._focus_url
             )
         try:
-            if not dbAcmeOrder.is_can_acme_server_deactivate_authorizations:
-                raise errors.InvalidRequest(
-                    "ACME Server Deactivate Authorizations is not allowed for this AcmeOrder"
-                )
-            # deactivate the authz
-            result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(  # noqa: F841
-                self.request.api_context,
+            dbAcmeOrder, exc = submit__acme_server_deactivate_authorizations(
+                self.request,
                 dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
+                acknowledge_transaction_commits=True,
             )
-            # then sync the authz
-            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
-                self.request.api_context,
-                dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
-            )
-            # then sync the AcmeOrder
-            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
-                self.request.api_context,
-                dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
-            )
-
-            # deactivate any authz potentials
-            lib_db.update.update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
-                self.request.api_context,
-                dbAcmeOrder=dbAcmeOrder,
-            )
-
+            if exc:
+                raise exc
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -978,19 +1268,19 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=success&operation=acme+server+deactivate+authorizations"
                 % self._focus_url
             )
-        except (
-            errors.AcmeError,
-            errors.InvalidRequest,
-        ) as exc:
+        except Exception as exc:
+            error = str(exc)
+            if isinstance(exc, (errors.AcmeError, errors.InvalidRequest)):
+                error = exc.args[0]
             if self.request.wants_json:
                 return {
                     "result": "error",
                     "operation": "acme-server/deactivate-authorizations",
-                    "error": str(exc),
+                    "error": error,
                 }
             return HTTPSeeOther(
                 "%s?result=error&error=%s&operation=acme+server+deactivate+authorizations"
-                % (self._focus_url, exc.as_querystring)
+                % (self._focus_url, quote_plus(error))
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1030,13 +1320,13 @@ class View_Focus_Manipulate(View_Focus):
                 % self._focus_url
             )
         try:
-            dbAcmeOrder = (
-                lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
-                    self.request.api_context,
-                    dbAcmeOrder=dbAcmeOrder,
-                    transaction_commit=True,
-                )
+            dbAcmeOrder, exc = submit__acme_server_download_certificate(
+                self.request,
+                dbAcmeOrder=dbAcmeOrder,
+                acknowledge_transaction_commits=True,
             )
+            if exc:
+                raise exc
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -1047,19 +1337,19 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=success&operation=acme+server+download+certificate"
                 % self._focus_url
             )
-        except (
-            errors.AcmeError,
-            errors.InvalidRequest,
-        ) as exc:
+        except Exception as exc:
+            error = str(exc)
+            if isinstance(exc, (errors.AcmeError, errors.InvalidRequest)):
+                error = exc.args[0]
             if self.request.wants_json:
                 return {
                     "result": "error",
                     "operation": "acme-server/download-certificate",
-                    "error": str(exc),
+                    "error": error,
                 }
             return HTTPSeeOther(
                 "%s?result=error&error=%s&operation=acme+server+download+certificate"
-                % (self._focus_url, exc.as_querystring)
+                % (self._focus_url, quote_plus(error))
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1090,15 +1380,13 @@ class View_Focus_Manipulate(View_Focus):
                 % self._focus_url
             )
         try:
-            if not dbAcmeOrder.is_can_acme_process:
-                raise errors.InvalidRequest(
-                    "ACME Process is not allowed for this AcmeOrder"
-                )
-            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__process(
-                self.request.api_context,
+            dbAcmeOrder, exc = submit__process(
+                self.request,
                 dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
+                acknowledge_transaction_commits=True,
             )
+            if exc:
+                raise exc
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -1108,31 +1396,19 @@ class View_Focus_Manipulate(View_Focus):
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+process" % self._focus_url
             )
-        except (
-            errors.AcmeError,
-            errors.InvalidRequest,
-        ) as exc:
-            if self.request.wants_json:
-                return {
-                    "result": "error",
-                    "operation": "acme-process",
-                    "error": str(exc),
-                }
-            return HTTPSeeOther(
-                "%s?result=error&error=%s&operation=process+order"
-                % (self._focus_url, exc.as_querystring)
-            )
         except Exception as exc:
-            log.critical("Exception: %s", exc)
+            error = str(exc)
+            if isinstance(exc, (errors.AcmeError, errors.InvalidRequest)):
+                error = exc.args[0]
             if self.request.wants_json:
                 return {
                     "result": "error",
                     "operation": "acme-process",
-                    "error": str(exc),
+                    "error": error,
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=%s&operation=process+order"
-                % (self._focus_url, str(exc))
+                "%s?result=error&error=%s&operation=acme+process"
+                % (self._focus_url, quote_plus(error))
             )
 
     @view_config(route_name="admin:acme_order:focus:acme_finalize", renderer=None)
@@ -1163,15 +1439,13 @@ class View_Focus_Manipulate(View_Focus):
                 % self._focus_url
             )
         try:
-            if not dbAcmeOrder.is_can_acme_finalize:
-                raise errors.InvalidRequest(
-                    "ACME Finalize is not allowed for this AcmeOrder"
-                )
-            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
-                self.request.api_context,
+            dbAcmeOrder, exc = submit__acme_server_finalize(
+                self.request,
                 dbAcmeOrder=dbAcmeOrder,
-                transaction_commit=True,
+                acknowledge_transaction_commits=True,
             )
+            if exc:
+                raise exc
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -1181,19 +1455,19 @@ class View_Focus_Manipulate(View_Focus):
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+finalize" % self._focus_url
             )
-        except (
-            errors.AcmeError,
-            errors.InvalidRequest,
-        ) as exc:
+        except Exception as exc:
+            error = str(exc)
+            if isinstance(exc, (errors.AcmeError, errors.InvalidRequest)):
+                error = exc.args[0]
             if self.request.wants_json:
                 return {
                     "result": "error",
                     "operation": "finalize-order",
-                    "error": str(exc),
+                    "error": error,
                 }
             return HTTPSeeOther(
                 "%s?result=error&error=%s&operation=acme+finalize"
-                % (self._focus_url, exc.as_querystring)
+                % (self._focus_url, quote_plus(error))
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1213,16 +1487,16 @@ class View_Focus_Manipulate(View_Focus):
                 "action": "The action",
             },
             "valid_options": {
-                "action": [
-                    "invalid",
-                    "deactivate",
-                ]
+                "action": Form_AcmeOrder_mark.fields["action"].list,
             },
         }
     )
     def mark_order(self):
         """
-        Mark an order
+        Mark an AcmeOrder
+        Note: Authz are not necessarily bound to a single order, such as with
+              LetsEncrypt; therefore, deactivating an AcmeOrder will not
+              necessarily deactivate the Authz.
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
         if self.request.method != "POST":
@@ -1232,30 +1506,13 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=error&operation=mark&message=HTTP+POST+required"
                 % self._focus_url
             )
-        action = self.request.params.get("action", None)
+        action: Optional[str] = None
         try:
-            if action == "invalid":
-                if not dbAcmeOrder.is_can_mark_invalid:
-                    raise errors.InvalidRequest("Can not mark this order as 'invalid'.")
-                lib_db.actions_acme.updated_AcmeOrder_status(
-                    self.request.api_context,
-                    dbAcmeOrder,
-                    {
-                        "status": "invalid",
-                    },
-                    transaction_commit=True,
-                )
-
-            elif action == "deactivate":
-                lib_db.update.update_AcmeOrder_deactivate(
-                    self.request.api_context,
-                    dbAcmeOrder,
-                    is_manual=True,
-                )
-
-            else:
-                raise errors.InvalidRequest("invalid `action`")
-
+            (dbAcmeOrder, action) = submit__mark(
+                self.request,
+                dbAcmeOrder=dbAcmeOrder,
+                acknowledge_transaction_commits=True,
+            )
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -1272,11 +1529,11 @@ class View_Focus_Manipulate(View_Focus):
                 return {
                     "result": "error",
                     "operation": "mark",
-                    "error": str(exc),
+                    "error": exc.args[0],
                 }
             url_failure = "%s?result=error&error=%s&operation=mark" % (
                 self._focus_url,
-                exc.as_querystring,
+                quote_plus(exc.args[0]),
             )
             if action:
                 url_failure = "%s&action=%s" % (url_failure, action)
@@ -1295,6 +1552,14 @@ class View_Focus_Manipulate(View_Focus):
             "GET": None,
             "instructions": "curl {ADMIN_PREFIX}/acme-order/1/retry.json",
             "example": "curl -X POST {ADMIN_PREFIX}/acme-order/1/retry.json",
+            "form_fields": {
+                "acme_order_retry_strategy": "What is the retry strategy?",
+            },
+            "valid_options": {
+                "acme_order_retry_strategy": Form_AcmeOrder_retry.fields[
+                    "acme_order_retry_strategy"
+                ].list,
+            },
         }
     )
     def retry_order(self):
@@ -1302,59 +1567,59 @@ class View_Focus_Manipulate(View_Focus):
         Retry should create a new order
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return formatted_get_docs(self, "/acme-order/{ID}/retry.json")
+            return HTTPSeeOther(
+                "%s?result=error&operation=retry&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
-            if self.request.method != "POST":
+            (dbAcmeOrderNew, error) = submit__retry(
+                self.request,
+                dbAcmeOrder=dbAcmeOrder,
+                acknowledge_transaction_commits=True,
+            )
+            if error:
                 if self.request.wants_json:
-                    return formatted_get_docs(self, "/acme-order/{ID}/retry.json")
-            if not dbAcmeOrder.is_can_acme_server_sync:
-                raise errors.InvalidRequest(
-                    "ACME Retry is not allowed for this AcmeOrder"
-                )
-            try:
-                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__retry(
-                    self.request.api_context,
-                    dbAcmeOrder=dbAcmeOrder,
-                    transaction_commit=True,
-                )
-            except errors.AcmeOrderCreatedError as exc:
-                # unpack a `errors.AcmeOrderCreatedError` to local vars
-                dbAcmeOrderNew = exc.acme_order
-                exc = exc.original_exception
-                if self.request.wants_json:
-                    return {
+                    rval: Dict[str, Any] = {
                         "result": "error",
-                        "error": exc.args[0],
-                        "AcmeOrder": dbAcmeOrderNew.as_json,
+                        "error": error,
                     }
+                    if dbAcmeOrderNew:
+                        rval["AcmeOrder"] = dbAcmeOrderNew.as_json
+                    return rval
                 return HTTPSeeOther(
-                    "%s/acme-order/%s?result=error&error=%s&opertion=retry+order"
+                    "%s/acme-order/%s?result=error&error=%s&operation=retry"
                     % (
                         self.request.admin_url,
-                        dbAcmeOrderNew.id,
-                        exc.as_querystring,
+                        quote_plus(error),
+                        dbAcmeOrderNew.id if dbAcmeOrderNew else dbAcmeOrder.id,
                     )
                 )
+            if TYPE_CHECKING:
+                assert dbAcmeOrderNew
             if self.request.wants_json:
                 return {
                     "result": "success",
                     "AcmeOrder": dbAcmeOrderNew.as_json,
                 }
             return HTTPSeeOther(
-                "%s/acme-order/%s?result=success&operation=retry+order"
+                "%s/acme-order/%s?result=success&operation=retry"
                 % (self.request.admin_url, dbAcmeOrderNew.id)
             )
-        except (
-            errors.AcmeError,
-            errors.InvalidRequest,
-        ) as exc:
+        except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {
                     "result": "error",
-                    "error": exc.args[0],
+                    "form_errors": exc.formStash.errors,
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=%s&operation=retry+order"
-                % (self._focus_url, exc.as_querystring)
+                "%s?result=error&error=%s&operation=retry"
+                % (
+                    self._focus_url,
+                    errors.formstash_to_querystring(exc.formStash),
+                )
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1376,6 +1641,7 @@ class View_New(Handler):
             "instructions": "curl {ADMIN_PREFIX}/acme-order/new/freeform.json",
             "form_fields": {
                 # ALL certs
+                "acme_challenge_duplicate_strategy": "How to handle duplicate challenges for a domain.",
                 "domain_names_dns01": "required; a comma separated list of domain names to process",
                 "domain_names_http01": "required; a comma separated list of domain names to process",
                 "note": "A string to associate with the AcmeOrder.",
@@ -1438,6 +1704,9 @@ class View_New(Handler):
                 ].list,
                 "account_key_option__primary": Form_AcmeOrder_new_freeform.fields[
                     "account_key_option__primary"
+                ].list,
+                "acme_challenge_duplicate_strategy": Form_AcmeOrder_new_freeform.fields[
+                    "acme_challenge_duplicate_strategy"
                 ].list,
                 "private_key_cycle__backup": Form_AcmeOrder_new_freeform.fields[
                     "private_key_cycle__backup"
@@ -1526,7 +1795,7 @@ class View_New(Handler):
             )
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
-                rval = {
+                rval: Dict[str, Any] = {
                     "result": "error",
                     "form_errors": exc.formStash.errors,
                 }

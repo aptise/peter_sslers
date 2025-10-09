@@ -45,7 +45,7 @@
 
     Removed:
         AcmeFlow/AcmeOrderless - this was not worth maintaining
-        removed obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
+        removed obj: `model.objects.AcmeOrder2AcmeChallenge_TypeSpecific`
             replaced by UniquelyChallengedFQDNSet
         removed configuration options; both deprecated in cert_utis and not needed:
             openssl_path
@@ -317,6 +317,10 @@
     CertificateCAPreference is renamed to X509CertificateTrustPreferencePolicyItem
     CertificateCAPreferencePolicy is renamed to X509CertificateTrustPreferencePolicy
     
+    RenewalConfiguration and EnrollmentFactory may now allow conflicting DNS-01/HTTP-01 doomains via ACME Challenge Duplicate Strategy
+    
+    Backup Challenges
+    
 0.6.0
     py3.7+ only (sqlalchemy requirement)
     lib.cert_utils is now a pypi package, cert_utils, that is only py3
@@ -351,7 +355,7 @@
 
     Model Changes:
         Support for specifying the AcmeChallenge on orders:
-            new obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
+            new obj: `model.objects.AcmeOrder2AcmeChallenge_TypeSpecific`
             new rel: `model.objects.AcmeOrder.acme_order_2_acme_challenge_type_specifics`
             new rel: `model.objects.Domain.acme_order_2_acme_challenge_type_specifics`
             new rel: `model.objects.AcmeAuthorization.acme_order_2_acme_challenge_type_specifics`

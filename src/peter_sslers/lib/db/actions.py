@@ -38,6 +38,9 @@ from ...model import objects as model_objects
 from ...model import utils as model_utils
 from ...model.objects import AcmeServer
 from ...model.objects import AriCheck
+from ...model.objects import RootStore
+from ...model.objects import RootStoreVersion
+from ...model.objects import RootStoreVersion_2_X509CertificateTrusted
 from ...model.objects import X509Certificate
 from ...model.utils import AcmeServerInput
 
@@ -160,7 +163,7 @@ def acme_dns__ensure_accounts(
         )
         .filter(
             model_objects.UniquelyChallengedFQDNSet2Domain.acme_challenge_type_id
-            == model_utils.AcmeChallengeType.dns_01,
+            == model_utils.AcmeChallenge_Type.dns_01,
         )
         .all()
     )
@@ -219,14 +222,14 @@ def api_domains__certificate_if_needed(
 
     :param dbAcmeAccount__primary: (required) A :class:`model.objects.AcmeAccount` object
     :param dbPrivateKey__primary: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
-    :param private_key_cycle__primary: (required)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_cycle__primary: (required)  A value from :class:`model.utils.PrivateKey_Cycle`
     :param private_key_technology__primary: (required)  A value from :class:`model.utils.PrivateKeyTechnology`
     :param acme_profile__primary: (optional)
 
     :param dbAcmeAccount__backup: (optional) A :class:`model.objects.AcmeAccount` object
     :param dbPrivateKey__backup: (optional) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param acme_profile__backup: (optional)  str
-    :param private_key_cycle__backup: (optional)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_cycle__backup: (optional)  A value from :class:`model.utils.PrivateKey_Cycle`
     :param private_key_technology__backup: (optional)  A value from :class:`model.utils.PrivateKeyTechnology`
 
     :param note: (optional)  user note
@@ -265,7 +268,7 @@ def api_domains__certificate_if_needed(
     acme_order_processing_strategy_id = (
         model_utils.AcmeOrder_ProcessingStrategy.from_string(processing_strategy)
     )
-    private_key_cycle_id__primary = model_utils.PrivateKeyCycle.from_string(
+    private_key_cycle_id__primary = model_utils.PrivateKey_Cycle.from_string(
         private_key_cycle__primary
     )
     private_key_cycle_id__backup: Optional[int] = None
@@ -278,7 +281,7 @@ def api_domains__certificate_if_needed(
         if not private_key_technology__backup:
             raise errors.DisplayableError("missing `private_key_technology__backup`")
 
-        private_key_cycle_id__backup = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle_id__backup = model_utils.PrivateKey_Cycle.from_string(
             private_key_cycle__backup
         )
         private_key_technology_id__backup = model_utils.KeyTechnology.from_string(
@@ -406,6 +409,7 @@ def api_domains__certificate_if_needed(
                     dbRenewalConfiguration = create.create__RenewalConfiguration(
                         ctx,
                         domains_challenged=_domains_challenged__single,
+                        acme_challenge_duplicate_strategy_id=model_utils.AcmeChallenge_DuplicateStrategy.no_duplicates,
                         # Primary cert
                         dbAcmeAccount__primary=dbAcmeAccount__primary,
                         private_key_technology_id__primary=model_utils.KeyTechnology.from_string(
@@ -433,7 +437,7 @@ def api_domains__certificate_if_needed(
                     ctx,
                     dbRenewalConfiguration=dbRenewalConfiguration,
                     processing_strategy=processing_strategy,
-                    acme_order_type_id=model_utils.AcmeOrderType.CERTIFICATE_IF_NEEDED,
+                    acme_order_type_id=model_utils.AcmeOrder_Type.CERTIFICATE_IF_NEEDED,
                     dbPrivateKey=dbPrivateKey__primary,
                     replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
                     transaction_commit=True,
@@ -1088,7 +1092,11 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
             _dbCACert,
             _is_created,
         ) = getcreate.getcreate__X509CertificateTrusted__by_pem_text(
-            ctx, _root_pem, display_name="Detected Pebble Root", is_trusted_root=True
+            ctx,
+            _root_pem,
+            display_name="Detected Pebble Root",
+            is_trusted_root=True,
+            is_untrusted_root=True,
         )
         dbCACerts.append(_dbCACert)
 
@@ -1096,6 +1104,205 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
     # force_refresh will update
     pebbleServer.local_ca_bundle(ctx, force_refresh=True)
     return True
+
+
+def refresh_roots(
+    ctx: "ApiContext",
+    dbOperationsEvent_child_of: Optional["OperationsEvent"] = None,
+    include_deprecated: bool = False,
+) -> Tuple["OperationsEvent", Dict]:
+    """
+    pebble uses a new ca_cert bundle each time it runs
+    """
+    log.info("refresh_roots")
+
+    event_payload_dict = lib.utils.new_event_payload_dict()
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string("action__refresh_roots"),
+        event_payload_dict,
+        dbOperationsEvent_child_of=dbOperationsEvent_child_of,
+    )
+
+    # remove RootStoreVersion_2_X509CertificateTrusted
+    subq = (
+        ctx.dbSession.query(RootStoreVersion.id)
+        .filter(RootStoreVersion.is_cert_utils_discovery.is_(True))
+        .subquery()
+    )
+    ctx.dbSession.query(RootStoreVersion_2_X509CertificateTrusted).filter(
+        RootStoreVersion_2_X509CertificateTrusted.root_store_version_id.in_(subq)
+    ).delete(synchronize_session=False)
+
+    # remove RootStoreVersion
+    ctx.dbSession.query(RootStoreVersion).filter(
+        RootStoreVersion.is_cert_utils_discovery.is_(True)
+    ).delete(synchronize_session=False)
+
+    # remove RootStore
+    ctx.dbSession.query(RootStore).filter(
+        RootStore.is_cert_utils_discovery.is_(True)
+    ).delete(synchronize_session=False)
+
+    # nestle this import, so we do not load it on every run
+    from cert_utils import letsencrypt_info
+
+    certs = letsencrypt_info.CERT_CAS_DATA
+    certs_order = letsencrypt_info._CERT_CAS_ORDER
+    if include_deprecated:
+        certs = certs + letsencrypt_info.CERT_CAS_DEPRECATED
+        certs_order = certs_order + letsencrypt_info._CERT_CAS_DEPRECATED_ORDER
+
+    # do a quick check
+    _cert_ids = set(certs.keys())
+    _cert_ids_order = set(certs_order)
+    _missing_data = _cert_ids_order - _cert_ids
+    if _missing_data:
+        raise ValueError(
+            "Missing from `letsencrypt_info.CERT_CAS_DATA`: %s" % _missing_data
+        )
+    _unordered = _cert_ids - _cert_ids_order
+    if _unordered:
+        raise ValueError(
+            "Missing from `letsencrypt_info._CERT_CAS_ORDER`: %s" % _unordered
+        )
+    # end check
+
+    certs_discovered = []
+    certs_modified = []
+    certs_lookup = {}  # stash the ones we create for a moment
+    for cert_id in certs_order:
+        cert_data = certs[cert_id]
+        assert cert_data["cert_pem"]
+        _is_created = False
+        dbX509CertificateTrusted = get.get__X509CertificateTrusted__by_pem_text(
+            ctx, cert_data["cert_pem"]
+        )
+        if not dbX509CertificateTrusted:
+            is_trusted_root = cert_data.get("is_trusted_root")
+            is_untrusted_root = cert_data.get("is_untrusted_root")
+            (
+                dbX509CertificateTrusted,
+                _is_created,
+            ) = getcreate.getcreate__X509CertificateTrusted__by_pem_text(
+                ctx,
+                cert_data["cert_pem"],
+                display_name=cert_data["display_name"],
+                is_trusted_root=is_trusted_root,
+                is_untrusted_root=is_untrusted_root,
+                discovery_type="initial setup",
+            )
+            if _is_created:
+                certs_discovered.append(dbX509CertificateTrusted)
+        if "is_trusted_root" in cert_data:
+            if dbX509CertificateTrusted.is_trusted_root != cert_data["is_trusted_root"]:
+                dbX509CertificateTrusted.is_trusted_root = cert_data["is_trusted_root"]
+                if dbX509CertificateTrusted not in certs_discovered:
+                    certs_modified.append(dbX509CertificateTrusted)
+        elif "is_untrusted_root" in cert_data:
+            if (
+                dbX509CertificateTrusted.is_untrusted_root
+                != cert_data["is_untrusted_root"]
+            ):
+                dbX509CertificateTrusted.is_untrusted_root = cert_data[
+                    "is_untrusted_root"
+                ]
+                if dbX509CertificateTrusted not in certs_discovered:
+                    certs_modified.append(dbX509CertificateTrusted)
+        else:
+            attrs = ("display_name",)
+            for _k in attrs:
+                if getattr(dbX509CertificateTrusted, _k) is None:
+                    setattr(dbX509CertificateTrusted, _k, cert_data[_k])  # type: ignore[literal-required]
+                    if dbX509CertificateTrusted not in certs_discovered:
+                        certs_modified.append(dbX509CertificateTrusted)
+
+        if ("compatibility" in cert_data) and (cert_data["compatibility"] is not None):
+            # TODO: migrate to getcreate
+            # TODO: log creation
+            for root_stare_name, root_stare_data in cert_data["compatibility"].items():
+                (version_min, version_max, version_notes) = root_stare_data
+                dbRootStore = (
+                    ctx.dbSession.query(model_objects.RootStore)
+                    .filter(
+                        sqlalchemy.func.lower(model_objects.RootStore.name)
+                        == root_stare_name.lower(),
+                    )
+                    .first()
+                )
+                if not dbRootStore:
+                    dbRootStore = model_objects.RootStore()
+                    dbRootStore.name = root_stare_name
+                    dbRootStore.timestamp_created = ctx.timestamp
+                    dbRootStore.is_cert_utils_discovery = True
+                    ctx.dbSession.add(dbRootStore)
+                    ctx.dbSession.flush(objects=[dbRootStore])
+                dbRootStoreVersion = (
+                    ctx.dbSession.query(model_objects.RootStoreVersion)
+                    .filter(
+                        model_objects.RootStoreVersion.root_store_id == dbRootStore.id,
+                        sqlalchemy.func.lower(
+                            model_objects.RootStoreVersion.version_min
+                        )
+                        == (version_min.lower() if version_min else None),
+                        sqlalchemy.func.lower(
+                            model_objects.RootStoreVersion.version_max
+                        )
+                        == (version_max.lower() if version_max else None),
+                    )
+                    .first()
+                )
+                if not dbRootStoreVersion:
+                    dbRootStoreVersion = model_objects.RootStoreVersion()
+                    dbRootStoreVersion.root_store_id = dbRootStore.id
+                    dbRootStoreVersion.version_min = version_min
+                    dbRootStoreVersion.version_max = version_max
+                    dbRootStoreVersion.version_notes = version_notes
+                    dbRootStoreVersion.is_cert_utils_discovery = True
+                    dbRootStoreVersion.timestamp_created = ctx.timestamp
+                    ctx.dbSession.add(dbRootStoreVersion)
+                    ctx.dbSession.flush(objects=[dbRootStoreVersion])
+
+                dbRootStoreVersion2X509CertificateTrusted = (
+                    ctx.dbSession.query(
+                        model_objects.RootStoreVersion_2_X509CertificateTrusted
+                    )
+                    .filter(
+                        model_objects.RootStoreVersion_2_X509CertificateTrusted.root_store_version_id
+                        == dbRootStoreVersion.id,
+                        model_objects.RootStoreVersion_2_X509CertificateTrusted.x509_certificate_trusted_id
+                        == dbX509CertificateTrusted.id,
+                    )
+                    .first()
+                )
+                if not dbRootStoreVersion2X509CertificateTrusted:
+                    dbRootStoreVersion2X509CertificateTrusted = (
+                        model_objects.RootStoreVersion_2_X509CertificateTrusted()
+                    )
+                    dbRootStoreVersion2X509CertificateTrusted.root_store_version_id = (
+                        dbRootStoreVersion.id
+                    )
+                    dbRootStoreVersion2X509CertificateTrusted.x509_certificate_trusted_id = (
+                        dbX509CertificateTrusted.id
+                    )
+                    ctx.dbSession.add(dbRootStoreVersion2X509CertificateTrusted)
+                    ctx.dbSession.flush(
+                        objects=[dbRootStoreVersion2X509CertificateTrusted]
+                    )
+        certs_lookup[cert_id] = dbX509CertificateTrusted
+
+    # bookkeeping update
+    event_payload_dict["is_certificates_discovered"] = (
+        True if certs_discovered else False
+    )
+    event_payload_dict["is_certificates_updated"] = True if certs_modified else False
+    event_payload_dict["ids_discovered"] = [c.id for c in certs_discovered]
+    event_payload_dict["ids_modified"] = [c.id for c in certs_modified]
+
+    dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+    return dbOperationsEvent, certs_lookup
 
 
 def register_acme_servers(
@@ -1407,7 +1614,7 @@ def routine__order_missing(
             model_objects.AcmeOrder.renewal_configuration_id
             == model_objects.RenewalConfiguration.id,
             model_objects.AcmeOrder.certificate_type_id
-            == model_utils.CertificateType.MANAGED_BACKUP,
+            == model_utils.X509CertificateType.MANAGED_BACKUP,
             model_objects.AcmeOrder.is_processing.is_not(True),
         )
         .exists()
@@ -1437,7 +1644,7 @@ def routine__order_missing(
             model_objects.AcmeOrder.renewal_configuration_id
             == model_objects.RenewalConfiguration.id,
             model_objects.AcmeOrder.certificate_type_id
-            == model_utils.CertificateType.MANAGED_PRIMARY,
+            == model_utils.X509CertificateType.MANAGED_PRIMARY,
             model_objects.AcmeOrder.is_processing.is_not(True),
         )
         .exists()
@@ -1497,7 +1704,7 @@ def routine__order_missing(
 
             def _order_missing(
                 _dbRenewalConfiguration: "RenewalConfiguration",
-                replaces_certificate_type: model_utils.CertificateType_Enum,
+                replaces_certificate_type: model_utils.X509CertificateType_Enum,
             ):
                 nonlocal count_renewals
                 nonlocal count_failures
@@ -1505,12 +1712,12 @@ def routine__order_missing(
                 certificate_concept: str
                 if (
                     replaces_certificate_type
-                    == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                    == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
                 ):
                     certificate_concept = "backup"
                 elif (
                     replaces_certificate_type
-                    == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                    == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
                 ):
                     certificate_concept = "primary"
                 else:
@@ -1536,7 +1743,7 @@ def routine__order_missing(
                         ctx,
                         dbRenewalConfiguration=_dbRenewalConfiguration,
                         processing_strategy="process_single",
-                        acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                        acme_order_type_id=model_utils.AcmeOrder_Type.RENEWAL_CONFIGURATION_AUTOMATED,
                         note=RENEWAL_RUN,
                         replaces=certificate_concept,
                         replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
@@ -1577,7 +1784,7 @@ def routine__order_missing(
                     if "ACME Account" in exc.args[0]:
                         if (
                             replaces_certificate_type
-                            == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                            == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
                         ):
                             print(
                                 "AcmeAccount.id=",
@@ -1585,7 +1792,7 @@ def routine__order_missing(
                             )
                         if (
                             replaces_certificate_type
-                            == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                            == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
                         ):
                             print(
                                 "AcmeAccount.id=",
@@ -1594,7 +1801,7 @@ def routine__order_missing(
                     if "ACME Server" in exc.args[0]:
                         if (
                             replaces_certificate_type
-                            == model_utils.CertificateType_Enum.MANAGED_PRIMARY
+                            == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
                         ):
                             print(
                                 "AcmeServer.id=",
@@ -1602,7 +1809,7 @@ def routine__order_missing(
                             )
                         if (
                             replaces_certificate_type
-                            == model_utils.CertificateType_Enum.MANAGED_BACKUP
+                            == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
                         ):
                             print(
                                 "AcmeServer.id=",
@@ -1631,7 +1838,7 @@ def routine__order_missing(
             for _dbRenewalConfiguration in dbRenewalConfigurations__backup:
                 _order_missing(
                     _dbRenewalConfiguration,
-                    model_utils.CertificateType_Enum.MANAGED_BACKUP,
+                    model_utils.X509CertificateType_Enum.MANAGED_BACKUP,
                 )
                 total_runs += 1
                 if limit and total_runs >= limit:
@@ -1640,7 +1847,7 @@ def routine__order_missing(
             for _dbRenewalConfiguration in dbRenewalConfigurations__primary:
                 _order_missing(
                     _dbRenewalConfiguration,
-                    model_utils.CertificateType_Enum.MANAGED_PRIMARY,
+                    model_utils.X509CertificateType_Enum.MANAGED_PRIMARY,
                 )
                 total_runs += 1
                 if limit and total_runs >= limit:
@@ -1910,7 +2117,7 @@ def routine__renew_expiring(
                 else:
                     try:
                         replaces_certificate_type = (
-                            model_utils.CertificateType.to_CertificateType_Enum(
+                            model_utils.X509CertificateType.to_X509CertificateType_Enum(
                                 dbX509Certificate.acme_order.certificate_type_id
                             )
                         )
@@ -1918,7 +2125,7 @@ def routine__renew_expiring(
                             ctx,
                             dbRenewalConfiguration=dbX509Certificate.acme_order.renewal_configuration,
                             processing_strategy="process_single",
-                            acme_order_type_id=model_utils.AcmeOrderType.RENEWAL_CONFIGURATION_AUTOMATED,
+                            acme_order_type_id=model_utils.AcmeOrder_Type.RENEWAL_CONFIGURATION_AUTOMATED,
                             note=RENEWAL_RUN,
                             replaces=dbX509Certificate.ari_identifier,
                             replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
