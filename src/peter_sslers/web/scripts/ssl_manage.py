@@ -56,6 +56,7 @@ from pyramid.paster import get_app
 from pyramid.request import Request
 import pyramid.scripting
 from pyramid.scripts.common import parse_vars
+from pyramid_formencode_classic.tools import document_form
 from webob.multidict import MultiDict
 
 # local
@@ -425,7 +426,7 @@ def main(argv=sys.argv):
             elif subcommand == "new":
                 # !!!: - new - help
                 if "help" in options:
-                    payload = {"fields": Form_AcmeAccount_new__auth.fields}
+                    payload = {"form": document_form(Form_AcmeAccount_new__auth)}
                     render_data(payload)
                     exit(0)
                 try:
@@ -480,7 +481,7 @@ def main(argv=sys.argv):
             elif subcommand == "new":
                 # !!!: - new - help
                 if "help" in options:
-                    payload = {"fields": Form_AcmeDnsServer_new.fields}
+                    payload = {"form": document_form(Form_AcmeDnsServer_new)}
                     render_data(payload)
                     exit(0)
                 try:
@@ -546,7 +547,7 @@ def main(argv=sys.argv):
             elif subcommand == "mark":
                 # !!!: - mark - help
                 if "help" in options:
-                    payload = {"fields": Form_AcmeOrder_mark.fields}
+                    payload = {"form": document_form(Form_AcmeOrder_mark)}
                     render_data(payload)
                     exit(0)
                 try:
@@ -565,7 +566,7 @@ def main(argv=sys.argv):
             elif subcommand == "retry":
                 # !!!: - retry - help
                 if "help" in options:
-                    payload = {"fields": Form_AcmeOrder_retry.fields}
+                    payload = {"form": document_form(Form_AcmeOrder_retry)}
                     render_data(payload)
                     exit(0)
                 try:
@@ -698,7 +699,7 @@ def main(argv=sys.argv):
                 # ssl_manage data_development enrollment-factory focus id=1 query=1 domain_name=example.com
                 if "query" in options:
                     if "help" in options:
-                        payload = {"fields": Form_EnrollmentFactory_query.fields}
+                        payload = {"form": document_form(Form_EnrollmentFactory_query)}
                         render_data(payload)
                         exit(0)
                     (formStash, dbRenewalConfiguration, dbX509Certificates) = (
@@ -728,7 +729,7 @@ def main(argv=sys.argv):
                 if "help" in options:
                     payload = {
                         "note": "MUST submit `id`",
-                        "fields": Form_EnrollmentFactory_onboard.fields,
+                        "form": document_form(Form_EnrollmentFactory_onboard),
                     }
                     render_data(payload)
                     exit(0)
@@ -761,7 +762,7 @@ def main(argv=sys.argv):
             elif subcommand == "new":
                 # !!!: - new - help
                 if "help" in options:
-                    payload = {"fields": Form_EnrollmentFactory_new.fields}
+                    payload = {"form": document_form(Form_EnrollmentFactory_new)}
                     render_data(payload)
                     exit(0)
                 try:
@@ -855,7 +856,7 @@ def main(argv=sys.argv):
             elif subcommand == "mark":
                 # !!!: - mark - help
                 if "help" in options:
-                    payload = {"fields": Form_RenewalConfiguration_mark.fields}
+                    payload = {"form": document_form(Form_RenewalConfiguration_mark)}
                     render_data(payload)
                     exit(0)
                 try:
@@ -876,7 +877,7 @@ def main(argv=sys.argv):
             elif subcommand == "new":
                 # !!!: - new - help
                 if "help" in options:
-                    payload = {"fields": Form_RenewalConfig_new.fields}
+                    payload = {"form": document_form(Form_RenewalConfig_new)}
                     render_data(payload)
                     exit(0)
                 try:
@@ -899,7 +900,9 @@ def main(argv=sys.argv):
 
                 # !!!: - new-configuration - help
                 if "help" in options:
-                    payload = {"fields": Form_RenewalConfig_new_configuration.fields}
+                    payload = {
+                        "form": document_form(Form_RenewalConfig_new_configuration)
+                    }
                     render_data(payload)
                     exit(0)
                 _dbRenewalConfiguration = _get_RenewalConfiguration()
@@ -924,7 +927,7 @@ def main(argv=sys.argv):
             elif subcommand == "new-order":
                 # !!!: - new-order - help
                 if "help" in options:
-                    payload = {"fields": Form_RenewalConfig_new_order.fields}
+                    payload = {"form": document_form(Form_RenewalConfig_new_order)}
                     render_data(payload)
                     exit(0)
                 _dbRenewalConfiguration = _get_RenewalConfiguration()
@@ -968,8 +971,10 @@ def main(argv=sys.argv):
                 if "help" in options:
                     _payload = {
                         "note": "`id=` is required",
-                        "fields.global": Form_SystemConfiguration_Global_edit.fields,
-                        "fields.others": Form_SystemConfiguration_edit.fields,
+                        "form.global": document_form(
+                            Form_SystemConfiguration_Global_edit
+                        ),
+                        "form.others": document_form(Form_SystemConfiguration_edit),
                     }
                     render_data(_payload)
                     exit(0)
@@ -1014,7 +1019,7 @@ def main(argv=sys.argv):
             elif subcommand == "mark":
                 # !!!: - mark - help
                 if "help" in options:
-                    payload = {"fields": Form_X509Certificate_mark.fields}
+                    payload = {"form": document_form(Form_X509Certificate_mark)}
                     render_data(payload)
                     exit(0)
                 try:
@@ -1026,7 +1031,7 @@ def main(argv=sys.argv):
                     )
                     render_data(
                         _dbX509Certificate.as_json,
-                        success={"action", _action},
+                        success={"action": _action},
                     )
                     exit(0)
                 except formhandling.FormInvalid as exc:
