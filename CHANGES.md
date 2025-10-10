@@ -321,6 +321,10 @@
     
     Backup Challenges
     
+    Added scripts to automate updates:
+        alembic_upgrade_all.py
+        alembic_upgrade_unstamped.py
+    
 0.6.0
     py3.7+ only (sqlalchemy requirement)
     lib.cert_utils is now a pypi package, cert_utils, that is only py3

@@ -145,12 +145,21 @@ The editing is to search for the string `REFERENCES "`,
     cd data_env
     mv ssl_minnow.sqlite _ssl_minnow-backup.sqlite
     sqlite3 _ssl_minnow-backup.sqlite .dump > ssl_minnow.sql
+    # rename the `REFERENCES "table_old"` to `REFERENCES table`
     vi ssl_minnow.sql
     sqlite3 ssl_minnow.sqlite < ssl_minnow.sql
 
+then
 
+    cd ..
+    alembic -c data_env/config.ini upgrade head
 
+or
 
+    python alembic_upgrade_unstamped.py data_staging
+
+    rm ssl_minnow.sql
+    rm _ssl_minnow-backup.sqlite
 
 
 
