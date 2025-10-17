@@ -69,6 +69,7 @@ from ._utils import under_pebble
 from ._utils import under_pebble_alt
 from ._utils import under_pebble_strict
 from ._utils import under_redis
+from ._utils import unset_AcmeOrder_full
 from .regex_library import RE_AcmeAccount_deactivate_pending_post_required
 from .regex_library import RE_AcmeAccount_deactivate_pending_success
 from .regex_library import RE_AcmeAccount_new
@@ -8830,6 +8831,435 @@ class FunctionalTests_AlternateChains(AppTest):
             assert found == expectations
 
 
+def attempt_AcmeOrder_new_freeform(
+    testCase: CustomizedTestCase,
+    account_key_option__primary: str,
+    account_key_option__primary_value: str,
+    account_key_option__backup: str,
+    account_key_option__backup_value: str,
+    processing_strategy: Literal["create_order"],
+    domain_names_http01: Optional[str] = None,
+    domain_names_dns01: Optional[str] = None,
+    acme_challenge_duplicate_strategy: Optional[str] = None,
+    expect_success: Optional[bool] = None,
+    form_errors: Optional[dict] = None,
+) -> Optional[model_objects.AcmeOrder]:
+    """use the json api!"""
+
+    if False:
+        if (domain_names_http01 is None) and (domain_names_dns01 is None):
+            raise ValueError(
+                "must submit either `domain_names_http01` or `domain_names_dns01`"
+            )
+
+    if not any((form_errors, expect_success)) or all((form_errors, expect_success)):
+        raise ValueError(
+            "must submit one and only one of `expect_success` or `form_errors`"
+        )
+
+    form = {}
+
+    # primary cert
+    form["account_key_option__primary"] = account_key_option__primary
+    _primary_translate = {
+        "account_key_global__primary": "account_key_global__primary",
+        "account_key_existing": "account_key_existing__primary",
+        "acme_account_id": "acme_account_id__primary",
+        "acme_account_url": "acme_account_url__primary",
+    }
+    _primary_field = _primary_translate[account_key_option__primary]
+    form[_primary_field] = account_key_option__primary_value
+    form["private_key_option__primary"] = "account_default"
+    form["private_key_cycle__primary"] = "account_default"
+    form["acme_profile__primary"] = "@"
+
+    # backup cert
+    form["account_key_option__backup"] = account_key_option__backup
+    if account_key_option__backup != "none":
+        _backup_translate = {
+            "account_key_global__backup": "account_key_global__backup",
+            "account_key_existing": "account_key_existing__backup",
+            "acme_account_id": "acme_account_id__backup",
+            "acme_account_url": "acme_account_url__backup",
+        }
+        _backup_field = _backup_translate[account_key_option__backup]
+        form[_backup_field] = account_key_option__backup_value
+        form["private_key_option__backup"] = "account_default"
+        form["private_key_cycle__backup"] = "account_default"
+        form["acme_profile__backup"] = "@"
+
+    # core
+    if domain_names_http01 is not None:
+        form["domain_names_http01"] = domain_names_http01
+    if domain_names_dns01 is not None:
+        form["domain_names_dns01"] = domain_names_dns01
+    if acme_challenge_duplicate_strategy is not None:
+        form["acme_challenge_duplicate_strategy"] = acme_challenge_duplicate_strategy
+    form["processing_strategy"] = processing_strategy
+
+    res2 = testCase.testapp.post(
+        "/.well-known/peter_sslers/acme-order/new/freeform.json", form
+    )
+    assert res2.status_code == 200
+
+    try:
+        if expect_success:
+            assert res2.json["result"] == "success"
+            assert "AcmeOrder" in res2.json
+            obj_id = res2.json["AcmeOrder"]["id"]
+            dbAcmeOrder = testCase.ctx.dbSession.query(model_objects.AcmeOrder).get(
+                obj_id
+            )
+            assert dbAcmeOrder
+            return dbAcmeOrder
+
+        assert res2.json["result"] == "error"
+        if form_errors:
+            assert res2.json["form_errors"] == form_errors
+    except:
+        print(res2.json)
+        raise
+
+    return None
+
+
+class FunctionalTests_AcmeChallenge_DuplicateStrategy(AppTest):
+    """
+    pytest tests/test_pyramid_app.py::FunctionalTests_AcmeChallenge_DuplicateStrategy
+    """
+
+    # key is acme_challenge_duplicate_strategy
+    # value is
+    test_conditions = {
+        "no_duplicates": [
+            {
+                "success": False,
+                "domain_names_http01": None,
+                "domain_names_dns01": None,
+                "form_errors": {
+                    "test_AcmeOrder__new_freeform": {
+                        "Error_Main": "There was an error with your form.",
+                        "domain_names_http01": "Please enter a value",
+                    },
+                    "test_EnrollmentFactory_new": {
+                        "Error_Main": "There was an error with your form.",
+                        "domain_template_http01": "Domains HTTP-01 or DNS-01 MUST be specified",
+                    },
+                    "test_RenewalConfiguration_new": {
+                        "Error_Main": "There was an error with your form.",
+                        "domain_names_http01": "Please enter a value",
+                    },
+                },
+            },
+            {
+                "success": True,
+                "domain_names_http01": "example.com",
+                "domain_names_dns01": None,
+            },
+            {
+                "success": True,
+                "domain_names_http01": None,
+                "domain_names_dns01": "example.com",
+            },
+            {
+                "success": False,
+                "domain_names_http01": "example.com",
+                "domain_names_dns01": "example.com",
+                "form_errors": {
+                    "test_AcmeOrder__new_freeform": {
+                        "Error_Main": "There was an error with your form. A domain name can only be associated to one challenge type."
+                    }
+                },
+            },
+        ],
+        "http_01__dns_01": [
+            {
+                "success": False,
+                "domain_names_http01": None,
+                "domain_names_dns01": None,
+                "form_errors": {
+                    "test_AcmeOrder__new_freeform": {
+                        "Error_Main": "There was an error with your form.",
+                        "domain_names_http01": "Please enter a value",
+                    },
+                },
+            },
+            {
+                "success": True,
+                "domain_names_http01": "example.com",
+                "domain_names_dns01": None,
+            },
+            {
+                "success": True,
+                "domain_names_http01": None,
+                "domain_names_dns01": "example.com",
+            },
+            {
+                "success": True,
+                "domain_names_http01": "example.com",
+                "domain_names_dns01": "example.com",
+            },
+        ],
+        "dns_01__http_01": [
+            {
+                "success": False,
+                "domain_names_http01": None,
+                "domain_names_dns01": None,
+                "form_errors": {
+                    "test_AcmeOrder__new_freeform": {
+                        "Error_Main": "There was an error with your form.",
+                        "domain_names_http01": "Please enter a value",
+                    }
+                },
+            },
+            {
+                "success": True,
+                "domain_names_http01": "example.com",
+                "domain_names_dns01": None,
+            },
+            {
+                "success": True,
+                "domain_names_http01": None,
+                "domain_names_dns01": "example.com",
+            },
+            {
+                "success": True,
+                "domain_names_http01": "example.com",
+                "domain_names_dns01": "example.com",
+            },
+        ],
+    }
+
+    def _get_form_errors(self, test_name: str, test_data: Dict) -> Optional[Dict]:
+        if "form_errors" in test_data:
+            if test_name in test_data["form_errors"]:
+                return test_data["form_errors"][test_name]
+        return None
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
+    @routes_tested(("admin:acme_order:new:freeform|json"))
+    def test_AcmeOrder__new_freeform(self):
+        """
+        pytest tests/test_pyramid_app.py::FunctionalTests_AcmeChallenge_DuplicateStrategy::test_AcmeOrder__new_freeform
+        """
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        for (
+            acme_challenge_duplicate_strategy,
+            strategy_tests,
+        ) in self.test_conditions.items():
+            for idx, test_data in enumerate(strategy_tests):
+                form_errors = self._get_form_errors(
+                    "test_AcmeOrder__new_freeform", test_data
+                )
+                dbAcmeOrder = attempt_AcmeOrder_new_freeform(
+                    self,
+                    account_key_option__primary="account_key_global__primary",
+                    account_key_option__primary_value=dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5,
+                    account_key_option__backup="account_key_global__backup",
+                    account_key_option__backup_value=dbSystemConfiguration_global.acme_account__backup.acme_account_key.key_pem_md5,
+                    processing_strategy="create_order",
+                    acme_challenge_duplicate_strategy=acme_challenge_duplicate_strategy,
+                    domain_names_http01=test_data["domain_names_http01"],
+                    domain_names_dns01=test_data["domain_names_dns01"],
+                    expect_success=test_data["success"],
+                    form_errors=form_errors,
+                )
+                if dbAcmeOrder:
+                    result = unset_AcmeOrder_full(self, dbAcmeOrder)
+                    self.ctx.pyramid_transaction_commit()
+
+    @routes_tested(
+        ("admin:enrollment_factory:new|json"), ("admin:enrollment_factory:onboard|json")
+    )
+    def test_EnrollmentFactory_new_and_onboard(self):
+        """
+        pytest tests/test_pyramid_app.py::FunctionalTests_AcmeChallenge_DuplicateStrategy::test_EnrollmentFactory_new_and_onboard
+        """
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+        account_key_global__primary: str = (
+            dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5
+        )
+
+        for (
+            acme_challenge_duplicate_strategy,
+            strategy_tests,
+        ) in self.test_conditions.items():
+            for idx, test_data in enumerate(strategy_tests):
+
+                # note: test new
+                note = generate_random_domain(testCase=self)[-32:]
+                form = {
+                    "acme_account_id__backup": dbSystemConfiguration_global.acme_account_id__backup,
+                    "acme_account_id__primary": dbSystemConfiguration_global.acme_account_id__primary,
+                    "acme_profile__backup": "@",
+                    "acme_profile__primary": "@",
+                    "acme_challenge_duplicate_strategy": acme_challenge_duplicate_strategy,
+                    "is_export_filesystem": "off",
+                    "label_template": "{DOMAIN}",
+                    "name": note,
+                    "note": note,
+                    "private_key_cycle__backup": "account_default",
+                    "private_key_cycle__primary": "account_default",
+                    "private_key_technology__backup": "account_default",
+                    "private_key_technology__primary": "account_default",
+                }
+                if test_data["domain_names_dns01"]:
+                    form["domain_template_dns01"] = "{DOMAIN}"
+                if test_data["domain_names_http01"]:
+                    form["domain_template_http01"] = "{DOMAIN}"
+
+                res = self.testapp.post(
+                    "/.well-known/peter_sslers/enrollment-factorys/new.json",
+                    form,
+                )
+                assert res.status_code == 200
+                expect_success = test_data["success"]
+                enrollment_factory_id: Optional[int] = None
+                if expect_success:
+                    assert res.json["result"] == "success"
+                    assert "EnrollmentFactory" in res.json
+                    enrollment_factory_id = res.json["EnrollmentFactory"]["id"]
+                else:
+                    assert res.json["result"] == "error"
+                    form_errors = self._get_form_errors(
+                        "test_EnrollmentFactory_new", test_data
+                    )
+                    if form_errors:
+                        print(acme_challenge_duplicate_strategy, idx)
+                        assert res.json["form_errors"] == form_errors
+
+                # note: test onboard
+                if expect_success:
+                    assert enrollment_factory_id
+                    note_onboard = generate_random_domain(testCase=self)
+
+                    form: Dict[str, Union[int, str]] = {}
+                    form["domain_name"] = generate_random_domain(testCase=self)
+                    form["note"] = note_onboard
+
+                    res2 = self.testapp.post(
+                        "/.well-known/peter_sslers/enrollment-factory/%s/onboard.json"
+                        % enrollment_factory_id,
+                        form,
+                    )
+                    assert res2.json["result"] == "success"
+                    assert "RenewalConfiguration" in res2.json
+                    assert res2.json["RenewalConfiguration"]["note"] == note_onboard
+
+    @routes_tested(("admin:renewal-configuration/new.json"))
+    def test_RenewalConfiguration_new_and_new_configuration(self):
+        """
+        pytest tests/test_pyramid_app.py::FunctionalTests_AcmeChallenge_DuplicateStrategy::test_RenewalConfiguration_new_and_new_configuration
+        """
+
+        dbSystemConfiguration_global = lib_db_get.get__SystemConfiguration__by_name(
+            self.ctx, "global"
+        )
+        assert dbSystemConfiguration_global
+        assert dbSystemConfiguration_global.is_configured
+
+        for (
+            acme_challenge_duplicate_strategy,
+            strategy_tests,
+        ) in self.test_conditions.items():
+            for idx, test_data in enumerate(strategy_tests):
+                note = generate_random_domain(testCase=self)
+                form = {}
+                form["account_key_option__primary"] = "account_key_global__primary"
+                form["account_key_global__primary"] = (
+                    dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5
+                )
+                form["private_key_cycle__primary"] = "account_default"
+                form["private_key_technology__primary"] = "account_default"
+                form["note"] = note
+                form["acme_challenge_duplicate_strategy"] = (
+                    acme_challenge_duplicate_strategy
+                )
+                if test_data["domain_names_http01"]:
+                    form["domain_names_http01"] = test_data["domain_names_http01"]
+                if test_data["domain_names_dns01"]:
+                    form["domain_names_dns01"] = test_data["domain_names_dns01"]
+
+                res = self.testapp.post(
+                    "/.well-known/peter_sslers/renewal-configuration/new.json",
+                    form,
+                )
+                assert res.status_code == 200
+                expect_success = test_data["success"]
+                renewal_configuration_id: Optional[int] = None
+                if expect_success:
+                    assert res.json["result"] == "success"
+                    assert "RenewalConfiguration" in res.json
+                    renewal_configuration_id = res.json["RenewalConfiguration"]["id"]
+                else:
+                    assert res.json["result"] == "error"
+                    form_errors = self._get_form_errors(
+                        "test_RenewalConfiguration_new", test_data
+                    )
+                    if form_errors:
+                        assert res.json["form_errors"] == form_errors
+
+                # note: test new_configuration
+                if expect_success:
+                    assert renewal_configuration_id
+
+                    for idx2, test_data2 in enumerate(strategy_tests):
+                        note2 = generate_random_domain(testCase=self)
+                        form2 = {}
+                        form2["account_key_option__primary"] = (
+                            "account_key_global__primary"
+                        )
+                        form2["account_key_global__primary"] = (
+                            dbSystemConfiguration_global.acme_account__primary.acme_account_key.key_pem_md5
+                        )
+                        form2["private_key_cycle__primary"] = "account_default"
+                        form2["private_key_technology__primary"] = "account_default"
+                        form2["note"] = note
+                        form2["acme_challenge_duplicate_strategy"] = (
+                            acme_challenge_duplicate_strategy
+                        )
+                        if test_data2["domain_names_http01"]:
+                            form2["domain_names_http01"] = test_data2[
+                                "domain_names_http01"
+                            ]
+                        if test_data2["domain_names_dns01"]:
+                            form2["domain_names_dns01"] = test_data2[
+                                "domain_names_dns01"
+                            ]
+
+                        res2 = self.testapp.post(
+                            "/.well-known/peter_sslers/renewal-configuration/%s/new-configuration.json"
+                            % renewal_configuration_id,
+                            form2,
+                        )
+                        assert res2.status_code == 200
+                        expect_success = test_data2["success"]
+                        renewal_configuration_id2: Optional[int] = None
+                        if expect_success:
+                            assert res2.json["result"] == "success"
+                            assert "RenewalConfiguration" in res2.json
+                            renewal_configuration_id2 = res2.json[
+                                "RenewalConfiguration"
+                            ]["id"]
+                        else:
+                            assert res2.json["result"] == "error"
+                            form_errors2 = self._get_form_errors(
+                                "test_RenewalConfiguration_new", test_data2
+                            )
+                            if form_errors2:
+                                assert res2.json["form_errors"] == form_errors
+
+
 class FunctionalTests_API(AppTest):
     """
     python -m unittest tests.test_pyramid_app.FunctionalTests_API
@@ -12726,8 +13156,8 @@ class IntegratedTests_AcmeOrder_PrivateKey_Cycles(AppTestWSGI):
                         _dbAcmeOrder = _new_AcmeOrder(_dbRenewalConfiguration)
                         _testeds += 1
 
-            log.info("TESTED : ", _testeds)
-            log.info("SKIPPED: ", _skips)
+            log.info("TESTED : %s", str(_testeds))
+            log.info("SKIPPED: %s", str(_skips))
 
 
 class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):

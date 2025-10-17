@@ -833,6 +833,7 @@ class AcmeAuthorizationPotential(Base, _Mixin_Timestamps_Pretty):
             "uidx_acme_authorization_potential",
             "acme_order_id",
             "domain_id",
+            "acme_challenge_type_id",
             unique=True,
         ),
     )
@@ -1745,6 +1746,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     acme_order_id__retry_of: Mapped[Optional[int]] = mapped_column(
         sa.Integer,
         sa.ForeignKey("acme_order.id"),
+        unique=True,
         nullable=True,
     )
     acme_order_retry_strategy_id: Mapped[Optional[int]] = mapped_column(
@@ -3920,7 +3922,7 @@ class RenewalConfiguration(
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
 
     label: Mapped[Optional[str]] = mapped_column(
-        sa.Unicode(128), nullable=True, unique=False
+        sa.Unicode(256), nullable=True, unique=False
     )
 
     # this should always be true; maybe one day it will be a toggle
@@ -5354,6 +5356,10 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return (
             self.timestamp_not_after - datetime.datetime.now(datetime.timezone.utc)
         ).days
+
+    @reify
+    def is_expired(self) -> bool:
+        return True if self.days_to_expiry < 0 else False
 
     @reify
     def days_to_expiry__label(self) -> str:

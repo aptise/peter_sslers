@@ -865,235 +865,6 @@
     </table>
 </%def>
 
-<%def name="table_X509CertificateTrustChains(x509_certificate_trust_chains, perspective=None)">
-    <%
-        cols = ("id",
-                "display_name",
-                "chain_length",
-                "x509_certificate_trusted_0_id",
-                "x509_certificate_trusted_n_id",
-                "x509_certificate_trusted_ids_string",
-               )
-    %>
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                % for c in cols:
-                    <th>${c}</th>
-                % endfor
-            </tr>
-        </thead>
-        <tbody>
-            % for x509_certificate_trust_chain in x509_certificate_trust_chains:
-                <tr>
-                    % for c in cols:
-                        <td>
-                            % if c == 'id':
-                                <a  class="label label-info"
-                                    href="${admin_prefix}/certificate-trust-chain/${x509_certificate_trust_chain.id}">
-                                    <span class="glyphicon x509_certificate_trust_chain-file" aria-hidden="true"></span>
-                                    X509CertificateTrustChain-${x509_certificate_trust_chain.id}</a>
-                                % else:
-                                    ${getattr(x509_certificate_trust_chain, c)}
-                                % endif
-                        </td>
-                    % endfor
-                </tr>
-            % endfor
-        </tbody>
-    </table>
-</%def>
-
-
-<%def name="table_X509CertificateRequests(x509_certificate_requests, perspective=None)">
-    <%
-        show_domains = True if perspective in ("PrivateKey", 'X509CertificateRequest', ) else False
-        show_certificate = True if perspective in ("X509Certificate", 'X509CertificateRequest', ) else False
-    %>
-    <%
-        cols = ("id",
-                "type",
-                "timestamp_created",
-                "AcmeOrder",
-                "unique_fqdn_set_id",
-               )
-        if perspective == 'AcmeAccount':
-            cols = [c for c in cols]
-        elif perspective == 'X509CertificateRequest':
-            cols = [c for c in cols]
-        elif perspective == 'Domain':
-            cols = [c for c in cols]
-        elif perspective == 'PrivateKey':
-            cols = [c for c in cols if c != 'private_key_id']
-        elif perspective == 'X509Certificate':
-            cols = [c for c in cols]
-        elif perspective == 'UniqueFQDNSet':
-            cols = [c for c in cols if c != 'unique_fqdn_set_id']
-        else:
-            raise ValueError("invalid `perspective`")
-    %>
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                % for c in cols:
-                    <th>${c}</th>
-                % endfor
-                % if show_domains:
-                     <th>domains</th>
-                % endif
-            </tr>
-        </thead>
-        <tbody>
-            % for x509_certificate_request in x509_certificate_requests:
-                <tr>
-                    % for c in cols:
-                        % if c == 'id':
-                            <td>
-                                <a  class="label label-info"
-                                    href="${admin_prefix}/x509-certificate-request/${x509_certificate_request.id}">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    X509CertificateRequest-${x509_certificate_request.id}</a>
-                            </td>
-                        % elif c == 'type':
-                            <td>
-                                <span class="label label-default">${x509_certificate_request.x509_certificate_request_source}</span>
-                            </td>
-                        % elif c == 'timestamp_created':
-                            <td>
-                                <timestamp>${x509_certificate_request.timestamp_created}</timestamp>
-                            </td>
-                        % elif c == 'AcmeOrder':
-                            <td>
-                                % if x509_certificate_request.x509_certificate_request_source_id == model_websafe.X509CertificateRequest_Source.ACME_ORDER:
-                                    <a  class="label label-info"
-                                    href="${admin_prefix}/acme-order/${x509_certificate_request.acme_orders[0].id}">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeOrder-${x509_certificate_request.acme_orders[0].id}</a>
-                                % endif
-                            </td>
-                        % elif c == 'unique_fqdn_set_id':
-                            <td>
-                                <a  class="label label-info"
-                                href="${admin_prefix}/unique-fqdn-set/${x509_certificate_request.unique_fqdn_set_id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFQDNSet-${x509_certificate_request.unique_fqdn_set_id}</a>
-                            </td>
-                        % endif
-                    % endfor
-                    % if show_domains:
-                         <td><code>${x509_certificate_request.domains_as_string}</code></td>
-                    % endif
-                </tr>
-            % endfor
-        </tbody>
-    </table>
-</%def>
-
-
-<%def name="table_X509Certificates(certificates, perspective=None, show_domains=False, show_days_to_expiry=False, show_replace=False)">
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>active?</th>
-                % if perspective != "RenewalConfiguration":
-                    <th>auto-renew?</th>
-                % endif
-                % if (perspective == "RenewalConfiguration") and show_replace:
-                    <th></th>
-                % endif
-                <th>timestamp_not_before</th>
-                <th>timestamp_not_after</th>
-                % if show_days_to_expiry:
-                    <th>days to expiry</th>
-                % endif
-                % if show_domains:
-                    <th>domains</th>
-                % endif
-            </tr>
-        </thead>
-        <tbody>
-        % for cert in certificates:
-            <tr>
-                <td><a class="label label-info" href="${admin_prefix}/x509-certificate/${cert.id}">
-                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    X509Certificate-${cert.id}</a>
-                </td>
-                <td>
-                    % if cert.is_revoked:
-                        <span class="label label-danger">
-                            revoked
-                        </span>
-                    % else:
-                        <span class="label label-${'success' if cert.is_active else 'warning'}">
-                            ${'Active' if cert.is_active else 'inactive'}
-                        </span>
-                    % endif
-                    % if cert.certificate_type_id == model_websafe.X509CertificateType.MANAGED_PRIMARY:
-                        <span class="label label-success">${cert.certificate_type}</span>
-                    % elif cert.certificate_type_id == model_websafe.X509CertificateType.MANAGED_BACKUP:
-                        <span class="label label-warning">${cert.certificate_type}</span>
-                    % elif cert.certificate_type_id == model_websafe.X509CertificateType.RAW_IMPORTED:
-                        <span class="label label-default">${cert.certificate_type}</span>
-                    % endif
-                </td>
-                % if perspective != "RenewalConfiguration":
-                <td>
-                    % if cert.acme_order and cert.acme_order.renewal_configuration:
-                        <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.acme_order.renewal_configuration_id}">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            RenewalConfiguration-${cert.acme_order.renewal_configuration_id}</a>
-                            
-                            % if cert.acme_order.renewal_configuration.is_active:
-                                <span class="label label-success">Active</span>
-                            % else:
-                                <span class="label label-warning">Inactive</span>
-                            % endif
-                            
-                            % if cert.x509_certificate_id__replaces:
-                                <span class="label label-default">replaces ${cert.x509_certificate_id__replaces}</span>
-                            % endif
-                            % if cert.x509_certificate_id__replaced_by:
-                                <span class="label label-default">replaced by ${cert.x509_certificate_id__replaced_by}</span>
-                            % endif
-                    % else:
-                        <span class="label label-warning">
-                            unavailable
-                        </span>
-                    % endif
-                </td>
-                % endif
-                % if (perspective == "RenewalConfiguration") and show_replace:
-                    <td>
-                        % if cert.acme_order:
-                            % if cert.x509_certificate_id__replaces:
-                                <span class="label label-default">replaces ${cert.x509_certificate_id__replaces}</span>
-                            % endif
-                            % if cert.x509_certificate_id__replaced_by:
-                                <span class="label label-default">replaced by ${cert.x509_certificate_id__replaced_by}</span>
-                            % endif
-                    % endif
-                    </td>
-                % endif
-                <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
-                <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
-                % if show_days_to_expiry:
-                    <td>
-                        <span class="label label-${cert.days_to_expiry__label}">
-                            ${cert.days_to_expiry} days
-                        </span>
-                    </td>
-                % endif
-                % if show_domains:
-                    <td><code>${cert.domains_as_string}</code></td>
-                % endif
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
-
-
 <%def name="table_CoverageAssuranceEvents(CoverageAssuranceEvents)">
     <table class="table table-striped table-condensed">
         <thead>
@@ -1879,6 +1650,241 @@
 </%def>
 
 
+
+<%def name="table_X509CertificateTrustChains(x509_certificate_trust_chains, perspective=None)">
+    <%
+        cols = ("id",
+                "display_name",
+                "chain_length",
+                "x509_certificate_trusted_0_id",
+                "x509_certificate_trusted_n_id",
+                "x509_certificate_trusted_ids_string",
+               )
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>${c}</th>
+                % endfor
+            </tr>
+        </thead>
+        <tbody>
+            % for x509_certificate_trust_chain in x509_certificate_trust_chains:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/certificate-trust-chain/${x509_certificate_trust_chain.id}">
+                                    <span class="glyphicon x509_certificate_trust_chain-file" aria-hidden="true"></span>
+                                    X509CertificateTrustChain-${x509_certificate_trust_chain.id}</a>
+                                % else:
+                                    ${getattr(x509_certificate_trust_chain, c)}
+                                % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+<%def name="table_X509CertificateRequests(x509_certificate_requests, perspective=None)">
+    <%
+        show_domains = True if perspective in ("PrivateKey", 'X509CertificateRequest', ) else False
+        show_certificate = True if perspective in ("X509Certificate", 'X509CertificateRequest', ) else False
+    %>
+    <%
+        cols = ("id",
+                "type",
+                "timestamp_created",
+                "AcmeOrder",
+                "unique_fqdn_set_id",
+               )
+        if perspective == 'AcmeAccount':
+            cols = [c for c in cols]
+        elif perspective == 'X509CertificateRequest':
+            cols = [c for c in cols]
+        elif perspective == 'Domain':
+            cols = [c for c in cols]
+        elif perspective == 'PrivateKey':
+            cols = [c for c in cols if c != 'private_key_id']
+        elif perspective == 'X509Certificate':
+            cols = [c for c in cols]
+        elif perspective == 'UniqueFQDNSet':
+            cols = [c for c in cols if c != 'unique_fqdn_set_id']
+        else:
+            raise ValueError("invalid `perspective`")
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>${c}</th>
+                % endfor
+                % if show_domains:
+                     <th>domains</th>
+                % endif
+            </tr>
+        </thead>
+        <tbody>
+            % for x509_certificate_request in x509_certificate_requests:
+                <tr>
+                    % for c in cols:
+                        % if c == 'id':
+                            <td>
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/x509-certificate-request/${x509_certificate_request.id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    X509CertificateRequest-${x509_certificate_request.id}</a>
+                            </td>
+                        % elif c == 'type':
+                            <td>
+                                <span class="label label-default">${x509_certificate_request.x509_certificate_request_source}</span>
+                            </td>
+                        % elif c == 'timestamp_created':
+                            <td>
+                                <timestamp>${x509_certificate_request.timestamp_created}</timestamp>
+                            </td>
+                        % elif c == 'AcmeOrder':
+                            <td>
+                                % if x509_certificate_request.x509_certificate_request_source_id == model_websafe.X509CertificateRequest_Source.ACME_ORDER:
+                                    <a  class="label label-info"
+                                    href="${admin_prefix}/acme-order/${x509_certificate_request.acme_orders[0].id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${x509_certificate_request.acme_orders[0].id}</a>
+                                % endif
+                            </td>
+                        % elif c == 'unique_fqdn_set_id':
+                            <td>
+                                <a  class="label label-info"
+                                href="${admin_prefix}/unique-fqdn-set/${x509_certificate_request.unique_fqdn_set_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                UniqueFQDNSet-${x509_certificate_request.unique_fqdn_set_id}</a>
+                            </td>
+                        % endif
+                    % endfor
+                    % if show_domains:
+                         <td><code>${x509_certificate_request.domains_as_string}</code></td>
+                    % endif
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+<%def name="table_X509Certificates(certificates, perspective=None, show_domains=False, show_days_to_expiry=False, show_replace=False)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>active?</th>
+                % if perspective != "RenewalConfiguration":
+                    <th>auto-renew?</th>
+                % endif
+                % if (perspective == "RenewalConfiguration") and show_replace:
+                    <th></th>
+                % endif
+                <th>timestamp_not_before</th>
+                <th>timestamp_not_after</th>
+                % if show_days_to_expiry:
+                    <th>days to expiry</th>
+                % endif
+                % if show_domains:
+                    <th>domains</th>
+                % endif
+            </tr>
+        </thead>
+        <tbody>
+        % for cert in certificates:
+            <tr>
+                <td><a class="label label-info" href="${admin_prefix}/x509-certificate/${cert.id}">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    X509Certificate-${cert.id}</a>
+                </td>
+                <td>
+                    % if cert.is_revoked:
+                        <span class="label label-danger">
+                            revoked
+                        </span>
+                    % else:
+                        % if cert.is_active:
+                            % if cert.is_expired:
+                                <span class="label label-danger">!! EXPIRED !!</span>
+                            % endif
+                        % endif
+                        <span class="label label-${'success' if cert.is_active else 'warning'}">
+                            ${'Active' if cert.is_active else 'inactive'}
+                        </span>
+                    % endif
+                    % if cert.certificate_type_id == model_websafe.X509CertificateType.MANAGED_PRIMARY:
+                        <span class="label label-success">${cert.certificate_type}</span>
+                    % elif cert.certificate_type_id == model_websafe.X509CertificateType.MANAGED_BACKUP:
+                        <span class="label label-warning">${cert.certificate_type}</span>
+                    % elif cert.certificate_type_id == model_websafe.X509CertificateType.RAW_IMPORTED:
+                        <span class="label label-default">${cert.certificate_type}</span>
+                    % endif
+                </td>
+                % if perspective != "RenewalConfiguration":
+                <td>
+                    % if cert.acme_order and cert.acme_order.renewal_configuration:
+                        <a class="label label-info" href="${admin_prefix}/renewal-configuration/${cert.acme_order.renewal_configuration_id}">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            RenewalConfiguration-${cert.acme_order.renewal_configuration_id}</a>
+                            
+                            % if cert.acme_order.renewal_configuration.is_active:
+                                <span class="label label-success">Active</span>
+                            % else:
+                                <span class="label label-warning">Inactive</span>
+                            % endif
+                            
+                            % if cert.x509_certificate_id__replaces:
+                                <span class="label label-default">replaces ${cert.x509_certificate_id__replaces}</span>
+                            % endif
+                            % if cert.x509_certificate_id__replaced_by:
+                                <span class="label label-default">replaced by ${cert.x509_certificate_id__replaced_by}</span>
+                            % endif
+                    % else:
+                        <span class="label label-warning">
+                            unavailable
+                        </span>
+                    % endif
+                </td>
+                % endif
+                % if (perspective == "RenewalConfiguration") and show_replace:
+                    <td>
+                        % if cert.acme_order:
+                            % if cert.x509_certificate_id__replaces:
+                                <span class="label label-default">replaces ${cert.x509_certificate_id__replaces}</span>
+                            % endif
+                            % if cert.x509_certificate_id__replaced_by:
+                                <span class="label label-default">replaced by ${cert.x509_certificate_id__replaced_by}</span>
+                            % endif
+                    % endif
+                    </td>
+                % endif
+                <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
+                <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
+                % if show_days_to_expiry:
+                    <td>
+                        <span class="label label-${cert.days_to_expiry__label}">
+                            ${cert.days_to_expiry} days
+                        </span>
+                    </td>
+                % endif
+                % if show_domains:
+                    <td><code>${cert.domains_as_string}</code></td>
+                % endif
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="object_event__object(object_event)">
     % if object_event.x509_certificate_trusted_id:
         <a class="label label-info" href="${admin_prefix}/x509-certificate-trusted/${object_event.x509_certificate_trusted_id}">
@@ -2497,42 +2503,6 @@
 </%def>
 
 
-<%def name="formgroup__X509CertificateTrusted_Chain_file(show_text=False)">
-    <div class="form-group clearfix">
-        <label for="f1-chain_file">Chain File</label>
-        <input class="form-control" type="file" id="f1-chain_file" name="chain_file" />
-        <p class="help-block">
-            This should be the public cert chain of the upstream signer.
-        </p>
-        % if show_text:
-            <label for="f1-chain">Chain File [text]</label>
-            <textarea class="form-control" rows="4" name="chain" id="f1-chain"></textarea>
-            <p class="help-block">
-                Alternately, provide text inline.
-            </p>
-        % endif
-    </div>
-</%def>
-
-
-<%def name="formgroup__X509CertificateTrusted_Cert_file(show_text=False)">
-    <div class="form-group clearfix">
-        <label for="f1-cert_file">Cert File</label>
-        <input class="form-control" type="file" id="f1-cert_file" name="cert_file" />
-        <p class="help-block">
-            This should be the public cert of the upstream signer.
-        </p>
-        % if show_text:
-            <label for="f1-cert">Cert File [text]</label>
-            <textarea class="form-control" rows="4" name="cert" id="f1-cert"></textarea>
-            <p class="help-block">
-                Alternately, provide text inline.
-            </p>
-        % endif
-    </div>
-</%def>
-
-
 <%def name="formgroup__Certificate_file(show_text=False)">
     <div class="form-group clearfix">
         <label for="f1-certificate_file">Signed Certificate</label>
@@ -2904,6 +2874,42 @@
             </td></tr>
         </tbody>
     </table>
+</%def>
+
+
+<%def name="formgroup__X509CertificateTrusted_Chain_file(show_text=False)">
+    <div class="form-group clearfix">
+        <label for="f1-chain_file">Chain File</label>
+        <input class="form-control" type="file" id="f1-chain_file" name="chain_file" />
+        <p class="help-block">
+            This should be the public cert chain of the upstream signer.
+        </p>
+        % if show_text:
+            <label for="f1-chain">Chain File [text]</label>
+            <textarea class="form-control" rows="4" name="chain" id="f1-chain"></textarea>
+            <p class="help-block">
+                Alternately, provide text inline.
+            </p>
+        % endif
+    </div>
+</%def>
+
+
+<%def name="formgroup__X509CertificateTrusted_Cert_file(show_text=False)">
+    <div class="form-group clearfix">
+        <label for="f1-cert_file">Cert File</label>
+        <input class="form-control" type="file" id="f1-cert_file" name="cert_file" />
+        <p class="help-block">
+            This should be the public cert of the upstream signer.
+        </p>
+        % if show_text:
+            <label for="f1-cert">Cert File [text]</label>
+            <textarea class="form-control" rows="4" name="cert" id="f1-cert"></textarea>
+            <p class="help-block">
+                Alternately, provide text inline.
+            </p>
+        % endif
+    </div>
 </%def>
 
 

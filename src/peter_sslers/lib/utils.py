@@ -147,8 +147,8 @@ def normalize_unique_text(text: str) -> str:
     return text
 
 
-# 128 chars, because tests have long names
-RE_label = re.compile(r"^([a-zA-Z0-9\-\.\_]{1,128})$")
+# 256 chars, because tests have long names
+RE_label = re.compile(r"^([a-zA-Z0-9\-\.\_]{1,256})$")
 
 
 def validate_label(label: str) -> bool:

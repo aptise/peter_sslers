@@ -49,12 +49,10 @@
                         <tr>
                             <th>id</th>
                             <th>domain name</th>
-                            <th>is active</th>
                             <th>x509_certificate__latest_multi</th>
                             <th>x509_certificate__latest_single</th>
                         </tr>
                         <tr>
-                            <th></th>
                             <th></th>
                             <th></th>
                             <th>id, expiring, days</th>
