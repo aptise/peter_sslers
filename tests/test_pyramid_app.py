@@ -9036,8 +9036,8 @@ class FunctionalTests_AcmeChallenge_DuplicateStrategy(AppTest):
                 return test_data["form_errors"][test_name]
         return None
 
-    # @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
-    # @under_pebble
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against: Pebble API")
+    @under_pebble
     @routes_tested(("admin:acme_order:new:freeform|json"))
     def test_AcmeOrder__new_freeform(self):
         """
@@ -13156,8 +13156,8 @@ class IntegratedTests_AcmeOrder_PrivateKey_Cycles(AppTestWSGI):
                         _dbAcmeOrder = _new_AcmeOrder(_dbRenewalConfiguration)
                         _testeds += 1
 
-            log.info("TESTED : ", _testeds)
-            log.info("SKIPPED: ", _skips)
+            log.info("TESTED : %s", str(_testeds))
+            log.info("SKIPPED: %s", str(_skips))
 
 
 class IntegratedTests_EdgeCases_AcmeServer(AppTestWSGI):
