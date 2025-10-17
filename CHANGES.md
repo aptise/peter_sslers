@@ -324,6 +324,12 @@
     Added scripts to automate updates:
         alembic_upgrade_all.py
         alembic_upgrade_unstamped.py
+
+  Tests coverage:
+    EnrollmentFactory - new with AcmeChallenge_DuplicateStrategy variants
+    RenewalConfiguration - new with AcmeChallenge_DuplicateStrategy variants
+    AcmeOrder - new with AcmeChallenge_DuplicateStrategy variants
+
     
 0.6.0
     py3.7+ only (sqlalchemy requirement)

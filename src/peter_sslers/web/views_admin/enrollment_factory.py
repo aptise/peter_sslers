@@ -50,6 +50,7 @@ if TYPE_CHECKING:
 
 def validate_formstash_domain_templates(
     formStash: "FormStash",
+    acme_challenge_duplicate_strategy_id: int,
     dbAcmeDnsServer_GlobalDefault: Optional["AcmeDnsServer"] = None,
 ) -> Tuple[str, str]:
     """will raise an exception if fails"""
@@ -114,11 +115,15 @@ def validate_formstash_domain_templates(
     if not domain_names_all:
         formStash.fatal_form(error_main="templates did not expand to domains")
     # 3: ensure there is no overlap
-    domain_names_all_set = set(domain_names_all)
-    if len(domain_names_all) != len(domain_names_all_set):
-        formStash.fatal_form(
-            error_main="a domain name can only be associated to one challenge type",
-        )
+    if (
+        acme_challenge_duplicate_strategy_id
+        == model_utils.AcmeChallenge_DuplicateStrategy.no_duplicates
+    ):
+        domain_names_all_set = set(domain_names_all)
+        if len(domain_names_all) != len(domain_names_all_set):
+            formStash.fatal_form(
+                error_main="a domain name can only be associated to one challenge type",
+            )
 
     for chall, ds in domains_challenged.items():
         if chall == "dns-01":
@@ -204,6 +209,7 @@ def submit__new(
         (domain_template_http01, domain_template_dns01) = (
             validate_formstash_domain_templates(
                 formStash,
+                acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
                 dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
             )
         )
@@ -330,6 +336,7 @@ def submit__edit(
     (domain_template_http01, domain_template_dns01) = (
         validate_formstash_domain_templates(
             formStash,
+            acme_challenge_duplicate_strategy_id=dbEnrollmentFactory.acme_challenge_duplicate_strategy_id,
             dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
         )
     )
@@ -477,12 +484,16 @@ def submit__onboard(
             )
 
         # 3: ensure there is no overlap
-        domain_names_all_set = set(domain_names_all)
-        if len(domain_names_all) != len(domain_names_all_set):
-            formStash.fatal_field(
-                field="domain_name",
-                error_field="a domain name can only be associated to one challenge type",
-            )
+        if (
+            dbEnrollmentFactory.acme_challenge_duplicate_strategy_id
+            not in model_utils.AcmeChallenge_DuplicateStrategy._options_Duplicates_id
+        ):
+            domain_names_all_set = set(domain_names_all)
+            if len(domain_names_all) != len(domain_names_all_set):
+                formStash.fatal_field(
+                    field="domain_name",
+                    error_field="a domain name can only be associated to one challenge type",
+                )
 
         # ensure wildcards are only in dns-01
         for chall, ds in domains_challenged.items():

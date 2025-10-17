@@ -25,6 +25,8 @@ import uuid
 import warnings
 
 # pypi
+import alembic
+import alembic.config
 import cert_utils
 from cert_utils import letsencrypt_info
 from cert_utils.model import AccountKeyData
@@ -46,6 +48,7 @@ from webtest.http import StopableWSGIServer
 # local
 from peter_sslers.lib import acme_v2
 from peter_sslers.lib import db
+from peter_sslers.lib import db as lib_db
 from peter_sslers.lib import errors
 from peter_sslers.lib import errors as lib_errors
 from peter_sslers.lib import utils
@@ -2140,6 +2143,41 @@ def check_error_AcmeDnsServerError(
                     raise lib_errors.AcmeDnsServerError()
 
 
+def unset_AcmeOrder_full(
+    testCase: CustomizedTestCase, dbAcmeOrder: model_objects.AcmeOrder
+) -> Literal[True]:
+
+    result = lib_db_update.update_AcmeOrder_deactivate(
+        testCase.ctx, dbAcmeOrder
+    )  # noqa: F841
+    result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(  # noqa: F841
+        testCase.ctx,
+        dbAcmeOrder=dbAcmeOrder,
+        transaction_commit=True,
+    )
+    # then sync the authz
+    dbAcmeOrder = (
+        lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
+            testCase.ctx,
+            dbAcmeOrder=dbAcmeOrder,
+            transaction_commit=True,
+        )
+    )
+    # then sync the AcmeOrder
+    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+        testCase.ctx,
+        dbAcmeOrder=dbAcmeOrder,
+        transaction_commit=True,
+    )
+
+    # deactivate any authz potentials
+    lib_db.update.update_AcmeOrder_deactivate_AcmeAuthorizationPotentials(
+        testCase.ctx,
+        dbAcmeOrder=dbAcmeOrder,
+    )
+    return True
+
+
 def unset_testing_data__AppTest_Class(testCase: CustomizedTestCase) -> Literal[True]:
     """
     invoked by AppTest.tearDownClass
@@ -2364,6 +2402,11 @@ class AppTestCore(CustomizedTestCase, _Mixin_filedata):
             with engine.begin() as connection:
                 connection.execute(sqlalchemy.text("VACUUM"))
             model_meta.Base.metadata.create_all(engine)
+
+            # initialize alembic
+            alembic_cfg = alembic.config.Config(TEST_INI, toml_file="pyproject.toml")
+            alembic.command.stamp(alembic_cfg, "head")
+
             request = FakeRequest()
             dbSession = self._session_factory(info={"request": request})
             if db_unfreeze(dbSession, "AppTestCore", testCase=self):

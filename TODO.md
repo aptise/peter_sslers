@@ -1,6 +1,7 @@
 URGENT
 ======
 
+* UX - make EXPIRED certs more clear on html views
 * Support IP Certificates
 * Backup Challenges
     Currently the system will fail an AcmeOrder, and requires a manual "try backup"
