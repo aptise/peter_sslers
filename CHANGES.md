@@ -330,7 +330,9 @@
     RenewalConfiguration - new with AcmeChallenge_DuplicateStrategy variants
     AcmeOrder - new with AcmeChallenge_DuplicateStrategy variants
 
-    
+  Templates
+    make expired active certs more prominent
+        
 0.6.0
     py3.7+ only (sqlalchemy requirement)
     lib.cert_utils is now a pypi package, cert_utils, that is only py3

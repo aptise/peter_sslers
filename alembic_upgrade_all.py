@@ -1,7 +1,11 @@
 """
+This script is primarily used for project development and testing.
+
 This will run `alembic upgrade` against all local installs matching:
 
    data_*/config.ini
+
+This is likely not needed for normal usage, unless there are multiple environments.
 """
 
 # stdlib

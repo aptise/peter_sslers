@@ -5358,6 +5358,10 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         ).days
 
     @reify
+    def is_expired(self) -> bool:
+        return True if self.days_to_expiry < 0 else False
+
+    @reify
     def days_to_expiry__label(self) -> str:
         if self.days_to_expiry <= 2:
             return "danger"
