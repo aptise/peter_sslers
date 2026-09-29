@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 if False:
-    pyramid_formencode_classic.objects.DEBUG_FAILS = True
+    pyramid_formencode_classic._defaults.DEBUG_FAILS = True
 
 
 TEMPLATE_FORMSTASH_ERRORS = (
