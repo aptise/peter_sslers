@@ -54,7 +54,7 @@ def submit__new_auth(
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_AcmeAccount_new__auth,
         validate_get=False,
@@ -272,7 +272,7 @@ class View_List(Handler):
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeAccount__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
@@ -366,7 +366,7 @@ class View_New(Handler):
 
     def _upload__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request, schema=Form_AcmeAccount_new__upload, validate_get=False
             )
             if not result:
@@ -522,7 +522,7 @@ class View_New(Handler):
 
     def _new__submit(self):
         try:
-            (dbAcmeAccount, _is_created) = submit__new_auth(
+            dbAcmeAccount, _is_created = submit__new_auth(
                 self.request,
                 acknowledge_transaction_commits=True,
             )
@@ -730,7 +730,7 @@ class View_Focus(Handler):
         if url_status:
             url_template = "%s?status=%s" % (url_template, url_status)
 
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeAuthorization__by_AcmeAccountId__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
@@ -800,7 +800,7 @@ class View_Focus(Handler):
         if self.request.wants_json:
             url_template = "%s.json" % url_template
 
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeAccountKey__by_AcmeAccountId__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
@@ -855,7 +855,7 @@ class View_Focus(Handler):
             self.request.api_context, dbAcmeAccount.id
         )
         url_template = "%s/acme-orders/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_AcmeAccountId__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
@@ -904,7 +904,7 @@ class View_Focus(Handler):
             self.request.api_context, dbAcmeAccount.id
         )
         url_template = "%s/private-keys/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__PrivateKey__by_AcmeAccountIdOwner__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
@@ -935,7 +935,7 @@ class View_Focus(Handler):
             self.request.api_context, dbAcmeAccount.id
         )
         url_template = "%s/x509-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__X509Certificate__by_AcmeAccountId__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
@@ -968,7 +968,7 @@ class View_Focus(Handler):
             self.request.api_context, dbAcmeAccount.id
         )
         url_template = "%s/renewal-configurations/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__RenewalConfigurations__by_AcmeAccountId__paginated(
                 self.request.api_context,
@@ -1002,7 +1002,7 @@ class View_Focus(Handler):
             )
         )
         url_template = "%s/renewal-configurations-backup/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__RenewalConfigurations__by_AcmeAccountIdBackup__paginated(
                 self.request.api_context,
@@ -1034,7 +1034,7 @@ class View_Focus(Handler):
             self.request.api_context, dbAcmeAccount.id
         )
         url_template = "%s/terms-of-service/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__TermsOfService__by_AcmeAccountId__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
@@ -1105,7 +1105,7 @@ class View_Focus_Manipulate(View_Focus):
         try:
             if TYPE_CHECKING:
                 assert self.dbAcmeAccount is not None
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request, schema=Form_AcmeAccount_edit, validate_get=False
             )
             if not result:
@@ -1511,7 +1511,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAccount = self._focus()  # noqa: F841
         action = self.request.params.get("action")
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_AcmeAccount_mark,
                 validate_get=False,
@@ -1677,7 +1677,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAccount = self._focus()  # noqa: F841
         try:
             try:
-                (result, formStash) = formhandling.form_validate(
+                result, formStash = formhandling.form_validate(
                     self.request,
                     schema=Form_AcmeAccount_deactivate_authorizations,
                     validate_get=False,
@@ -1780,7 +1780,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAccount = self._focus()  # noqa: F841
         try:
             try:
-                (result, formStash) = formhandling.form_validate(
+                result, formStash = formhandling.form_validate(
                     self.request,
                     schema=Form_AcmeAccount_deactivate,
                     validate_get=False,
@@ -1891,7 +1891,7 @@ class View_Focus_Manipulate(View_Focus):
         dbAcmeAccount = self._focus()
         try:
             try:
-                (result, formStash) = formhandling.form_validate(
+                result, formStash = formhandling.form_validate(
                     self.request,
                     schema=Form_AcmeAccount_key_change,
                     validate_get=False,
@@ -1910,7 +1910,7 @@ class View_Focus_Manipulate(View_Focus):
                         )
                 is_did_keychange: bool = False
                 try:
-                    (athdUser, is_did_keychange) = (
+                    athdUser, is_did_keychange = (
                         lib_db.actions_acme.do__AcmeV2_AcmeAccount__key_change(  # noqa: F841
                             self.request.api_context,
                             dbAcmeAccount=dbAcmeAccount,

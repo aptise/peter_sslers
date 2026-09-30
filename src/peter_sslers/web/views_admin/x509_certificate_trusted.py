@@ -64,7 +64,7 @@ class View_List(Handler):
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__X509CertificateTrusted__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
@@ -270,7 +270,7 @@ class View_Focus(Handler):
             self.request.api_context, dbX509CertificateTrusted.id
         )
         url_template = "%s/x509-certificates/{0}" % self.focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__X509Certificate__by_X509CertificateTrustedId__primary__paginated(
             self.request.api_context,
             dbX509CertificateTrusted.id,
@@ -303,7 +303,7 @@ class View_Focus(Handler):
             )
         )
         url_template = "%s/x509-certificates-alt/{0}" % self.focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__X509Certificate__by_X509CertificateTrustedId__alt__paginated(
             self.request.api_context,
             dbX509CertificateTrusted.id,
@@ -363,7 +363,7 @@ class View_Focus(Handler):
             accessor = "n"
 
         items_count = func_count(self.request.api_context, dbX509CertificateTrusted.id)
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = func_paginated(
             self.request.api_context,
             dbX509CertificateTrusted.id,
@@ -420,7 +420,7 @@ class View_New(Handler):
 
     def _upload_cert__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_X509CertificateTrusted_Upload_Cert__file,
                 validate_get=False,

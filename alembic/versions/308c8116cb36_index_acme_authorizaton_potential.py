@@ -10,7 +10,6 @@ from typing import Sequence, Union
 
 from alembic import op
 
-
 # edited template
 
 # revision identifiers, used by Alembic.

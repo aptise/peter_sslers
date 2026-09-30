@@ -16,7 +16,6 @@ from pyramid_formencode_classic.validators import OnlyOneOf
 # local app
 from ...model import utils as model_utils
 
-
 # ==============================================================================
 
 

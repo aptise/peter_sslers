@@ -193,7 +193,7 @@ class UnitTest_Parsing_AcmeOrder(AppTest):
             assert request == _request
 
             try:
-                (result, formStash) = formhandling.form_validate(
+                result, formStash = formhandling.form_validate(
                     request,
                     schema=Form_AcmeOrder_new_freeform,
                     validate_get=False,
@@ -201,7 +201,7 @@ class UnitTest_Parsing_AcmeOrder(AppTest):
                 if not result:
                     raise formhandling.FormInvalid(formStash)
 
-                (acmeAccountSelection_primary, privateKeySelection_primary) = (
+                acmeAccountSelection_primary, privateKeySelection_primary = (
                     form_utils.form_selections__NewOrderFreeform(
                         request,
                         formStash,
@@ -214,7 +214,7 @@ class UnitTest_Parsing_AcmeOrder(AppTest):
                 assert acmeAccountSelection_primary.AcmeAccount is not None
                 assert privateKeySelection_primary.PrivateKey is not None
 
-                (acmeAccountSelection_backup, privateKeySelection_backup) = (
+                acmeAccountSelection_backup, privateKeySelection_backup = (
                     form_utils.form_selections__NewOrderFreeform(
                         request,
                         formStash,
@@ -369,7 +369,7 @@ class UnitTest_Parsing_API(AppTest):
             assert request == _request
 
             try:
-                (result, formStash) = formhandling.form_validate(
+                result, formStash = formhandling.form_validate(
                     request,
                     schema=Form_API_Domain_certificate_if_needed,
                     validate_get=False,

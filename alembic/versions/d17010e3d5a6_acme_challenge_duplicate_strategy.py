@@ -11,7 +11,6 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-
 # edited template
 from peter_sslers.model.utils import AcmeChallenge_DuplicateStrategy
 from peter_sslers.model.utils import AcmeOrder_RetryStrategy

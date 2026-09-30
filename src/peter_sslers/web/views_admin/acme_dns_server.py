@@ -58,7 +58,7 @@ def submit__new(
             if count_servers >= 1:
                 raise ValueError("Only one acme-dns Server can be supported")
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_AcmeDnsServer_new,
         validate_get=False,
@@ -238,7 +238,7 @@ class View_New(Handler):
 
     def _new__submit(self):
         try:
-            (dbAcmeDnsServer, _is_created) = submit__new(
+            dbAcmeDnsServer, _is_created = submit__new(
                 self.request,
                 count_servers=self._count_servers,
                 acknowledge_transaction_commits=True,
@@ -519,7 +519,7 @@ class View_Focus(Handler):
         if TYPE_CHECKING:
             assert dbAcmeDnsServer is not None
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_AcmeDnsServer_ensure_domains,
                 validate_get=False,
@@ -564,7 +564,7 @@ class View_Focus(Handler):
             domainObjectsMap: TYPE_DomainName_2_DomainObject
             dbAcmeDnsServerAccountsMap: TYPE_DomainName_2_AcmeDnsServerAccount
             try:
-                (domainObjectsMap, dbAcmeDnsServerAccountsMap) = (
+                domainObjectsMap, dbAcmeDnsServerAccountsMap = (
                     lib_db.associate.ensure_domain_names_to_acmeDnsServer(
                         self.request.api_context,
                         domain_names,
@@ -710,7 +710,7 @@ class View_Focus(Handler):
         if TYPE_CHECKING:
             assert dbAcmeDnsServer is not None
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_AcmeDnsServer_import_domain,
                 validate_get=False,
@@ -846,7 +846,7 @@ class View_Focus_Manipulate(View_Focus):
     def _mark__submit(self, dbAcmeDnsServer):
         action = self.request.params.get("action")
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request, schema=Form_AcmeDnsServer_mark, validate_get=False
             )
             if not result:
@@ -978,7 +978,7 @@ class View_Focus_Manipulate(View_Focus):
         if TYPE_CHECKING:
             assert dbAcmeDnsServer is not None
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request, schema=Form_AcmeDnsServer_edit, validate_get=False
             )
             if not result:

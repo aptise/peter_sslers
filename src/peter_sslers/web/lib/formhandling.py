@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 if False:
-    pyramid_formencode_classic.objects.DEBUG_FAILS = True
+    pyramid_formencode_classic._defaults.DEBUG_FAILS = True
 
 
 TEMPLATE_FORMSTASH_ERRORS = (
@@ -91,7 +91,7 @@ def form_validate(
         kwargs["is_unicode_params"] = True
     if "error_main_text" not in kwargs:
         kwargs["error_main_text"] = "There was an error with your form."
-    (result, formStash) = pyramid_formencode_classic.form_validate(
+    result, formStash = pyramid_formencode_classic.form_validate(
         request, schema, **kwargs
     )
     formStash.html_error_main_template = TEMPLATE_FORMSTASH_ERRORS

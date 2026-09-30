@@ -76,7 +76,7 @@ class View_List(Handler):
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__X509CertificateTrustPreferencePolicy__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
@@ -224,7 +224,7 @@ class View_Preferred(View_Focus):
                     return formatted_get_docs(
                         self, "/x509-certificate-trust-preference-policy/{id}/add.json"
                     )
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_X509CertificatePreferencePolicyItem__add,
                 validate_get=False,
@@ -360,7 +360,7 @@ class View_Preferred(View_Focus):
                         "/x509-certificate-trust-preference-policy/{id}/delete.json",
                     )
             # data_formencode_form = "delete"
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_X509CertificatePreferencePolicyItem__delete,
                 validate_get=False,
@@ -448,7 +448,7 @@ class View_Preferred(View_Focus):
                     "/x509-certificate-trust-preference-policy/{id}/prioritize.json",
                 )
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_X509CertificatePreferencePolicyItem__prioritize,
                 validate_get=False,

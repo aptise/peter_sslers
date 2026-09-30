@@ -36,7 +36,6 @@ from typing import List
 # pip install --upgrade "cloudflare<3"
 import CloudFlare
 
-
 ROOT_DOMAIN = os.environ.get("ROOT_DOMAIN")
 CLOUDFLARE_ZONE_ID = os.environ.get("CLOUDFLARE_ZONE_ID")
 CLOUDFLARE_TARGET_IP = os.environ.get("CLOUDFLARE_TARGET_IP")

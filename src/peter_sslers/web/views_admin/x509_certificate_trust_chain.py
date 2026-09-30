@@ -18,7 +18,6 @@ from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...model.objects import X509CertificateTrustChain
 
-
 # ==============================================================================
 
 
@@ -63,7 +62,7 @@ class View_List(Handler):
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__X509CertificateTrustChain__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
@@ -209,7 +208,7 @@ class View_New(Handler):
 
     def _upload_chain__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_X509CertificateTrustChain_Upload__file,
                 validate_get=False,

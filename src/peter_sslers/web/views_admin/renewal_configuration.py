@@ -49,7 +49,7 @@ def submit__mark(
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_RenewalConfiguration_mark,
         validate_get=False,
@@ -121,7 +121,7 @@ def submit__new(
     dbRenewalConfiguration: "RenewalConfiguration"
     is_duplicate_renewal: bool
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_RenewalConfig_new,
         validate_get=False,
@@ -323,7 +323,7 @@ def submit__new_configuration(
     dbRenewalConfiguration_new: "RenewalConfiguration"
     is_duplicate_renewal: bool
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_RenewalConfig_new_configuration,
         validate_get=False,
@@ -459,7 +459,7 @@ def submit__new_configuration(
                                     is not None
                                 )
                             # exc.args[0] will be the listing of domains
-                            (domainObjects, adnsAccountObjects) = (
+                            domainObjects, adnsAccountObjects = (
                                 lib_db.associate.ensure_domain_names_to_acmeDnsServer(
                                     request.api_context,
                                     exc.args[0],
@@ -557,7 +557,7 @@ def submit__new_order(
 
     dbAcmeOrderNew: "AcmeOrder"
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_RenewalConfig_new_order,
         validate_get=False,
@@ -772,7 +772,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__RenewalConfiguration__count(
             self.request.api_context, active_status=active_status
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__RenewalConfiguration__paginated(
             self.request.api_context,
             active_status=active_status,
@@ -929,7 +929,7 @@ class View_Focus(Handler):
             self.request.api_context, dbRenewalConfiguration.id
         )
         url_template = "%s/acme-orders/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_RenewalConfigurationId__paginated(
             self.request.api_context,
             dbRenewalConfiguration.id,
@@ -974,7 +974,7 @@ class View_Focus(Handler):
             self.request.api_context, dbRenewalConfiguration.id
         )
         url_template = "%s/x509-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__X509Certificate__by_RenewalConfigurationId__paginated(
                 self.request.api_context,
@@ -1142,7 +1142,7 @@ class View_Focus_New(View_Focus):
     def _new_order__submit(self):
         dbRenewalConfiguration = self._focus()
         try:
-            (dbAcmeOrderNew, _orderingException) = submit__new_order(
+            dbAcmeOrderNew, _orderingException = submit__new_order(
                 self.request,
                 dbRenewalConfiguration=dbRenewalConfiguration,
                 acknowledge_transaction_commits=True,
@@ -1295,7 +1295,7 @@ class View_Focus_New(View_Focus):
         """ """
         dbRenewalConfiguration = self._focus()
         try:
-            (dbRenewalConfiguration_new, is_duplicate_renewal) = (
+            dbRenewalConfiguration_new, is_duplicate_renewal = (
                 submit__new_configuration(
                     self.request,
                     dbRenewalConfiguration=dbRenewalConfiguration,
@@ -1539,7 +1539,7 @@ If you want to defer to the AcmeAccount, use the special name `@`.""",
     def _new__submit(self):
         """ """
         try:
-            (dbRenewalConfiguration, is_duplicate_renewal) = submit__new(
+            dbRenewalConfiguration, is_duplicate_renewal = submit__new(
                 self.request,
                 acknowledge_transaction_commits=True,
             )

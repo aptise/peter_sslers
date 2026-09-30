@@ -151,7 +151,7 @@ def submit__new(
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_EnrollmentFactory_new,
         validate_get=False,
@@ -206,7 +206,7 @@ def submit__new(
                 error_field="An EnrollmentFactory already exists with this name.",
             )
 
-        (domain_template_http01, domain_template_dns01) = (
+        domain_template_http01, domain_template_dns01 = (
             validate_formstash_domain_templates(
                 formStash,
                 acme_challenge_duplicate_strategy_id=acme_challenge_duplicate_strategy_id,
@@ -323,7 +323,7 @@ def submit__edit(
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_EnrollmentFactory_edit,
         validate_get=False,
@@ -333,12 +333,10 @@ def submit__edit(
 
     # these require some validation
     # nest outside of the try to minimize Exception catching
-    (domain_template_http01, domain_template_dns01) = (
-        validate_formstash_domain_templates(
-            formStash,
-            acme_challenge_duplicate_strategy_id=dbEnrollmentFactory.acme_challenge_duplicate_strategy_id,
-            dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
-        )
+    domain_template_http01, domain_template_dns01 = validate_formstash_domain_templates(
+        formStash,
+        acme_challenge_duplicate_strategy_id=dbEnrollmentFactory.acme_challenge_duplicate_strategy_id,
+        dbAcmeDnsServer_GlobalDefault=request.api_context.dbAcmeDnsServer_GlobalDefault,
     )
     try:
 
@@ -391,7 +389,7 @@ def submit__onboard(
     dbRenewalConfiguration: "RenewalConfiguration"
     is_duplicate_renewal: bool
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_EnrollmentFactory_onboard,
         validate_get=False,
@@ -432,7 +430,7 @@ def submit__onboard(
         )
         if not dbDomain:
             # we need to start with a domain name
-            (dbDomain, _is_created) = lib_db.getcreate.getcreate__Domain__by_domainName(
+            dbDomain, _is_created = lib_db.getcreate.getcreate__Domain__by_domainName(
                 request.api_context,
                 domain_name,
                 discovery_type="enrollment-factory",
@@ -590,7 +588,7 @@ def submit__query(
     dbEnrollmentFactory: EnrollmentFactory,
 ) -> Tuple["FormStash", Optional["RenewalConfiguration"], List["X509Certificate"]]:
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_EnrollmentFactory_query,
         validate_get=False,
@@ -696,7 +694,7 @@ class View_List(Handler):
             url_template = "%s.json" % url_template
 
         items_count = lib_db.get.get__EnrollmentFactory__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__EnrollmentFactory__paginated(
             self.request.api_context,
             limit=items_per_page,
@@ -929,7 +927,7 @@ class View_Focus(Handler):
         try:
             if TYPE_CHECKING:
                 assert self.dbEnrollmentFactory
-            (dbRenewalConfiguration, is_duplicate_renewal) = submit__onboard(
+            dbRenewalConfiguration, is_duplicate_renewal = submit__onboard(
                 self.request,
                 dbEnrollmentFactory=self.dbEnrollmentFactory,
                 acknowledge_transaction_commits=True,
@@ -1001,7 +999,7 @@ class View_Focus(Handler):
     def _query__submit(self):
         assert self.dbEnrollmentFactory is not None
         try:
-            (formStash, dbRenewalConfiguration, dbX509Certificates) = submit__query(
+            formStash, dbRenewalConfiguration, dbX509Certificates = submit__query(
                 self.request,
                 self.dbEnrollmentFactory,
             )
@@ -1053,7 +1051,7 @@ class View_Focus(Handler):
             self.request.api_context, dbEnrollmentFactory.id
         )
         url_template = "%s/domains/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__Domain__by_EnrollmentFactoryId__paginated(
             self.request.api_context,
             dbEnrollmentFactory.id,
@@ -1098,7 +1096,7 @@ class View_Focus(Handler):
             )
         )
         url_template = "%s/renewal-configurations/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__RenewalConfiguration__by_EnrollmentFactoryId__paginated(
                 self.request.api_context,
@@ -1143,7 +1141,7 @@ class View_Focus(Handler):
             self.request.api_context, dbEnrollmentFactory.id
         )
         url_template = "%s/x509-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__X509Certificate__by_EnrollmentFactoryId__paginated(
                 self.request.api_context,

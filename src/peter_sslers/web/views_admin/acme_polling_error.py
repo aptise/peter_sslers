@@ -9,7 +9,6 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 
-
 # ==============================================================================
 
 
@@ -48,7 +47,7 @@ class View_List(Handler):
             "%s/acme-polling-errors/{0}"
             % self.request.api_context.application_settings["admin_prefix"]
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmePollingError__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )

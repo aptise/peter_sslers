@@ -29,7 +29,6 @@ import cert_utils
 from pyramid.config import Configurator
 from pyramid.response import Response
 
-
 # ==============================================================================
 
 
@@ -213,7 +212,7 @@ def acme_newcert(request):
     inbound = request.body
     if not inbound:
         return Response(body="", status_code=500)
-    (csr_pem, domain_names) = decrypt_acme_newcert(inbound)
+    csr_pem, domain_names = decrypt_acme_newcert(inbound)
     signedcert_pem = sign_csr(csr_pem)
     if not signedcert_pem:
         raise ValueError("could not generate a cert")

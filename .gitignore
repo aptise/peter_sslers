@@ -3,8 +3,7 @@
 .eggs
 .tox
 __pycache__
-/data_development
-/data_testing
+/data_*
 /examples/staging_demo/www/com.aptise.opensource.testing.peter_sslers.*
 /examples/staging_demo/nginx_conf/com.aptise.opensource.testing.peter_sslers_/sites-available/com.aptise.opensource.testing./
 /src/peter_sslers.egg-info

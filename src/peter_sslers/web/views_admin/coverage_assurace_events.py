@@ -121,7 +121,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__CoverageAssuranceEvent__count(
             self.request.api_context, unresolved_only=unresolved_only
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__CoverageAssuranceEvent__paginated(
             self.request.api_context,
             unresolved_only=unresolved_only,
@@ -213,7 +213,7 @@ class View_Focus(Handler):
             self.request.api_context, dbCoverageAssuranceEvent.id
         )
         url_template = "%s/children/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__CoverageAssuranceEvent__by_parentId__paginated(
             self.request.api_context,
             dbCoverageAssuranceEvent.id,
@@ -279,7 +279,7 @@ class View_Focus(Handler):
     def _mark__submit(self, dbCoverageAssuranceEvent):
         action = self.request.params.get("action")
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_CoverageAssuranceEvent_mark,
                 validate_get=False,

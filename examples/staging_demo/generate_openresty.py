@@ -217,7 +217,7 @@ def process_letters():
         }
 
         def microsite_templating_args(
-            challenge: Literal["dns-01", "http-01"]
+            challenge: Literal["dns-01", "http-01"],
         ) -> Dict[str, str]:
             _templating_args = {
                 "letter": letter,

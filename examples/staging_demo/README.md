@@ -97,7 +97,7 @@ Also note the virtualenv created has the version in it as well::
     
 You might prefer installing some extra packages (recommended) with::
 
-    pip install -e .[testing]
+    pip install -e ".[tests]"
 
 # Generate the Staging Example - Server Setup
 

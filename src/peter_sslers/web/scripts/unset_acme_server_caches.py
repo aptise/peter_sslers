@@ -12,7 +12,6 @@ from ...lib import db as lib_db
 from ...lib.utils import new_scripts_setup
 from ...lib.utils import validate_config_uri
 
-
 # from ...lib import db as lib_db
 # from ...lib.config_utils import ApplicationSettings
 

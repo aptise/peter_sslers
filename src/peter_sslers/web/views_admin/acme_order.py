@@ -244,7 +244,7 @@ def submit__new_freeform(
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_AcmeOrder_new_freeform,
         validate_get=False,
@@ -280,7 +280,7 @@ def submit__new_freeform(
 
     # note: tryBlock- form_key_selection__NewOrderFreeform__primary
     try:
-        (acmeAccountSelection__primary, privateKeySelection__primary) = (
+        acmeAccountSelection__primary, privateKeySelection__primary = (
             form_utils.form_selections__NewOrderFreeform(
                 request,
                 formStash,
@@ -293,7 +293,7 @@ def submit__new_freeform(
         assert acmeAccountSelection__primary.AcmeAccount is not None
         assert privateKeySelection__primary.PrivateKey is not None
 
-        (acmeAccountSelection__backup, privateKeySelection__backup) = (
+        acmeAccountSelection__backup, privateKeySelection__backup = (
             form_utils.form_selections__NewOrderFreeform(
                 request,
                 formStash,
@@ -406,7 +406,7 @@ def submit__new_freeform(
                             is not None
                         )
                         # exc.args[0] will be the listing of domains
-                        (domainObjects, adnsAccountObjects) = (
+                        domainObjects, adnsAccountObjects = (
                             lib_db.associate.ensure_domain_names_to_acmeDnsServer(
                                 request.api_context,
                                 exc.args[0],
@@ -624,7 +624,7 @@ def submit__retry(
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_AcmeOrder_retry,
         validate_get=False,
@@ -821,7 +821,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__AcmeOrder__count(
             self.request.api_context, active_only=active_only
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__paginated(
             self.request.api_context,
             active_only=active_only,
@@ -1064,7 +1064,7 @@ class View_Focus_Manipulate(View_Focus):
             self.request.api_context, dbAcmeOrder.id
         )
         url_template = "%s/acme-event-logs/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeEventLogs__by_AcmeOrderId__paginated(
             self.request.api_context,
             dbAcmeOrder.id,
@@ -1508,7 +1508,7 @@ class View_Focus_Manipulate(View_Focus):
             )
         action: Optional[str] = None
         try:
-            (dbAcmeOrder, action) = submit__mark(
+            dbAcmeOrder, action = submit__mark(
                 self.request,
                 dbAcmeOrder=dbAcmeOrder,
                 acknowledge_transaction_commits=True,
@@ -1575,7 +1575,7 @@ class View_Focus_Manipulate(View_Focus):
                 % self._focus_url
             )
         try:
-            (dbAcmeOrderNew, error) = submit__retry(
+            dbAcmeOrderNew, error = submit__retry(
                 self.request,
                 dbAcmeOrder=dbAcmeOrder,
                 acknowledge_transaction_commits=True,
@@ -1771,7 +1771,7 @@ class View_New(Handler):
         Creates a RenewalConfiguration and then initiates an AcmeOrder
         """
         try:
-            (dbAcmeOrder, is_duplicate_renewal_configuration) = submit__new_freeform(
+            dbAcmeOrder, is_duplicate_renewal_configuration = submit__new_freeform(
                 self.request,
                 acknowledge_transaction_commits=True,
             )

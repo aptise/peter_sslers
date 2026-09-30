@@ -12,7 +12,6 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.sql import expression
 
-
 # edited template
 # import peter_sslers
 

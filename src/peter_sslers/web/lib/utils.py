@@ -52,7 +52,7 @@ def prep__domains_challenged__dns01(
                             is not None
                         )
                     # exc.args[0] will be the listing of domains
-                    (domainObjects, adnsAccountObjects) = (
+                    domainObjects, adnsAccountObjects = (
                         lib_db.associate.ensure_domain_names_to_acmeDnsServer(
                             request.api_context,
                             exc.args[0],
