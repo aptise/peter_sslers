@@ -1119,7 +1119,9 @@ class AuthenticatedUser(object):
                     ),
                     event_payload_dict,
                 )
-        finally:
+        except Exception as exc:
+            print("EXCEPTION encountered in `AuthenticatedUser.deactivate`: %s", exc)
+            # no matter what happens, `is_did_deactivate` changed remotely
             return is_did_deactivate
 
     def key_change(
@@ -1253,10 +1255,9 @@ class AuthenticatedUser(object):
                     event_payload_dict,
                 )
 
-        except Exception:
-            raise
-
-        finally:
+        except Exception as exc:
+            # no matter what happens, `is_did_keychange` changed remotely
+            print("EXCEPTION encountered in `AuthenticatedUser.key_change`: %s", exc)
             return is_did_keychange
 
     def acme_order_load(

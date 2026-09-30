@@ -122,4 +122,5 @@ class StopableWSGIServer(TcpWSGIServer):
         try:
             self.shutdown()
         finally:
+            # this is a cleanup
             return False
