@@ -8,7 +8,6 @@ from pyramid.view import view_config
 from ..lib.handler import Handler
 from ...lib import db as lib_db
 
-
 # ==============================================================================
 
 log = logging.getLogger("peter_sslers.web")

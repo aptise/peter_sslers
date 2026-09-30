@@ -263,8 +263,6 @@
 
     CSV exports of acme_dns accounts
 
-    Python 3.9+ only (josepy2.0 requirement)
-
     RenewalConfiguration.label
         is a unique constaint and checked on create
 
@@ -332,7 +330,18 @@
 
   Templates
     make expired active certs more prominent
+
+  Misc
+    the installation command "testing" was renamed tests.
+    
+        - pip install -e ".[testing]"
+        + pip install -e ".[tests]"
         
+    Python 3.10+ only
+        josepy==2.0 required py3.9
+        supporting py<3.10 isn't worth it anymore
+
+
 0.6.0
     py3.7+ only (sqlalchemy requirement)
     lib.cert_utils is now a pypi package, cert_utils, that is only py3

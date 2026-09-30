@@ -135,7 +135,7 @@ class View_Focus(Handler):
         if self.request.wants_json:
             url_template = "%s.json" % url_template
 
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeAccount__by_AcmeServerId__paginated(
             self.request.api_context,
             dbAcmeServer.id,
@@ -174,7 +174,7 @@ class View_Focus(Handler):
         if self.request.wants_json:
             url_template = "%s.json" % url_template
 
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__AcmeServerConfiguration__by_AcmeServerId__paginated(
                 self.request.api_context,
@@ -299,7 +299,7 @@ class View_Focus(Handler):
         dbAcmeServer = self._focus()  # noqa: F841
         action = self.request.params.get("action")
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_AcmeServer_mark,
                 validate_get=False,

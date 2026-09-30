@@ -2013,8 +2013,8 @@ class AuthenticatedUser(object):
 
         # download the certificate
         # ACME-V2 furnishes a FULLCHAIN (certificate_pem + chain_pem)
-        (_status_code, _fullchain_pem, _certificate_headers) = (
-            self._send_signed_request("CertificateUrl", url_certificate, None)
+        _status_code, _fullchain_pem, _certificate_headers = self._send_signed_request(
+            "CertificateUrl", url_certificate, None
         )
         if not isinstance(_fullchain_pem, str):
             raise ValueError("expected `str` response")
@@ -2544,7 +2544,7 @@ class AuthenticatedUser(object):
 
         except errors.AcmeServerError as exc:
             # (status_code, url, resp_data, headers) = exc.args
-            (_status_code, _url, _resp, _headers) = exc.args
+            _status_code, _url, _resp, _headers = exc.args
             """
             if isinstance(_resp, dict):
                 if _resp["type"].startswith("urn:ietf:params:acme:error:"):
@@ -2809,7 +2809,7 @@ def serialize_directory_object(directory: Dict) -> str:
 
 
 def parse_acme_directory(
-    directory: Dict[str, Union[str, Dict]]
+    directory: Dict[str, Union[str, Dict]],
 ) -> Tuple[Optional[Dict], Optional[str]]:
     """extracts relevant parts"""
     meta: Optional[Dict] = None

@@ -491,7 +491,7 @@ class ViewAdminApi_Domain(Handler):
         much of this logic is shared with /acme-order/new/freeform
         """
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_API_Domain_certificate_if_needed,
                 validate_get=False,
@@ -633,7 +633,7 @@ class ViewAdminApi_Domain(Handler):
 
         try:
             log.debug("attempting an autocert")
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_API_Domain_autocert,
                 validate_get=False,
@@ -732,7 +732,7 @@ class ViewAdminApi_Domain(Handler):
             try:
                 if not dbDomain:
                     # we need to start with a domain name in order to create the Autocert block
-                    (dbDomain, _is_created) = (
+                    dbDomain, _is_created = (
                         lib_db.getcreate.getcreate__Domain__by_domainName(
                             self.request.api_context,
                             domain_name,
@@ -922,7 +922,7 @@ class ViewAdminApi_Redis(Handler):
             )
 
         try:
-            (dbEvent, rval) = actual__prime_redis(
+            dbEvent, rval = actual__prime_redis(
                 self.request,
                 acknowledge_transaction_commits=True,
             )

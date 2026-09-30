@@ -54,6 +54,7 @@ tests_require = [
     "pyramid_debugtoolbar>=4.4",
     "pyramid-debugtoolbar-ajax",
     "pytest",
+    "tox",
     "types-invoke",
     "webtest",
 ]
@@ -68,7 +69,14 @@ setup(
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
+        # NOTE:
+        # update lowest & highest, and min target py version, in the following::
+        # - .github/workflows/core-tests.yml;
+        # - .pre-commit-config.yaml
+        # - .pyproject.toml
+        # - .tox.ini
+        # - BELOW `python_requires`
+        # ALSO:
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
@@ -91,11 +99,11 @@ setup(
     ),
     package_dir={"": "src"},
     include_package_data=True,
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     install_requires=requires,
     tests_require=tests_require,
     extras_require={
-        "testing": testing_extras,
+        "tests": testing_extras,
     },
     entry_points="""\
       [paste.app_factory]

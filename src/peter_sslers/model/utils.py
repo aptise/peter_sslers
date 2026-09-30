@@ -29,10 +29,23 @@ if TYPE_CHECKING:
 
 
 class TZDateTime(sqlalchemy.types.TypeDecorator):
+    """
+    This TypeDecorator is used to handle storage of datetime in the database.
+
+    PostgreSQL is great with TimeZone data;
+    SQLite is not - and expects/handles everything in UTC.
+
+    To simplify this ACROSS both backends, the following is done:
+
+    * INTO the database: the Python datetime is converted to UTC with no timezone
+    * FROM the database: the database datetime is converted to a Python datetime at UTC
+    """
+
     impl = sqlalchemy.types.DateTime
     cache_ok = True
 
     def process_bind_param(self, value, dialect):
+        "going into database"
         if value is not None:
             if not value.tzinfo or value.tzinfo.utcoffset(value) is None:
                 raise TypeError("tzinfo is required")
@@ -40,6 +53,7 @@ class TZDateTime(sqlalchemy.types.TypeDecorator):
         return value
 
     def process_result_value(self, value, dialect):
+        "coming from database"
         if value is not None:
             value = value.replace(tzinfo=datetime.timezone.utc)
         return value

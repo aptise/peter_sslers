@@ -88,7 +88,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__AcmeAuthorization__count(
             self.request.api_context, active_only=active_only
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeAuthorization__paginated(
             self.request.api_context,
             active_only=active_only,
@@ -195,7 +195,7 @@ class View_Focus(Handler):
             self.request.api_context, dbAcmeAuthorization.id
         )
         url_template = "%s/acme-orders" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_AcmeAuthorizationId__paginated(
             self.request.api_context,
             dbAcmeAuthorization.id,
@@ -226,7 +226,7 @@ class View_Focus(Handler):
             self.request.api_context, dbAcmeAuthorization.id
         )
         url_template = "%s/acme-challenges" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeChallenge__by_AcmeAuthorizationId__paginated(
             self.request.api_context,
             dbAcmeAuthorization.id,

@@ -16,7 +16,7 @@ Instead of a normal pip install...
 
 Make sure to install the testing extras
 
-    pip install -e .[testing]
+    pip install -e ".[tests]"
 
 ## Server Configuration
 

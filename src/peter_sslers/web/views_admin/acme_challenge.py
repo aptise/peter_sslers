@@ -109,7 +109,7 @@ class View_List(Handler):
             resolved_only=resolved_only,
             processing_only=processing_only,
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeChallenge__paginated(
             self.request.api_context,
             active_only=active_only,

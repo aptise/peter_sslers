@@ -13,7 +13,6 @@ from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...model.objects import UniquelyChallengedFQDNSet
 
-
 # ==============================================================================
 
 
@@ -58,7 +57,7 @@ class View_List(Handler):
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__UniquelyChallengedFQDNSet__paginated(
             self.request.api_context,
             limit=items_per_page,
@@ -144,7 +143,7 @@ class View_Focus(Handler):
             self.request.api_context, dbUniquelyChallengedFQDNSet.id
         )
         url_template = "%s/acme-orders/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__AcmeOrder__by_UniquelyChallengedFQDNSetId__paginated(
                 self.request.api_context,
@@ -179,7 +178,7 @@ class View_Focus(Handler):
             )
         )
         url_template = "%s/x509-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__X509Certificates__by_UniquelyChallengedFQDNSetId__paginated(
                 self.request.api_context,
@@ -212,7 +211,7 @@ class View_Focus(Handler):
             )
         )
         url_template = "%s/renewal-configurations/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__RenewalConfiguration__by_UniquelyChallengedFQDNSetId__paginated(
             self.request.api_context,
             dbUniquelyChallengedFQDNSet.id,

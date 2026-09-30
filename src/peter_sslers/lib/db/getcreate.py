@@ -15,7 +15,6 @@ import sqlalchemy
 from typing_extensions import Literal
 from typing_extensions import TypedDict
 
-
 # localapp
 from .create import create__AcmeChallenge
 from .create import create__PrivateKey
@@ -843,7 +842,7 @@ def getcreate__X509CertificateTrustChain__by_pem_text(
         chain_pem_md5 = cert_utils.utils.md5_text(chain_pem)
         dbX509CertificateTrusteds = []
         for cert_pem in chain_certs:
-            (_dbX509CertificateTrusted, _is_created) = (
+            _dbX509CertificateTrusted, _is_created = (
                 getcreate__X509CertificateTrusted__by_pem_text(
                     ctx,
                     cert_pem,

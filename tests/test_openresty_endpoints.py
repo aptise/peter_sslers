@@ -104,7 +104,7 @@ class FunctionalTests_Main(unittest.TestCase):
     def test_nginx_status(self):
         nginx_servers = self._application_settings.get("nginx.servers_pool")
         assert isinstance(nginx_servers, list)  # this BETTER be populated!
-        (auth, verify) = self._requests_args()
+        auth, verify = self._requests_args()
         for server in nginx_servers:
             url_status = URL_STATUS % server
             # if we are requesting a https endpoint, allow invalid matches
@@ -119,7 +119,7 @@ class FunctionalTests_Main(unittest.TestCase):
     def test_nginx_expire_all(self):
         nginx_servers = self._application_settings.get("nginx.servers_pool")
         assert isinstance(nginx_servers, list)  # this BETTER be populated!
-        (auth, verify) = self._requests_args()
+        auth, verify = self._requests_args()
         for server in nginx_servers:
             url_expire = URL_EXPIRE_ALL % server
             # if we are requesting a https endpoint, allow invalid matches
@@ -135,7 +135,7 @@ class FunctionalTests_Main(unittest.TestCase):
     def test_nginx_expire_domain(self):
         nginx_servers = self._application_settings.get("nginx.servers_pool")
         assert isinstance(nginx_servers, list)  # this BETTER be populated!
-        (auth, verify) = self._requests_args()
+        auth, verify = self._requests_args()
         domain = "example.com"
         for server in nginx_servers:
             url_expire = URL_EXPIRE_DOMAIN % (server, domain)

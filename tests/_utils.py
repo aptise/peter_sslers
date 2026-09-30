@@ -3144,7 +3144,7 @@ class AppTest(AppTestCore):
                     )
 
                     # note: pre-populate AcmeDnsServer
-                    (dbAcmeDnsServer, _x) = db.getcreate.getcreate__AcmeDnsServer(
+                    dbAcmeDnsServer, _x = db.getcreate.getcreate__AcmeDnsServer(
                         self.ctx,
                         api_url=ACME_DNS_API,
                         domain=ACME_DNS_DOMAIN,
@@ -3157,7 +3157,7 @@ class AppTest(AppTestCore):
                         "acme_dns_support"
                     ]
                     try:
-                        (dbAcmeDnsServer_2, _x) = db.getcreate.getcreate__AcmeDnsServer(
+                        dbAcmeDnsServer_2, _x = db.getcreate.getcreate__AcmeDnsServer(
                             self.ctx,
                             api_url=TEST_FILES["AcmeDnsServer"]["2"]["api_url"],
                             domain=TEST_FILES["AcmeDnsServer"]["2"]["domain"],

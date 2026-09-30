@@ -33,7 +33,6 @@ from .objects import X509Certificate
 from .objects import X509CertificateRequest
 from .. import utils as model_utils
 
-
 # ==============================================================================
 
 
@@ -262,12 +261,10 @@ AcmeAuthorization.acme_challenges__5 = sa_orm_relationship(
 AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
     AcmeOrder,
     primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
-    secondary=(
-        """join(AcmeOrder2AcmeAuthorization,
+    secondary=("""join(AcmeOrder2AcmeAuthorization,
                 AcmeOrder,
                 AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id
-                )"""
-    ),
+                )"""),
     secondaryjoin=(
         sa.and_(
             AcmeOrder.id == sa.orm.foreign(AcmeOrder2AcmeAuthorization.acme_order_id),
@@ -296,12 +293,10 @@ AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
 AcmeChallenge.acme_orders = sa_orm_relationship(
     AcmeOrder,
     primaryjoin="AcmeChallenge.acme_authorization_id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
-    secondary=(
-        """join(AcmeOrder,
+    secondary=("""join(AcmeOrder,
                 AcmeOrder2AcmeAuthorization,
                 AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id
-                )"""
-    ),
+                )"""),
     secondaryjoin=(
         sa.and_(
             AcmeOrder2AcmeAuthorization.acme_order_id == sa.orm.foreign(AcmeOrder.id),

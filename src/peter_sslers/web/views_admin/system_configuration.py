@@ -37,7 +37,7 @@ def submit__edit(
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
     assert dbSystemConfiguration.name != "global"
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request, schema=Form_SystemConfiguration_edit, validate_get=False
     )
     if not result:
@@ -77,7 +77,7 @@ def submit__edit_global(
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
     assert dbSystemConfiguration.name == "global"
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_SystemConfiguration_Global_edit,
         validate_get=False,
@@ -136,7 +136,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__SystemConfiguration__count(
             self.request.api_context
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__SystemConfiguration__paginated(
             self.request.api_context,
             limit=items_per_page,

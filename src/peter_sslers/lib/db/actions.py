@@ -1221,7 +1221,7 @@ def refresh_roots(
             # TODO: migrate to getcreate
             # TODO: log creation
             for root_stare_name, root_stare_data in cert_data["compatibility"].items():
-                (version_min, version_max, version_notes) = root_stare_data
+                version_min, version_max, version_notes = root_stare_data
                 dbRootStore = (
                     ctx.dbSession.query(model_objects.RootStore)
                     .filter(

@@ -21,7 +21,6 @@ from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...model.objects import UniqueFQDNSet
 
-
 # ==============================================================================
 
 
@@ -61,7 +60,7 @@ class View_List(Handler):
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__UniqueFQDNSet__paginated(
             self.request.api_context,
             limit=items_per_page,
@@ -216,7 +215,7 @@ class View_Focus(Handler):
             self.request.api_context, dbUniqueFQDNSet.id
         )
         url_template = "%s/acme-orders/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,
@@ -247,7 +246,7 @@ class View_Focus(Handler):
             self.request.api_context, dbUniqueFQDNSet.id
         )
         url_template = "%s/x509-certificate-requests/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__X509CertificateRequest__by_UniqueFQDNSetId__paginated(
                 self.request.api_context,
@@ -280,7 +279,7 @@ class View_Focus(Handler):
             self.request.api_context, dbUniqueFQDNSet.id
         )
         url_template = "%s/x509-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__X509Certificate__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,
@@ -311,7 +310,7 @@ class View_Focus(Handler):
             )
         )
         url_template = "%s/x509-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__UniquelyChallengedFQDNSet__by_UniqueFQDNSetId__paginated(
                 self.request.api_context,
@@ -380,7 +379,7 @@ class View_Focus(Handler):
     def _modify__submit(self):
         dbUniqueFQDNSet = self._focus()
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_UniqueFQDNSet_modify,
                 validate_get=False,
@@ -536,7 +535,7 @@ class ViewNew(Handler):
 
     def _new__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_UniqueFQDNSet_new,
                 validate_get=False,

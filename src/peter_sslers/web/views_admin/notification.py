@@ -49,7 +49,7 @@ class View_List(Handler):
             self.request.api_context.application_settings["admin_prefix"],
         )
         items_count = lib_db.get.get__Notification__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__Notification__paginated(
             self.request.api_context,
             limit=items_per_page,
@@ -129,7 +129,7 @@ class View_Focus_Manipulate(View_Focus):
         dbNotification = self._focus()  # noqa: F841
         action = self.request.params.get("action")
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_Notification_mark,
                 validate_get=False,

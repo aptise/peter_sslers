@@ -10,7 +10,6 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 
-
 # ==============================================================================
 
 
@@ -168,7 +167,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__AriChecks__count(
             self.request.api_context, strategy=sidenav_option
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AriChecks___paginated(
             self.request.api_context,
             strategy=sidenav_option,

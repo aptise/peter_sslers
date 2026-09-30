@@ -66,7 +66,7 @@ class View_List(Handler):
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__PrivateKey__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
@@ -188,7 +188,7 @@ class View_Focus(Handler):
             self.request.api_context, dbPrivateKey.id
         )
         url_template = "%s/x509-certificate-requests/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = (
             lib_db.get.get__X509CertificateRequest__by_PrivateKeyId__paginated(
                 self.request.api_context,
@@ -221,7 +221,7 @@ class View_Focus(Handler):
             self.request.api_context, dbPrivateKey.id
         )
         url_template = "%s/x509-certificates/{0}" % self._focus_url
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__X509Certificate__by_PrivateKeyId__paginated(
             self.request.api_context,
             dbPrivateKey.id,
@@ -278,7 +278,7 @@ class View_Focus_Manipulate(View_Focus):
     def _focus_mark__submit(self, dbPrivateKey):
         action = self.request.params.get("action")
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request, schema=Form_PrivateKey_mark, validate_get=False
             )
             if not result:
@@ -399,7 +399,7 @@ class View_New(Handler):
 
     def _new__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request,
                 schema=Form_PrivateKey_new__autogenerate,
                 validate_get=False,
@@ -476,7 +476,7 @@ class View_New(Handler):
 
     def _upload__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request, schema=Form_PrivateKey_new__file, validate_get=False
             )
             if not result:

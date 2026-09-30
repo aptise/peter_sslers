@@ -28,7 +28,6 @@ from typing import Union
 import CloudFlare
 from typing_extensions import Literal
 
-
 ROOT_DOMAIN = os.environ.get("ROOT_DOMAIN")
 if not all((ROOT_DOMAIN,)):
     raise ValueError("required ENV vars not found: `ROOT_DOMAIN`")

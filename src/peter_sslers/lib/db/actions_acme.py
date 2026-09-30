@@ -2114,7 +2114,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
         # sign and download
         try:
-            (finalize_response, fullchain_pems) = authenticatedUser.acme_order_finalize(
+            finalize_response, fullchain_pems = authenticatedUser.acme_order_finalize(
                 ctx,
                 dbAcmeOrder=dbAcmeOrder,
                 update_order_status=updated_AcmeOrder_status,
@@ -2237,7 +2237,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                         subdir = "backup"
                     else:
                         raise ValueError("unknown dir type")
-                    (EXPORTS_DIR, EXPORTS_DIR_WORKING) = exports.get_exports_dirs(ctx)
+                    EXPORTS_DIR, EXPORTS_DIR_WORKING = exports.get_exports_dirs(ctx)
                     if not os.path.exists(EXPORTS_DIR):
                         os.makedirs(EXPORTS_DIR)
                     type_path = os.path.join(EXPORTS_DIR, type_dir)
@@ -2258,7 +2258,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                         exports.write_pem(
                             cert_path,
                             fname,
-                            cert_data[fname],  # type:ignore[literal-required]
+                            cert_data[fname],  # type: ignore[literal-required]
                         )
                         log.info("\t%s" % cert_path)
         except Exception as exc:
@@ -3220,7 +3220,7 @@ def do__AcmeV2_AcmeOrder__new(
                         "The AcmeServer no longer offers the selected profile",
                     )
         # create the order on the ACME server
-        (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
+        acmeOrderRfcObject, dbAcmeOrderEventLogged = authenticatedUser.acme_order_new(
             ctx,
             domain_names=dbRenewalConfiguration.domains_as_list,
             dbUniqueFQDNSet=dbUniqueFQDNSet,

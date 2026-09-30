@@ -98,7 +98,7 @@ def submit__mark(
     if not acknowledge_transaction_commits:
         raise errors.AcknowledgeTransactionCommitRequired()
 
-    (result, formStash) = formhandling.form_validate(
+    result, formStash = formhandling.form_validate(
         request,
         schema=Form_X509Certificate_mark,
         validate_get=False,
@@ -430,7 +430,7 @@ class View_List(Handler):
             items_count = lib_db.get.get__X509Certificate__count(
                 self.request.api_context, days_to_expiry=expiring_days_ux
             )
-            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            pager, offset = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__X509Certificate__paginated(
                 self.request.api_context,
                 days_to_expiry=expiring_days_ux,
@@ -453,7 +453,7 @@ class View_List(Handler):
             items_count = lib_db.get.get__X509Certificate__count(
                 self.request.api_context, is_active=True
             )
-            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            pager, offset = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__X509Certificate__paginated(
                 self.request.api_context,
                 is_active=True,
@@ -478,7 +478,7 @@ class View_List(Handler):
                 days_to_expiry=expiring_days_ux,
                 is_active=True,
             )
-            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            pager, offset = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__X509Certificate__paginated(
                 self.request.api_context,
                 days_to_expiry=expiring_days_ux,
@@ -502,7 +502,7 @@ class View_List(Handler):
             items_count = lib_db.get.get__X509Certificate__count(
                 self.request.api_context, is_active=False
             )
-            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            pager, offset = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__X509Certificate__paginated(
                 self.request.api_context,
                 is_active=False,
@@ -525,7 +525,7 @@ class View_List(Handler):
             items_count = lib_db.get.get__X509Certificate__count(
                 self.request.api_context, is_active=False, is_unexpired=True
             )
-            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            pager, offset = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__X509Certificate__paginated(
                 self.request.api_context,
                 is_active=False,
@@ -544,7 +544,7 @@ class View_List(Handler):
             items_count = lib_db.get.get__X509Certificate__count(
                 self.request.api_context
             )
-            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            pager, offset = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__X509Certificate__paginated(
                 self.request.api_context,
                 limit=items_per_page,
@@ -599,7 +599,7 @@ class View_List(Handler):
         items_count = lib_db.get.get_X509Certificates_duplicatePairs__count(
             self.request.api_context
         )
-        (pager, offset) = self._paginate(
+        pager, offset = self._paginate(
             items_count, url_template=url_template, items_per_page=alt_items_per_page
         )
 
@@ -671,7 +671,7 @@ class View_Search(Handler):
 
     def _search__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request, schema=Form_X509Certificate_search, validate_get=False
             )
             if not result:
@@ -757,7 +757,7 @@ class View_New(Handler):
 
     def _upload__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(
+            result, formStash = formhandling.form_validate(
                 self.request, schema=Form_Certificate_Upload__file, validate_get=False
             )
             if not result:
@@ -1208,7 +1208,7 @@ class View_Focus(Handler):
         url_template = "%s/ari-check-history/{0}" % self._focus_url
         if self.request.wants_json:
             url_template = "%s.json" % url_template
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AriCheck__by_X509CertificateId__paginated(
             self.request.api_context,
             dbX509Certificate.id,

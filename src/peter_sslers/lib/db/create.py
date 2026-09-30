@@ -582,7 +582,7 @@ def create__AcmeChallengePoll(
     """
     remote_ip_address_id: int
     assert ctx.timestamp
-    (dbRemoteIpAddress, _created) = lib.db.getcreate.getcreate__RemoteIpAddress(
+    dbRemoteIpAddress, _created = lib.db.getcreate.getcreate__RemoteIpAddress(
         ctx, remote_ip_address
     )
     remote_ip_address_id = dbRemoteIpAddress.id
@@ -612,7 +612,7 @@ def create__AcmeChallengeUnknownPoll(
     """
     assert ctx.timestamp
     remote_ip_address_id: int
-    (dbRemoteIpAddress, _created) = lib.db.getcreate.getcreate__RemoteIpAddress(
+    dbRemoteIpAddress, _created = lib.db.getcreate.getcreate__RemoteIpAddress(
         ctx, remote_ip_address
     )
     remote_ip_address_id = dbRemoteIpAddress.id

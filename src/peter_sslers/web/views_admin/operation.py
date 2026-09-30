@@ -9,7 +9,6 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...model import utils as model_utils
 
-
 # ==============================================================================
 
 
@@ -61,7 +60,7 @@ class ViewAdminOperations(Handler):
     def operations_log(self):
         _items_per_page = 25
 
-        (event_type, event_type_id) = self._parse__event_type()
+        event_type, event_type_id = self._parse__event_type()
         event_type_ids = (event_type_id,) if event_type_id else None
 
         items_count = lib_db.get.get__OperationsEvent__count(
@@ -76,7 +75,7 @@ class ViewAdminOperations(Handler):
                 self.request.api_context.application_settings["admin_prefix"],
                 event_type,
             )
-        (pager, offset) = self._paginate(
+        pager, offset = self._paginate(
             items_count, url_template=_url_template, items_per_page=_items_per_page
         )
         items_paged = lib_db.get.get__OperationsEvent__paginated(
@@ -148,7 +147,7 @@ class ViewAdminOperations(Handler):
                 "%s/operations/redis/log/{0}"
                 % self.request.api_context.application_settings["admin_prefix"]
             )
-            (pager, offset) = self._paginate(
+            pager, offset = self._paginate(
                 items_count,
                 url_template=url_template,
                 items_per_page=_items_per_page,
@@ -218,7 +217,7 @@ class ViewAdminOperations(Handler):
                 "%s/operations/nginx/log/{0}"
                 % self.request.api_context.application_settings["admin_prefix"]
             )
-            (pager, offset) = self._paginate(
+            pager, offset = self._paginate(
                 items_count,
                 url_template=url_template,
                 items_per_page=_items_per_page,
@@ -272,7 +271,7 @@ class ViewAdminOperations(Handler):
             "%s/operations/object-log/{0}"
             % self.request.api_context.application_settings["admin_prefix"]
         )
-        (pager, offset) = self._paginate(
+        pager, offset = self._paginate(
             items_count,
             url_template=url_template,
             items_per_page=_items_per_page,

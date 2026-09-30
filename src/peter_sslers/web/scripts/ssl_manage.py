@@ -702,7 +702,7 @@ def main(argv=sys.argv):
                         payload = {"form": document_form(Form_EnrollmentFactory_query)}
                         render_data(payload)
                         exit(0)
-                    (formStash, dbRenewalConfiguration, dbX509Certificates) = (
+                    formStash, dbRenewalConfiguration, dbX509Certificates = (
                         v_enrollment_factory.submit__query(
                             request,
                             dbEnrollmentFactory=_dbEnrollmentFactory,

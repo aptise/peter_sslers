@@ -11,7 +11,6 @@ from ..lib.handler import Handler
 from ...lib import db as lib_db
 from ...model.objects import RootStoreVersion
 
-
 # ==============================================================================
 
 

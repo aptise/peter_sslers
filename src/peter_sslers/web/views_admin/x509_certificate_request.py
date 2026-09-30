@@ -57,7 +57,7 @@ class View_List(Handler):
         )
         if self.request.wants_json:
             url_template = "%s.json" % url_template
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__X509CertificateRequest__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
@@ -190,7 +190,7 @@ class View_Focus(Handler):
             "%s/x509-certificate-request/{0}/acme-orders"
             % self.request.api_context.application_settings["admin_prefix"]
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_X509CertificateRequest__paginated(
             self.request.api_context,
             dbX509CertificateRequest.id,

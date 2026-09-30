@@ -8,7 +8,6 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 
-
 # ==============================================================================
 
 
@@ -51,7 +50,7 @@ class View_List(Handler):
         if self.request.wants_json:
             url_template = "%s.json" % url_template
         items_count = lib_db.get.get__DomainAutocert__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__DomainAutocert__paginated(
             self.request.api_context,
             limit=items_per_page,

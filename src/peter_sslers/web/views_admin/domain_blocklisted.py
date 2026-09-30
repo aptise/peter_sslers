@@ -52,7 +52,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__DomainBlocklisted__count(
             self.request.api_context,
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        pager, offset = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__DomainBlocklisted__paginated(
             self.request.api_context,
             limit=items_per_page,

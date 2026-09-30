@@ -14,7 +14,6 @@ from ...lib.db import _setup
 from ...lib.utils import new_scripts_setup
 from ...lib.utils import validate_config_uri
 
-
 # ==============================================================================
 
 

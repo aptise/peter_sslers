@@ -75,7 +75,7 @@ _args = sys.argv
 try:
     if len(_args) != 3:
         raise ValueError("wrong number of args")
-    (_subdomain_old, _subdomain_new) = _args[1:3]
+    _subdomain_old, _subdomain_new = _args[1:3]
     if not all((_subdomain_old, _subdomain_new)):
         raise ValueError("Missing old or new subdomain")
     # validate the domain inputs
