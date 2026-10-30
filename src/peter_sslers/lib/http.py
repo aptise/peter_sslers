@@ -42,13 +42,15 @@ def check_server(host, port, path_info="/", timeout=3, retries=30):
         return 0
     time.sleep(0.3)
     for i in range(retries):
+        conn = client.HTTPConnection(host, int(port), timeout=timeout)
         try:
-            conn = client.HTTPConnection(host, int(port), timeout=timeout)
             conn.request("GET", path_info)
             res = conn.getresponse()
             return res.status
         except (OSError, client.HTTPException):
             time.sleep(0.3)
+        finally:
+            conn.close()
     return 0
 
 
@@ -119,7 +121,5 @@ class StopableWSGIServer(TcpWSGIServer):
         )
         if running:
             return True
-        try:
-            self.shutdown()
-        finally:
-            return False
+        self.shutdown()
+        return False

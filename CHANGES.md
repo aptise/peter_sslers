@@ -1,4 +1,8 @@
 1.0.0.dev
+    Integration test server: close HTTP readiness-probe connections on successful
+    and failed attempts, and propagate shutdown errors rather than hiding them
+    when the server fails to become ready.
+
     HTTP-01 prechecks: bound connection and read waits to 3.05 and 10 seconds,
     reject HTTP error responses, and validate challenge content explicitly even
     when Python optimization is enabled. Invalid UTF-8 follows the existing
