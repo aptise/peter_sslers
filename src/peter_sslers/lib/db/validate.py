@@ -13,6 +13,8 @@ from .get import get__AcmeDnsServerAccount__by_DomainId
 from .get import get__Domain__by_name
 from .get import get__DomainBlocklisted__by_name
 from .. import errors
+from ..identifiers import canonical_names
+from ..identifiers import identifier
 from ...model import utils as model_utils
 
 if TYPE_CHECKING:
@@ -32,11 +34,16 @@ def validate_domain_names(
     domain_names: Iterable[str],
     allow_blocklisted_domains: bool = False,
 ) -> bool:
+    submitted_names = list(domain_names)
+    try:
+        domain_names = canonical_names(submitted_names)
+    except ValueError:
+        raise errors.AcmeDomainsInvalid(submitted_names) from None
     # check for invalid and blocklists here
     # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
     _invalid_domain_names = []
     for _domain_name in domain_names:
-        if not tldextract.extract(_domain_name).suffix:
+        if identifier(_domain_name)["type"] == "dns" and not tldextract.extract(_domain_name).suffix:
             _invalid_domain_names.append(_domain_name)
     if _invalid_domain_names:
         raise errors.AcmeDomainsInvalid(_invalid_domain_names)
@@ -57,6 +64,9 @@ def ensure_domains_dns01(
     ctx: "ApiContext",
     domain_names: Iterable[str],
 ) -> bool:
+    domain_names = canonical_names(domain_names)
+    if any(identifier(name)["type"] == "ip" for name in domain_names):
+        raise errors.InvalidRequest("DNS-01 cannot be configured for an IP address")
     # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
     _unconfigured_domain_names = []
     for _domain_name in domain_names:

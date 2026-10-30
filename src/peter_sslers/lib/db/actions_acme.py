@@ -54,6 +54,7 @@ from ..acme_profiles import require_profile
 from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
 from ..exceptions import ReassignedPrivateKey
+from ..identifiers import require_dns_issuance
 from ..synchronization import configuration_order_resources
 from ..synchronization import order_resources
 from ..synchronization import serialized_execution
@@ -2689,6 +2690,8 @@ def do__AcmeV2_AcmeOrder__new(
 
     if not dbRenewalConfiguration:
         raise ValueError("Must submit `dbRenewalConfiguration`")
+
+    require_dns_issuance(dbRenewalConfiguration.domains_as_list)
 
     if acme_order_type_id not in model_utils.AcmeOrder_Type._mapping:
         raise ValueError("invalid `acme_order_type_id`")

@@ -1,4 +1,20 @@
 1.0.0.dev
+    IP certificate infrastructure (issuance deferred):
+    * Add migration d8b74e3c10a6 for the IPv6 Domain constraint. Preserve domain
+      IDs and SQLite expression indexes, canonicalize stored IPs/blocklists and
+      refuse collisions or lossy downgrades rather than merging histories.
+    * Normalize IPv4/IPv6 before lookup, ORM persistence and identity-set creation.
+      Accept private addresses as local certificate identities; CA issuance
+      policy is not an intrinsic restriction on stored identities.
+    * Add typed identifiers, DNS-name and IP-address accessors to certificate,
+      CSR, order, renewal and identity-set models, retaining legacy name lists.
+      Add identity metadata to existing full JSON projections.
+    * Match local certificate/CSR imports using typed SANs from cert_utils,
+      including IP-only and mixed certificates with an empty subject.
+    * Reject IP ACME ordering before authentication or network submission until
+      Part 2 implements IP protocol support. Reject IP DNS-01 configuration.
+      No Let's Encrypt-specific profile or lifetime requirement is hardcoded.
+
     Ordering resilience:
     * Preserve the original requested ARI replaces value independently of the
       CA-reported replacement, including successful retries without replaces.

@@ -23,6 +23,7 @@ from sqlalchemy.sql.selectable import Select
 from typing_extensions import Literal
 
 # localapp
+from ..identifiers import canonical_name
 from ...lib import utils as lib_utils
 from ...lib.utils_datetime import datetime_ari_timely
 from ...model import utils as model_utils
@@ -2011,6 +2012,10 @@ def get__Domain__by_name(
     preload: bool = False,
     eagerload_web: bool = False,
 ) -> Optional[Domain]:
+    try:
+        domain_name = canonical_name(domain_name)
+    except ValueError:
+        return None
     q = ctx.dbSession.query(Domain).filter(
         sqlalchemy.func.lower(Domain.domain_name) == sqlalchemy.func.lower(domain_name)
     )
@@ -2252,6 +2257,10 @@ def get__DomainAutocert__by_DomainId__paginated(
 def get__DomainBlocklisted__by_name(
     ctx: "ApiContext", domain_name: str
 ) -> Optional[DomainBlocklisted]:
+    try:
+        domain_name = canonical_name(domain_name)
+    except ValueError:
+        return None
     q = ctx.dbSession.query(DomainBlocklisted).filter(
         sqlalchemy.func.lower(DomainBlocklisted.domain_name)
         == sqlalchemy.func.lower(domain_name)

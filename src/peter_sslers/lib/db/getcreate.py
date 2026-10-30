@@ -44,6 +44,9 @@ from .update import update_AcmeDnsServer__set_global_default
 from .validate import validate_domain_names
 from .. import errors
 from .. import utils
+from ..identifiers import canonical_name
+from ..identifiers import canonical_names
+from ..identifiers import identifier
 from ... import lib
 from ...lib import utils as lib_utils
 from ...model import objects as model_objects
@@ -1040,7 +1043,7 @@ def getcreate__Domain__by_domainName(
     :param discovery_type:
     """
     is_created = False
-    domain_name = lib_utils.normalize_unique_text(domain_name)
+    domain_name = canonical_name(domain_name)
 
     dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
 
@@ -1050,17 +1053,12 @@ def getcreate__Domain__by_domainName(
         _registered: Optional[str] = None
         _suffix: Optional[str] = None
 
-        _san_type = cert_utils.utils.identify_san_type(domain_name)
-        if _san_type == "hostname":
+        if identifier(domain_name)["type"] == "dns":
             _address_type_id = model_utils.AddressType.HOSTNAME
             _registered, _suffix = lib_utils.parse_domain_name(domain_name)
-        elif _san_type == "ipv4":
-            _address_type_id = model_utils.AddressType.IP_ADDRESS_V4
-        elif _san_type == "ipv6":
-            _address_type_id = model_utils.AddressType.IP_ADDRESS_V6
         else:
-            # this should not happen
-            raise ValueError("unsupported san type: %s" % _san_type)
+            _address_type_id = (model_utils.AddressType.IP_ADDRESS_V6
+                                if ":" in domain_name else model_utils.AddressType.IP_ADDRESS_V4)
 
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
@@ -1099,7 +1097,7 @@ def getcreate__DomainBlocklisted__by_domainName(
     domain_name: str,
 ) -> Tuple["DomainBlocklisted", bool]:
     is_created = False
-    domain_name = lib_utils.normalize_unique_text(domain_name)
+    domain_name = canonical_name(domain_name)
     dbDomainBlocklisted = get__DomainBlocklisted__by_name(ctx, domain_name)
     if not dbDomainBlocklisted:
         dbDomainBlocklisted = model_objects.DomainBlocklisted()
@@ -1413,8 +1411,7 @@ def getcreate__UniqueFQDNSet__by_domains(
     :raises: `errors.AcmeDomainsBlocklisted`, `errors.AcmeDomainsInvalid`
     """
     # we should have cleaned this up before submitting, but just be safe!
-    domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
-    domain_names = list(set(domain_names))
+    domain_names = canonical_names(d for d in domain_names if d.strip())
     if not domain_names:
         raise ValueError("no domain names!")
 

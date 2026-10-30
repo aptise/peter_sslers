@@ -52,6 +52,7 @@ from .challenge_fallback import dns_precheck_alternative
 from .db import create as db_create
 from .db import get as db_get
 from .db import update as db_update
+from .identifiers import require_dns_issuance
 from .utils import ari_timestamp_to_python
 from .utils import new_BrowserSession
 from .utils_datetime import datetime_ari_timely
@@ -1320,6 +1321,8 @@ class AuthenticatedUser(object):
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
             )
+
+        require_dns_issuance(domain_names)
 
         # Check to see if we are ratelimited
         if db_get.get__RateLimited__by__acmeAccountId(ctx, self.acmeAccount.id):

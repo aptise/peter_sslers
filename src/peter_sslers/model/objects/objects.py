@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 # pypi
+from cert_utils.identifiers import Identifier
 from pyramid.decorator import reify
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped
@@ -47,6 +48,8 @@ from .types import DomainConfigPayload
 from .. import utils as model_utils
 from ..meta import Base
 from ..utils import TZDateTime
+from ...lib.identifiers import canonical_name
+from ...lib.identifiers import identifier
 from ...lib.utils_datetime import datetime_ari_timely
 from ...logging_utils import censor
 
@@ -1861,6 +1864,21 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def identifiers(self) -> List[Identifier]:
+        """Return typed identities while keeping legacy name-list accessors."""
+        return self.unique_fqdn_set.identifiers
+
+    @property
+    def dns_names(self) -> List[str]:
+        """Return only DNS identities."""
+        return [item["value"] for item in self.identifiers if item["type"] == "dns"]
+
+    @property
+    def ip_addresses(self) -> List[str]:
+        """Return canonical IP identities, including IPv6."""
+        return [item["value"] for item in self.identifiers if item["type"] == "ip"]
+
+    @property
     def acme_status_order(self) -> str:
         return model_utils.Acme_Status_Order.as_string(self.acme_status_order_id)
 
@@ -2139,6 +2157,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "x509_certificate_request_id": self.x509_certificate_request_id,
             "certificate_type": self.certificate_type,
             "domains_as_list": self.domains_as_list,
+            "identifiers": self.identifiers,
+            "dns_names": self.dns_names,
+            "ip_addresses": self.ip_addresses,
             "domains_challenged": self.domains_challenged,
             "finalize_url": self.finalize_url,
             "certificate_url": self.certificate_url,
@@ -2778,21 +2799,24 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         ),
         sa.CheckConstraint(
             "( "
-            "  address_type_id IN (1, 2) "
+            f"  address_type_id IN ({model_utils.AddressType.HOSTNAME}, {model_utils.AddressType.IP_ADDRESS_V4}, {model_utils.AddressType.IP_ADDRESS_V6}) "
             "  and "
             "  ( "
-            "    (address_type_id = 1 AND registered IS NOT NULL AND suffix IS NOT NULL) "
+            f"    (address_type_id = {model_utils.AddressType.HOSTNAME} AND registered IS NOT NULL AND suffix IS NOT NULL) "
             "    OR "
-            "    (address_type_id = 2 AND registered IS NULL AND suffix IS NULL) "
+            f"    (address_type_id = {model_utils.AddressType.IP_ADDRESS_V4} AND registered IS NULL AND suffix IS NULL) "
+            "    OR "
+            f"    (address_type_id = {model_utils.AddressType.IP_ADDRESS_V6} AND registered IS NULL AND suffix IS NULL) "
             "  ) "
             ") ",
             name="_domain_type_check",
         ),
     )
-
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
-    address_type_id: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    address_type_id: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False
+    )  # model_utils.AddressType.id
     registered: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255)
     )  # nullable via `_domain_type_check`
@@ -2815,6 +2839,16 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         sa.Unicode(255), nullable=True, default=None
     )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @validates("domain_name")
+    def _canonical_identity_name(self, key: str, value: str) -> str:
+        """Canonicalize names even when callers construct ORM records directly."""
+        return canonical_name(value)
+
+    @property
+    def identifier(self) -> Identifier:
+        """Expose the stored DNS/IP identity with its checked address type."""
+        return identifier(self.domain_name, self.address_type_id)
 
     @property
     def address_type(self):
@@ -2924,13 +2958,14 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         payload = {
             "id": self.id,
             # - -
-            "acme_challenge_domain_name": self.acme_challenge_domain_name,
+            "acme_challenge_domain_name": (self.acme_challenge_domain_name if self.address_type_id == model_utils.AddressType.HOSTNAME else None),
             "address_type": self.address_type,
             "certificate__latest_multi": {},
             "certificate__latest_single": {},
             "x509_certificates__single_primary_5": [],
             "x509_certificates__single_backup_5": [],
             "domain_name": self.domain_name,
+            "identifier": self.identifier,
         }
         if self.address_type == "hostname":
             payload["registered"] = self.registered
@@ -3003,8 +3038,10 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             "x509_certificate__latest_single": None,
             "x509_certificate__latest_multi": None,
         }
-        if (self.x509_certificate_id__latest_single
-                and self.x509_certificate__latest_single.is_active):
+        if (
+            self.x509_certificate_id__latest_single
+            and self.x509_certificate__latest_single.is_active
+        ):
             if id_only:
                 rval["x509_certificate__latest_single"] = (
                     self.x509_certificate__latest_single.config_payload_idonly
@@ -3013,8 +3050,10 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 rval["x509_certificate__latest_single"] = (
                     self.x509_certificate__latest_single.config_payload
                 )
-        if (self.x509_certificate_id__latest_multi
-                and self.x509_certificate__latest_multi.is_active):
+        if (
+            self.x509_certificate_id__latest_multi
+            and self.x509_certificate__latest_multi.is_active
+        ):
             if id_only:
                 rval["x509_certificate__latest_multi"] = (
                     self.x509_certificate__latest_multi.config_payload_idonly
@@ -3108,6 +3147,11 @@ class DomainBlocklisted(Base, _Mixin_Timestamps_Pretty):
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     domain_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+
+    @validates("domain_name")
+    def _canonical_identity_name(self, key: str, value: str) -> str:
+        """Canonicalize names even when callers construct ORM records directly."""
+        return canonical_name(value)
 
     @property
     def as_json(self) -> Dict:
@@ -4083,6 +4127,21 @@ class RenewalConfiguration(
     _domains_challenged: Optional[model_utils.DomainsChallenged] = None
 
     @property
+    def identifiers(self) -> List[Identifier]:
+        """Return typed identities while keeping legacy name-list accessors."""
+        return self.unique_fqdn_set.identifiers
+
+    @property
+    def dns_names(self) -> List[str]:
+        """Return only DNS identities."""
+        return [item["value"] for item in self.identifiers if item["type"] == "dns"]
+
+    @property
+    def ip_addresses(self) -> List[str]:
+        """Return canonical IP identities, including IPv6."""
+        return [item["value"] for item in self.identifiers if item["type"] == "ip"]
+
+    @property
     def acme_challenge_duplicate_strategy(self) -> str:
         return model_utils.AcmeChallenge_DuplicateStrategy.as_string(
             self.acme_challenge_duplicate_strategy_id
@@ -4618,6 +4677,21 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def identifiers(self) -> List[Identifier]:
+        """Return typed identities while keeping legacy name-list accessors."""
+        return sorted((domain.identifier for domain in self.domains), key=lambda item: (item["type"], item["value"]))
+
+    @property
+    def dns_names(self) -> List[str]:
+        """Return only DNS identities."""
+        return [item["value"] for item in self.identifiers if item["type"] == "dns"]
+
+    @property
+    def ip_addresses(self) -> List[str]:
+        """Return canonical IP identities, including IPv6."""
+        return [item["value"] for item in self.identifiers if item["type"] == "ip"]
+
+    @property
     def domains(self) -> List["Domain"]:
         return [to_d.domain for to_d in self.to_domains]
 
@@ -4647,6 +4721,9 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
             # - -
             "count_domains": self.count_domains,
             "domains_as_list": self.domains_as_list,
+            "identifiers": self.identifiers,
+            "dns_names": self.dns_names,
+            "ip_addresses": self.ip_addresses,
             "timestamp_created": self.timestamp_created_isoformat,
         }
 
@@ -4774,6 +4851,21 @@ class UniquelyChallengedFQDNSet(Base, _Mixin_Timestamps_Pretty):
             domain_ids = [int(i) for i in _domain_ids.split(",")]
             rval[chall] = domain_ids
         return rval
+
+    @property
+    def identifiers(self) -> List[Identifier]:
+        """Return typed identities while keeping legacy name-list accessors."""
+        return self.unique_fqdn_set.identifiers
+
+    @property
+    def dns_names(self) -> List[str]:
+        """Return only DNS identities."""
+        return [item["value"] for item in self.identifiers if item["type"] == "dns"]
+
+    @property
+    def ip_addresses(self) -> List[str]:
+        """Return canonical IP identities, including IPv6."""
+        return [item["value"] for item in self.identifiers if item["type"] == "ip"]
 
     @property
     def domain_objects(self) -> Dict[str, List["Domain"]]:
@@ -4967,6 +5059,21 @@ class X509CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         )
 
     @property
+    def identifiers(self) -> List[Identifier]:
+        """Return typed identities while keeping legacy name-list accessors."""
+        return self.unique_fqdn_set.identifiers
+
+    @property
+    def dns_names(self) -> List[str]:
+        """Return only DNS identities."""
+        return [item["value"] for item in self.identifiers if item["type"] == "dns"]
+
+    @property
+    def ip_addresses(self) -> List[str]:
+        """Return canonical IP identities, including IPv6."""
+        return [item["value"] for item in self.identifiers if item["type"] == "ip"]
+
+    @property
     def x509_certificate_id__latest(self) -> Optional[str]:
         if self.x509_certificate__latest:
             return self.x509_certificate__latest.id
@@ -5016,6 +5123,9 @@ class X509CertificateRequest(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "csr_pem": self.csr_pem,
             "csr_pem_md5": self.csr_pem_md5,
             "domains": self.domains_as_list,
+            "identifiers": self.identifiers,
+            "dns_names": self.dns_names,
+            "ip_addresses": self.ip_addresses,
             "key_technology": self.key_technology,
             "private_key_id": self.private_key_id,
             "spki_sha256": self.spki_sha256,
@@ -5211,6 +5321,21 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def identifiers(self) -> List[Identifier]:
+        """Return typed identities while keeping legacy name-list accessors."""
+        return self.unique_fqdn_set.identifiers
+
+    @property
+    def dns_names(self) -> List[str]:
+        """Return only DNS identities."""
+        return [item["value"] for item in self.identifiers if item["type"] == "dns"]
+
+    @property
+    def ip_addresses(self) -> List[str]:
+        """Return canonical IP identities, including IPv6."""
+        return [item["value"] for item in self.identifiers if item["type"] == "ip"]
 
     @property
     def cert_spki_search(self) -> str:
@@ -5587,6 +5712,9 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             "cert_issuer": self.cert_issuer,
             "cert_serial": self.cert_serial,
             "domains_as_list": self.domains_as_list,
+            "identifiers": self.identifiers,
+            "dns_names": self.dns_names,
+            "ip_addresses": self.ip_addresses,
             "duration_hours": self.duration_hours,
             "fingerprint_sha1": self.fingerprint_sha1,
             "is_ari_supported": self.is_ari_supported,

@@ -10,6 +10,8 @@ from typing import Union
 
 # pypi
 import cert_utils
+from cert_utils.identifiers import parse_cert_identifiers
+from cert_utils.identifiers import parse_csr_identifiers
 from dateutil import parser as dateutil_parser
 import sqlalchemy
 
@@ -21,6 +23,8 @@ from .validate import ensure_domains_dns01
 from .validate import validate_domain_names
 from .. import errors
 from .. import utils
+from ..identifiers import canonical_names
+from ..identifiers import names_from_identifiers
 from ..utils_datetime import retry_after_datetime
 from ... import lib
 from ...lib import utils as lib_utils
@@ -1682,9 +1686,8 @@ def create__X509Certificate(
     # this only happens on development during tests when we use a single cert
     # for all requests...
     # so we don't need to handle this or save it
-    cert_domains = cert_utils.parse_cert__domains(
-        cert_pem=cert_pem,
-    )
+    cert_domains_expected = canonical_names(cert_domains_expected)
+    cert_domains = names_from_identifiers(parse_cert_identifiers(cert_pem))
     if set(cert_domains_expected) != set(cert_domains):
         log.error("set(cert_domains_expected) != set(cert_domains)")
         log.error(cert_domains_expected)
@@ -1911,23 +1914,9 @@ def create__X509CertificateRequest(
     # validate
     cert_utils.validate_csr(csr_pem=csr_pem)
 
-    _csr_domain_names = cert_utils.parse_csr_domains(
-        csr_pem=csr_pem,
-        submitted_domain_names=domain_names,
-    )
-    # this function checks the domain names match a simple regex
-    csr_domain_names = cert_utils.utils.domains_from_list(
-        _csr_domain_names,
-        allow_hostname=True,
-        allow_ipv4=True,
-        allow_ipv6=True,
-        ipv6_require_compressed=True,
-    )
-    if len(csr_domain_names) != len(_csr_domain_names):
-        raise ValueError(
-            "One or more of the domain names in the CSR are not allowed (%s)"
-            % _csr_domain_names
-        )
+    domain_names = canonical_names(domain_names)
+    _csr_domain_names = names_from_identifiers(parse_csr_identifiers(csr_pem))
+    csr_domain_names = _csr_domain_names
     if not csr_domain_names:
         raise ValueError(
             "Must submit `csr_pem` that contains `domain_names` (found None)"
