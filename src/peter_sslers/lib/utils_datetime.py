@@ -1,5 +1,7 @@
 # stdlib
 import datetime
+from email.utils import parsedate_to_datetime
+import re
 import logging
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -64,3 +66,19 @@ def datetime_ari_timely(
         datetime_now + TIMEDELTA_clockdrift + TIMEDELTA_runner_interval
     )
     return timestamp_max_expiry
+
+
+def retry_after_datetime(value: Optional[str], now: datetime.datetime) -> Optional[datetime.datetime]:
+    """Parse Retry-After seconds or an HTTP date; ignore malformed hints."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    value = value.strip()
+    try:
+        if re.fullmatch(r"[0-9]+", value):
+            return now + datetime.timedelta(seconds=int(value))
+        result = parsedate_to_datetime(value)
+        if result.tzinfo is None:
+            result = result.replace(tzinfo=datetime.timezone.utc)
+        return max(now, result.astimezone(datetime.timezone.utc))
+    except (ValueError, TypeError, OverflowError):
+        return None

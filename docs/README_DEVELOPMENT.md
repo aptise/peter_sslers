@@ -406,3 +406,22 @@ uses the fresh Replay-Nonce from that response, as required by
 Missing or repeated replacement nonces are communication errors; retries retain
 the existing MAX_DEPTH bound. A lost transport response is not automatically
 replayed with an already-consumed nonce.
+
+## Polling and retry scheduling
+
+Polling measures elapsed time with a monotonic clock. Pending responses may
+increase the normal polling delay through Retry-After; waits are limited by the
+remaining polling budget. An in-flight request remains subject to the transport
+request timeout and is checked against the budget when it returns.
+
+Retry-After supports seconds and HTTP dates per
+[RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#field.retry-after).
+Malformed hints use the existing default delay. ARI records preserve valid retry
+hints even for failed checks. Successful ARI records require a valid increasing,
+timezone-aware suggested window; malformed windows are recorded as failed checks,
+as required by [RFC 9773](https://www.rfc-editor.org/rfc/rfc9773.html#section-4.2).
+
+Rate-limit lookbacks use `ctx.timestamp - timedelta(hours=within_hours)` with an
+inclusive lower bound. This fixes historical events continuing to count outside
+the configured window; it does not replace that policy with header-driven rate
+limit expiry. `within_hours` must be a non-negative integer.

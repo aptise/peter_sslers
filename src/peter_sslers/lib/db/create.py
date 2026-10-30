@@ -21,6 +21,7 @@ from .validate import ensure_domains_dns01
 from .validate import validate_domain_names
 from .. import errors
 from .. import utils
+from ..utils_datetime import retry_after_datetime
 from ... import lib
 from ...lib import utils as lib_utils
 from ...lib.db import get as _get  # noqa: F401
@@ -698,35 +699,30 @@ def create__AriCheck(
     dbAriCheck.x509_certificate_id = dbX509Certificate.id
     dbAriCheck.timestamp_created = ctx.timestamp
 
+    dbAriCheck.ari_check_status = False
     if ariCheckResult:
-        if ariCheckResult["status_code"] != 200:
-            dbAriCheck.ari_check_status = False
-            dbAriCheck.raw_response = json.dumps(ariCheckResult["payload"])
-        else:
-            if TYPE_CHECKING:
-                assert ariCheckResult["payload"] is not None
-            dbAriCheck.ari_check_status = True
-            if ariCheckResult["payload"].get("suggestedWindow"):
-                _start = ariCheckResult["payload"]["suggestedWindow"].get("start")
-                if _start:
-                    _start = utils.ari_timestamp_to_python(_start)
-                dbAriCheck.suggested_window_start = _start
-                _end = ariCheckResult["payload"]["suggestedWindow"].get("end")
-                if _end:
-                    _end = utils.ari_timestamp_to_python(_end)
-                dbAriCheck.suggested_window_end = _end
-            if ariCheckResult["payload"].get("explanationURL"):
-                dbAriCheck.explanation_url = ariCheckResult["payload"][
-                    "explanation_url"
-                ]
-            retry_after_secs = ariCheckResult["headers"].get("Retry-After")
-            if retry_after_secs:
-                retry_after = ctx.timestamp + datetime.timedelta(
-                    seconds=int(retry_after_secs)
-                )
-                dbAriCheck.timestamp_retry_after = retry_after
-    else:
-        dbAriCheck.ari_check_status = False
+        payload = ariCheckResult["payload"]
+        dbAriCheck.timestamp_retry_after = retry_after_datetime(
+            ariCheckResult["headers"].get("Retry-After"), ctx.timestamp
+        )
+        if ariCheckResult["status_code"] == 200 and isinstance(payload, dict):
+            try:
+                window = payload["suggestedWindow"]
+                start = utils.ari_timestamp_to_python(window["start"])
+                end = utils.ari_timestamp_to_python(window["end"])
+                if start.tzinfo is None or end.tzinfo is None or start >= end:
+                    raise ValueError("Invalid ARI suggested window")
+                explanation = payload.get("explanationURL")
+                if explanation is not None and not isinstance(explanation, str):
+                    raise ValueError("Invalid ARI explanationURL")
+                dbAriCheck.suggested_window_start = start
+                dbAriCheck.suggested_window_end = end
+                dbAriCheck.explanation_url = explanation
+                dbAriCheck.ari_check_status = True
+            except (KeyError, TypeError, ValueError, IndexError):
+                pass
+        if not dbAriCheck.ari_check_status:
+            dbAriCheck.raw_response = json.dumps(payload)
 
     ctx.dbSession.add(dbAriCheck)
     ctx.dbSession.flush(objects=[dbAriCheck])

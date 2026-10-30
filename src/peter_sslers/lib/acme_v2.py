@@ -52,6 +52,7 @@ from .db import update as db_update
 from .utils import ari_timestamp_to_python
 from .utils import new_BrowserSession
 from .utils_datetime import datetime_ari_timely
+from .utils_datetime import retry_after_datetime
 from .. import USER_AGENT
 from ..model import utils as model_utils
 
@@ -760,27 +761,30 @@ class AuthenticatedUser(object):
         The response data is a dict
         """
         log.info("acme_v2.AuthenticatedUser._poll_until_not {0}".format(_log_message))
-        _result = None
-        _t0 = time.time()
-        while (_result is None) or (
-            isinstance(_result, dict) and _result["status"] in _pending_statuses
-        ):
-            log.debug(") polling...")
-            time.sleep(1 if _result is None else 2)
-            _status_code, _result, _headers = self._send_signed_request(
-                _endpoint_type,
-                _url,
-                payload=None,
+        result = None
+        started = time.monotonic()
+        delay = 1.0
+        while True:
+            remaining = SECONDS_POLLING_TIMEOUT - (time.monotonic() - started)
+            if remaining <= 0:
+                raise errors.AcmePollingTooLong(time.monotonic() - started, result)
+            time.sleep(min(delay, remaining))
+            if time.monotonic() - started >= SECONDS_POLLING_TIMEOUT:
+                raise errors.AcmePollingTooLong(time.monotonic() - started, result)
+            _, result, response_headers = self._send_signed_request(
+                _endpoint_type, _url, payload=None,
             )
-            if not isinstance(_result, dict):
-                raise ValueError("expected `dict` response")
-            _tdelta = time.time() - _t0
-            if _tdelta > SECONDS_POLLING_TIMEOUT:
-                log.critical("polling too long")
-                raise errors.AcmePollingTooLong(_tdelta, _result)  # args[0] = tDelta
-        if TYPE_CHECKING:
-            assert isinstance(_result, dict)
-        return _result
+            if not isinstance(result, dict) or not isinstance(result.get("status"), str):
+                raise errors.AcmeCommunicationError("ACME polling response lacks a string status")
+            if time.monotonic() - started > SECONDS_POLLING_TIMEOUT:
+                raise errors.AcmePollingTooLong(time.monotonic() - started, result)
+            if result["status"] not in _pending_statuses:
+                return result
+            delay = 2.0
+            now = datetime.datetime.now(datetime.timezone.utc)
+            retry_at = retry_after_datetime(response_headers.get("Retry-After"), now)
+            if retry_at is not None:
+                delay = max(delay, (retry_at - now).total_seconds())
 
     def update_contact(
         self,

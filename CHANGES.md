@@ -1,4 +1,16 @@
 1.0.0.dev
+    Polling, ARI, and rate-limit scheduling:
+    * Compare rate-limit records against the query timestamp minus within_hours,
+      rather than against their own timestamps. Apply the same portable cutoff
+      to account, server, and overlapping-domain queries; reject invalid windows.
+    * Parse Retry-After as non-negative seconds or an HTTP date, ignoring malformed
+      hints. Store ARI retry hints on unsuccessful checks as well as successes.
+    * Fix explanationURL recording and classify malformed/missing/reversed ARI
+      windows as failed checks while preserving the raw response.
+    * Use a monotonic polling deadline, honor pending-response Retry-After hints,
+      and avoid starting another poll once the budget is exhausted. Report
+      missing/non-string status fields as communication errors.
+
     ACME transport and nonce handling:
     * Preserve HTTP error headers, including Retry-After and Replay-Nonce, and
       close successful/error responses after reading them. Serialize real HTTP

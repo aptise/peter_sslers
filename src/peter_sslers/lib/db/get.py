@@ -2694,6 +2694,12 @@ def get__RateLimited__paginated(
     return items_paged
 
 
+def _rate_limit_cutoff(ctx, within_hours):
+    if not isinstance(within_hours, int) or within_hours < 0:
+        raise ValueError("within_hours must be a non-negative integer")
+    return ctx.timestamp - datetime.timedelta(hours=within_hours)
+
+
 def get__RateLimited__by__acmeAccountId(
     ctx: "ApiContext",
     acme_account_id: int,
@@ -2701,11 +2707,7 @@ def get__RateLimited__by__acmeAccountId(
 ) -> int:
     q = ctx.dbSession.query(RateLimited).filter(
         RateLimited.acme_account_id == acme_account_id,
-        RateLimited.timestamp_created
-        >= (
-            RateLimited.timestamp_created
-            - sqlalchemy.text("'{:d} hours'".format(within_hours))
-        ),
+        RateLimited.timestamp_created >= _rate_limit_cutoff(ctx, within_hours),
     )
     counted = q.count()
     return counted
@@ -2728,11 +2730,7 @@ def get__RateLimited__by__acmeServerId(
     """
     q = ctx.dbSession.query(RateLimited).filter(
         RateLimited.acme_server_id == acme_server_id,
-        RateLimited.timestamp_created
-        >= (
-            RateLimited.timestamp_created
-            - sqlalchemy.text("'{:d} hours'".format(within_hours))
-        ),
+        RateLimited.timestamp_created >= _rate_limit_cutoff(ctx, within_hours),
     )
     if exclude_accounts:
         q = q.filter(RateLimited.acme_account_id.is_(None))
@@ -2766,11 +2764,7 @@ def get__RateLimited__by__acmeServerId_uniqueFqdnSetId(
         )
         .filter(
             RateLimited.acme_server_id == acme_server_id,
-            RateLimited.timestamp_created
-            >= (
-                RateLimited.timestamp_created
-                - sqlalchemy.text("'{:d} hours'".format(within_hours))
-            ),
+            RateLimited.timestamp_created >= _rate_limit_cutoff(ctx, within_hours),
             sqlalchemy.or_(
                 UniqueFQDNSet.id == unique_fqdn_set_id,
                 UniqueFQDNSet2DomainAlt.unique_fqdn_set_id == unique_fqdn_set_id,
