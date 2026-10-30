@@ -1915,8 +1915,14 @@ def _Domain_inject_exipring_days(
     if order:
         q = q.order_by(
             model_utils.min_date(
-                X509CertificateMulti.timestamp_not_after,
-                X509CertificateSingle.timestamp_not_after,
+                sqlalchemy.func.coalesce(
+                    X509CertificateMulti.timestamp_not_after,
+                    X509CertificateSingle.timestamp_not_after,
+                ),
+                sqlalchemy.func.coalesce(
+                    X509CertificateSingle.timestamp_not_after,
+                    X509CertificateMulti.timestamp_not_after,
+                ),
             ).asc()
         )
     return q
@@ -1927,14 +1933,14 @@ def get__Domain__count(
     days_to_expiry: Optional[int] = None,
 ) -> int:
     q = ctx.dbSession.query(Domain)
-    if not days_to_expiry:
+    if days_to_expiry is None:
         q = q.filter(
             sqlalchemy.or_(
                 Domain.x509_certificate_id__latest_single.is_not(None),
                 Domain.x509_certificate_id__latest_multi.is_not(None),
             )
         )
-    if days_to_expiry:
+    if days_to_expiry is not None:
         q = _Domain_inject_exipring_days(ctx, q, days_to_expiry, order=False)
     counted = q.count()
     return counted
@@ -1949,11 +1955,15 @@ def get__Domain__paginated(
     active_certs_only: Optional[bool] = None,
 ) -> List[Domain]:
     q = ctx.dbSession.query(Domain)
-    if active_certs_only and not days_to_expiry:
+    if active_certs_only and days_to_expiry is None:
         q = q.filter(
             sqlalchemy.or_(
-                Domain.x509_certificate_id__latest_single.is_not(None),
-                Domain.x509_certificate_id__latest_multi.is_not(None),
+                Domain.x509_certificate__latest_single.has(
+                    X509Certificate.is_active.is_(True)
+                ),
+                Domain.x509_certificate__latest_multi.has(
+                    X509Certificate.is_active.is_(True)
+                ),
             )
         )
     if eagerload_web:
@@ -1961,7 +1971,7 @@ def get__Domain__paginated(
             joinedload(Domain.x509_certificate__latest_single),
             joinedload(Domain.x509_certificate__latest_multi),
         )
-    if days_to_expiry:
+    if days_to_expiry is not None:
         q = _Domain_inject_exipring_days(ctx, q, days_to_expiry, order=True)
     else:
         q = q.order_by(sqlalchemy.func.lower(Domain.domain_name).asc())

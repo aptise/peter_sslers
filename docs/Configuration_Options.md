@@ -88,3 +88,19 @@ when the API returns HTTP 200. CLI cache-control output also reflects failures.
 The comma-separated `nginx.servers_pool` ignores blank entries and duplicate
 servers while retaining configured order. In `nginx.userpass`, the first colon
 separates username and password; further colons belong to the password.
+
+### Certificate lifecycle and cache fallback
+
+Expiry metadata is recalculated when read, including for model objects retained
+by daemon processes. A zero-day domain expiry filter selects active certificates
+expiring at or before the query timestamp; omitting the filter retains the
+existing unfiltered behavior. An active-only domain listing requires an active
+certificate, rather than merely a stored certificate pointer. Domain configuration
+payloads omit inactive certificate pointers; cache priming falls back from an
+inactive multi-domain certificate to an active single-domain certificate. Active status and
+expiry are separate: an active certificate may still be expired.
+
+On-demand cache priming warns and returns `False` for cache backend errors or
+unavailable certificate data in either prime style. This permits the existing
+API certificate path to continue during cache outages. Programming errors are
+not suppressed. Bulk priming retains its error-reporting behavior.

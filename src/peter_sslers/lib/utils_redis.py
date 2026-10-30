@@ -147,28 +147,21 @@ def prime_redis_domain(
 
     try:
         if prime_style == "1":
-            try:
-                dbX509Certificate = redis_prime_logic__style_1_Domain(
-                    redis_client, dbDomain, redis_timeouts
-                )
-                redis_prime_logic__style_1_PrivateKey(
-                    redis_client, dbX509Certificate.private_key, redis_timeouts
-                )
-                redis_prime_logic__style_1_X509CertificateTrustChain(
-                    redis_client,
-                    dbX509Certificate.x509_certificate_trust_chain__preferred,
-                    redis_timeouts,
-                )
-            except Exception as exc:
-                warnings.warn(str(exc))
-                return False
-        elif prime_style == "2":
-            is_primed = redis_prime_logic__style_2_domain(  # noqa: F841
+            dbX509Certificate = redis_prime_logic__style_1_Domain(
                 redis_client, dbDomain, redis_timeouts
             )
-
-    except Exception as exc:  # noqa: F841
-        raise
+            redis_prime_logic__style_1_PrivateKey(
+                redis_client, dbX509Certificate.private_key, redis_timeouts
+            )
+            redis_prime_logic__style_1_X509CertificateTrustChain(
+                redis_client,
+                dbX509Certificate.x509_certificate_trust_chain__preferred,
+                redis_timeouts,
+            )
+        else:
+            redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts)
+    except (RedisError, ValueError) as exc:
+        warnings.warn(str(exc))
         return False
 
     return True
@@ -184,6 +177,16 @@ def _set_domain_hash(redis_client, key, mapping, timeout):
         else:
             pipeline.expire(key, timeout)
         pipeline.execute()
+
+
+def _domain_certificate(dbDomain):
+    # A stale preferred pointer must not hide an active fallback certificate.
+    for suffix in ("multi", "single"):
+        if getattr(dbDomain, "x509_certificate_id__latest_" + suffix, None):
+            certificate = getattr(dbDomain, "x509_certificate__latest_" + suffix)
+            if certificate is not None and certificate.is_active:
+                return certificate
+    raise ValueError("this domain does not have an active certificate: `%s`" % dbDomain.domain_name)
 
 
 def redis_prime_logic__style_1_Domain(
@@ -210,15 +213,7 @@ def redis_prime_logic__style_1_Domain(
     r['c:1'] = CERT.PEM  # (c)ert
     r['c:2'] = CERT.PEM
     """
-    dbX509Certificate = None
-    if dbDomain.x509_certificate_id__latest_multi:
-        dbX509Certificate = dbDomain.x509_certificate__latest_multi
-    elif dbDomain.x509_certificate_id__latest_single:
-        dbX509Certificate = dbDomain.x509_certificate__latest_single
-    else:
-        raise ValueError(
-            "this domain does not have a certificate: `%s`" % dbDomain.domain_name
-        )
+    dbX509Certificate = _domain_certificate(dbDomain)
 
     # first do the domain
     key_redis = "d1:%s" % dbDomain.domain_name
@@ -289,13 +284,7 @@ def redis_prime_logic__style_2_domain(
 
         d2: domain
     """
-    dbX509Certificate = None
-    if dbDomain.x509_certificate_id__latest_multi:
-        dbX509Certificate = dbDomain.x509_certificate__latest_multi
-    elif dbDomain.x509_certificate_id__latest_single:
-        dbX509Certificate = dbDomain.x509_certificate__latest_single
-    else:
-        raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)
+    dbX509Certificate = _domain_certificate(dbDomain)
 
     # the domain will hold the fullchain and private key
     key_redis = "d2:%s" % dbDomain.domain_name

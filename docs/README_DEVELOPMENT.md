@@ -336,3 +336,23 @@ module. Test its audited sibling checkout with the Python certificate endpoints
 before deploying the pair. Redis and ACME integration tests need the services
 and configuration described below; passing unit tests alone does not validate
 certificate issuance or failover.
+
+## Diagnosing test database savepoints
+
+The database test harness caches expensive setup in `db_freeze` savepoints and
+restores them with `db_unfreeze`. Enable restore logging and failed-reset
+archives with:
+
+```sh
+DEBUG_DBFREEZE=1 DEBUG_DBFREEZE_ARCHIVE=1 python -m pytest tests/test_unit.py
+```
+
+A failed reset deletes the active test database and all reusable savepoints
+(`AppTestCore`, `AppTest`, and `test_pyramid_app-setup_testing_data`), including
+SQLite journal/WAL sidecars. It raises the failure and clears initialization
+flags so later setup can rebuild. Diagnostic `-FAIL-` archives are retained
+when archiving is enabled; they are never used as savepoints.
+
+Run database-backed suites serially for each test INI/database path. Concurrent
+runs need separate databases and savepoints. A run interrupted during setup can
+leave partial data; do not treat that database as a completed fixture.

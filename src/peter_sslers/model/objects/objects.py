@@ -2980,7 +2980,8 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             "x509_certificate__latest_single": None,
             "x509_certificate__latest_multi": None,
         }
-        if self.x509_certificate_id__latest_single:
+        if (self.x509_certificate_id__latest_single
+                and self.x509_certificate__latest_single.is_active):
             if id_only:
                 rval["x509_certificate__latest_single"] = (
                     self.x509_certificate__latest_single.config_payload_idonly
@@ -2989,7 +2990,8 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 rval["x509_certificate__latest_single"] = (
                     self.x509_certificate__latest_single.config_payload
                 )
-        if self.x509_certificate_id__latest_multi:
+        if (self.x509_certificate_id__latest_multi
+                and self.x509_certificate__latest_multi.is_active):
             if id_only:
                 rval["x509_certificate__latest_multi"] = (
                     self.x509_certificate__latest_multi.config_payload_idonly
@@ -5353,17 +5355,17 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     def domains_as_string(self) -> str:
         return self.unique_fqdn_set.domains_as_string
 
-    @reify
+    @property
     def days_to_expiry(self) -> Optional[int]:
         return (
             self.timestamp_not_after - datetime.datetime.now(datetime.timezone.utc)
         ).days
 
-    @reify
+    @property
     def is_expired(self) -> bool:
-        return True if self.days_to_expiry < 0 else False
+        return self.timestamp_not_after < datetime.datetime.now(datetime.timezone.utc)
 
-    @reify
+    @property
     def days_to_expiry__label(self) -> str:
         if self.days_to_expiry <= 2:
             return "danger"

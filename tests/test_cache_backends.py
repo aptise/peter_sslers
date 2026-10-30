@@ -66,7 +66,7 @@ def cache_client(request, tmp_path, socket_directory):
 @pytest.mark.parametrize("style", [1, 2])
 def test_domain_cache_ttl_and_persistent_reprime(cache_client, style):
     certificate = SimpleNamespace(
-        id=1, private_key_id=2,
+        id=1, is_active=True, private_key_id=2,
         x509_certificate_trust_chain_id__preferred=3,
         cert_pem="certificate", cert_fullchain_pem="fullchain",
         private_key=SimpleNamespace(key_pem="private key"),

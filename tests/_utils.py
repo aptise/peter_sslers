@@ -1,4 +1,5 @@
 # stdlib
+from contextlib import closing
 import datetime
 from functools import wraps
 from io import BufferedWriter
@@ -958,8 +959,8 @@ def db_freeze(
     active_filename = os.path.normpath(active_filename)
 
     backup_filename = "%s-%s" % (active_filename, savepoint)
-    backupDb = sqlite3.connect(backup_filename)
-    _connection.connection.backup(backupDb)  # type: ignore[attr-defined]
+    with closing(sqlite3.connect(backup_filename)) as backupDb:
+        _connection.connection.backup(backupDb)  # type: ignore[attr-defined]
 
     return True
 
@@ -990,78 +991,40 @@ def _db_unfreeze__actual(
         )
         return False
 
-    is_failure = False
-
     try:
-        if DEBUG_DBFREEZE:
-            print("DEBUG_DBFREEZE: Attempted to clear database")
+        # SQLite's backup API replaces the destination contents. Do not modify
+        # sqlite_master or mutate the reusable source snapshot before restoring.
+        deadline = time.monotonic() + 20
 
-        # try to clear the database itself
-        clearDb = sqlite3.connect(
-            active_filename,
-            isolation_level="EXCLUSIVE",
-        )
-        cursor = clearDb.cursor()
-        # clear the database
-        cursor.execute(("VACUUM;"))
-        cursor.execute(("PRAGMA writable_schema = 1;"))
-        cursor.execute(("DELETE FROM sqlite_master;"))
-        cursor.execute(("PRAGMA writable_schema = 0;"))
-        cursor.execute(("VACUUM;"))
-        cursor.execute(("PRAGMA integrity_check;"))
-        clearDb.close()
-    except Exception as excc:
-        log.info(
-            "_db_unfreeze__actual[%s] | exception clearing old database: %s"
-            % (savepoint, active_filename)
-        )
-        if DEBUG_DBFREEZE:
-            print("DEBUG_DBFREEZE: exception clearing old database:", active_filename)
-            print(excc)
+        def progress(status, remaining, total):
+            _sqlite_backup_progress(status, remaining, total)
+            if time.monotonic() > deadline:
+                raise TimeoutError("Timed out restoring test database snapshot")
 
-        # if that doesn't work, log it to an artifact
-        if DEBUG_DBFREEZE_ARCHIVE:
-            if AppTestCore._currentTest:
-                # prefer the name
-                failname = "%s-FAIL-%s" % (active_filename, AppTestCore._currentTest)
-            else:
-                # otherwise, save it do a UUID
-                failname = "%s-FAIL-%s" % (active_filename, uuid.uuid4())
-            if DEBUG_DBFREEZE:
-                print(
-                    "DEBUG_DBFREEZE: clear failed; archiving for inspection:", failname
-                )
-            shutil.copy2(active_filename, failname)
-        # instead of raising an exc, just delete it
-        # TODO: bugfix how/why this is only breaking in CI on
-        if DEBUG_DBFREEZE:
-            print("DEBUG_DBFREEZE: unlinking old database for rewrite")
-        os.unlink(active_filename)
-
-        # Do not `return` here; as we need to copy the db next...
-        is_failure = True
-
-    # Py3.10 and below do not need the cursor+vacuum
-    # Py3.13 needs the cursor+vaccume
-    if DEBUG_DBFREEZE:
-        print("DEBUG_DBFREEZE: Attempted to backup")
-    with sqlite3.connect(
-        active_filename,
-        isolation_level="EXCLUSIVE",
-    ) as activeDb:
-        with sqlite3.connect(
-            backup_filename,
-            isolation_level="EXCLUSIVE",
-        ) as backupDb:
-            cursor = backupDb.cursor()
-            cursor.execute(("VACUUM;"))
-            backupDb.backup(activeDb, pages=-1, progress=_sqlite_backup_progress)
-    if DEBUG_DBFREEZE:
-        print("DEBUG_DBFREEZE: backup successful")
-
-    if is_failure:
-        pass
-
+        with closing(sqlite3.connect(backup_filename)) as backupDb:
+            if backupDb.execute("PRAGMA quick_check").fetchone() != ("ok",):
+                raise ValueError("Invalid test database snapshot")
+            with closing(sqlite3.connect(active_filename)) as activeDb:
+                backupDb.backup(activeDb, pages=100, progress=progress)
+    except Exception:
+        if DEBUG_DBFREEZE_ARCHIVE and os.path.exists(active_filename):
+            failname = "%s-FAIL-%s" % (active_filename, uuid.uuid4())
+            try:
+                shutil.copy2(active_filename, failname)
+                log.info("Archived failed test database: %s", failname)
+            except OSError:
+                log.exception("Could not archive failed database; continuing cleanup")
+        # A failed reset invalidates the active database and every reusable
+        # savepoint, not just the snapshot selected for this attempt.
+        for suffix in ("", "-AppTestCore", "-AppTest", "-test_pyramid_app-setup_testing_data"):
+            for sidecar in ("", "-journal", "-wal", "-shm"):
+                filename = active_filename + suffix + sidecar
+                if os.path.exists(filename):
+                    os.unlink(filename)
+        AppTestCore._DB_INTIALIZED = False
+        AppTest._DB_SETUP_RECORDS = False
+        log.exception("Test reset failed; removed active and frozen databases")
+        raise
     return True
 
 
@@ -1105,6 +1068,7 @@ def db_unfreeze(
     # _connection.detach()
     # _connection.invalidate()
     # _engine.dispose()
+    dbSession.close()
     _engine.pool.dispose()
     _engine.dispose()
 
@@ -2388,9 +2352,9 @@ class AppTestCore(CustomizedTestCase, _Mixin_filedata):
         if TYPE_CHECKING:
             assert isinstance(dbfile, str)
         dbfile = os.path.normpath(dbfile)
-        if os.path.exists(dbfile):
-            if os.path.getsize(dbfile):
-                AppTestCore._DB_INTIALIZED = True
+        AppTestCore._DB_INTIALIZED = (
+            os.path.exists(dbfile) and os.path.getsize(dbfile) > 0
+        )
 
         print(
             "AppTestCore.setUp | AppTestCore._DB_INTIALIZED==",

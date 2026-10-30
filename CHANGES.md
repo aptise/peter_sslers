@@ -1,4 +1,23 @@
 1.0.0.dev
+    Test database snapshots: close the requesting session before replacing the
+    active database, restore with SQLite's backup API instead of editing
+    sqlite_master, and close snapshot connections. Failed resets now invalidate
+    and delete the active database and all reusable frozen snapshots, reset the
+    initialization flags, and raise the original failure. Snapshot restores have
+    a bounded retry deadline; debug archives remain available when enabled.
+
+    Certificate lifecycle and cache fallback:
+    * Recalculate expiry days, expired status, and expiry labels on every access
+      so long-lived model objects reflect clock and expiry-date changes.
+    * Treat days_to_expiry=0 as an expiry filter, not an omitted filter.
+    * Exclude inactive certificate pointers from active-only domain listings and
+      domain configuration payloads. Both cache formats use an active fallback
+      when the preferred multi-domain certificate is inactive.
+    * Preserve expiry ordering on SQLite when a domain has only one certificate.
+    * Treat expected on-demand cache failures consistently in both prime styles:
+      warn and return False for cache errors or unavailable certificate data,
+      while allowing programming errors to propagate.
+
     Nginx/OpenResty cache control hardening:
     * Report unsuccessful flushes and per-domain expirations through API JSON,
       HTML redirects, and CLI output rather than always reporting success.
