@@ -1497,72 +1497,43 @@ def get__AcmeServerConfiguration__by_AcmeServerId__active(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AriChecks__count(
-    ctx: "ApiContext",
-    strategy: str,
-) -> int:
-    if strategy == "all":
-        counted = ctx.dbSession.query(AriCheck).count()
-    elif strategy == "cert-latest":
-        counted = (
-            ctx.dbSession.query(AriCheck)
-            .distinct()
-            .group_by(AriCheck.x509_certificate_id)
-            .order_by(AriCheck.id.desc())
-            .count()
-        )
-    elif strategy == "cert-latest-overdue":
-        counted = (
-            ctx.dbSession.query(AriCheck)
-            .distinct()
-            .group_by(AriCheck.x509_certificate_id)
-            .filter(AriCheck.timestamp_retry_after < ctx.timestamp)
-            .order_by(AriCheck.id.desc())
-            .count()
-        )
-    else:
+def _latest_ari_ids():
+    return sqlalchemy.select(sqlalchemy.func.max(AriCheck.id)).group_by(AriCheck.x509_certificate_id)
+
+
+def _ari_retry_due(retry_after, created, now, interval_minutes):
+    return sqlalchemy.or_(
+        retry_after <= now,
+        sqlalchemy.and_(
+            retry_after.is_(None),
+            created <= now - datetime.timedelta(minutes=interval_minutes),
+        ),
+    )
+
+
+def _get_ari_checks(ctx, strategy):
+    query = ctx.dbSession.query(AriCheck)
+    if strategy in ("cert-latest", "cert-latest-overdue"):
+        query = query.filter(AriCheck.id.in_(_latest_ari_ids()))
+        if strategy == "cert-latest-overdue":
+            interval = ctx.application_settings.get("offset.ari_updates", 60)
+            query = query.filter(_ari_retry_due(
+                AriCheck.timestamp_retry_after, AriCheck.timestamp_created,
+                ctx.timestamp, interval,
+            ))
+    elif strategy != "all":
         raise ValueError("unknown strategy")
-    return counted
+    return query
+
+
+def get__AriChecks__count(ctx: "ApiContext", strategy: str) -> int:
+    return _get_ari_checks(ctx, strategy).count()
 
 
 def get__AriChecks___paginated(
-    ctx: "ApiContext",
-    strategy: str,
-    limit: Optional[int] = None,
-    offset: int = 0,
+    ctx: "ApiContext", strategy: str, limit: Optional[int] = None, offset: int = 0,
 ) -> List[AriCheck]:
-    if strategy == "all":
-        q = (
-            ctx.dbSession.query(AriCheck)
-            .order_by(AriCheck.id.desc())
-            .limit(limit)
-            .offset(offset)
-        )
-        items_paged = q.all()
-    elif strategy == "cert-latest":
-        q = (
-            ctx.dbSession.query(AriCheck)
-            .distinct()
-            .group_by(AriCheck.x509_certificate_id)
-            .order_by(AriCheck.id.desc())
-            .limit(limit)
-            .offset(offset)
-        )
-        items_paged = q.all()
-    elif strategy == "cert-latest-overdue":
-        q = (
-            ctx.dbSession.query(AriCheck)
-            .distinct()
-            .group_by(AriCheck.x509_certificate_id)
-            .filter(AriCheck.timestamp_retry_after < ctx.timestamp)
-            .order_by(AriCheck.id.desc())
-            .limit(limit)
-            .offset(offset)
-        )
-        items_paged = q.all()
-    else:
-        raise ValueError("unknown strategy")
-    return items_paged
+    return _get_ari_checks(ctx, strategy).order_by(AriCheck.id.desc()).limit(limit).offset(offset).all()
 
 
 def get__AriCheck__by_X509CertificateId__count(
@@ -4224,12 +4195,22 @@ def get_X509Certificates_renew_now(
     # print("\tctx.timestamp:", ctx.timestamp)
     # print("\ttimestamp_max_expiry:", timestamp_max_expiry)
 
+    usable_window_end = sqlalchemy.case(
+        (AriCheck.ari_check_status.is_(True), AriCheck.suggested_window_end),
+        else_=None,
+    )
+
     q = (
         ctx.dbSession.query(X509Certificate)
         # joinpath 1: X509Certificate>AriCheck
         .outerjoin(
             AriCheck,
-            X509Certificate.id == AriCheck.x509_certificate_id,
+            AriCheck.id == (
+                sqlalchemy.select(sqlalchemy.func.max(AriCheck.id))
+                .where(AriCheck.x509_certificate_id == X509Certificate.id)
+                .correlate(X509Certificate)
+                .scalar_subquery()
+            ),
         )
         # joinpath 1: X509Certificate>AcmeOrder>RenewalConfiguration
         .join(
@@ -4258,9 +4239,9 @@ def get_X509Certificates_renew_now(
             # again, ARI is not guaranteed - but it also might be in the future like pebble
             sqlalchemy.or_(
                 X509Certificate.timestamp_not_after <= timestamp_max_expiry,
-                AriCheck.suggested_window_end <= timestamp_max_expiry,
+                usable_window_end <= timestamp_max_expiry,
                 sqlalchemy.and_(
-                    AriCheck.suggested_window_end.is_(None),
+                    usable_window_end.is_(None),
                     sqlalchemy.func.datetime(
                         X509Certificate.timestamp_not_after,
                         "- "

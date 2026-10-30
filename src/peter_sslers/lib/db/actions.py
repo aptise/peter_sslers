@@ -1325,50 +1325,14 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     timestamp_max_expiry = datetime_ari_timely(
         ctx, datetime_now=TIMESTAMP_routine_start, context="routine__run_ari_checks"
     )
-    """
-    # The SQL we want (for now):
-    SELECT
-        cert.id,
-        latest_ari_checks.latest_ari_id,
-        latest_ari_checks.timestamp_retry_after
-    FROM
-        x509_certificate AS cert
-    LEFT OUTER JOIN (
-        SELECT
-            x509_certificate_id,
-            max(id) as latest_ari_id,
-            timestamp_retry_after
-        FROM ari_check
-        GROUP BY x509_certificate_id
-    ) AS latest_ari_checks
-    ON cert.id = latest_ari_checks.x509_certificate_id
-    WHERE
-        cert.is_active IS True
-        AND
-        (
-            cert.is_ari_supported__cert IS True
-            OR
-            cert.is_ari_supported__order IS True
-        )
-        AND
-        cert.timestamp_not_after <= datetime()
-        AND
-        (
-            latest_ari_checks.latest_ari_id IS NULL
-            OR
-            latest_ari_checks.timestamp_retry_after <= datetime()
-        )
-    ORDER BY cert.id DESC;
-    """
-
     latest_ari_checks = (
         ctx.dbSession.query(
             AriCheck.x509_certificate_id,
-            sqlalchemy.func.max(AriCheck.id).label("latest_ari_id"),
+            AriCheck.id.label("latest_ari_id"),
             AriCheck.timestamp_retry_after,
+            AriCheck.timestamp_created,
         )
-        .group_by(AriCheck.x509_certificate_id)
-        .order_by(AriCheck.x509_certificate_id.desc())
+        .filter(AriCheck.id.in_(get._latest_ari_ids()))
         .subquery()
     )
 
@@ -1399,7 +1363,12 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
                 latest_ari_checks.c.latest_ari_id.is_(None),
                 # OR
                 # <= : the previous ari check has expired
-                latest_ari_checks.c.timestamp_retry_after <= timestamp_max_expiry,
+                get._ari_retry_due(
+                    latest_ari_checks.c.timestamp_retry_after,
+                    latest_ari_checks.c.timestamp_created,
+                    TIMESTAMP_routine_start,
+                    ctx.application_settings.get("offset.ari_updates", 60),
+                ),
             ),
         )
         .order_by(
@@ -1422,15 +1391,19 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
                 dbX509Certificate=dbX509Certificate,
                 force_check=True,  # a potential delay exists after above SQL
             )
-            count_records_success += 1
+            check_succeeded = bool(dbAriObject.ari_check_status)
             ctx.pyramid_transaction_commit()
+            if check_succeeded:
+                count_records_success += 1
+            else:
+                count_records_fail += 1
         except errors.AcmeAriCheckDeclined as exc:
             count_records_fail += 1
             log.info(exc)
         except Exception as exc:
             count_records_fail += 1
-            log.critical(exc)
-            print(exc)
+            ctx.pyramid_transaction_rollback()
+            log.exception("ARI check failed for certificate %s", dbX509Certificate.id)
 
     TIMESTAMP_routine_end = datetime.datetime.now(datetime.timezone.utc)
     dbRoutineExecution = lib_db.create.create__RoutineExecution(

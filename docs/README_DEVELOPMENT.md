@@ -425,3 +425,20 @@ Rate-limit lookbacks use `ctx.timestamp - timedelta(hours=within_hours)` with an
 inclusive lower bound. This fixes historical events continuing to count outside
 the configured window; it does not replace that policy with header-driven rate
 limit expiry. `within_hours` must be a non-negative integer.
+
+## Latest ARI checks and renewal selection
+
+ARI list/count strategies, scheduled checks, and renewal selection use the
+highest-ID check for each certificate. Overdue filters apply after selecting that
+record. A superseded due window cannot override a newer future window. Failed
+checks do not supply a renewal window; the existing lifetime-based fallback
+continues to apply.
+
+Explicit retry hints are compared with the actual routine start time, without
+polling ahead into the next scheduled interval. Checks without a hint become due
+after `offset.ari_updates` minutes from their stored creation time. Certificates
+with no check remain candidates when otherwise eligible.
+
+Routine totals distinguish persisted successful and failed checks. Unexpected
+check/commit failures roll back the current transaction before processing later
+certificates, and an uncommitted check is not counted as successful.

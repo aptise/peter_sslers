@@ -1,4 +1,15 @@
 1.0.0.dev
+    ARI selection and routine recovery:
+    * Select the highest-ID check per certificate before applying overdue filters;
+      remove grouped queries that could read retry hints from arbitrary history.
+    * Use only the latest successful ARI window for renewal selection. Failed
+      checks use the existing certificate-lifetime fallback rather than stale
+      windows; superseded history cannot force an early renewal.
+    * Honor retry hints at the actual routine start time. Missing hints fall back
+      to offset.ari_updates minutes after the recorded check time.
+    * Count persisted failed checks as failures, count successes only after commit,
+      and roll back unexpected per-certificate errors so later checks can proceed.
+
     Polling, ARI, and rate-limit scheduling:
     * Compare rate-limit records against the query timestamp minus within_hours,
       rather than against their own timestamps. Apply the same portable cutoff
