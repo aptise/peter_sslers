@@ -55,6 +55,11 @@ def redis_default_connection(
     if redis is not None:
         return redis
 
+    # Bound unavailable-cache waits. Explicit options and URL query parameters
+    # can override these defaults for deployments with different latency needs.
+    redis_options.setdefault("socket_connect_timeout", 3.05)
+    redis_options.setdefault("socket_timeout", 10)
+
     # otherwise create a new connection
     if url is not None:
         # remove defaults to avoid duplicating settings in the `url`

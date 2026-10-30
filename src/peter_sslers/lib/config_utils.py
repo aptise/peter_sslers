@@ -144,6 +144,14 @@ class ApplicationSettings(dict):
             self["redis.url"] = settings["redis.url"]
             self["redis.prime_style"] = settings["redis.prime_style"]
 
+        # Retain all cache lifetimes in the application settings consumed by
+        # both on-demand and bulk priming.
+        for suffix in ("cert", "certcachain", "domain", "pkey"):
+            key = "redis.timeout.%s" % suffix
+            self[key] = set_int_setting(settings, key)
+            if self[key] is not None and self[key] <= 0:
+                raise ValueError("`%s` must be a positive number of seconds" % key)
+
         # disable the ssl warning from requests?
         self["requests.disable_ssl_warning"] = set_bool_setting(
             settings, "requests.disable_ssl_warning", default=False
@@ -164,7 +172,9 @@ class ApplicationSettings(dict):
         )
         self["nginx.userpass"] = settings.get("nginx.userpass")
         self["nginx.timeout"] = settings.get("nginx.timeout")
-        if (self["nginx.timeout"] is None) or (self["nginx.timeout"].lower() == "none"):
+        if (self["nginx.timeout"] is None) or (
+            str(self["nginx.timeout"]).lower() == "none"
+        ):
             self["nginx.timeout"] = None
         else:
             self["nginx.timeout"] = set_int_setting(self, "nginx.timeout", default=1)
@@ -207,8 +217,6 @@ class ApplicationSettings(dict):
         self["enable_views_public"] = set_bool_setting(
             settings, "enable_views_public", default=True
         )
-
-        self["scheduler"] = settings.get("scheduler", "schedule.json")
 
         self["scheduler"] = settings.get("scheduler", "schedule.json")
 

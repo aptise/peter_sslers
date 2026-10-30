@@ -1,4 +1,16 @@
 1.0.0.dev
+    Cache configuration and priming hardening:
+    * Copy all four redis.timeout.* values from configuration into runtime
+      settings; previously configured lifetimes were silently discarded.
+    * Reject zero, negative, and malformed cache TTLs during configuration.
+      Omit a TTL to retain persistent entries.
+    * Default Redis/Valkey connection and socket waits to 3.05 and 10 seconds.
+      Explicit client options or redis.url query parameters override the defaults.
+    * Remove a redundant unrestricted private-key query on each bulk-prime page.
+    * Accept already-normalized numeric nginx.timeout settings.
+    * Expand tests for bulk pagination, connection reuse, URL timeout overrides,
+      and independent certificate-part lifetimes on Redis and Valkey.
+
     CA reconciliation and Pebble root refresh: apply 3.05-second connection and
     10-second read timeouts to certificate downloads and close their responses.
     Pebble alternate-root requests retain the configured CA verification setting.

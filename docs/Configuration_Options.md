@@ -67,3 +67,12 @@ python -m pytest tests/test_cache_backends.py -q
 
 Each test starts a private server on a temporary Unix socket, with TCP and disk
 persistence disabled. Missing executables are reported as skipped tests.
+
+Cache TTL settings (`redis.timeout.cert`, `redis.timeout.certcachain`,
+`redis.timeout.pkey`, and `redis.timeout.domain`) must be positive integer seconds
+when supplied. Omit a setting for persistent entries. Invalid values now fail at
+startup rather than during a cache write.
+
+Cache clients default to a 3.05-second connection timeout and a 10-second socket
+timeout. Deployments can override these through URL query parameters, for example
+`redis://localhost:6379/0?socket_connect_timeout=2&socket_timeout=5`.

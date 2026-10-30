@@ -87,3 +87,23 @@ def test_domain_cache_ttl_and_persistent_reprime(cache_client, style):
     timeouts["domain"] = None
     prime(cache_client, domain, timeouts)
     assert cache_client.ttl(key) == -1
+
+
+def test_certificate_parts_have_independent_lifetimes(cache_client):
+    from peter_sslers.lib.utils_redis import redis_prime_logic__style_1_PrivateKey
+    from peter_sslers.lib.utils_redis import redis_prime_logic__style_1_X509CertificateTrustChain
+
+    timeouts = {"pkey": 45, "certcachain": 90}
+    key = SimpleNamespace(id=2, key_pem="private key")
+    chain = SimpleNamespace(id=3, chain_pem="chain")
+    redis_prime_logic__style_1_PrivateKey(cache_client, key, timeouts)
+    redis_prime_logic__style_1_X509CertificateTrustChain(cache_client, chain, timeouts)
+    assert cache_client.get("p:2") == b"private key"
+    assert cache_client.get("i:3") == b"chain"
+    assert 0 < cache_client.ttl("p:2") <= 45
+    assert 0 < cache_client.ttl("i:3") <= 90
+    timeouts = {"pkey": None, "certcachain": None}
+    redis_prime_logic__style_1_PrivateKey(cache_client, key, timeouts)
+    redis_prime_logic__style_1_X509CertificateTrustChain(cache_client, chain, timeouts)
+    assert cache_client.ttl("p:2") == -1
+    assert cache_client.ttl("i:3") == -1

@@ -132,12 +132,6 @@ def actual__prime_redis(
         offset = 0
         limit = 100
         while True:
-            lib_db.get.get__PrivateKey__paginated(
-                request.api_context,
-                offset=0,
-                limit=100,
-                active_usage_only=False,
-            )
             active_keys = lib_db.get.get__PrivateKey__paginated(
                 request.api_context,
                 offset=offset,
