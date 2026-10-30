@@ -553,6 +553,14 @@ def sign_payload_inner(
 # ------------------------------------------------------------------------------
 
 
+def _check_http01_response(url: str, keyauthorization: str) -> None:
+    """Download and validate a hosted challenge with bounded network waits."""
+    with requests.get(url, timeout=(3.05, 10)) as response:
+        response.raise_for_status()
+        if response.content.decode("utf-8").strip() != keyauthorization:
+            raise ValueError("HTTP-01 response does not match key authorization")
+
+
 class AuthenticatedUser(object):
     # our API guarantees these items
     ctx: "ApiContext"
@@ -1589,10 +1597,8 @@ class AuthenticatedUser(object):
                     "precheck_acme_challenges[http-01] | ensuring the challenge is readable"
                 )
                 try:
-                    resp = requests.get(wellknown_url)
-                    resp_data = resp.content.decode("utf-8").strip()
-                    assert resp_data == keyauthorization
-                except (IOError, AssertionError):
+                    _check_http01_response(wellknown_url, keyauthorization)
+                except (IOError, ValueError):
                     if ctx.application_settings["log.acme"]:
                         self.acmeLogger.log_challenge_error(
                             "v2",

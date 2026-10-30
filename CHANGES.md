@@ -1,4 +1,9 @@
 1.0.0.dev
+    HTTP-01 prechecks: bound connection and read waits to 3.05 and 10 seconds,
+    reject HTTP error responses, and validate challenge content explicitly even
+    when Python optimization is enabled. Invalid UTF-8 follows the existing
+    precheck-failure path. Close downloaded responses after checking them.
+
     Redis/Valkey domain cache: honor redis.timeout.domain for both prime styles.
     Previously, domain hashes were written without applying the configured TTL.
     Priming now updates the hash and its expiration in one transaction;
