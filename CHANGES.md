@@ -1,4 +1,8 @@
 1.0.0.dev
+    CA reconciliation and Pebble root refresh: apply 3.05-second connection and
+    10-second read timeouts to certificate downloads and close their responses.
+    Pebble alternate-root requests retain the configured CA verification setting.
+
     Integration test server: close HTTP readiness-probe connections on successful
     and failed attempts, and propagate shutdown errors rather than hiding them
     when the server fails to become ready.

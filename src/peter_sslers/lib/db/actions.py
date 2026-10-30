@@ -607,6 +607,14 @@ _header_2_format = {
 }
 
 
+def _download_certificate(url, *, verify=True, error_message="Could not load certificate"):
+    """Fetch certificate bytes without leaving connections or waits unbounded."""
+    with requests.get(url, verify=verify, timeout=(3.05, 10)) as response:
+        if response.status_code != 200:
+            raise ValueError(error_message)
+        return response.content, response.headers
+
+
 def operations_reconcile_cas(
     ctx: "ApiContext",
 ) -> "OperationsEvent":
@@ -635,16 +643,14 @@ def operations_reconcile_cas(
         log.debug(cert_issuer_uri)
         assert cert_issuer_uri
         try:
-            resp = requests.get(cert_issuer_uri)
-            if resp.status_code != 200:
-                raise ValueError("Could not load certificate")
-            content_type = resp.headers.get("content-type")
+            content, headers = _download_certificate(cert_issuer_uri)
+            content_type = headers.get("content-type")
             filetype = _header_2_format.get(content_type) if content_type else None
             cert_pems = None
             if filetype == "pkcs7":
-                cert_pems = cert_utils.convert_pkcs7_to_pems(resp.content)
+                cert_pems = cert_utils.convert_pkcs7_to_pems(content)
             elif filetype == "pkix-cert":
-                cert_pem = cert_utils.convert_der_to_pem(resp.content)
+                cert_pem = cert_utils.convert_der_to_pem(content)
                 cert_pems = [
                     cert_pem,
                 ]
@@ -1072,19 +1078,20 @@ def refresh_pebble_ca_certs(ctx: "ApiContext") -> bool:
 
     ca_bundle_file = pebbleServer.local_ca_bundle(ctx) or False
 
-    r0 = requests.get("https://127.0.0.1:15000/roots/0", verify=ca_bundle_file)
-    if r0.status_code != 200:
-        raise ValueError("Could not load first root")
-    root_pems = [
-        r0.text,
-    ]
-    alternates = acme_v2.get_header_links(r0.headers, "alternate")
-    if alternates:
-        for _alt in alternates:
-            _r = requests.get(_alt, verify=ca_bundle_file)
-            if _r.status_code != 200:
-                raise ValueError("Could not load additional root")
-            root_pems.append(_r.text)
+    content, headers = _download_certificate(
+        "https://127.0.0.1:15000/roots/0",
+        verify=ca_bundle_file,
+        error_message="Could not load first root",
+    )
+    root_pems = [content.decode("ascii")]
+    alternates = acme_v2.get_header_links(headers, "alternate")
+    for alternate in alternates:
+        content, _ = _download_certificate(
+            alternate,
+            verify=ca_bundle_file,
+            error_message="Could not load additional root",
+        )
+        root_pems.append(content.decode("ascii"))
 
     dbCACerts = []
     for _root_pem in root_pems:
