@@ -1,4 +1,17 @@
 1.0.0.dev
+    ACME profiles and shorter certificate lifetimes:
+    * Preserve advertised profile references alongside legacy names. Add
+      profiles_mapping to AcmeServer JSON and safely display HTTP(S) references.
+      Migration c2e6a4d891b0 backfills known references from stored directories
+      while preserving name-only legacy records and existing selections.
+    * Deduplicate profile-change notifications, including reference changes and
+      removals; suppress initial-discovery and unknown-reference backfill alerts.
+      Unknown advertised profiles remain usable; unavailable selections fail
+      explicitly rather than silently switching profiles.
+    * Calculate renewal fallback from actual validity dates at two-thirds of
+      the lifetime, including fractional hours and the exact threshold. Retain
+      ARI precedence and expiry recovery; do not use policy dates as timers.
+
     * Attempting to add a second acme-dns server did not surface in HTML
       the intended querystring error.
     Logging, audit integrity, and operational hardening:

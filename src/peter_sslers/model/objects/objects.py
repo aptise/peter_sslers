@@ -2423,6 +2423,10 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     profiles: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, default=None
     )
+    profiles_data: Mapped[Optional[str]] = mapped_column(
+        sa.Text, nullable=True, default=None
+    )  # JSON name -> advertised value; legacy names without values remain null.
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_accounts = sa_orm_relationship(
@@ -2497,6 +2501,17 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
         return self.profiles.split(",")
 
     @property
+    def profiles_mapping(self) -> Dict[str, Optional[str]]:
+        """Return fresh metadata while preserving legacy name-only records."""
+        data = json.loads(self.profiles_data) if self.profiles_data else {}
+        if not isinstance(data, dict):
+            raise ValueError("Stored ACME profiles must be an object")
+        return {
+            name: data.get(name) if isinstance(data.get(name), str) else None
+            for name in self.profiles_list
+        }
+
+    @property
     def url(self) -> str:
         return self.directory_url or ""
 
@@ -2516,6 +2531,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
             "is_retry_challenges": self.is_retry_challenges,
             "name": self.name,
             "profiles": self.profiles_list,
+            "profiles_mapping": self.profiles_mapping,
             "protocol": self.protocol,
             "server_ca_cert_bundle": self.server_ca_cert_bundle,
             "timestamp_created": self.timestamp_created_isoformat,

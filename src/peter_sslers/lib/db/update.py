@@ -1,9 +1,11 @@
 # stdlib
 import datetime
 import hashlib
+import json
 import logging
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -24,6 +26,7 @@ from .get import get__EnrollmentFactory__by_name
 from .logger import _log_object_event
 from .logger import log__OperationsEvent
 from .. import errors
+from ..acme_profiles import directory_profiles
 from ... import lib
 from ...lib import acme_v2
 from ...lib import events as _events  # noqa: F401
@@ -574,14 +577,24 @@ def update_AcmeServer_profiles(
     ctx: "ApiContext",
     dbAcmeServer: "AcmeServer",
     profiles_str: Optional[str],
+    *,
+    advertised: Optional[Mapping[str, str]] = None,
 ) -> bool:
-    # TODO: anaylize/notify that profiles have changed
-    # BUT, we only call this from code that has made that comparison
-    # _profiles_old = dbAcmeServer.profiles  # noqa: F841
-    if dbAcmeServer.profiles != profiles_str:
+    """Persist URLs alongside the backwards-compatible profile-name field."""
+    values: Dict[str, Optional[str]] = (
+        dict(advertised)
+        if advertised is not None
+        else {name: None for name in (profiles_str or "").split(",") if name}
+    )
+    encoded = json.dumps(values, sort_keys=True)
+    changed = (
+        dbAcmeServer.profiles != profiles_str or dbAcmeServer.profiles_data != encoded
+    )
+    if changed:
         dbAcmeServer.profiles = profiles_str
+        dbAcmeServer.profiles_data = encoded
         ctx.dbSession.flush(objects=[dbAcmeServer])
-    return True
+    return changed
 
 
 def update_AcmeServer_directory(
@@ -590,6 +603,13 @@ def update_AcmeServer_directory(
     acme_directory_payload: Dict,
     timestamp: Optional[datetime.datetime] = None,
 ) -> bool:
+    """Validate first, retain advertised references, and notify once per directory change."""
+    advertised = directory_profiles(acme_directory_payload)
+    previous = dbAcmeServer.profiles_mapping
+    profiles_changed = set(previous) != set(advertised) or any(
+        value is not None and advertised.get(name) != value
+        for name, value in previous.items()
+    )
     # don't trust ctx.timestamp on this, as we be in a long-running action
     if not timestamp:
         timestamp = ctx.timestamp
@@ -608,24 +628,26 @@ def update_AcmeServer_directory(
         )
         _changed = True
         if not initial_config:
-            message = (
-                "Detected a change in the `directory` of AcmeServer[%s]."
-                % dbAcmeServer.id
+            message = "Detected a change in the %s of AcmeServer[%s]." % (
+                "profiles" if profiles_changed else "directory",
+                dbAcmeServer.id,
             )
             _notification = create__Notification(  # noqa: F841
                 ctx,
-                notification_type_id=model_utils.NotificationType.ACME_SERVER_CHANGED,
+                notification_type_id=(
+                    model_utils.NotificationType.ACME_SERVER_PROFILES_CHANGED
+                    if profiles_changed
+                    else model_utils.NotificationType.ACME_SERVER_CHANGED
+                ),
                 message=message,
             )
     else:
         dbAcmeServer.directory_latest.timestamp_lastchecked = timestamp
         _changed = True
 
-    _meta, _profiles_str = acme_v2.parse_acme_directory(acme_directory_payload)
-    if _profiles_str != dbAcmeServer.profiles:
-        _result = update_AcmeServer_profiles(  # noqa: F841
-            ctx, dbAcmeServer, _profiles_str
-        )
+    if update_AcmeServer_profiles(
+        ctx, dbAcmeServer, ",".join(advertised) or None, advertised=advertised
+    ):
         _changed = True
 
     #

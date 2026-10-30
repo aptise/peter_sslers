@@ -14,6 +14,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -46,6 +47,7 @@ from . import cas
 from . import errors
 from . import utils
 from . import utils_dns
+from .acme_profiles import directory_profiles
 from .db import create as db_create
 from .db import get as db_get
 from .db import update as db_update
@@ -2729,17 +2731,15 @@ def serialize_directory_object(directory: Dict) -> str:
 
 
 def parse_acme_directory(
-    directory: Dict[str, Union[str, Dict]]
-) -> Tuple[Optional[Dict], Optional[str]]:
-    """extracts relevant parts"""
-    meta: Optional[Dict] = None
-    profiles_str: Optional[str] = None
+    directory: Mapping[str, object],
+) -> Tuple[Optional[Dict[str, object]], Optional[str]]:
+    """Extract metadata and legacy profile names without discarding references."""
+    meta: Optional[Dict[str, object]] = None
+    advertised = directory_profiles(directory)
+    profiles_str = ",".join(advertised) or None
     _meta = directory.get("meta")
     if isinstance(_meta, dict):
         meta = _meta
-        _profiles = _meta.get("profiles")
-        if _profiles:
-            profiles_str = ",".join(sorted(_profiles.keys()))
     return meta, profiles_str
 
 

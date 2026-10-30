@@ -4228,6 +4228,7 @@ def _query_certificates_due_for_renewal(
     timestamp_max_expiry: Optional[datetime.datetime] = None,
     renewal_configuration_ids: Optional[Tuple[int, ...]] = None,
 ) -> Query[X509Certificate]:
+    """Use successful ARI windows or the inclusive two-thirds actual-validity cutoff."""
     if not timestamp_max_expiry:
         timestamp_max_expiry = datetime_ari_timely(
             ctx, context="get_X509Certificates_renew_now"
@@ -4247,7 +4248,8 @@ def _query_certificates_due_for_renewal(
         # joinpath 1: X509Certificate>AriCheck
         .outerjoin(
             AriCheck,
-            AriCheck.id == (
+            AriCheck.id
+            == (
                 sqlalchemy.select(sqlalchemy.func.max(AriCheck.id))
                 .where(AriCheck.x509_certificate_id == X509Certificate.id)
                 .correlate(X509Certificate)
@@ -4284,15 +4286,21 @@ def _query_certificates_due_for_renewal(
                 usable_window_end <= timestamp_max_expiry,
                 sqlalchemy.and_(
                     usable_window_end.is_(None),
-                    sqlalchemy.func.datetime(
-                        X509Certificate.timestamp_not_after,
-                        "- "
-                        + sqlalchemy.type_coerce(  # remove 1/3 the hours
-                            (X509Certificate.duration_hours / 3), sqlalchemy.String
+                    # Use actual validity, not truncated cached whole hours.
+                    sqlalchemy.func.julianday(X509Certificate.timestamp_not_after)
+                    - (
+                        sqlalchemy.func.julianday(X509Certificate.timestamp_not_after)
+                        - sqlalchemy.func.julianday(
+                            X509Certificate.timestamp_not_before
                         )
-                        + " hours",
                     )
-                    < timestamp_max_expiry,
+                    / 3.0
+                    <= sqlalchemy.func.julianday(
+                        sqlalchemy.literal(
+                            timestamp_max_expiry,
+                            type_=X509Certificate.__table__.c.timestamp_not_after.type,
+                        )
+                    ),
                 ),
             ),
         )

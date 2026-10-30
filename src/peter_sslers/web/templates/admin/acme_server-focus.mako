@@ -96,7 +96,16 @@
                 <tr>
                     <th>profiles</th>
                     <td>
-                        <code>${AcmeServer.profiles or ""}</code>
+                        <% from peter_sslers.lib.acme_profiles import profile_link %>
+                        % for name, reference in AcmeServer.profiles_mapping.items():
+                            <div><code>${name | h}</code>
+                            % if reference and profile_link(reference):
+                                <a href="${reference | h}" rel="noreferrer">${reference | h}</a>
+                            % elif reference:
+                                <span>${reference | h}</span>
+                            % endif
+                            </div>
+                        % endfor
                     </td>
                 </tr>
                 <tr>

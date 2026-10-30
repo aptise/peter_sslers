@@ -50,6 +50,7 @@ from .update import update_AcmeOrder_finalized
 from .update import update_AcmeServer_directory
 from .validate import validate_private_key_for_order
 from .. import errors
+from ..acme_profiles import require_profile
 from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
 from ..exceptions import ReassignedPrivateKey
@@ -3295,19 +3296,7 @@ def do__AcmeV2_AcmeOrder__new(
             ctx, dbAcmeAccount, transaction_commit=transaction_commit
         )
         if profile:
-            _meta, _profiles_str = acme_v2.parse_acme_directory(
-                authenticatedUser.acme_directory
-            )
-            if _meta:
-                if not _profiles_str:
-                    raise errors.FieldError(
-                        "profile", "The AcmeServer no longer offers profiles"
-                    )
-                if profile not in _profiles_str.split(","):
-                    raise errors.FieldError(
-                        "profile",
-                        "The AcmeServer no longer offers the selected profile",
-                    )
+            require_profile(authenticatedUser.acme_directory, profile)
         # create the order on the ACME server
         (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
             ctx,

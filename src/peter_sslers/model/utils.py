@@ -1425,9 +1425,11 @@ KeyTechnology._DEFAULT_RenewalConfiguration_id = KeyTechnology.from_string(
 
 class NotificationType(_mixin_mapping):
     ACME_SERVER_CHANGED = 1
+    ACME_SERVER_PROFILES_CHANGED = 2
 
     _mapping = {
         1: "acme_server_changed",
+        2: "acme_server_profiles_changed",
     }
 
 
