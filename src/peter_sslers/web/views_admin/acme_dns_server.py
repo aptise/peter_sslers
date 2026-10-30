@@ -26,7 +26,6 @@ from ..lib.forms import Form_AcmeDnsServer_import_domain
 from ..lib.forms import Form_AcmeDnsServer_mark
 from ..lib.forms import Form_AcmeDnsServer_new
 from ..lib.handler import Handler
-from ...lib import acmedns as lib_acmedns
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -526,8 +525,6 @@ class View_Focus(Handler):
             )
             if not result:
                 raise formhandling.FormInvalid(formStash)
-            if lib_acmedns.pyacmedns is None:
-                formStash.fatal_form(error_main="`pyacmedns` is not installed")
             try:
                 # this function checks the domain names match a simple regex
                 # domains will also be lowercase+strip
@@ -717,8 +714,6 @@ class View_Focus(Handler):
             )
             if not result:
                 raise formhandling.FormInvalid(formStash)
-            if lib_acmedns.pyacmedns is None:
-                raise formStash.fatal_form(error_main="`pyacmedns` is not installed")
             # ensure we have these domain!
             for test_domain in ("domain_name", "fulldomain"):
                 try:

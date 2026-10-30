@@ -100,6 +100,7 @@ setup(
       [paste.app_factory]
       main = peter_sslers.web:main
       [console_scripts]
+      audit_events = peter_sslers.web.scripts.audit_events:main
       acme_dns_audit = peter_sslers.web.scripts.acme_dns_audit:main
       create_domain_blocklisted = peter_sslers.web.scripts.create_domain_blocklisted:main
       deactivate_duplicate_certificates = peter_sslers.web.scripts.deactivate_duplicate_certificates:main

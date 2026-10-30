@@ -6,6 +6,7 @@ from io import BufferedWriter
 from io import open  # overwrite `open` in Python2
 import logging
 import os
+from pathlib import Path
 import pdb  # noqa: F401
 import pprint  # noqa: F401
 import shutil
@@ -20,6 +21,7 @@ from typing import Optional
 from typing import overload
 from typing import Tuple
 from typing import TYPE_CHECKING
+from typing import TypeVar
 from typing import Union
 import unittest
 import uuid
@@ -42,6 +44,7 @@ from sqlalchemy.orm import close_all_sessions
 from sqlalchemy.orm import Session
 import transaction
 from typing_extensions import Literal
+from typing_extensions import ParamSpec
 from webtest import TestApp
 from webtest import Upload
 from webtest.http import StopableWSGIServer
@@ -74,6 +77,7 @@ from peter_sslers.model import utils as model_utils
 from peter_sslers.web import main
 from peter_sslers.web.models import get_engine
 from peter_sslers.web.models import get_session_factory
+from ._services import managed_service
 from .regex_library import RE_AcmeOrder
 
 if TYPE_CHECKING:
@@ -147,7 +151,7 @@ if not os.path.exists(SSL_CONF_REDIS_SERVER):
 
 GOPATH = os.environ.get("GOPATH")
 PEBBLE_DIR = "%s/bin" % GOPATH
-PEBBLE_BIN = None
+PEBBLE_BIN = os.environ.get("SSL_PEBBLE_BINARY") or shutil.which("pebble")
 PEBBLE_CONFIG_DIR = "/".join(
     __file__.split("/")[:-1]
     + [
@@ -182,13 +186,13 @@ ACMEDNS_CONFIG_FILE = "/".join(
 
 
 if RUN_API_TESTS__PEBBLE:
-    if not GOPATH:
-        raise ValueError("GOPATH not defined in environment")
-    if not os.path.exists(PEBBLE_DIR):
-        raise ValueError("PEBBLE_DIR (%s) does not exist" % PEBBLE_DIR)
-    PEBBLE_BIN = "/".join((PEBBLE_DIR, "pebble"))
-    if not os.path.exists(PEBBLE_BIN):
-        raise ValueError("PEBBLE_BIN (%s) does not exist" % PEBBLE_BIN)
+    PEBBLE_BIN = PEBBLE_BIN or (
+        str(Path(GOPATH) / "bin" / "pebble") if GOPATH else None
+    )
+    if not PEBBLE_BIN or not Path(PEBBLE_BIN).is_file():
+        raise ValueError(
+            "Set SSL_PEBBLE_BINARY or install pebble on PATH (GOPATH/bin is also supported)"
+        )
 
 PEBBLE_ENV = os.environ.copy()
 PEBBLE_ENV["PEBBLE_VA_ALWAYS_VALID"] = "1"
@@ -215,12 +219,12 @@ RUN_API_TESTS__ACME_DNS_API = bool(
     int(os.environ.get("SSL_RUN_API_TESTS__ACME_DNS_API", 0))
 )
 ACME_DNS_API = os.environ.get("SSL_ACME_DNS_API", "http://127.0.0.1:8011")
-ACME_DNS_DOMAIN = os.environ.get("SSL_ACME_DNS_API", "dev.2xlp.com")
+ACME_DNS_DOMAIN = os.environ.get("SSL_ACME_DNS_DOMAIN", "dev.2xlp.com")
 ACME_DNS_BINARY = os.environ.get("SSL_ACME_DNS_BINARY", "")
 ACME_DNS_CONFIG = os.environ.get("SSL_ACME_DNS_CONFIG", "")
 
 if RUN_API_TESTS__ACME_DNS_API:
-    if not any((ACME_DNS_BINARY, ACME_DNS_CONFIG)):
+    if not all((ACME_DNS_BINARY, ACME_DNS_CONFIG)):
         raise ValueError("Must invoke with env vars for acme-dns services")
 
 RUN_API_TESTS__EXTENDED = bool(int(os.environ.get("SSL_RUN_API_TESTS__EXTENDED", 0)))
@@ -431,21 +435,20 @@ def process_pebble_roots(
         env_name,
     )
     assert os.path.exists(_pebble_server_root)
-    r0 = requests.get(
-        "https://127.0.0.1:%s/roots/0" % port_admin, verify=_pebble_server_root
-    )
-    if r0.status_code != 200:
-        raise ValueError("Could not load first root")
-    root_pems = [
-        r0.text,
-    ]
-    alternates = acme_v2.get_header_links(r0.headers, "alternate")
-    if alternates:
-        for _alt in alternates:
-            _r = requests.get(_alt, verify=_pebble_server_root)
-            if _r.status_code != 200:
+    with requests.get(
+        "https://127.0.0.1:%s/roots/0" % port_admin,
+        verify=_pebble_server_root,
+        timeout=5,
+    ) as response:
+        if response.status_code != 200:
+            raise ValueError("Could not load first root")
+        root_pems = [response.text]
+        alternates = acme_v2.get_header_links(response.headers, "alternate")
+    for alternate in alternates or ():
+        with requests.get(alternate, verify=_pebble_server_root, timeout=5) as response:
+            if response.status_code != 200:
                 raise ValueError("Could not load additional root")
-            root_pems.append(_r.text)
+            root_pems.append(response.text)
     ctx = new_test_connections()
     for _root_pem in root_pems:
         (
@@ -525,245 +528,97 @@ ACME_CHECK_MSG = b"ACME directory available at: https://0.0.0.0:14000/dir"
 ACME_CHECK_MSG_ALT = b"ACME directory available at: https://0.0.0.0:14001/dir"
 
 
-def under_pebble(_function: Callable) -> Callable:
-    """
-    decorator to spin up an external pebble server
-    """
-    global PEBBLE_RUNNING
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
 
-    @wraps(_function)
-    def _wrapper(*args, **kwargs):
-        log.info("`pebble`: spinning up for `%s`" % _function.__qualname__)
-        log.info("`pebble`: PEBBLE_BIN : %s", PEBBLE_BIN)
-        log.info("`pebble`: PEBBLE_CONFIG_FILE : %s", PEBBLE_CONFIG_FILE)
-        log.info("`pebble`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
-        # log.info("`pebble`: PEBBLE_ENV : %s", PEBBLE_ENV)
-        # after layout updates, changing to the CWD will break this from running
-        # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
-        res = None  # scoping
-        stdout: Union[int, BufferedWriter] = subprocess.PIPE
-        stderr: Union[int, BufferedWriter] = subprocess.PIPE
-        if DEBUG_PEBBLE_REDIS:
-            fname = (
-                (
-                    "%s/%s-pebble.txt"
-                    % (
-                        DIR_TESTRUN,
-                        _function.__qualname__,
-                    )
-                )
-                .replace("<", "_")
-                .replace(">", "_")
-            )
-            if "_locals_._wrapped-" in fname:
-                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
-            stdout = open(fname, "wb")
 
-        with psutil.Popen(
-            [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
-            stdin=subprocess.PIPE,
-            stdout=stdout,
-            stderr=stderr,
-            # cwd=PEBBLE_CONFIG_DIR,
-            env=PEBBLE_ENV,
-        ) as proc:
-            # ensure the `pebble` server is running
-            ready = False
-            _waits = 0
-            while not ready:
-                log.info("`pebble`: waiting for ready | %s" % _waits)
-                _waits += 1
-                if _waits >= 30:
-                    raise ValueError("`pebble`: ERROR spinning up")
-                if DEBUG_PEBBLE_REDIS:
-                    with open(fname, "rb") as fh_read:
-                        for line in fh_read.readlines():
-                            if ACME_CHECK_MSG in line:
-                                log.info("`pebble`: ready")
-                                ready = True
-                                break
-                else:
-                    for line in iter(proc.stdout.readline, b""):
-                        # if b"Listening on: 0.0.0.0:14000" in line:
-                        if ACME_CHECK_MSG in line:
-                            log.info("`pebble`: ready")
-                            ready = True
-                            break
-                time.sleep(1)
-            try:
+def _pebble_ready(port: int, environment: str) -> bool:
+    trust = str(Path(PEBBLE_CONFIG_DIR) / environment / "certs" / "pebble.minica.pem")
+    try:
+        with requests.get(
+            "https://127.0.0.1:%s/dir" % port, verify=trust, timeout=1
+        ) as response:
+            return response.status_code == 200 and "newNonce" in response.json()
+    except (requests.RequestException, ValueError):
+        return False
+
+
+def _pebble_decorator(
+    function: Callable[_P, _R],
+    *,
+    port: int,
+    management_port: int,
+    environment: str,
+    configuration: str,
+    variables: Dict[str, str],
+) -> Callable[_P, _R]:
+    @wraps(function)
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        global PEBBLE_RUNNING, PEBBLE_ALT_RUNNING
+        if not PEBBLE_BIN:
+            raise ValueError("Pebble binary is not configured")
+        log_path = (
+            (Path(DIR_TESTRUN) / (function.__qualname__ + "-pebble.log"))
+            if DEBUG_PEBBLE_REDIS
+            else None
+        )
+        command = [PEBBLE_BIN, "-config", configuration]
+        if os.environ.get("SSL_PEBBLE_DNS_SERVER"):
+            command.extend(["-dnsserver", os.environ["SSL_PEBBLE_DNS_SERVER"]])
+        with managed_service(
+            command,
+            env=variables,
+            ready=lambda: _pebble_ready(port, environment),
+            log_path=log_path,
+            ready_log_marker=b"ACME directory available at:",
+        ):
+            if environment == "test":
                 PEBBLE_RUNNING = True
-                # catch in app_test so we don't recycle the roots
-                handle_new_pebble(14000, 15000, "test")
-                res = _function(*args, **kwargs)
-            finally:
-                # explicitly terminate, otherwise it won't exit
-                # in a `finally` to ensure we terminate on exceptions
-                log.info("`pebble`: finished. terminating")
-                proc.terminate()
-                PEBBLE_RUNNING = False
-        return res
-
-    return _wrapper
-
-
-def under_pebble_strict(_function: Callable) -> Callable:
-    """
-    decorator to spin up an external pebble server
-    """
-    global PEBBLE_RUNNING
-
-    @wraps(_function)
-    def _wrapper(*args, **kwargs):
-        log.info("`pebble[strict]`: spinning up for `%s`" % _function.__qualname__)
-        log.info("`pebble[strict]`: PEBBLE_BIN : %s", PEBBLE_BIN)
-        log.info("`pebble[strict]`: PEBBLE_CONFIG_FILE : %s", PEBBLE_CONFIG_FILE)
-        log.info("`pebble[strict]`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
-        # log.info("`pebble[strict]`: PEBBLE_ENV_STRICT : %s", PEBBLE_ENV_STRICT)
-        # after layout updates, changing to the CWD will break this from running
-        # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
-        res = None  # scoping
-        stdout: Union[int, BufferedWriter] = subprocess.PIPE
-        stderr: Union[int, BufferedWriter] = subprocess.PIPE
-        if DEBUG_PEBBLE_REDIS:
-            fname = (
-                (
-                    "%s/%s-pebble_strict.txt"
-                    % (
-                        DIR_TESTRUN,
-                        _function.__qualname__,
-                    )
-                )
-                .replace("<", "_")
-                .replace(">", "_")
-            )
-            if "_locals_._wrapped-" in fname:
-                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
-            stdout = open(fname, "wb")
-        with psutil.Popen(
-            [PEBBLE_BIN, "-config", PEBBLE_CONFIG_FILE],
-            stdin=subprocess.PIPE,
-            stdout=stdout,
-            stderr=stderr,
-            # cwd=PEBBLE_CONFIG_DIR,
-            env=PEBBLE_ENV_STRICT,
-        ) as proc:
-            # ensure the `pebble` server is running
-            ready = False
-            _waits = 0
-            while not ready:
-                log.info("`pebble[strict]`: waiting for ready | %s" % _waits)
-                _waits += 1
-                if _waits >= 30:
-                    raise ValueError("`pebble[strict]`: ERROR spinning up")
-                if DEBUG_PEBBLE_REDIS:
-                    with open(fname, "rb") as fh_read:
-                        for line in fh_read.readlines():
-                            if ACME_CHECK_MSG in line:
-                                log.info("`pebble[strict]`: ready")
-                                ready = True
-                                break
-                else:
-                    for line in iter(proc.stdout.readline, b""):
-                        if ACME_CHECK_MSG in line:
-                            log.info("`pebble[strict]`: ready")
-                            ready = True
-                            break
-                time.sleep(1)
-            try:
-                PEBBLE_RUNNING = True
-                # catch in app_test so we don't recycle the roots
-                handle_new_pebble(14000, 15000, "test")
-                res = _function(*args, **kwargs)
-            finally:
-                # explicitly terminate, otherwise it won't exit
-                # in a `finally` to ensure we terminate on exceptions
-                log.info("`pebble[strict]`: finished. terminating")
-                proc.terminate()
-                PEBBLE_RUNNING = False
-        return res
-
-    return _wrapper
-
-
-def under_pebble_alt(_function: Callable) -> Callable:
-    """
-    decorator to spin up an external pebble server
-    """
-    global PEBBLE_ALT_RUNNING
-
-    @wraps(_function)
-    def _wrapper(*args, **kwargs):
-        log.info("`pebble[alt]`: spinning up for `%s`" % _function.__qualname__)
-        log.info("`pebble[alt]`: PEBBLE_BIN : %s", PEBBLE_BIN)
-        log.info("`pebble[alt]`: PEBBLE_ALT_CONFIG_FILE : %s", PEBBLE_ALT_CONFIG_FILE)
-        log.info("`pebble[alt]`: PEBBLE_CONFIG_DIR : %s", PEBBLE_CONFIG_DIR)
-        # log.info("`pebble`: PEBBLE_ENV : %s", PEBBLE_ENV)
-        # after layout updates, changing to the CWD will break this from running
-        # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
-        res = None  # scoping
-        stdout: Union[int, BufferedWriter] = subprocess.PIPE
-        stderr: Union[int, BufferedWriter] = subprocess.PIPE
-        if DEBUG_PEBBLE_REDIS:
-            fname = (
-                (
-                    "%s/%s-pebble_alt.txt"
-                    % (
-                        DIR_TESTRUN,
-                        _function.__qualname__,
-                    )
-                )
-                .replace("<", "_")
-                .replace(">", "_")
-            )
-            if "_locals_._wrapped-" in fname:
-                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
-            stdout = open(fname, "wb")
-
-        with psutil.Popen(
-            [PEBBLE_BIN, "-config", PEBBLE_ALT_CONFIG_FILE],
-            stdin=subprocess.PIPE,
-            stdout=stdout,
-            stderr=stderr,
-            # cwd=PEBBLE_CONFIG_DIR,
-            env=PEBBLE_ENV,
-        ) as proc:
-            # ensure the `pebble` server is running
-            ready = False
-            _waits = 0
-            while not ready:
-                log.info("`pebble[alt]`: waiting for ready | %s" % _waits)
-                _waits += 1
-                if _waits >= 30:
-                    raise ValueError("`pebble[alt]`: ERROR spinning up")
-                if DEBUG_PEBBLE_REDIS:
-                    with open(fname, "rb") as fh_read:
-                        for line in fh_read.readlines():
-                            if ACME_CHECK_MSG_ALT in line:
-                                log.info("`pebble[alt]`: ready")
-                                ready = True
-                                break
-                else:
-                    for line in iter(proc.stdout.readline, b""):
-                        # if b"Listening on: 0.0.0.0:14001" in line:
-                        if ACME_CHECK_MSG_ALT in line:
-                            log.info("`pebble[alt]`: ready")
-                            ready = True
-                            break
-                time.sleep(1)
-            try:
+            else:
                 PEBBLE_ALT_RUNNING = True
-                # catch in app_test so we don't recycle the roots
-                handle_new_pebble(14001, 15001, "test-alt")
-                res = _function(*args, **kwargs)
+            try:
+                handle_new_pebble(port, management_port, environment)
+                return function(*args, **kwargs)
             finally:
-                # explicitly terminate, otherwise it won't exit
-                # in a `finally` to ensure we terminate on exceptions
-                log.info("`pebble[alt]`: finished. terminating")
-                proc.terminate()
-                PEBBLE_ALT_RUNNING = False
-        return res
+                if environment == "test":
+                    PEBBLE_RUNNING = False
+                else:
+                    PEBBLE_ALT_RUNNING = False
 
-    return _wrapper
+    return wrapper
+
+
+def under_pebble(function: Callable[_P, _R]) -> Callable[_P, _R]:
+    return _pebble_decorator(
+        function,
+        port=14000,
+        management_port=15000,
+        environment="test",
+        configuration=PEBBLE_CONFIG_FILE,
+        variables=PEBBLE_ENV,
+    )
+
+
+def under_pebble_strict(function: Callable[_P, _R]) -> Callable[_P, _R]:
+    return _pebble_decorator(
+        function,
+        port=14000,
+        management_port=15000,
+        environment="test",
+        configuration=PEBBLE_CONFIG_FILE,
+        variables=PEBBLE_ENV_STRICT,
+    )
+
+
+def under_pebble_alt(function: Callable[_P, _R]) -> Callable[_P, _R]:
+    return _pebble_decorator(
+        function,
+        port=14001,
+        management_port=15001,
+        environment="test-alt",
+        configuration=PEBBLE_ALT_CONFIG_FILE,
+        variables=PEBBLE_ENV,
+    )
 
 
 def under_redis(_function: Callable) -> Callable:
@@ -856,81 +711,26 @@ def under_redis(_function: Callable) -> Callable:
     return _wrapper
 
 
-def under_acme_dns(_function: Callable) -> Callable:
-    """
-    decorator to spin up an external acme_dns server
-    """
-    global ACMEDNS_RUNNING
+def under_acme_dns(function: Callable[_P, _R]) -> Callable[_P, _R]:
+    @wraps(function)
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        global ACMEDNS_RUNNING
 
-    @wraps(_function)
-    def _wrapper(*args, **kwargs):
-        log.info("`acme-dns`: spinning up for `%s`" % _function.__qualname__)
-        log.info("`acme-dns`: ACMEDNS_CONFIG_FILE : %s", ACMEDNS_CONFIG_FILE)
-        # log.info("`pebble`: PEBBLE_ENV : %s", PEBBLE_ENV)
-        # after layout updates, changing to the CWD will break this from running
-        # due to: tests/test_configuration/pebble/test/certs/localhost/cert.pem
-        res = None  # scoping
-        stdout: Union[int, BufferedWriter] = subprocess.PIPE
-        stderr: Union[int, BufferedWriter] = subprocess.PIPE
-        if DEBUG_PEBBLE_REDIS:
-            fname = (
-                (
-                    "%s/%s-acme_dns.txt"
-                    % (
-                        DIR_TESTRUN,
-                        _function.__qualname__,
-                    )
-                )
-                .replace("<", "_")
-                .replace(">", "_")
-            )
-            if "_locals_._wrapped-" in fname:
-                fname = fname.replace("_locals_._wrapped", str(uuid.uuid4()))
-            stdout = open(fname, "wb")
-        with psutil.Popen(
-            ["sudo", "acme-dns", "-c", ACMEDNS_CONFIG_FILE],
-            stdin=subprocess.PIPE,
-            stdout=stdout,
-            stderr=stderr,
-        ) as proc:
-            # ensure the `pebble` server is running
-            ready = False
-            _waits = 0
-            while not ready:
-                log.info("`acme-dns`: waiting for ready | %s" % _waits)
-                _waits += 1
-                if _waits >= 30:
-                    raise ValueError("`acme-dns`: ERROR spinning up")
-                if DEBUG_PEBBLE_REDIS:
-                    with open(fname, "rb") as fh_read:
-                        for line in fh_read.readlines():
-                            if b"Listening HTTP" in line:
-                                log.info("`acme-dns`: ready")
-                                ready = True
-                                break
-                else:
-                    # acme-dns logs to STDERR, not STDOUT
-                    for line in iter(proc.stderr.readline, b""):
-                        if b"Listening HTTP" in line:
-                            log.info("`acme-dns`: ready")
-                            ready = True
-                            break
-                time.sleep(1)
+        def ready() -> bool:
             try:
-                ACMEDNS_RUNNING = True
-                res = _function(*args, **kwargs)
+                with requests.get(ACME_DNS_API + "/health", timeout=1) as response:
+                    return response.status_code == 200
+            except requests.RequestException:
+                return False
+
+        with managed_service([ACME_DNS_BINARY, "-c", ACME_DNS_CONFIG], ready=ready):
+            ACMEDNS_RUNNING = True
+            try:
+                return function(*args, **kwargs)
             finally:
-                # explicitly terminate, otherwise it won't exit
-                # in a `finally` to ensure we terminate on exceptions
-                log.info("`acme-dns`: finished. terminating")
-                proc.terminate()
                 ACMEDNS_RUNNING = False
-        return res
 
-    return _wrapper
-
-
-# ==============================================================================
+    return wrapper
 
 
 def db_freeze(
@@ -3265,26 +3065,25 @@ class AppTestWSGI(AppTest, _Mixin_filedata):
         log.critical("StopableWSGIServer: create [%s]" % time.time())
         self._testapp_wsgi = StopableWSGIServer.create(
             self._pyramid_app,  # we can mount the existing app
-            host="peter-sslers.example.com",  # /etc/hosts maps this to localhost
+            host=os.environ.get("WEBTEST_SERVER_BIND", "127.0.0.1"),
             port=5002,  # this corresponts to pebble-config.json `"httpPort": 5002`
         )
+        self.addCleanup(self._shutdown_public_server)
         log.critical("StopableWSGIServer: created; wait [%s]" % time.time())
         self._testapp_wsgi.wait()
         log.critical("StopableWSGIServer: waited [%s]" % time.time())
 
+    def _shutdown_public_server(self) -> None:
+        server = self._testapp_wsgi
+        self._testapp_wsgi = None
+        if server is not None and not server.shutdown():
+            raise RuntimeError("Could not shut down test challenge server")
+
     def tearDown(self) -> None:
-        log.critical(
-            "%s.%s | AppTestWSGI.tearDown"
-            % (self.__class__.__name__, self._testMethodName)
-        )
-        if self._testapp_wsgi is not None:
-            log.critical("StopableWSGIServer: shutting down [%s]" % time.time())
-            result = self._testapp_wsgi.shutdown()
-            log.critical("StopableWSGIServer: shutdown complete [%s]" % time.time())
-            assert result is True
-            # sleep for 5 seconds, because I don't trust this
-            time.sleep(5)
-        AppTest.tearDown(self)
+        try:
+            self._shutdown_public_server()
+        finally:
+            AppTest.tearDown(self)
 
 
 # ==============================================================================

@@ -21,6 +21,8 @@ from .get import get__AcmeDnsServer__by_api_url
 from .get import get__AcmeDnsServer__GlobalDefault
 from .get import get__Domain__by_name
 from .get import get__EnrollmentFactory__by_name
+from .logger import _log_object_event
+from .logger import log__OperationsEvent
 from .. import errors
 from ... import lib
 from ...lib import acme_v2
@@ -191,7 +193,7 @@ def update_AcmeAccount__set_deactivated(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
 ) -> str:
-    log.debug("update_AcmeAccount__set_deactivated", dbAcmeAccount.id)
+    log.debug("update_AcmeAccount__set_deactivated id=%s", dbAcmeAccount.id)
     if dbAcmeAccount.timestamp_deactivated:
         raise errors.InvalidTransition("Already deactivated.")
     dbAcmeAccount.is_active = False
@@ -209,7 +211,7 @@ def update_AcmeAccount__terms_of_service(
     """
     returns True if an update was done; False if not
     """
-    log.debug("update_AcmeAccount__terms_of_service", dbAcmeAccount.id)
+    log.debug("update_AcmeAccount__terms_of_service id=%s", dbAcmeAccount.id)
 
     terms_of_service = terms_of_service.strip()
     if dbAcmeAccount.terms_of_service == terms_of_service:
@@ -242,7 +244,7 @@ def update_AcmeAccount__unset_active(
     ctx: "ApiContext",
     dbAcmeAccount: "AcmeAccount",
 ) -> str:
-    log.debug("update_AcmeAccount__unset_active", dbAcmeAccount.id)
+    log.debug("update_AcmeAccount__unset_active id=%s", dbAcmeAccount.id)
     if not dbAcmeAccount.is_active:
         raise errors.InvalidTransition("Already deactivated.")
     if (
@@ -263,7 +265,7 @@ def update_AcmeAccount__is_render_in_selects(
     dbAcmeAccount: "AcmeAccount",
     action: Literal["enable", "disable"],
 ) -> str:
-    log.debug("update_AcmeAccount__is_render_in_selects", dbAcmeAccount.id)
+    log.debug("update_AcmeAccount__is_render_in_selects id=%s", dbAcmeAccount.id)
     if action == "enable":
         if dbAcmeAccount.is_render_in_selects:
             raise errors.InvalidTransition("Already enabled.")
@@ -638,6 +640,18 @@ def update_CoverageAssuranceEvent__set_resolution(
     dbCoverageAssuranceEvent: "CoverageAssuranceEvent",
     resolution: str,
 ) -> bool:
+    if resolution not in model_utils.CoverageAssuranceResolution._mapping.values():
+        raise errors.InvalidTransition("Unsupported resolution")
+    if (
+        dbCoverageAssuranceEvent.id is None
+        or ctx.dbSession.get(
+            model_objects.CoverageAssuranceEvent, dbCoverageAssuranceEvent.id
+        )
+        is not dbCoverageAssuranceEvent
+    ):
+        raise errors.InvalidTransition(
+            "Coverage event must belong to the current session"
+        )
     resolution_id = model_utils.CoverageAssuranceResolution.from_string(resolution)
     if resolution == "unresolved":
         pass
@@ -651,8 +665,45 @@ def update_CoverageAssuranceEvent__set_resolution(
             raise errors.InvalidTransition("incompatible `resolution`")
     if resolution_id == dbCoverageAssuranceEvent.coverage_assurance_resolution_id:
         raise errors.InvalidTransition("No Change")
+    if resolution == "unresolved":
+        # Resolution is an operator declaration; reopening retains the previous
+        # deactivation state rather than claiming an automatic coverage check.
+        key = dbCoverageAssuranceEvent.private_key
+        certificate = dbCoverageAssuranceEvent.x509_certificate
+        inactive = (key is not None and not key.is_key_usable) or (
+            certificate is not None and not certificate.is_active
+        )
+        status = "reported+deactivated" if inactive else "reported"
+    else:
+        status = (
+            "resolved-ignored" if resolution == "abandoned" else "resolved-replaced"
+        )
+    previous_resolution = dbCoverageAssuranceEvent.coverage_assurance_resolution
+    previous_status = dbCoverageAssuranceEvent.coverage_assurance_event_status
+    dbCoverageAssuranceEvent.coverage_assurance_event_status_id = (
+        model_utils.CoverageAssuranceEventStatus.from_string(status)
+    )
     dbCoverageAssuranceEvent.coverage_assurance_resolution_id = resolution_id
     ctx.dbSession.flush(objects=[dbCoverageAssuranceEvent])
+    event_type_id = model_utils.OperationsEventType.from_string(
+        "CoverageAssuranceEvent__mark_resolution"
+    )
+    operation = log__OperationsEvent(
+        ctx,
+        event_type_id,
+        {
+            "v": 1,
+            "coverage_assurance_event.id": dbCoverageAssuranceEvent.id,
+            "action": "resolution",
+            "resolution": resolution,
+            "status": status,
+            "previous_resolution": previous_resolution,
+            "previous_status": previous_status,
+        },
+    )
+    _log_object_event(
+        ctx, operation, event_type_id, dbCoverageAssuranceEvent=dbCoverageAssuranceEvent
+    )
     return True
 
 
@@ -887,7 +938,9 @@ def update_RenewalConfiguration__unset_active(
     ctx: "ApiContext",
     dbRenewalConfiguration: "RenewalConfiguration",
 ) -> str:
-    log.debug("update_RenewalConfiguration__unset_active", dbRenewalConfiguration.id)
+    log.debug(
+        "update_RenewalConfiguration__unset_active id=%s", dbRenewalConfiguration.id
+    )
     if not dbRenewalConfiguration.is_active:
         raise errors.InvalidTransition("Already deactivated.")
     dbRenewalConfiguration.is_active = False
@@ -901,7 +954,9 @@ def update_RenewalConfiguration__update_exports(
     dbRenewalConfiguration: "RenewalConfiguration",
     action: Literal["is_export_filesystem-on", "is_export_filesystem-off"],
 ) -> str:
-    log.debug("update_RenewalConfiguration__unset_active", dbRenewalConfiguration.id)
+    log.debug(
+        "update_RenewalConfiguration__unset_active id=%s", dbRenewalConfiguration.id
+    )
     if dbRenewalConfiguration.enrollment_factory_id__via:
         raise errors.InvalidTransition(
             "`is_export_filesystem` must be managed by the EnrollmentFactory"

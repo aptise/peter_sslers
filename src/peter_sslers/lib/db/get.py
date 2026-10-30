@@ -2549,58 +2549,90 @@ def get__PrivateKey__by_id(
     return item
 
 
-def get__PrivateKey_CurrentWeek_Global(ctx: "ApiContext") -> Optional[PrivateKey]:
-    q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id == model_utils.PrivateKey_Type.GLOBAL_WEEKLY,
-        model_utils.year_week(PrivateKey.timestamp_created)
-        == model_utils.year_week(ctx.timestamp),
+def _get_periodic_private_key(
+    ctx: "ApiContext",
+    *,
+    key_type: int,
+    owner: Optional[int],
+    key_technology_id: Optional[int],
+    weekly: bool,
+) -> Optional[PrivateKey]:
+    now = ctx.timestamp
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("Periodic key selection requires an aware timestamp")
+    now = now.astimezone(datetime.timezone.utc)
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    if weekly:
+        start -= datetime.timedelta(days=start.weekday())
+    query = ctx.dbSession.query(PrivateKey).filter(
+        PrivateKey.private_key_type_id == key_type,
+        PrivateKey.timestamp_created >= start,
+        PrivateKey.timestamp_created <= now,
         PrivateKey.is_compromised.is_not(True),
         PrivateKey.is_active.is_(True),
+        PrivateKey.acme_account_id__owner == owner,
     )
-    item = q.first()
-    return item
+    if key_technology_id is not None:
+        query = query.filter(PrivateKey.key_technology_id == key_technology_id)
+    return query.order_by(
+        PrivateKey.timestamp_created.desc(), PrivateKey.id.desc()
+    ).first()
 
 
-def get__PrivateKey_CurrentDay_Global(ctx: "ApiContext") -> Optional[PrivateKey]:
-    q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id == model_utils.PrivateKey_Type.GLOBAL_DAILY,
-        model_utils.year_day(PrivateKey.timestamp_created)
-        == model_utils.year_day(ctx.timestamp),
-        PrivateKey.is_compromised.is_not(True),
-        PrivateKey.is_active.is_(True),
+def get__PrivateKey_CurrentWeek_Global(
+    ctx: "ApiContext",
+    key_technology_id: Optional[int] = None,
+) -> Optional[PrivateKey]:
+    return _get_periodic_private_key(
+        ctx,
+        key_type=model_utils.PrivateKey_Type.GLOBAL_WEEKLY,
+        owner=None,
+        key_technology_id=key_technology_id
+        or model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
+        weekly=True,
     )
-    item = q.first()
-    return item
+
+
+def get__PrivateKey_CurrentDay_Global(
+    ctx: "ApiContext",
+    key_technology_id: Optional[int] = None,
+) -> Optional[PrivateKey]:
+    return _get_periodic_private_key(
+        ctx,
+        key_type=model_utils.PrivateKey_Type.GLOBAL_DAILY,
+        owner=None,
+        key_technology_id=key_technology_id
+        or model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
+        weekly=False,
+    )
 
 
 def get__PrivateKey_CurrentWeek_AcmeAccount(
-    ctx: "ApiContext", acme_account_id: int
+    ctx: "ApiContext",
+    acme_account_id: int,
+    key_technology_id: Optional[int] = None,
 ) -> Optional[PrivateKey]:
-    q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id == model_utils.PrivateKey_Type.ACCOUNT_WEEKLY,
-        model_utils.year_week(PrivateKey.timestamp_created)
-        == model_utils.year_week(ctx.timestamp),
-        PrivateKey.is_compromised.is_not(True),
-        PrivateKey.is_active.is_(True),
-        PrivateKey.acme_account_id__owner == acme_account_id,
+    return _get_periodic_private_key(
+        ctx,
+        key_type=model_utils.PrivateKey_Type.ACCOUNT_WEEKLY,
+        owner=acme_account_id,
+        key_technology_id=key_technology_id,
+        weekly=True,
     )
-    item = q.first()
-    return item
 
 
 def get__PrivateKey_CurrentDay_AcmeAccount(
-    ctx: "ApiContext", acme_account_id: int
+    ctx: "ApiContext",
+    acme_account_id: int,
+    key_technology_id: Optional[int] = None,
 ) -> Optional[PrivateKey]:
-    q = ctx.dbSession.query(PrivateKey).filter(
-        PrivateKey.private_key_type_id == model_utils.PrivateKey_Type.ACCOUNT_DAILY,
-        model_utils.year_day(PrivateKey.timestamp_created)
-        == model_utils.year_day(ctx.timestamp),
-        PrivateKey.is_compromised.is_not(True),
-        PrivateKey.is_active.is_(True),
-        PrivateKey.acme_account_id__owner == acme_account_id,
+    return _get_periodic_private_key(
+        ctx,
+        key_type=model_utils.PrivateKey_Type.ACCOUNT_DAILY,
+        owner=acme_account_id,
+        key_technology_id=key_technology_id,
+        weekly=False,
     )
-    item = q.first()
-    return item
 
 
 def get__PrivateKey__by_pemMd5(
@@ -4191,12 +4223,11 @@ def get_X509Certificates_duplicatePairs__paginated(
     return pairs
 
 
-def get_X509Certificates_renew_now(
+def _query_certificates_due_for_renewal(
     ctx: "ApiContext",
     timestamp_max_expiry: Optional[datetime.datetime] = None,
-    limit: Optional[int] = None,
     renewal_configuration_ids: Optional[Tuple[int, ...]] = None,
-) -> List[X509Certificate]:
+) -> Query[X509Certificate]:
     if not timestamp_max_expiry:
         timestamp_max_expiry = datetime_ari_timely(
             ctx, context="get_X509Certificates_renew_now"
@@ -4268,11 +4299,25 @@ def get_X509Certificates_renew_now(
     )
     if renewal_configuration_ids is not None:
         q = q.filter(RenewalConfiguration.id.in_(renewal_configuration_ids))
-    q = q.order_by(X509Certificate.id.asc()).limit(limit)
-    # print(q.statement.compile(ctx.dbSession.connection().engine))
-    # print(q.statement.compile())
-    expiring_certs = q.all()
-    return expiring_certs
+    return q.distinct()
+
+
+def get_X509Certificates_renew_now(
+    ctx: "ApiContext",
+    timestamp_max_expiry: Optional[datetime.datetime] = None,
+    limit: Optional[int] = None,
+    renewal_configuration_ids: Optional[Tuple[int, ...]] = None,
+) -> List[X509Certificate]:
+    return (
+        _query_certificates_due_for_renewal(
+            ctx,
+            timestamp_max_expiry=timestamp_max_expiry,
+            renewal_configuration_ids=renewal_configuration_ids,
+        )
+        .order_by(X509Certificate.id.asc())
+        .limit(limit)
+        .all()
+    )
 
 
 def get__X509CertificateTrustPreferencePolicy__by_name(

@@ -32,21 +32,23 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship as sa_orm_relationship
+from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import Session as sa_Session
 from typing_extensions import Literal
 
 # from sqlalchemy import inspect as sa_inspect
 
 # local
-from .types import CertificateConfigPayload
-from .types import DomainConfigPayload
 from .mixins import _Mixin_AcmeAccount_Effective
 from .mixins import _Mixin_Hex_Pretty
 from .mixins import _Mixin_Timestamps_Pretty
+from .types import CertificateConfigPayload
+from .types import DomainConfigPayload
 from .. import utils as model_utils
 from ..meta import Base
 from ..utils import TZDateTime
 from ...lib.utils_datetime import datetime_ari_timely
+from ...logging_utils import censor
 
 if TYPE_CHECKING:
     from ...lib.context import ApiContext
@@ -2732,7 +2734,7 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
         payload = {
             "id": self.id,
             # - -
-            "x509_certificate_id": self.private_key_id,
+            "x509_certificate_id": self.x509_certificate_id,
             "coverage_assurance_event_type": self.coverage_assurance_event_type,
             "coverage_assurance_event_status": self.coverage_assurance_event_status,
             "coverage_assurance_resolution": self.coverage_assurance_resolution,
@@ -3346,16 +3348,35 @@ class OperationsEvent(
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    _event_payload_json: Optional[Dict] = None
+    @validates("event_payload")
+    def _validate_event_payload(self, key: str, value: str) -> str:
+        payload = json.loads(value)
+        if not isinstance(payload, dict):
+            raise ValueError("OperationsEvent payload must be a JSON object")
+        return json.dumps(
+            censor(payload, max_items=None), sort_keys=True, allow_nan=False
+        )
 
     @property
-    def event_payload_json(self) -> Dict:
-        if self._event_payload_json is None:
-            self._event_payload_json = json.loads(self.event_payload)
-        return self._event_payload_json
+    def event_payload_json(self) -> Dict[str, Any]:
+        # Decode afresh after ORM refreshes; never expose a mutable cached dict.
+        try:
+            payload = json.loads(self.event_payload)
+            if not isinstance(payload, dict):
+                raise ValueError("Payload must be a JSON object")
+            result = censor(payload, max_items=None)
+            if not isinstance(result, dict):
+                raise ValueError("Payload must be a JSON object")
+            return result
+        except (TypeError, ValueError, RecursionError):
+            # External/legacy writers can bypass ORM validation. Keep audit
+            # listings available without returning their invalid raw content.
+            return {"v": 1, "historical_payload": "[OMITTED: invalid JSON object]"}
 
-    def set_event_payload(self, payload_dict) -> None:
-        self.event_payload = json.dumps(payload_dict, sort_keys=True)
+    def set_event_payload(self, payload_dict: Dict[str, Any]) -> None:
+        self.event_payload = json.dumps(
+            censor(payload_dict, max_items=None), sort_keys=True, allow_nan=False
+        )
 
     @property
     def as_json(self) -> Dict:
@@ -3364,7 +3385,7 @@ class OperationsEvent(
             "operations_event_type_id": self.operations_event_type_id,
             "operations_event_id__child_of": self.operations_event_id__child_of,
             "timestamp_event": self.timestamp_event_isoformat,
-            "event_payload": self.event_payload,
+            "event_payload": json.dumps(self.event_payload_json, sort_keys=True),
         }
 
 
@@ -6124,6 +6145,57 @@ class X509CertificateTrustReconciliation(Base):
 # ==============================================================================
 
 # ==============================================================================
+
+
+# Composite indexes for bounded schedulers, key ownership, and audit traversal.
+sa.Index(
+    "ix_private_key_policy_period",
+    PrivateKey.private_key_type_id,
+    PrivateKey.acme_account_id__owner,
+    PrivateKey.key_technology_id,
+    PrivateKey.timestamp_created,
+)
+sa.Index(
+    "ix_acme_order_configuration_role",
+    AcmeOrder.renewal_configuration_id,
+    AcmeOrder.certificate_type_id,
+    AcmeOrder.id,
+)
+sa.Index(
+    "ix_acme_order_key_status", AcmeOrder.private_key_id, AcmeOrder.acme_status_order_id
+)
+sa.Index(
+    "ix_acme_order_reconcile",
+    AcmeOrder.acme_status_order_id,
+    AcmeOrder.x509_certificate_id,
+    AcmeOrder.id,
+)
+sa.Index(
+    "ix_certificate_private_key", X509Certificate.private_key_id, X509Certificate.id
+)
+sa.Index(
+    "ix_operations_event_parent",
+    OperationsEvent.operations_event_id__child_of,
+    OperationsEvent.id,
+)
+sa.Index(
+    "ix_operations_event_time", OperationsEvent.timestamp_event, OperationsEvent.id
+)
+sa.Index(
+    "ix_operations_object_event_operation",
+    OperationsObjectEvent.operations_event_id,
+    OperationsObjectEvent.id,
+)
+sa.Index(
+    "ix_coverage_assurance_resolution",
+    CoverageAssuranceEvent.coverage_assurance_resolution_id,
+    CoverageAssuranceEvent.id,
+)
+sa.Index(
+    "ix_coverage_assurance_parent",
+    CoverageAssuranceEvent.coverage_assurance_event_id__parent,
+    CoverageAssuranceEvent.id,
+)
 
 
 __all__ = (

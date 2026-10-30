@@ -458,7 +458,7 @@ def getcreate__AcmeAuthorizationUrl(
     :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
     :param is_via_new_order: Boolean was this discovered during a new AcmeOrder? It should always be yes.
     """
-    log.info("getcreate__AcmeAuthorizationUrl(")
+    log.debug("getcreate__AcmeAuthorizationUrl(")
     if not authorization_url:
         raise ValueError("`authorization_url` is required")
     if not dbAcmeOrder:
@@ -512,7 +512,7 @@ def getcreate__AcmeAuthorizationUrl(
         )
         is_created__AcmeAuthorization2Order = True
 
-    log.info(") getcreate__AcmeAuthorizationUrl")
+    log.debug(") getcreate__AcmeAuthorizationUrl")
     return (
         dbAcmeAuthorization,
         is_created__AcmeAuthorization,
@@ -551,7 +551,7 @@ def getcreate__AcmeAuthorization(
     potentially raises:
         errors.AcmeMissingChallenges
     """
-    log.info("getcreate__AcmeAuthorization(")
+    log.debug("getcreate__AcmeAuthorization(")
     if not dbAcmeOrder:
         raise ValueError("do not invoke this without a `dbAcmeOrder`")
 
@@ -620,7 +620,7 @@ def process__AcmeAuthorization_payload(
     :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
     :param transaction_commit: (optional) Boolean value. `True` to persist to the database.
     """
-    log.info("process__AcmeAuthorization_payload")
+    log.debug("process__AcmeAuthorization_payload")
     # is_created__AcmeAuthorization2Order = None
 
     # is this associated?
@@ -1236,6 +1236,12 @@ def getcreate__PrivateKey_for_AcmeAccount(
         key_technology_id = dbAcmeAccount.order_default_private_key_technology_id
 
     # private_key_technology = dbAcmeAccount.private_key_technology
+    if (
+        key_technology_id
+        not in model_utils.KeyTechnology._options_AcmeAccount_order_default_id
+    ):
+        raise ValueError("A concrete private-key technology is required")
+
     acme_account_id__owner = dbAcmeAccount.id
 
     # scoping
@@ -1276,6 +1282,7 @@ def getcreate__PrivateKey_for_AcmeAccount(
         dbPrivateKey_new = get__PrivateKey_CurrentDay_AcmeAccount(
             ctx,
             acme_account_id__owner,
+            key_technology_id=key_technology_id,
         )
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
@@ -1290,13 +1297,15 @@ def getcreate__PrivateKey_for_AcmeAccount(
 
     elif private_key_cycle == "global_daily":
         # NOTE: AcmeAccountNeedsPrivateKey ; global_daily
-        dbPrivateKey_new = get__PrivateKey_CurrentDay_Global(ctx)
+        dbPrivateKey_new = get__PrivateKey_CurrentDay_Global(
+            ctx, key_technology_id=key_technology_id
+        )
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
                 private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
                 private_key_type_id=model_utils.PrivateKey_Type.GLOBAL_DAILY,
-                key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
+                key_technology_id=key_technology_id,
             )
             is_created = True
         return dbPrivateKey_new, is_created
@@ -1306,13 +1315,14 @@ def getcreate__PrivateKey_for_AcmeAccount(
         dbPrivateKey_new = get__PrivateKey_CurrentWeek_AcmeAccount(
             ctx,
             acme_account_id__owner,
+            key_technology_id=key_technology_id,
         )
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
                 private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
                 private_key_type_id=model_utils.PrivateKey_Type.ACCOUNT_WEEKLY,
-                key_technology_id=dbAcmeAccount.private_key_technology_id,
+                key_technology_id=key_technology_id,
                 acme_account_id__owner=acme_account_id__owner,
             )
             is_created = True
@@ -1320,13 +1330,15 @@ def getcreate__PrivateKey_for_AcmeAccount(
 
     elif private_key_cycle == "global_weekly":
         # NOTE: AcmeAccountNeedsPrivateKey ; global_weekly
-        dbPrivateKey_new = get__PrivateKey_CurrentWeek_Global(ctx)
+        dbPrivateKey_new = get__PrivateKey_CurrentWeek_Global(
+            ctx, key_technology_id=key_technology_id
+        )
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
                 private_key_source_id=model_utils.PrivateKey_Source.GENERATED,
                 private_key_type_id=model_utils.PrivateKey_Type.GLOBAL_WEEKLY,
-                key_technology_id=model_utils.KeyTechnology._DEFAULT_GlobalKey_id,
+                key_technology_id=key_technology_id,
             )
             is_created = True
         return dbPrivateKey_new, is_created

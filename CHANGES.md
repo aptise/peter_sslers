@@ -1,4 +1,35 @@
 1.0.0.dev
+    Logging, audit integrity, and operational hardening:
+    * Replace raw ACME wire dumps with censored request/response metadata. Censor
+      package and dependency logs, including exception values and structured
+      extras; remove public challenge-token logging and duplicate log routing.
+    * Ship private rotating log handlers and separate API summaries. DEBUG no
+      longer exposes raw protocol bodies; custom INIs should adopt the new
+      handlers. See docs/Logging.md for historical logs and audit maintenance.
+    * Validate/censor OperationsEvent payloads, avoid stale decoded payloads,
+      require one correctly typed persisted object link, and never resurrect
+      rolled-back parent operations.
+    * Correct CoverageAssuranceEvent certificate IDs, validate incident subjects
+      and parent linkage, correlate creation with operations, and journal
+      resolution/status transitions at the service boundary.
+    * Add preview-first audit_events sanitation and conservative leaf retention.
+      No historical payloads or records are rewritten automatically.
+    * Enforce private-key account ownership, UTC periodic policy, requested key
+      technology, actual single-use reservations (including remote issuance
+      before download) and scoped yearly reuse. Verify
+      reused CSR public keys against the selected key.
+    * Serialize scheduling and critical order/configuration operations across
+      application commits and rollbacks; bound scheduler queries with keyset
+      pages and recheck eligibility before remote ordering. Add batch-size CLI
+      controls and preserve explicit limit=0.
+    * Add reversible query-index migration b6d82f9014ae for existing databases.
+    * Replace acme-dns HTTP operations with bounded, closed requests, disabled
+      redirects and credential-free exceptions, retaining the legacy exception
+      type. Remove obsolete optional-dependency probes.
+    * Fix DNS-only challenge selection when the HTTP challenge list is unset.
+    * Improve local service startup/cleanup and add isolated, opt-in local ACME
+      validation and interrupted-download recovery coverage.
+
     Scheduled ordering and recovery:
     * Apply the missing-order limit across backup and primary work together;
       recognize in-progress order attempts to avoid ordering duplicates.

@@ -48,10 +48,14 @@ from .update import update_AcmeOrder_deactivate
 from .update import update_AcmeOrder_deactivate_AcmeAuthorizationPotentials
 from .update import update_AcmeOrder_finalized
 from .update import update_AcmeServer_directory
+from .validate import validate_private_key_for_order
 from .. import errors
 from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
 from ..exceptions import ReassignedPrivateKey
+from ..synchronization import configuration_order_resources
+from ..synchronization import order_resources
+from ..synchronization import serialized_execution
 from ...lib import acme_v2
 from ...lib import exports
 from ...lib import utils as lib_utils
@@ -425,7 +429,7 @@ def _audit_AcmeChallenge_against_server_response(
     # - status
 
     if challenge_response["status"] == "*404*":
-        log.critical("AcmeChallenge(%s) sync is a 404")
+        log.warning("AcmeChallenge(%s) sync is a 404", dbAcmeChallenge.id)
         return False
 
     # pretty much everything should match up
@@ -446,7 +450,7 @@ def _audit_AcmeChallenge_against_server_response(
     if _mismatch:
         log.critical("Mismatch in AcmeChallenge(%s) sync:", dbAcmeChallenge.id)
         for k, v in _mismatch.items():
-            log.critical("  . %s : %s | %s", (k, v[0], v[1]))
+            log.warning("Challenge mismatch field=%s; values omitted", k)
     return True
 
 
@@ -527,7 +531,7 @@ def _AcmeV2_factory_AuthHandlers(
             create/update the Authorization object
             create/update the Challenge object
         """
-        log.info(
+        log.debug(
             "_AcmeV2_factory_AuthHandlers.handle_authorization_payload( %s",
             authorization_url,
         )
@@ -567,7 +571,7 @@ def _AcmeV2_factory_AuthHandlers(
                 transaction_commit=transaction_commit,
             )
 
-        log.info(") handle_authorization_payload(")
+        log.debug(") handle_authorization_payload(")
         return dbAcmeAuthorization
 
     return handle_authorization_payload
@@ -1550,6 +1554,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     return True
 
 
+@serialized_execution(order_resources)
 def do__AcmeV2_AcmeOrder__acme_server_sync(
     ctx: "ApiContext",
     dbAcmeOrder: Optional["AcmeOrder"] = None,
@@ -1841,6 +1846,68 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     return False
 
 
+def _reusable_order_csr(
+    order: "AcmeOrder",
+) -> Optional["model_objects.X509CertificateRequest"]:
+    csr = order.x509_certificate_request
+    key = order.private_key
+    if (
+        csr is None
+        or csr.private_key_id != key.id
+        or csr.spki_sha256 != key.spki_sha256
+    ):
+        return None
+    try:
+        actual = cert_utils.parse_csr__spki_sha256(csr_pem=csr.csr_pem)
+    except (ValueError, cert_utils.errors.OpenSslError):
+        return None
+    return csr if actual == key.spki_sha256 else None
+
+
+def _find_yearly_reuse_key(
+    ctx: "ApiContext",
+    order: "AcmeOrder",
+    key_technology_id: int,
+) -> Optional["PrivateKey"]:
+    key = model_objects.PrivateKey
+    previous = model_objects.AcmeOrder
+    return (
+        ctx.dbSession.query(key)
+        .join(previous, previous.private_key_id == key.id)
+        .filter(
+            previous.renewal_configuration_id == order.renewal_configuration_id,
+            previous.acme_account_id == order.acme_account_id,
+            previous.certificate_type_id == order.certificate_type_id,
+            previous.id != order.id,
+            key.private_key_type_id
+            == model_utils.PrivateKey_Type.SINGLE_USE__REUSE_1_YEAR,
+            key.acme_account_id__owner == order.acme_account_id,
+            key.key_technology_id == key_technology_id,
+            key.is_active.is_(True),
+            key.is_compromised.is_not(True),
+            key.timestamp_created > ctx.timestamp - datetime.timedelta(days=365),
+            key.timestamp_created <= ctx.timestamp,
+        )
+        .order_by(previous.id.desc())
+        .first()
+    )
+
+
+def _order_key_technology(order: "AcmeOrder") -> int:
+    if order.private_key_id != 0:
+        return order.private_key.key_technology_id
+    configuration = order.renewal_configuration
+    if configuration is not None:
+        if order.certificate_type_id == model_utils.X509CertificateType.MANAGED_BACKUP:
+            configured = configuration.private_key_technology_id__backup__effective
+        else:
+            configured = configuration.private_key_technology_id__primary__effective
+        if configured is not None:
+            return configured
+    return order.acme_account.order_default_private_key_technology_id
+
+
+@serialized_execution(order_resources)
 def _do__AcmeV2_AcmeOrder__finalize(
     ctx: "ApiContext",
     authenticatedUser: "AuthenticatedUser",
@@ -1981,9 +2048,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
                 # default to the `order_default_private_key_technology_id`
                 # we may upgrade it after;
-                key_technology_id = (
-                    dbAcmeOrder.acme_account.order_default_private_key_technology_id
-                )
+                key_technology_id = _order_key_technology(dbAcmeOrder)
 
                 if dbAcmeOrder.private_key_cycle in (
                     "account_daily",
@@ -2006,33 +2071,12 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
                 elif dbAcmeOrder.private_key_cycle == "single_use__reuse_1_year":
 
-                    # can we re-use the key?
-                    _dbPreviousOrders = dbAcmeOrder.renewal_configuration.acme_orders__5
-                    for _lastOrder in _dbPreviousOrders:
-                        if dbAcmeOrder.id == _lastOrder.id:
-                            continue
-                        if _lastOrder.private_key_cycle == "single_use__reuse_1_year":
-                            _dbPrivateKey = _lastOrder.private_key
-                            # this can overwrite
-                            key_technology_id = _dbPrivateKey.key_technology_id
-                            if (
-                                (_dbPrivateKey.is_key_usable)
-                                and (
-                                    _dbPrivateKey.private_key_type
-                                    == "single_use__reuse_1_year"
-                                )
-                                and (
-                                    _dbPrivateKey.timestamp_created
-                                    > (
-                                        datetime.datetime.now(datetime.timezone.utc)
-                                        - datetime.timedelta(days=365)
-                                    )
-                                )
-                            ):
-                                dbPrivateKey_new = _dbPrivateKey
-                                private_key_strategy__final = "reused"
-                                raise ReassignedPrivateKey("new PrivateKey")
-                        break
+                    dbPrivateKey_new = _find_yearly_reuse_key(
+                        ctx, dbAcmeOrder, key_technology_id
+                    )
+                    if dbPrivateKey_new is not None:
+                        private_key_strategy__final = "reused"
+                        raise ReassignedPrivateKey("reused configuration/account key")
                     # if not, we need to generate a new key...
                     dbPrivateKey_new, _is_created = (
                         getcreate__PrivateKey_for_AcmeAccount(
@@ -2072,14 +2116,22 @@ def _do__AcmeV2_AcmeOrder__finalize(
         )
         ctx.dbSession.flush(objects=[dbAcmeOrder])
 
+        validate_private_key_for_order(
+            ctx,
+            dbAcmeOrder.private_key,
+            dbAcmeOrder.acme_account_id,
+            order=dbAcmeOrder,
+            allow_yearly_reuse=True,
+        )
         private_key_pem = dbAcmeOrder.private_key.key_pem
 
         # what are the domain names?
         domain_names = dbAcmeOrder.domains_as_list
 
-        if dbAcmeOrder.x509_certificate_request:
-            # this might happen if we fail during finalization
-            dbX509CertificateRequest = dbAcmeOrder.x509_certificate_request
+        reusable_csr = _reusable_order_csr(dbAcmeOrder)
+        if reusable_csr is not None:
+            # Recovery can retain a CSR only when its actual key still matches.
+            dbX509CertificateRequest = reusable_csr
             csr_pem = dbX509CertificateRequest.csr_pem
         else:
             # make the CSR
@@ -2272,6 +2324,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         raise
 
 
+@serialized_execution(order_resources)
 def do__AcmeV2_AcmeOrder__finalize(
     ctx: "ApiContext",
     dbAcmeOrder: Optional["AcmeOrder"] = None,
@@ -2317,6 +2370,7 @@ def do__AcmeV2_AcmeOrder__finalize(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+@serialized_execution(order_resources)
 def do__AcmeV2_AcmeOrder__process(
     ctx: "ApiContext",
     dbAcmeOrder: Optional["AcmeOrder"] = None,
@@ -2452,6 +2506,7 @@ def do__AcmeV2_AcmeOrder__process(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+@serialized_execution(order_resources)
 def do__AcmeV2_AcmeOrder__download_certificate(
     ctx: "ApiContext",
     dbAcmeOrder: "AcmeOrder",
@@ -2567,6 +2622,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+@serialized_execution(configuration_order_resources)
 def do__AcmeV2_AcmeOrder__new(
     ctx: "ApiContext",
     dbRenewalConfiguration: "RenewalConfiguration",
@@ -2592,6 +2648,8 @@ def do__AcmeV2_AcmeOrder__new(
     dbAcmeOrder_retry_of: Optional["AcmeOrder"] = None,
     acme_order_retry_strategy_id: Optional[int] = None,
     transaction_commit: Optional[bool] = None,
+    only_if_no_prior_order: bool = False,
+    expected_replacement_id: Optional[int] = None,
 ) -> "AcmeOrder":
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -2628,8 +2686,7 @@ def do__AcmeV2_AcmeOrder__new(
         ctx, dbRenewalConfiguration.id
     )
     if _dbExistingOrder:
-        log.critical("DuplicateAcmeOrder")
-        log.critical(_dbExistingOrder.as_json)
+        log.warning("Duplicate AcmeOrder id=%s", _dbExistingOrder.id)
         raise errors.DuplicateAcmeOrder(
             "There is an existing active `AcmeOrder`: `%s`." % _dbExistingOrder.id
         )
@@ -3201,6 +3258,38 @@ def do__AcmeV2_AcmeOrder__new(
 
         if not dbAcmeAccount:
             raise ValueError("Invalid account_selection")
+
+        if only_if_no_prior_order:
+            prior = (
+                ctx.dbSession.query(model_objects.AcmeOrder.id)
+                .filter(
+                    model_objects.AcmeOrder.renewal_configuration_id
+                    == dbRenewalConfiguration.id,
+                    model_objects.AcmeOrder.certificate_type_id == certificate_type_id,
+                )
+                .first()
+            )
+            if prior is not None:
+                raise errors.DuplicateAcmeOrder(
+                    "A prior order already exists for this configuration role"
+                )
+        if expected_replacement_id is not None:
+            expected = ctx.dbSession.get(
+                model_objects.X509Certificate,
+                expected_replacement_id,
+                populate_existing=True,
+            )
+            if (
+                expected is None
+                or not expected.is_active
+                or expected.x509_certificate_id__replaced_by is not None
+            ):
+                raise errors.DuplicateAcmeOrder(
+                    "The scheduled replacement is no longer eligible"
+                )
+
+        if dbPrivateKey is not None and dbPrivateKey.id != 0:
+            validate_private_key_for_order(ctx, dbPrivateKey, dbAcmeAccount.id)
 
         authenticatedUser = new_Authenticated_user(
             ctx, dbAcmeAccount, transaction_commit=transaction_commit

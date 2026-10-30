@@ -30,6 +30,9 @@ from ...model import utils as model_utils
 
 if TYPE_CHECKING:
     from email.message import Message
+
+    from sqlalchemy.orm.state import InstanceState
+
     from ..context import ApiContext
     from ...lib.acme_v2 import AriCheckResult
     from ...model.objects import AcmeAccount
@@ -52,6 +55,7 @@ if TYPE_CHECKING:
     from ...model.objects import DomainAutocert
     from ...model.objects import EnrollmentFactory
     from ...model.objects import Notification
+    from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
     from ...model.objects import RateLimited
     from ...model.objects import RenewalConfiguration
@@ -801,9 +805,10 @@ def create__CoverageAssuranceEvent(
     dbPrivateKey: Optional["PrivateKey"] = None,
     dbX509Certificate: Optional["X509Certificate"] = None,
     dbCoverageAssuranceEvent_parent: Optional["CoverageAssuranceEvent"] = None,
+    dbOperationsEvent: Optional["OperationsEvent"] = None,
 ) -> "CoverageAssuranceEvent":
     """
-    Create a new Certificate Signing Request (CSR)
+    Create a persisted coverage incident with validated subjects.
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param coverage_assurance_event_type_id: (required) :class:`model.utils.CoverageAssuranceEvent`
@@ -849,6 +854,79 @@ def create__CoverageAssuranceEvent(
             "must submit at least one of (dbPrivateKey, dbX509Certificate)"
         )
 
+    for subject, model in (
+        (dbPrivateKey, model_objects.PrivateKey),
+        (dbX509Certificate, model_objects.X509Certificate),
+        (dbCoverageAssuranceEvent_parent, model_objects.CoverageAssuranceEvent),
+    ):
+        if subject is not None:
+            if not isinstance(subject, model):
+                raise ValueError("Unexpected coverage subject type")
+            state: "InstanceState[object]" = sqlalchemy.inspect(subject)
+            if state.deleted or subject in ctx.dbSession.deleted:
+                raise ValueError("Coverage subject is being deleted")
+            if state.identity is None:
+                raise ValueError("Coverage subject must already be persisted")
+            if (
+                state.session is not ctx.dbSession
+                and ctx.dbSession.get(model, state.identity) is None
+            ):
+                raise ValueError("Coverage subject no longer exists")
+    if dbPrivateKey is not None and dbPrivateKey.id is None:
+        raise ValueError("Coverage subject must already be persisted")
+    if dbX509Certificate is not None:
+        if dbX509Certificate.id is None:
+            raise ValueError("Coverage subject must already be persisted")
+        if (
+            dbPrivateKey is not None
+            and dbX509Certificate.private_key_id != dbPrivateKey.id
+        ):
+            raise ValueError(
+                "Certificate and private key coverage subjects do not match"
+            )
+    if dbCoverageAssuranceEvent_parent is not None:
+        if dbCoverageAssuranceEvent_parent.id is None:
+            raise ValueError("Coverage parent must already be persisted")
+        parent_key = dbCoverageAssuranceEvent_parent.private_key_id
+        parent_certificate = dbCoverageAssuranceEvent_parent.x509_certificate_id
+        if parent_key is not None:
+            child_key = (
+                dbPrivateKey.id
+                if dbPrivateKey is not None
+                else (
+                    dbX509Certificate.private_key_id
+                    if dbX509Certificate is not None
+                    else None
+                )
+            )
+            if child_key != parent_key:
+                raise ValueError(
+                    "Coverage child does not belong to its parent's private key"
+                )
+        if parent_certificate is not None and (
+            dbX509Certificate is None or dbX509Certificate.id != parent_certificate
+        ):
+            raise ValueError(
+                "Coverage child does not belong to its parent's certificate"
+            )
+    expected_status = {
+        model_utils.CoverageAssuranceResolution.from_string(
+            "abandoned"
+        ): "resolved-ignored",
+        model_utils.CoverageAssuranceResolution.from_string(
+            "PrivateKey_replaced"
+        ): "resolved-replaced",
+        model_utils.CoverageAssuranceResolution.from_string(
+            "X509Certificate_replaced"
+        ): "resolved-replaced",
+    }.get(coverage_assurance_resolution_id)
+    if (
+        expected_status is not None
+        and coverage_assurance_event_status_id
+        != model_utils.CoverageAssuranceEventStatus.from_string(expected_status)
+    ):
+        raise ValueError("Coverage resolution and status are inconsistent")
+
     assert ctx.timestamp
 
     dbCoverageAssuranceEvent = model_objects.CoverageAssuranceEvent()
@@ -873,6 +951,16 @@ def create__CoverageAssuranceEvent(
 
     ctx.dbSession.add(dbCoverageAssuranceEvent)
     ctx.dbSession.flush(objects=[dbCoverageAssuranceEvent])
+
+    if dbOperationsEvent is not None:
+        _log_object_event(
+            ctx,
+            dbOperationsEvent,
+            model_utils.OperationsObjectEventStatus.from_string(
+                "CoverageAssuranceEvent__insert"
+            ),
+            dbCoverageAssuranceEvent=dbCoverageAssuranceEvent,
+        )
 
     return dbCoverageAssuranceEvent
 
@@ -1609,8 +1697,8 @@ def create__X509Certificate(
         )
     except Exception as exc:
         log.critical("Exception `cert_utils.ari_construct_identifier`")
-        log.critical(str(exc))
-        log.critical(str(cert_pem))
+        log.critical(type(exc).__name__)
+        log.critical("Certificate parsing failed; certificate content omitted")
         pass
 
     # ok, now pull the dates off the cert

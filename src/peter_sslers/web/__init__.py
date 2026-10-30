@@ -2,7 +2,6 @@ from . import __init__pre  # noqa: F401
 
 # stdlib
 import datetime  # noqa: I100
-import logging
 from typing import Callable
 from typing import Dict
 from typing import Optional
@@ -30,6 +29,7 @@ from ..lib.config_utils import set_bool_setting
 from ..lib.context import ApiContext
 from ..lib.db import _setup
 from ..lib.utils import unurlify
+from ..logging_utils import install_logging_safety
 from ..model import websafe as model_websafe
 
 if TYPE_CHECKING:
@@ -65,29 +65,15 @@ def db_log_cleanup__tween_factory(
     handler: Callable[["Request"], "Response"], registry
 ) -> Callable[["Request"], "Response"]:
     def db_log_cleanup__tween(request: "Request") -> "Response":
-        try:
-            if request.environ.get("paste.command_request", None):
-                # turn off logging
-                # logging.Logger.manager.loggerDict
-                logging.basicConfig(level=logging.WARNING)
-                for l1 in [
-                    l0.strip()
-                    for l0 in "peter_sslers, sqlalchemy, requests, sqlalchemy.engine.base.Engine".split(
-                        ","
-                    )
-                ]:
-                    logging.getLogger(l1).setLevel(logging.WARNING)
-                    logging.getLogger(l1).propagate = False
-            response = handler(request)
-            return response
-        except Exception as exc:  # noqa: F841
-            raise
+        # Request dispatch must not mutate process-wide logging configuration.
+        return handler(request)
 
     return db_log_cleanup__tween
 
 
 def main(global_config: Optional[Dict], **settings):
     """This function returns a Pyramid WSGI application."""
+    install_logging_safety(handlers=True)
     config = Configurator(settings=settings)
     config.add_tween(".header_tween_factory")
     config.include("pyramid_mako")

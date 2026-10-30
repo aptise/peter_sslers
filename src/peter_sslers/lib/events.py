@@ -139,6 +139,7 @@ def PrivateKey_compromised(
         ),
         # optionals
         dbPrivateKey=privateKeyCompromised,
+        dbOperationsEvent=dbOperationsEvent,
     )
 
     # create a dict of cert_id:fqdn_set_id
@@ -154,6 +155,11 @@ def PrivateKey_compromised(
         ctx, privateKeyCompromised.id
     )
     if not items_count:
+        event_payload = dbOperationsEvent.event_payload_json
+        event_payload["coverage_assurance_event.id"] = dbCoverageAssuranceEvent.id
+        event_payload["coverage_assurance_event__children.id"] = []
+        dbOperationsEvent.set_event_payload(event_payload)
+        ctx.dbSession.flush(objects=[dbOperationsEvent])
         return None
 
     # loop through all the X509Certificates for this PrivateKey
@@ -204,6 +210,7 @@ def PrivateKey_compromised(
                 ),
                 # optionals
                 dbPrivateKey=privateKeyCompromised,
+                dbOperationsEvent=dbOperationsEvent,
                 dbX509Certificate=_dbX509Certificate,
                 dbCoverageAssuranceEvent_parent=dbCoverageAssuranceEvent,
             )

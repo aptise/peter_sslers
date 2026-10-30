@@ -16,8 +16,6 @@ from ..lib.handler import items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
-from ...lib import utils
-from ...model import utils as model_utils
 from ...model.objects import CoverageAssuranceEvent
 
 # ==============================================================================
@@ -292,36 +290,12 @@ class View_Focus(Handler):
                 raise ValueError("`action` MUST be `resolution`")
 
             resolution = formStash.results["resolution"]
-            event_type_id = model_utils.OperationsEventType.from_string(
-                "CoverageAssuranceEvent__mark_resolution"
-            )
-            event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["coverage_assurance_event.id"] = (
-                dbCoverageAssuranceEvent.id
-            )
-            event_payload_dict["action"] = action
-            event_payload_dict["resolution"] = resolution
-
             try:
                 _result = lib_db.update.update_CoverageAssuranceEvent__set_resolution(  # noqa: F841
                     self.request.api_context, dbCoverageAssuranceEvent, resolution
                 )
             except errors.InvalidTransition as exc:
                 formStash.fatal_form(error_main=exc.args[0])
-
-            self.request.api_context.dbSession.flush(objects=[dbCoverageAssuranceEvent])
-
-            # always log these
-            # bookkeeping
-            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
-                self.request.api_context, event_type_id, event_payload_dict
-            )
-            lib_db.logger._log_object_event(
-                self.request.api_context,
-                dbOperationsEvent=dbOperationsEvent,
-                event_status_id=event_type_id,
-                dbCoverageAssuranceEvent=dbCoverageAssuranceEvent,
-            )
 
             if self.request.wants_json:
                 return {

@@ -2,10 +2,12 @@
 import datetime
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 
 # pypi
 from pyramid.decorator import reify
+from sqlalchemy import inspect as sa_inspect
 import transaction
 from zope.sqlalchemy import mark_changed
 
@@ -88,9 +90,21 @@ class ApiContext(object):
             self.dbOperationsEvent = self.dbSession.merge(self.dbOperationsEvent)
 
     def pyramid_transaction_rollback(self) -> None:
-        """this method does some ugly stuff to rollback the pyramid transaction"""
-        self.transaction_manager.abort()
+        """Abort and retain only a root audit event that actually survived."""
+        identity: Optional[Tuple[int, ...]] = (
+            sa_inspect(self.dbOperationsEvent).identity
+            if self.dbOperationsEvent is not None
+            else None
+        )
+        try:
+            self.transaction_manager.abort()
+        finally:
+            self.dbOperationsEvent = None
         self.transaction_manager.begin()
+        if identity is not None:
+            from ..model.objects import OperationsEvent
+
+            self.dbOperationsEvent = self.dbSession.get(OperationsEvent, identity)
 
     # -----
 

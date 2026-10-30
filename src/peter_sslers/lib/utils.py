@@ -6,8 +6,8 @@ import json
 import logging
 import os.path
 import re
-from typing import Mapping
 from typing import Dict
+from typing import Mapping
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -380,7 +380,9 @@ def validate_config_uri(config_uri: str) -> str:
     return config_uri
 
 
-def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiContext":
+def new_scripts_setup(
+    config_uri: str, options: Optional[dict] = None, *, create_schema: bool = True
+) -> "ApiContext":
     from .context import ApiContext
     from pyramid.paster import get_app
     from pyramid.paster import get_appsettings
@@ -404,12 +406,16 @@ def new_scripts_setup(config_uri: str, options: Optional[dict] = None) -> "ApiCo
     """
 
     setup_logging(config_uri)
+    from ..logging_utils import install_logging_safety
+
+    install_logging_safety(handlers=True)
     app = get_app(config_uri, options=options)
     settings = get_appsettings(config_uri, options=options)
 
     engine = get_engine(settings)
 
-    Base.metadata.create_all(engine)
+    if create_schema:
+        Base.metadata.create_all(engine)
 
     session_factory = get_session_factory(engine)
 

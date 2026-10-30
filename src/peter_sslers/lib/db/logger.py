@@ -3,7 +3,11 @@ import datetime
 import logging
 from typing import Dict
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
+
+# pypi
+from sqlalchemy import inspect as sa_inspect
 
 # localapp
 from .. import utils
@@ -11,6 +15,8 @@ from ...model import objects as model_objects
 from ...model import utils as model_utils
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm.state import InstanceState
+
     from ..context import ApiContext
     from ...model.objects import AcmeAccount
     from ...model.objects import AcmeAccountKey
@@ -529,7 +535,7 @@ class AcmeLogger(object):
 
 
 def log__OperationsEvent(
-    ctx,
+    ctx: "ApiContext",
     event_type_id: int,
     event_payload_dict: Optional[Dict] = None,
     dbOperationsEvent_child_of: Optional["OperationsEvent"] = None,
@@ -539,16 +545,36 @@ def log__OperationsEvent(
     creates a OperationsEvent instance
     if needed, registers it into the ctx
     """
+    if (
+        type(event_type_id) is not int
+        or event_type_id not in model_utils.OperationsEventType._mapping
+    ):
+        raise ValueError("Unknown OperationsEvent type")
     # defaults
     # timestamp overwrite?
     timestamp_event = timestamp_event or ctx.timestamp
     # if we didn't pass in an explicit dbOperationsEvent_child_of, use the global
     dbOperationsEvent_child_of = dbOperationsEvent_child_of or ctx.dbOperationsEvent
 
-    if dbOperationsEvent_child_of and (dbOperationsEvent_child_of not in ctx.dbSession):
-        # if there are any issues with this, it is likely due to a transaction
-        # affecting the `ctx.dbOperationsEvent`::`lib.context.ApiContext`
-        dbOperationsEvent_child_of = ctx.dbSession.merge(dbOperationsEvent_child_of)
+    if dbOperationsEvent_child_of is not None:
+        if (
+            sa_inspect(dbOperationsEvent_child_of).deleted
+            or dbOperationsEvent_child_of in ctx.dbSession.deleted
+        ):
+            raise ValueError("OperationsEvent parent is being deleted")
+        if dbOperationsEvent_child_of not in ctx.dbSession:
+            identity: Optional[Tuple[int, ...]] = sa_inspect(
+                dbOperationsEvent_child_of
+            ).identity
+            if identity is None:
+                raise ValueError("OperationsEvent parent must already be persisted")
+            dbOperationsEvent_child_of = ctx.dbSession.get(
+                model_objects.OperationsEvent, identity
+            )
+            if dbOperationsEvent_child_of is None:
+                raise ValueError("OperationsEvent parent no longer exists")
+        if dbOperationsEvent_child_of.id is None:
+            raise ValueError("OperationsEvent parent must already be persisted")
 
     if event_payload_dict is None:
         event_payload_dict = utils.new_event_payload_dict()
@@ -593,6 +619,83 @@ def _log_object_event(
     dbRenewalConfiguration: Optional["RenewalConfiguration"] = None,
 ) -> "OperationsObjectEvent":
     """additional logging for objects"""
+    targets = [
+        dbAcmeAccount,
+        dbAcmeAccountKey,
+        dbAcmeDnsServer,
+        dbAcmeOrder,
+        dbAcmeServer,
+        dbX509CertificateTrusted,
+        dbX509CertificateTrustChain,
+        dbX509CertificateRequest,
+        dbCoverageAssuranceEvent,
+        dbDomain,
+        dbEnrollmentFactory,
+        dbPrivateKey,
+        dbX509Certificate,
+        dbRenewalConfiguration,
+        dbUniqueFQDNSet,
+        dbUniquelyChallengedFQDNSet,
+    ]
+    expected_models = (
+        model_objects.AcmeAccount,
+        model_objects.AcmeAccountKey,
+        model_objects.AcmeDnsServer,
+        model_objects.AcmeOrder,
+        model_objects.AcmeServer,
+        model_objects.X509CertificateTrusted,
+        model_objects.X509CertificateTrustChain,
+        model_objects.X509CertificateRequest,
+        model_objects.CoverageAssuranceEvent,
+        model_objects.Domain,
+        model_objects.EnrollmentFactory,
+        model_objects.PrivateKey,
+        model_objects.X509Certificate,
+        model_objects.RenewalConfiguration,
+        model_objects.UniqueFQDNSet,
+        model_objects.UniquelyChallengedFQDNSet,
+    )
+    for target, expected in zip(targets, expected_models):
+        if target is not None and not isinstance(target, expected):
+            raise ValueError("Audit subject does not match its relationship")
+    selected = [target for target in targets if target is not None]
+    if len(selected) != 1 or selected[0].id is None:
+        raise ValueError("Exactly one persisted object is required for an object event")
+    subject_state: Optional["InstanceState[object]"] = sa_inspect(
+        selected[0], raiseerr=False
+    )
+    if subject_state is not None and (
+        subject_state.deleted or selected[0] in ctx.dbSession.deleted
+    ):
+        raise ValueError("The audit subject is being deleted")
+    if subject_state is None or subject_state.identity is None:
+        raise ValueError("The audit subject must already be persisted")
+    if (
+        subject_state.session is not ctx.dbSession
+        and ctx.dbSession.get(subject_state.mapper.class_, subject_state.identity)
+        is None
+    ):
+        raise ValueError("The audit subject no longer exists")
+    if (
+        type(event_status_id) is not int
+        or event_status_id not in model_utils.OperationsObjectEventStatus._mapping
+    ):
+        raise ValueError("Unknown OperationsObjectEvent status")
+    event_state: Optional["InstanceState[object]"] = sa_inspect(
+        dbOperationsEvent, raiseerr=False
+    )
+    if event_state is not None and (
+        event_state.deleted or dbOperationsEvent in ctx.dbSession.deleted
+    ):
+        raise ValueError("OperationsEvent parent is being deleted")
+    if (
+        event_state is None
+        or event_state.identity is None
+        or ctx.dbSession.get(model_objects.OperationsEvent, event_state.identity)
+        is None
+    ):
+        raise ValueError("Object events require a persisted OperationsEvent")
+
     dbOperationsObjectEvent = model_objects.OperationsObjectEvent()
     dbOperationsObjectEvent.operations_event_id = dbOperationsEvent.id
     dbOperationsObjectEvent.operations_object_event_status_id = event_status_id

@@ -327,6 +327,7 @@ class _OperationsUnified(_mixin_mapping):
         621: "X509CertificateRequest__new__imported",
         630: "X509CertificateRequest__new__acme_order",
         1200: "CoverageAssuranceEvent__mark_resolution",
+        1201: "CoverageAssuranceEvent__insert",
         410: "Domain__insert",
         420: "Domain__mark",
         # 421: "Domain__mark__active",
@@ -1233,7 +1234,7 @@ class DomainsChallenged(dict):
         for _acme_challenge_type in challenge_types_order:
             if _acme_challenge_type not in self:
                 continue
-            for _domain_name in self[_acme_challenge_type]:
+            for _domain_name in self[_acme_challenge_type] or ():
                 if _domain_name == domain_name:
                     return AcmeChallenge_Type.from_string(_acme_challenge_type)
         raise ValueError("domain is not challenged")
@@ -1776,7 +1777,7 @@ class PrivateKey_Type(_mixin_mapping):
         "global_weekly",
         "account_weekly",
     )
-    _options_calendar_daily = ("global_daily" "account_daily",)
+    _options_calendar_daily = ("global_daily", "account_daily")
 
 
 class ReplacesType(_mixin_mapping):

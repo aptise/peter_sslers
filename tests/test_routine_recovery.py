@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import cast
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -690,3 +691,52 @@ def test_failed_certificate_download_is_retried_on_the_next_run(
     assert downloader.call_count == 2
     assert cast(Mock, harness.context.pyramid_transaction_rollback).call_count == 2
     harness.factory.assert_not_called()
+
+
+def test_reconciliation_pages_do_not_skip_rows_as_sync_changes_the_query(
+    harness: RoutineHarness,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for identity in range(1, 7):
+        add_order(harness.context, identity)
+    visited: List[int] = []
+
+    def sync(
+        ctx: ApiContext, dbAcmeOrder: AcmeOrder, transaction_commit: bool
+    ) -> AcmeOrder:
+        visited.append(dbAcmeOrder.id)
+        dbAcmeOrder.acme_status_order_id = model_utils.Acme_Status_Order.from_string(
+            "valid"
+        )
+        dbAcmeOrder.x509_certificate_id = 1
+        if len(visited) == 1:
+            add_order(ctx, 99)  # A new concurrent order is outside this run's fence.
+        return dbAcmeOrder
+
+    monkeypatch.setattr(
+        actions.actions_acme, "do__AcmeV2_AcmeOrder__acme_server_sync", sync
+    )
+    actions.routine__reconcile_blocks(
+        harness.context,
+        {},
+        create_public_server=harness.factory,
+        transaction_commit=True,
+        batch_size=2,
+    )
+    assert visited == [6, 5, 4, 3, 2, 1]
+    assert harness.counts() == (6, 0)
+    harness.factory.assert_not_called()
+
+
+def test_missing_order_limit_is_shared_across_small_batches(
+    harness: RoutineHarness,
+) -> None:
+    actions.routine__order_missing(
+        harness.context, {}, create_public_server=harness.factory, batch_size=1, limit=2
+    )
+    assert harness.counts() == (2, 0)
+    assert [call.kwargs["replaces"] for call in harness.new_order.call_args_list] == [
+        "backup",
+        "primary",
+    ]
+    harness.server.shutdown.assert_called_once()

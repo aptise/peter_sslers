@@ -1,8 +1,41 @@
+2026-10-30 Priorities
+=====================
+
+* Support IP Certificates
+
+
+Audit/Remove?
+
+The following items are implemented poorly, so have not become useful.
+Audit the code to see if they can be better implemented
+    * OperationsEvent tracking
+        meant to provide an audit trail / log
+        perhaps this can be turned on/off?
+    * CoverageAssuranceEvent tracking
+        meant to create notifications when issues arise
+
+check to see if we correctly handle this:
+    request with an invalid replaces
+    is it stripped from the order on a resubmit?
+    if it comes back, do we correctly annotate the replaces vs replaces_requested ?
+
+acme-dns:
+    reconsider integration - can we better support this concept?
+    streamline / clarify onboarding
+    audit credentials
+        we write a temporary value now, which is ugly
+        waiting on
+            https://github.com/joohoi/acme-dns/pull/378
+
+HTML UX:
+
+- make EXPIRED certs more clear on html views
+
+
+
 URGENT
 ======
 
-* UX - make EXPIRED certs more clear on html views
-* Support IP Certificates
 * Backup Challenges
     Currently the system will fail an AcmeOrder, and requires a manual "try backup"
     A better approach would be:
@@ -35,16 +68,8 @@ Audit:
 
 
 x509CertificateTrusted
-    descope into Root + Intermediates
-        they can still share a table via polymorphic identity
-
-Audit/Remove? OperationsEvent tracking
-Audit/Remove? CoverageAssuranceEvent tracking
-
-Feature?
-    * example client that monitors certs on disk.
-    * db logging : control via config
-        operations events
+    should we descope into Root + Intermediate tables?
+    they could still share a table via polymorphic identity
 
 Fix
     ARI Checks
@@ -55,13 +80,6 @@ Fix
             on-demand (object) should support WIDER attempt
             automatic (routine) should support narrower attempt
             failed ARI checks need to be handled and set for renewal
-
-acme-dns:
-    onboarding
-    audit credentials
-        we write a temporary value now, which is ugly
-        waiting on
-            https://github.com/joohoi/acme-dns/pull/378
 
 Audit
     objects | certificate has some odd attributes for html generation that should be removed
@@ -81,13 +99,6 @@ CertificateCaPreferencePolicy
 
 SQLAlchemy
     audit use of `secondary` again, as that pattern is fragile on some of our selects -- so they may need to be replaced with the aliased pattern.
-
-
-
-check to see if we correctly handle this:
-    request with an invalid replaces
-    is it stripped from the order on a resubmit?
-    if it comes back, do we correctly annotate the replaces vs replaces_requested ?
 
 Recovery coverage added:
     `routine__reconcile_blocks` includes valid orders with a certificate URL but

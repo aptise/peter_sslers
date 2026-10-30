@@ -54,6 +54,7 @@ from .utils import new_BrowserSession
 from .utils_datetime import datetime_ari_timely
 from .utils_datetime import retry_after_datetime
 from .. import USER_AGENT
+from ..logging_utils import censored_url
 from ..model import utils as model_utils
 
 if TYPE_CHECKING:
@@ -153,11 +154,11 @@ def url_request(
 
     returns (status_code, resp_data, headers)
     """
-    log_api.info("acme_v2.url_request(")
-    log_api.debug(" REQUEST-")
-    log_api.debug("  url       > %s", url)
-    log_api.debug("  post_data > %s", post_data)
-    log_api.debug("  depth     > %s", depth)
+    method = "POST" if post_data is not None else "GET"
+    endpoint = censored_url(url)
+    log_api.debug(
+        "ACME request method=%s endpoint=%s attempt=%s", method, endpoint, depth
+    )
     if depth > MAX_DEPTH:
         raise ValueError("depth > MAX_DEPTH[%s]" % MAX_DEPTH)
     context = None
@@ -178,20 +179,16 @@ def url_request(
             verify_flags |= VERIFY_X509_STRICT
             context = create_urllib3_context(verify_flags=verify_flags)
             context.load_verify_locations(cafile=alt_bundle)
-            log_api.info("Making a request with alt_bundle: %s", alt_bundle)
+            log_api.debug("ACME request uses configured CA trust bundle")
         resp = urlopen(
             Request(url, data=post_data, headers=post_headers),
             context=context,
             timeout=10,
         )
-        log_api.debug(" RESPONSE-")
         with closing(resp):
             resp_data, status_code, headers = (
                 resp.read().decode("utf8"), resp.getcode(), resp.headers,
             )
-        log_api.debug("  status_code < %s", status_code)
-        log_api.debug("  resp_data   < %s", resp_data)
-        log_api.debug("  headers     < %s", headers)
     except HTTPError as exc:
         with closing(exc):
             try:
@@ -204,6 +201,9 @@ def url_request(
     except Exception as exc:
         # TODO: log this error to the database
         raise errors.AcmeCommunicationError(str(exc))
+    log_api.info(
+        "ACME response method=%s endpoint=%s status=%s", method, endpoint, status_code
+    )
     try:
         resp_data = json.loads(resp_data)  # try to parse json results
     except ValueError:
@@ -222,9 +222,7 @@ def url_request(
             raise errors.AcmeServerError(status_code, url, resp_data, headers)
         # reformat the error for display
         # this should probably be undone
-        msg = "{0}:\nUrl: {1}\nData: {2!r}\nResponse Code: {3}\nResponse: {4}".format(
-            err_msg, url, post_data, status_code, resp_data
-        )
+        msg = "%s (HTTP %s; non-JSON response omitted)" % (err_msg, status_code)
         # (status_code, url, resp_data, headers) = exc.args
         raise errors.AcmeServerError(status_code, url, msg, headers)
     return status_code, resp_data, headers
@@ -321,7 +319,7 @@ def acme_directory_get(ctx: "ApiContext", acmeAccount: "AcmeAccount") -> Dict:
 
     :param acmeAccount: (required) a :class:`model.objects.AcmeAccount` instance
     """
-    log_api.info("acme_v2.acme_directory_get(")
+    log_api.debug("acme_v2.acme_directory_get(")
     directory_url = acmeAccount.acme_server.directory_url
     if not directory_url:
         raise ValueError("no directory for the CERTIFICATE_AUTHORITY!")
@@ -717,7 +715,6 @@ class AuthenticatedUser(object):
             )
         except IOError as exc:  # noqa: F841
             log.debug("_send_signed_request > sign_payload | IOError")
-            log.debug(exc)
             self._next_nonce = None
             raise
         try:
@@ -732,7 +729,7 @@ class AuthenticatedUser(object):
             if DEBUG_HEADERS:
                 print("*******************************************************")
                 print("_send_signed_request | DEBUG_HEADERS")
-                print(result[2].items())
+                print("Response header values omitted")
                 print("*******************************************************")
             next_nonce = result[2].get("Replay-Nonce")
             if isinstance(next_nonce, str) and next_nonce and next_nonce != nonce:
@@ -762,7 +759,7 @@ class AuthenticatedUser(object):
 
         The response data is a dict
         """
-        log.info("acme_v2.AuthenticatedUser._poll_until_not {0}".format(_log_message))
+        log.debug("acme_v2.AuthenticatedUser._poll_until_not {0}".format(_log_message))
         result = None
         started = time.monotonic()
         delay = 1.0
@@ -798,7 +795,7 @@ class AuthenticatedUser(object):
         :param contact: (optional) The updated contact info
         :param is_registration: (optional) Boolean
         """
-        log.info("acme_v2.AuthenticatedUser.update_contact( {0}".format(contact))
+        log.debug("Updating ACME account contact")
         payload_contact = {"contact": contact}
         assert self._api_account_headers
         (
@@ -813,10 +810,6 @@ class AuthenticatedUser(object):
         if not isinstance(acme_account_object, dict):
             raise ValueError("expected `dict` response")
         self._api_account_object = acme_account_object
-        log.debug(") update_contact | acme_account_object: %s" % acme_account_object)
-        log.debug(
-            ") update_contact | _acme_account_headers: %s" % _acme_account_headers
-        )
         log.info(
             ") update_contact | updated {0}".format(
                 " ; ".join(acme_account_object["contact"])
@@ -918,7 +911,7 @@ class AuthenticatedUser(object):
                  "orders": "https://example.com/acme/acct/evOfKhNU60wg/orders"
                }
         """
-        log_api.info("acme_v2.AuthenticatedUser.authenticate(")
+        log_api.debug("acme_v2.AuthenticatedUser.authenticate(")
         if self.acme_directory is None:
             raise ValueError("`acme_directory` is required")
 
@@ -997,12 +990,6 @@ class AuthenticatedUser(object):
 
             self._api_account_object = acme_account_object
             self._api_account_headers = acme_account_headers
-            log_api.debug(
-                ") authenticate | acme_account_object: %s" % acme_account_object
-            )
-            log_api.debug(
-                ") authenticate | acme_account_headers: %s" % acme_account_headers
-            )
             log_api.info(
                 ") authenticate = %s"
                 % (
@@ -1066,7 +1053,7 @@ class AuthenticatedUser(object):
 
         https://tools.ietf.org/html/draft-ietf-acme-acme-13#section-7.3.7
         """
-        log_api.info("acme_v2.AuthenticatedUser.deactivate(")
+        log_api.debug("acme_v2.AuthenticatedUser.deactivate(")
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -1098,12 +1085,6 @@ class AuthenticatedUser(object):
             # this is a flag
             is_did_deactivate = True
 
-            log_api.debug(
-                ") deactivate | acme_account_object: %s" % acme_account_object
-            )
-            log_api.debug(
-                ") deactivate | acme_account_headers: %s" % acme_account_headers
-            )
             log_api.info(
                 ") deactivate = %s"
                 % ("acme_v2 DEACTIVATED!" if status_code == 200 else "ERROR")
@@ -1171,7 +1152,7 @@ class AuthenticatedUser(object):
             }
 
         """
-        log.info("acme_v2.AuthenticatedUser.key_change(")
+        log.debug("acme_v2.AuthenticatedUser.key_change(")
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -1222,9 +1203,6 @@ class AuthenticatedUser(object):
 
             is_did_keychange = True
 
-            log.debug(") key_change | acme_response: %s" % acme_response)
-            log.debug(") key_change | acme_headers: %s" % acme_headers)
-
             # assuming things worked...
             self.accountKeyData = accountKeyData_new
             # turn off the old and flush, so the index is maintained
@@ -1274,7 +1252,7 @@ class AuthenticatedUser(object):
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeOrder: (required) a :class:`model.objects.AcmeOrder` instance
         """
-        log.info(
+        log.debug(
             "acme_v2.AuthenticatedUser.acme_order_load(AcmeOrder[%s]" % dbAcmeOrder.id
         )
         if not transaction_commit:
@@ -1293,8 +1271,6 @@ class AuthenticatedUser(object):
             ) = self._send_signed_request("OrderUrl", dbAcmeOrder.order_url, None)
             if not isinstance(acme_order_object, dict):
                 raise ValueError("expected `dict` response")
-            log.debug(") acme_order_load | acme_order_object: %s" % acme_order_object)
-            log.debug(") acme_order_load | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServer404 as exc:  # noqa: F841
             log.info(") acme_order_load | ERROR AcmeServer404!")
             raise
@@ -1336,7 +1312,7 @@ class AuthenticatedUser(object):
         returns
             acmeOrderRfcObject, dbEventLogged
         """
-        log.info("acme_v2.AuthenticatedUser.acme_order_new(")
+        log.debug("acme_v2.AuthenticatedUser.acme_order_new(")
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "required for the `AcmeLogger`"
@@ -1374,8 +1350,6 @@ class AuthenticatedUser(object):
             )
             if not isinstance(acme_order_object, dict):
                 raise ValueError("expected `dict` response")
-            log.debug(") acme_order_new | acme_order_object: %s" % acme_order_object)
-            log.debug(") acme_order_new | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServerError as exc:
             log.debug(") acme_order_new | AcmeServerError: %s" % exc)
 
@@ -1383,7 +1357,6 @@ class AuthenticatedUser(object):
             # OR (exc = exc.args[0])
             if exc.args[0] == 429:
                 log.debug("Ratelimited Error")
-                log.debug(exc.args)
                 dbRateLimited = db_create.create__RateLimited(  # noqa: F841
                     ctx,
                     dbAcmeAccount=self.acmeAccount,
@@ -1452,12 +1425,6 @@ class AuthenticatedUser(object):
                     )
                     if not isinstance(acme_order_object, dict):
                         raise ValueError("expected `dict` response")
-                    log.debug(
-                        ") acme_order_new | acme_order_object: %s" % acme_order_object
-                    )
-                    log.debug(
-                        ") acme_order_new | acme_order_headers: %s" % acme_order_headers
-                    )
                     _raise = False
             if _raise:
                 raise exc
@@ -1499,7 +1466,7 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
-        log.info(
+        log.debug(
             "acme_v2.AuthenticatedUser.prepare_acme_challenge("
             "AcmeAuthorization[%s], AcmeChallenge[%s]"
             % (
@@ -1555,7 +1522,7 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
-        log.info(
+        log.debug(
             "acme_v2.AuthenticatedUser._prepare_acme_challenge__http01("
             "AcmeAuthorization[%s], AcmeChallenge[%s]"
             % (
@@ -1646,7 +1613,7 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) The :class:`model.objects.dbAcmeAuthorization`
         :param dbAcmeChallenge: (required) The :class:`model.objects.dbAcmeChallenge`
         """
-        log.info(
+        log.debug(
             "acme_v2.AuthenticatedUser._prepare_acme_challenge__dns01("
             "AcmeAuthorization[%s], AcmeChallenge[%s]"
             % (
@@ -1660,8 +1627,6 @@ class AuthenticatedUser(object):
             )
 
         # TODO: test the integration
-        if lib_acmedns.pyacmedns is None:
-            raise ValueError("`pyacmedns` is not installed")
 
         dbAcmeDnsServerAccount = (
             dbAcmeAuthorization.domain.acme_dns_server_account__active
@@ -1777,7 +1742,7 @@ class AuthenticatedUser(object):
                             dns_record_prime,
                             expected_record_name,
                         )
-                        print(exc.args)
+                        print(type(exc).__name__)
                         pdb.set_trace()
                     raise exc
             else:
@@ -1823,7 +1788,7 @@ class AuthenticatedUser(object):
         :param updated_AcmeOrder_ProcessingStatus: callable. expects (ctx, dbAcmeChallenge, acme_order_processing_status_id, transaction_commit)
 
         """
-        log.info(
+        log.debug(
             "acme_v2.AuthenticatedUser.acme_order_process_authorizations(AcmeOrder[%s]"
             % dbAcmeOrder.id
         )
@@ -1904,7 +1869,7 @@ class AuthenticatedUser(object):
 
         # get the new certificate
         """
-        log.info(
+        log.debug(
             "acme_v2.AuthenticatedUser.acme_order_finalize(AcmeOrder[%s]"
             % dbAcmeOrder.id
         )
@@ -1944,12 +1909,6 @@ class AuthenticatedUser(object):
             )
             if not isinstance(finalize_response, dict):
                 raise ValueError("expected `dict` response")
-            log.debug(
-                ") acme_order_finalize | finalize_response: %s" % finalize_response
-            )
-            log.debug(
-                ") acme_order_finalize | _finalize_headers: %s" % _finalize_headers
-            )
         except errors.AcmeServer404 as exc:  # noqa: F841
             finalize_response = new_response_404()
             raise
@@ -1957,7 +1916,7 @@ class AuthenticatedUser(object):
         # poll the order to monitor when it's done
         url_order_status = dbAcmeOrder.order_url
 
-        log.info(") acme_order_finalize | checking order {0}".format("order"))
+        log.debug(") acme_order_finalize | checking order {0}".format("order"))
         try:
             acme_order_finalized = self._poll_until_not(
                 "OrderUrl",
@@ -1966,7 +1925,6 @@ class AuthenticatedUser(object):
                 "via acme_v2.AuthenticatedUser.acme_order_finalize()",
             )
         except errors.AcmePollingTooLong as exc:
-            log.debug(exc)
             _tdelta, _result = exc.args
             dbPollingError = db_create.create__AcmePollingError(  # noqa: F841
                 ctx,
@@ -2009,7 +1967,7 @@ class AuthenticatedUser(object):
         url_certificate: str,
         is_save_alternate_chains: Optional[bool] = None,
     ) -> List[str]:
-        log.info("acme_v2.AuthenticatedUser.download_certificate(")
+        log.debug("acme_v2.AuthenticatedUser.download_certificate(")
         if not url_certificate:
             raise ValueError("Must supply a url for the certificate")
 
@@ -2020,10 +1978,6 @@ class AuthenticatedUser(object):
         )
         if not isinstance(_fullchain_pem, str):
             raise ValueError("expected `str` response")
-        log.debug(") download_certificate | fullchain_pem: %s" % _fullchain_pem)
-        log.debug(
-            ") download_certificate | _certificate_headers: %s" % _certificate_headers
-        )
         fullchain_pems = [
             _fullchain_pem,
         ]
@@ -2098,7 +2052,7 @@ class AuthenticatedUser(object):
 
         If the challenge fails, we raise a `errors.DomainVerificationError`.
         """
-        log.info("acme_v2.AuthenticatedUser.acme_authorization_process_url(")
+        log.debug("acme_v2.AuthenticatedUser.acme_authorization_process_url(")
         if not transaction_commit:
             raise errors.AcknowledgeTransactionCommitRequired(
                 "MUST persist external system data."
@@ -2134,14 +2088,6 @@ class AuthenticatedUser(object):
         if not isinstance(authorization_response, dict):
             raise ValueError("expected `dict` response")
         log.debug(
-            ") acme_authorization_process_url | authorization_response: %s"
-            % authorization_response
-        )
-        log.debug(
-            ") acme_authorization_process_url | _authorization_headers: %s"
-            % _authorization_headers
-        )
-        log.info(
             ") .acme_authorization_process_url | handle_authorization_payload(AcmeAuthorization[%s]"
             % (dbAcmeAuthorization.id if dbAcmeAuthorization else "")
         )
@@ -2152,7 +2098,7 @@ class AuthenticatedUser(object):
             dbAcmeAuthorization=dbAcmeAuthorization,
             transaction_commit=True,
         )
-        log.info(") handle_authorization_payload")
+        log.debug(") handle_authorization_payload")
 
         # log the event
         assert ctx.application_settings
@@ -2182,7 +2128,7 @@ class AuthenticatedUser(object):
         # once we inspect the url, we have the domain
         # the domain is in our `authorization_response`
         # but also on our `dbAcmeAuthorization` object
-        log.info(
+        log.debug(
             ") acme_authorization_process_url | Handling Authorization for {0}...".format(
                 _dbAcmeAuthorization.domain.domain_name
             )
@@ -2292,7 +2238,7 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) a
             :class:`model.objects.AcmeAuthorization` instance
         """
-        log.info(
+        log.debug(
             "acme_v2.AuthenticatedUser.acme_authorization_load(AcmeAuthorization[%s]"
             % dbAcmeAuthorization.id
         )
@@ -2316,14 +2262,6 @@ class AuthenticatedUser(object):
             )
             if not isinstance(authorization_response, dict):
                 raise ValueError("expected `dict` response")
-            log.debug(
-                ") acme_authorization_load | authorization_response: %s"
-                % authorization_response
-            )
-            log.debug(
-                ") acme_authorization_load | _authorization_headers: %s"
-                % _authorization_headers
-            )
         except errors.AcmeServer404 as exc:  # noqa: F841
             authorization_response = new_response_404()
 
@@ -2364,7 +2302,7 @@ class AuthenticatedUser(object):
                authorization URL.
 
         """
-        log.info(
+        log.debug(
             "acme_v2.AuthenticatedUser.acme_authorization_deactivate(AcmeAuthorization[%s]"
             % dbAcmeAuthorization.id
         )
@@ -2390,14 +2328,6 @@ class AuthenticatedUser(object):
             )
             if not isinstance(authorization_response, dict):
                 raise ValueError("expected `dict` response")
-            log.debug(
-                ") acme_authorization_deactivate | authorization_response: %s"
-                % authorization_response
-            )
-            log.debug(
-                ") acme_authorization_deactivate | _authorization_headers: %s"
-                % _authorization_headers
-            )
         except errors.AcmeServer404 as exc:  # noqa: F841
             authorization_response = new_response_404()
 
@@ -2426,7 +2356,7 @@ class AuthenticatedUser(object):
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeChallenge: (required) a :class:`model.objects.AcmeChallenge` instance
         """
-        log.info(
+        log.debug(
             "acme_v2.AuthenticatedUser.acme_challenge_load(AcmeChallenge[%s]"
             % dbAcmeChallenge.id
         )
@@ -2448,12 +2378,6 @@ class AuthenticatedUser(object):
             )
             if not isinstance(challenge_response, dict):
                 raise ValueError("expected `dict` response")
-            log.debug(
-                ") acme_challenge_load | challenge_response: %s" % challenge_response
-            )
-            log.debug(
-                ") acme_challenge_load | _challenge_headers: %s" % _challenge_headers
-            )
         except errors.AcmeServer404 as exc:  # noqa: F841
             challenge_response = new_response_404()
 
@@ -2492,7 +2416,7 @@ class AuthenticatedUser(object):
 
         returns `challenge_response` the ACME paylaod for the specific challenge
         """
-        log.info(
+        log.debug(
             "acme_v2.AuthenticatedUser.acme_challenge_trigger(AcmeChallenge[%s]"
             % dbAcmeChallenge.id
         )
@@ -2534,12 +2458,6 @@ class AuthenticatedUser(object):
             )
             if not isinstance(challenge_response, dict):
                 raise ValueError("expected `dict` response")
-            log.debug(
-                ") acme_challenge_trigger | challenge_response: %s" % challenge_response
-            )
-            log.debug(
-                ") acme_challenge_trigger | _challenge_headers: %s" % _challenge_headers
-            )
         except errors.AcmeServer404 as exc:  # noqa: F841
             # this is a subclass of `errors.AcmeServerError`, but does not have all the args
             raise
@@ -2577,7 +2495,7 @@ class AuthenticatedUser(object):
             # )
 
         # TODO: COULD an accepted challenge be here?
-        log.info(
+        log.debug(
             ") acme_challenge_trigger | checking domain {0}".format(
                 dbAcmeAuthorization.domain.domain_name
             )

@@ -20,17 +20,13 @@ class ViewPublic(Handler):
     @view_config(route_name="public_whoami", renderer="string")
     def public_whoami(self):
         """this is really only useful for testing"""
-        log.info("public whoami: %s", self.request.active_domain_name)
+        log.debug("public whoami request")
         return self.request.active_domain_name
 
     @view_config(route_name="public_challenge", renderer="string")
     def public_challenge(self):
         challenge = self.request.matchdict["challenge"]
-        log.info(
-            "public challenge: domain=%s, challenge=%s",
-            self.request.active_domain_name,
-            challenge,
-        )
+        log.debug("public challenge request")
 
         dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
             self.request.api_context, self.request.active_domain_name

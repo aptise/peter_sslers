@@ -392,3 +392,41 @@ on the server, and sends it to you with the appropriate headers.
 * /.well-known/peter_sslers/x509-certificate/{ID}/privkey.pem
 * /.well-known/peter_sslers/x509-certificate/{ID}/privkey.pem.txt
 
+
+## Bounded work and overlapping workers
+
+Automatic ordering and reconciliation scan scalar IDs in keyset pages (default
+100), then reload each object before acting. The initial maximum-ID fence keeps
+newly inserted rows for the next invocation; eligibility may still change during
+a run. Each item can commit or roll back without holding an open query cursor.
+Use batch-size=100 on routine__automatic_orders or routine__reconcile_blocks
+to tune query size. Automatic ordering shares limit across backup, primary and
+renewal stages; an explicit limit=0 performs no ordering. Omit limit for no cap.
+
+All three scheduling services share a nonblocking acme-orders execution lock.
+The automatic-orders CLI holds it across both of its stages and reports a skip
+when another worker is active. Configuration and order operations additionally
+serialize critical state changes; ordering rechecks missing/replacement conditions
+after taking the configuration lock. Locks survive the application's commits and
+rollbacks and are released when a process exits.
+
+SQLite file databases use OS file locks beside the canonical database path.
+Keep these .sslers-*.lock files in place: unlinking them while a worker holds a
+lock can allow a second worker to acquire a different inode. The directory must
+be writable by the service account. In-memory SQLite locks protect only threads
+using the same engine, not independent processes. SQLite URI databases fail closed
+until a supported lock strategy is configured. SQLite lock files require a shared
+filesystem whose locking works across all participating workers.
+
+PostgreSQL and MySQL/MariaDB use session advisory locks on an independent
+connection, shared by nested sections belonging to the same context. Budget one
+additional pooled connection per lock-owning context. Uncertain lock acquisition
+or release invalidates that physical connection. These strategies have SQL/cleanup
+regression tests; live PostgreSQL/MySQL integration has not been run in this local
+environment. Transaction-pooling proxies that do not retain a database session
+are not compatible with session advisory locks.
+
+The index migration b6d82f9014ae supports policy lookups, order reconciliation,
+configuration history and audit traversal. Apply normal Alembic upgrades to existing
+databases; new databases include the same indexes. Index builds may take time on
+large installations, so plan the upgrade window accordingly.

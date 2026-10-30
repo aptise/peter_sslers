@@ -1,6 +1,8 @@
+from typing import TYPE_CHECKING
 from typing import Union
 
-from peter_sslers.lib.context import ApiContext
+if TYPE_CHECKING:
+    from peter_sslers.lib.context import ApiContext
 
 # These will be used by Requests
 #

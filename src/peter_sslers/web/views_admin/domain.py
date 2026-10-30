@@ -635,7 +635,10 @@ class View_Focus(Handler):
             try:
                 utils_redis.prime_redis_domain(self.request, dbDomain)
             except utils_redis.RedisError as exc:
-                log.debug("domain config.json - could not prime redis > %s", str(exc))
+                log.debug(
+                    "domain config.json - could not prime redis > %s",
+                    type(exc).__name__,
+                )
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

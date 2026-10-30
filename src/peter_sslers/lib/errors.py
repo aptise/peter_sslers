@@ -183,7 +183,14 @@ class AcmeServerError(AcmeError):
     AcmeServerError(status_code, url, resp_data, headers)
     """
 
-    pass
+    def __str__(self) -> str:
+        status = (
+            self.args[0] if self.args and type(self.args[0]) is int else "unavailable"
+        )
+        return "%s (HTTP status %s; protocol data omitted)" % (
+            type(self).__name__,
+            status,
+        )
 
 
 class AcmeBadNonce(AcmeServerError):
@@ -388,3 +395,7 @@ class UnknownAcmeProfile_Local(Exception):
 
 # class OperationsContextError(_UrlSafeException):
 #    pass
+
+
+class RoutineAlreadyRunning(InvalidRequest):
+    """An overlapping worker holds the required execution lock."""
