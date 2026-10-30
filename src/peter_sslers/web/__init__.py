@@ -202,7 +202,7 @@ def main(global_config: Optional[Dict], **settings):
         dbSession.close()
     dbEngine.dispose()  # toss the connection in-case of multi-processing
 
-    if False:
+    if True:
         print(
             "PeterSSLers will be serving on:   "
             + config.registry.settings["admin_server"]
