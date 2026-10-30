@@ -1,4 +1,15 @@
 1.0.0.dev
+    Global usage reconciliation:
+    * Correct trusted-CA usage joins and count distinct active leaf certificates
+      per immediate signing CA, without multiplying counts for alternate chains
+      or counting domains instead of certificates.
+    * Rebuild private-key active-certificate counts alongside certificate/order
+      totals, including resetting unused records to zero.
+    * Count distinct issued certificates per ACME account when several orders
+      reference the same certificate, while retaining total order counts.
+    * Use correlated scalar aggregates, flush pending changes, and refresh
+      already-loaded counter attributes without committing the transaction.
+
     Domain certificate-pointer refresh:
     * Materialize iterable inputs once so domain-set generators are not consumed
       before their domains are expanded. Deduplicate affected IDs in event data.

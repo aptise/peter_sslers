@@ -806,6 +806,65 @@ def operations_update_recents__domains(
     return dbOperationsEvent
 
 
+def _reconcile_usage_counts(ctx):
+    """Rebuild usage counters without committing or retaining stale ORM values."""
+    ctx.dbSession.flush()
+    certificate = model_objects.X509Certificate
+    key = model_objects.PrivateKey
+    account = model_objects.AcmeAccount
+    order = model_objects.AcmeOrder
+    trusted = model_objects.X509CertificateTrusted
+    association = model_objects.X509CertificateChain
+    chain = model_objects.X509CertificateTrustChain
+
+    def count_for(target, source, foreign_key, value, *conditions):
+        return (
+            sqlalchemy.select(sqlalchemy.func.count(value))
+            .select_from(source)
+            .where(foreign_key == target.id, *conditions)
+            .correlate(target)
+            .scalar_subquery()
+        )
+
+    trusted_count = (
+        sqlalchemy.select(sqlalchemy.func.count(sqlalchemy.distinct(certificate.id)))
+        .select_from(certificate)
+        .join(association, association.x509_certificate_id == certificate.id)
+        .join(chain, chain.id == association.x509_certificate_trust_chain_id)
+        .where(
+            certificate.is_active.is_(True),
+            chain.x509_certificate_trusted_0_id == trusted.id,
+        )
+        .correlate(trusted)
+        .scalar_subquery()
+    )
+    values = {
+        trusted: {"count_active_certificates": trusted_count},
+        key: {
+            "count_active_certificates": count_for(
+                key, certificate, certificate.private_key_id, certificate.id,
+                certificate.is_active.is_(True),
+            ),
+            "count_x509_certificates": count_for(key, certificate, certificate.private_key_id, certificate.id),
+            "count_acme_orders": count_for(key, order, order.private_key_id, order.id),
+        },
+        account: {
+            "count_acme_orders": count_for(account, order, order.acme_account_id, order.id),
+            "count_x509_certificates": count_for(
+                account, order, order.acme_account_id,
+                sqlalchemy.distinct(order.x509_certificate_id),
+            ),
+        },
+    }
+    for model, counters in values.items():
+        ctx.dbSession.execute(model.__table__.update().values(**counters))
+    for instance in list(ctx.dbSession.identity_map.values()):
+        for model, counters in values.items():
+            if isinstance(instance, model):
+                ctx.dbSession.expire(instance, list(counters))
+                break
+
+
 def operations_update_recents__global(
     ctx: "ApiContext",
 ) -> "OperationsEvent":
@@ -816,141 +875,7 @@ def operations_update_recents__global(
     """
     _refresh_domain_certificate_pointers(ctx)
 
-    #
-    # Step3:
-    # update the count of active cert for each X509CertificateTrusted
-
-    X509Certificate1 = sqlalchemy.orm.aliased(model_objects.X509Certificate)
-    X509Certificate2 = sqlalchemy.orm.aliased(model_objects.X509Certificate)
-
-    X509CertificateChain1 = sqlalchemy.orm.aliased(model_objects.X509CertificateChain)
-    X509CertificateChain2 = sqlalchemy.orm.aliased(model_objects.X509CertificateChain)
-
-    X509CertificateTrustChain1 = sqlalchemy.orm.aliased(
-        model_objects.X509CertificateTrustChain
-    )
-    X509CertificateTrustChain2 = sqlalchemy.orm.aliased(
-        model_objects.X509CertificateTrustChain
-    )
-
-    _q_sub = (
-        (
-            ctx.dbSession.query(sqlalchemy.func.count(model_objects.Domain.id))
-            .outerjoin(
-                X509Certificate1,
-                model_objects.Domain.x509_certificate_id__latest_single
-                == X509Certificate1.id,
-            )
-            .outerjoin(
-                X509Certificate2,
-                model_objects.Domain.x509_certificate_id__latest_multi
-                == X509Certificate2.id,
-            )
-            .outerjoin(
-                X509CertificateChain1,
-                X509Certificate1.id == X509CertificateChain1.x509_certificate_id,
-            )
-            .outerjoin(
-                X509CertificateChain2,
-                X509CertificateChain2.id == X509CertificateChain2.x509_certificate_id,
-            )
-            .outerjoin(
-                X509CertificateTrustChain1,
-                X509CertificateChain1.x509_certificate_trust_chain_id
-                == X509CertificateTrustChain1.x509_certificate_trusted_0_id,
-            )
-            .outerjoin(
-                X509CertificateTrustChain2,
-                X509CertificateChain1.x509_certificate_trust_chain_id
-                == X509CertificateTrustChain2.x509_certificate_trusted_0_id,
-            )
-            .filter(
-                sqlalchemy.or_(
-                    model_objects.X509CertificateTrusted.id
-                    == X509CertificateTrustChain1.x509_certificate_trusted_0_id,
-                    model_objects.X509CertificateTrusted.id
-                    == X509CertificateTrustChain2.x509_certificate_trusted_0_id,
-                )
-            )
-        )
-        .subquery()
-        .as_scalar()
-    )
-    ctx.dbSession.execute(
-        model_objects.X509CertificateTrusted.__table__.update().values(
-            count_active_certificates=_q_sub
-        )
-    )
-
-    #
-    # Step4:
-    # update the count of certificates/orders for each PrivateKey
-    # this is done automatically, but a periodic update is a good idea
-    # 4.A - PrivateKey.count_acme_orders
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.private_key_id),
-        )
-        .filter(
-            model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,
-        )
-        .subquery()
-        .as_scalar()
-    )
-    ctx.dbSession.execute(
-        model_objects.PrivateKey.__table__.update().values(count_acme_orders=_q_sub)
-    )
-    # 4.b - PrivateKey.count_x509_certificates
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.X509Certificate.private_key_id),
-        )
-        .filter(
-            model_objects.X509Certificate.private_key_id == model_objects.PrivateKey.id,
-        )
-        .subquery()
-        .as_scalar()
-    )
-    ctx.dbSession.execute(
-        model_objects.PrivateKey.__table__.update().values(
-            count_x509_certificates=_q_sub
-        )
-    )
-
-    #
-    # Step5:
-    # update the counts for each AcmeAccount
-    # 5.a - AcmeAccount.count_acme_orders
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.acme_account_id),
-        )
-        .filter(
-            model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-        )
-        .subquery()
-        .as_scalar()
-    )
-    ctx.dbSession.execute(
-        model_objects.AcmeAccount.__table__.update().values(count_acme_orders=_q_sub)
-    )
-    # 5.b - AcmeAccount.count_x509_certificates
-    _q_sub = (
-        ctx.dbSession.query(
-            sqlalchemy.func.count(model_objects.AcmeOrder.x509_certificate_id),
-        )
-        .filter(
-            model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-            model_objects.AcmeOrder.x509_certificate_id.is_not(None),
-        )
-        .subquery()
-        .as_scalar()
-    )
-    ctx.dbSession.execute(
-        model_objects.AcmeAccount.__table__.update().values(
-            count_x509_certificates=_q_sub
-        )
-    )
+    _reconcile_usage_counts(ctx)
 
     # TODO: should we do the timestamps?
     """

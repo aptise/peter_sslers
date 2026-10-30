@@ -375,3 +375,20 @@ after all associated certificates have been marked compromised, so the database
 pointers can select active replacements. This does not itself flush external
 Redis/Valkey or OpenResty caches; follow the cache-control procedures for those
 layers when retiring certificate material.
+
+## Usage-counter reconciliation
+
+The global recents refresh rebuilds usage counters from current database records:
+
+* Trusted CA active-certificate counts are distinct active leaf certificates
+  with an associated chain whose first certificate is that CA. Multiple alternate
+  chains through the same CA do not multiply a leaf certificate's count.
+* Private-key active counts use certificate active status; certificate totals
+  include inactive certificates, and order totals include every linked order.
+* ACME account certificate totals count distinct non-null certificate IDs from
+  its orders; order totals count every order.
+
+These are certificate counts, not domain/SAN coverage counts. Reconciliation
+flushes pending state changes and refreshes loaded counters but leaves transaction
+commit/rollback to its caller. Values are refreshed by the global routine; this
+is not a new database trigger or a schema migration.
