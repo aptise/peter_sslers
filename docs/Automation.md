@@ -83,12 +83,31 @@ to port80 should proxy traffic to this server.
 
 This server WILL NOT expose the admin urls.
 
-This sever WILL expose the following urls:
+This server WILL expose the following urls:
 
 * `/.well-known/acme-challenge` - directory
 * `/.well-known/public/whoami` - URL prints host
 
 Firewall adjustments may be needed
+
+The ordering routines accept `limit=None` for unlimited work or a non-negative
+integer to cap the number of attempts. `limit=0` performs no ordering. The
+missing-order routine shares one limit across backup orders (processed first)
+and primary orders. An existing order attempt, including an in-progress order,
+prevents another missing-order attempt for the same configuration and role.
+This routine does not retry completed failed attempts.
+
+When restricting renewal work to particular renewal configuration IDs, that
+selection is applied before the limit. An explicit empty selection performs no
+ordering. `count_expected_configurations` checks the number of selected
+certificate candidates, including primary and backup candidates separately;
+zero is a valid expectation, and a mismatch raises `ValueError`.
+
+Dry runs report planned work and save a `RoutineExecution` record, but do not
+contact an ACME server or start a public challenge server. Regular runs roll back
+failed items before moving on. External ACME actions and intermediate commits
+already completed by an item cannot be undone by that rollback.
+
 
 ### routine__clear_old_ari_checks
 
@@ -98,7 +117,22 @@ An ARI check is considered outdated once it has been replaced with a newer ARI c
 
 ### routine__reconcile_blocks
 
-Syncs and tries to complete any pending acme-orders that may be stuck
+Syncs and tries to complete pending ACME orders that may be stuck, including
+valid orders whose issued certificate has not yet been saved locally.
+
+Each run snapshots the order IDs to sync. Orders whose sync fails are excluded
+from continuation until a later invocation. Continuation must change the order
+status or pending authorization state and has a finite step budget; unchanged or
+cycling work is reported as a failure rather than retried indefinitely. An order
+that fails either phase contributes once to the failure count and does not also
+contribute to the success count. Success means the sync/continuation completed,
+not necessarily that a certificate has been issued yet.
+
+The public challenge server starts only when an order can be processed or
+finalized. Download-only recovery needs no challenge server. A valid order with a
+certificate URL remains eligible on later runs until its certificate is saved,
+including after a failed download. Real runs require `transaction_commit=True`;
+dry runs require no commit acknowledgment for remote operations because they do not perform any.
 
 ### routine__run_ari_checks
 

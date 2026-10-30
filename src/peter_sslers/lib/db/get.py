@@ -12,14 +12,14 @@ from typing import TYPE_CHECKING
 import cert_utils
 import sqlalchemy
 from sqlalchemy import SQLColumnExpression
-from sqlalchemy.orm import Query
-from sqlalchemy.sql.elements import ColumnElement
-from sqlalchemy.sql.selectable import Select
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import Query
 from sqlalchemy.orm import subqueryload
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.selectable import Select
 from typing_extensions import Literal
 
 # localapp
@@ -4195,6 +4195,7 @@ def get_X509Certificates_renew_now(
     ctx: "ApiContext",
     timestamp_max_expiry: Optional[datetime.datetime] = None,
     limit: Optional[int] = None,
+    renewal_configuration_ids: Optional[Tuple[int, ...]] = None,
 ) -> List[X509Certificate]:
     if not timestamp_max_expiry:
         timestamp_max_expiry = datetime_ari_timely(
@@ -4265,9 +4266,9 @@ def get_X509Certificates_renew_now(
             ),
         )
     )
-    if limit:
-        q = q.order_by(X509Certificate.id.asc())
-        q = q.limit(limit)
+    if renewal_configuration_ids is not None:
+        q = q.filter(RenewalConfiguration.id.in_(renewal_configuration_ids))
+    q = q.order_by(X509Certificate.id.asc()).limit(limit)
     # print(q.statement.compile(ctx.dbSession.connection().engine))
     # print(q.statement.compile())
     expiring_certs = q.all()

@@ -1,4 +1,10 @@
 Test Needed
+    Scheduled routine regression coverage now includes dry runs, empty/zero
+    selections, primary/backup limits, in-progress order exclusion, poisoned
+    database sessions, commit failures, interrupted certificate downloads, and
+    bounded multi-authorization recovery
+    in tests/test_routine_recovery.py. Live-CA end-to-end recovery remains useful.
+
     ensure a single_use pkey can't be re-used
     ensure a single_use__reuse_1_year pkey can't be used on other accounts
     ensure an account oriented pkey can't be used on other accounts

@@ -2,11 +2,13 @@
 import datetime
 import logging
 import pprint
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
@@ -15,11 +17,12 @@ from typing import Union
 import cert_utils
 import requests
 import sqlalchemy
+from sqlalchemy import or_ as sqlalchemy_or
 from sqlalchemy import SQLColumnExpression
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import ScalarSelect
-from sqlalchemy import or_ as sqlalchemy_or
 from typing_extensions import Literal
+from typing_extensions import Protocol
 
 # from zope.sqlalchemy import mark_changed
 
@@ -50,12 +53,13 @@ from ...model.utils import AcmeServerInput
 
 if TYPE_CHECKING:
     from requests.structures import CaseInsensitiveDict
+
     from ..context import ApiContext
     from ...model.objects import AcmeAccount
+    from ...model.objects import AcmeOrder
     from ...model.objects import Domain
     from ...model.objects import OperationsEvent
     from ...model.objects import PrivateKey
-    from ...model.objects import RenewalConfiguration
     from ...model.objects import RoutineExecution
     from ...model.objects import SystemConfiguration
     from ...model.objects import UniqueFQDNSet
@@ -73,13 +77,19 @@ DEBUG_CIN = False
 DEBUG_CONCEPT = False
 
 
+class _PublicServer(Protocol):
+    def shutdown(self) -> Optional[bool]:
+        """Stop the temporary public challenge server."""
+        ...
+
+
 class FakeStopableWSGIServer(object):
     # used to mock interface for `StopableWSGIServer`
-    def shutdown(self):
+    def shutdown(self) -> None:
         pass
 
 
-def _create_public_server(settings: Dict) -> StopableWSGIServer:
+def _create_public_server(settings: Dict[str, Any]) -> StopableWSGIServer:
     """
     This is used to create a public WSGI server
     The public server DISABLES the admin routes
@@ -93,12 +103,13 @@ def _create_public_server(settings: Dict) -> StopableWSGIServer:
     #
     # sanitize the settings
     #
-    pryamid_bools = (
-        "pyramid.debug_authorization"
-        "pyramid.debug_notfound"
-        "pyramid.debug_routematch"
+    settings = settings.copy()
+    pyramid_bools = (
+        "pyramid.debug_authorization",
+        "pyramid.debug_notfound",
+        "pyramid.debug_routematch",
     )
-    for field in pryamid_bools:
+    for field in pyramid_bools:
         if field in settings:
             settings[field] = "false"
     if "pyramid.includes" in settings:
@@ -129,7 +140,7 @@ def _create_public_server(settings: Dict) -> StopableWSGIServer:
     return app_wsgi
 
 
-def _create_public_server__fake(settings: Dict) -> FakeStopableWSGIServer:
+def _create_public_server__fake(settings: Dict[str, Any]) -> FakeStopableWSGIServer:
     # used to mock interface for `StopableWSGIServer`
     fake_wsgi = FakeStopableWSGIServer()
     return fake_wsgi
@@ -1457,10 +1468,63 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     return dbRoutineExecution
 
 
+def _validate_routine_limit(limit: Optional[int]) -> None:
+    if limit is not None and (type(limit) is not int or limit < 0):
+        raise ValueError("limit must be a non-negative integer or None")
+
+
+def _continue_reconciled_order(ctx: "ApiContext", order: "AcmeOrder") -> "AcmeOrder":
+    """Advance an order without repeatedly sending the same unchanged work."""
+    seen: Set[Tuple[int, Optional[int], Tuple[Tuple[int, int], ...]]] = set()
+    # Each authorization can be discovered then validated; allow three more
+    # steps for the order refresh, finalization, and certificate download.
+    remaining_steps = 2 * len(order.acme_authorizations_pending) + 3
+    while (
+        order.is_can_acme_process
+        or order.is_can_acme_finalize
+        or order.is_can_acme_server_download_certificate
+    ):
+        if remaining_steps == 0:
+            raise errors.AcmeCommunicationError(
+                "ACME order reconciliation exceeded its step limit"
+            )
+        remaining_steps -= 1
+        state = (
+            order.acme_status_order_id,
+            order.x509_certificate_id,
+            tuple(
+                sorted(
+                    (authorization.id, authorization.acme_status_authorization_id)
+                    for authorization in order.acme_authorizations_pending
+                )
+            ),
+        )
+        if state in seen:
+            raise errors.AcmeCommunicationError(
+                "ACME order reconciliation made no progress"
+            )
+        seen.add(state)
+        if order.is_can_acme_server_download_certificate:
+            order = actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
+                ctx, dbAcmeOrder=order, transaction_commit=True
+            )
+        elif order.is_can_acme_finalize:
+            order = actions_acme.do__AcmeV2_AcmeOrder__finalize(
+                ctx, dbAcmeOrder=order, transaction_commit=True
+            )
+        else:
+            order = actions_acme.do__AcmeV2_AcmeOrder__process(
+                ctx, dbAcmeOrder=order, transaction_commit=True
+            )
+    return order
+
+
 def routine__order_missing(
     ctx: "ApiContext",
-    settings: Dict,
-    create_public_server: Callable = _create_public_server,
+    settings: Dict[str, Any],
+    create_public_server: Callable[
+        [Dict[str, Any]], _PublicServer
+    ] = _create_public_server,
     renewal_configuration_ids__only_process: Optional[Tuple[int, ...]] = None,
     dry_run: bool = False,
     limit: Optional[int] = None,
@@ -1471,6 +1535,8 @@ def routine__order_missing(
         (count_records_success, count_records_fail)
 
     """
+    _validate_routine_limit(limit)
+
     # don't rely on ctx.timestamp, as it can be old
     # also, we need to time the routine
     TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
@@ -1484,7 +1550,6 @@ def routine__order_missing(
             == model_objects.RenewalConfiguration.id,
             model_objects.AcmeOrder.certificate_type_id
             == model_utils.X509CertificateType.MANAGED_BACKUP,
-            model_objects.AcmeOrder.is_processing.is_not(True),
         )
         .exists()
     )
@@ -1496,15 +1561,15 @@ def routine__order_missing(
             model_objects.RenewalConfiguration.acme_account_id__backup.is_not(None),
         )
     )
-    if renewal_configuration_ids__only_process:
+    if renewal_configuration_ids__only_process is not None:
         q__backup = q__backup.filter(
             model_objects.RenewalConfiguration.id.in_(
                 renewal_configuration_ids__only_process
             )
         )
-    if limit:
-        q__backup = q__backup.order_by(model_objects.RenewalConfiguration.id.asc())
-        q__backup = q__backup.limit(limit)
+    q__backup = q__backup.order_by(model_objects.RenewalConfiguration.id.asc()).limit(
+        limit
+    )
     dbRenewalConfigurations__backup = q__backup.all()
 
     subq__primary = (
@@ -1514,7 +1579,6 @@ def routine__order_missing(
             == model_objects.RenewalConfiguration.id,
             model_objects.AcmeOrder.certificate_type_id
             == model_utils.X509CertificateType.MANAGED_PRIMARY,
-            model_objects.AcmeOrder.is_processing.is_not(True),
         )
         .exists()
     )
@@ -1526,202 +1590,79 @@ def routine__order_missing(
             model_objects.RenewalConfiguration.acme_account_id__primary.is_not(None),
         )
     )
-    if renewal_configuration_ids__only_process:
+    if renewal_configuration_ids__only_process is not None:
         q__primary = q__primary.filter(
             model_objects.RenewalConfiguration.id.in_(
                 renewal_configuration_ids__only_process
             )
         )
-    if limit:
-        q__primary = q__primary.order_by(model_objects.RenewalConfiguration.id.asc())
-        q__primary = q__primary.limit(limit)
+    q__primary = q__primary.order_by(model_objects.RenewalConfiguration.id.asc()).limit(
+        limit
+    )
     dbRenewalConfigurations__primary = q__primary.all()
 
-    def _debug_results():
-        print("----")
-        print("dbRenewalConfigurations__backup:")
-        for r in dbRenewalConfigurations__backup:
-            print(
-                "RC:%s %s" % (r.id, ("[%s]" % r.label if r.label else "")),
-            )
-            print("\t", r.acme_account__backup.acme_server.name)
-            print("\t", r.domains_as_string)
-        print("----")
-        print("dbRenewalConfigurations__primary:")
-        for r in dbRenewalConfigurations__primary:
-            print(
-                "RC:%s %s" % (r.id, ("[%s]" % r.label if r.label else "")),
-            )
-            print("\t", r.acme_account__primary.acme_server.name)
-            print("\t", r.domains_as_string)
-            print("-")
-            print(r.acme_account_id__primary)
+    jobs = [
+        (configuration.id, model_utils.X509CertificateType_Enum.MANAGED_BACKUP)
+        for configuration in dbRenewalConfigurations__backup
+    ] + [
+        (configuration.id, model_utils.X509CertificateType_Enum.MANAGED_PRIMARY)
+        for configuration in dbRenewalConfigurations__primary
+    ]
+    if limit is not None:
+        jobs = jobs[:limit]
 
     if DEBUG_LOCAL or dry_run:
-        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~")
-        print("routine__order_missing")
-        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~")
-        _debug_results()
-        # pdb.set_trace()
+        for configuration_id, certificate_type in jobs:
+            print(
+                "Order missing %s for RenewalConfiguration[%s]"
+                % (certificate_type.name, configuration_id)
+            )
 
     count_renewals = 0
     count_failures = 0
-    if dbRenewalConfigurations__backup or dbRenewalConfigurations__primary:
-
+    if dry_run:
+        count_renewals = len(jobs)
+    elif jobs:
         wsgi_server = create_public_server(settings)
-        try:  # outer `try` block is to ensure we invoke `wsgi_server.shutdown()`
-
-            def _order_missing(
-                _dbRenewalConfiguration: "RenewalConfiguration",
-                replaces_certificate_type: model_utils.X509CertificateType_Enum,
-            ):
-                nonlocal count_renewals
-                nonlocal count_failures
-
-                certificate_concept: str
-                if (
-                    replaces_certificate_type
-                    == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
-                ):
-                    certificate_concept = "backup"
-                elif (
-                    replaces_certificate_type
-                    == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
-                ):
-                    certificate_concept = "primary"
-                else:
-                    raise ValueError(
-                        "unsuppored `replaces_certificate_type`: %s"
-                        % replaces_certificate_type
-                    )
-
-                log.debug(
-                    "No %s Certificate for: %s",
-                    (certificate_concept, _dbRenewalConfiguration.id),
-                )
-                log.debug(
-                    "Ordering a %s for RenewalConfiguration: %s",
-                    (certificate_concept, _dbRenewalConfiguration.id),
-                )
+        try:
+            for configuration_id, certificate_type in jobs:
                 try:
-                    if dry_run:
-                        count_renewals += 1
-                        return False
-
-                    dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                    configuration = ctx.dbSession.get(
+                        model_objects.RenewalConfiguration, configuration_id
+                    )
+                    if configuration is None:
+                        raise ValueError("RenewalConfiguration no longer exists")
+                    certificate_concept = (
+                        "backup"
+                        if certificate_type
+                        == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
+                        else "primary"
+                    )
+                    order = actions_acme.do__AcmeV2_AcmeOrder__new(
                         ctx,
-                        dbRenewalConfiguration=_dbRenewalConfiguration,
+                        dbRenewalConfiguration=configuration,
                         processing_strategy="process_single",
                         acme_order_type_id=model_utils.AcmeOrder_Type.RENEWAL_CONFIGURATION_AUTOMATED,
                         note=RENEWAL_RUN,
                         replaces=certificate_concept,
                         replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                        replaces_certificate_type=replaces_certificate_type,
+                        replaces_certificate_type=certificate_type,
                         transaction_commit=True,
                     )
-                    log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
-                    log.debug(
-                        "Renewal Result: X509Certificate: %s",
-                        dbAcmeOrderNew.x509_certificate_id,
-                    )
-                    if DEBUG_LOCAL or dry_run:
-
-                        def _debug():
-                            print("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
-                            print(
-                                "Renewal Result: X509Certificate: %s",
-                                dbAcmeOrderNew.x509_certificate_id,
-                            )
-
-                        _debug()
-
-                    if dbAcmeOrderNew.x509_certificate_id:
+                    issued = bool(order.x509_certificate_id)
+                    ctx.pyramid_transaction_commit()
+                    if issued:
                         count_renewals += 1
-                        return True
                     else:
                         count_failures += 1
-                        return False
-
-                except errors.AcmeServerErrorExistingRatelimit as exc:
-                    # raise errors.AcmeServerErrorExistingRatelimit("ACME Account")
-                    # raise errors.AcmeServerErrorExistingRatelimit("ACME Server")
-                    # raise errors.AcmeServerErrorExistingRatelimit("ACME Server + Domain(s)")
-                    log.critical(
-                        "Exception `AcmeServerErrorExistingRatelimit(%s)` when processing AcmeOrder for RenewalConfiguration[%s]"
-                        % (exc.args[0], _dbRenewalConfiguration.id)
-                    )
-                    if "ACME Account" in exc.args[0]:
-                        if (
-                            replaces_certificate_type
-                            == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
-                        ):
-                            print(
-                                "AcmeAccount.id=",
-                                _dbRenewalConfiguration.acme_account_id__primary,
-                            )
-                        if (
-                            replaces_certificate_type
-                            == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
-                        ):
-                            print(
-                                "AcmeAccount.id=",
-                                _dbRenewalConfiguration.acme_account_id__backup,
-                            )
-                    if "ACME Server" in exc.args[0]:
-                        if (
-                            replaces_certificate_type
-                            == model_utils.X509CertificateType_Enum.MANAGED_PRIMARY
-                        ):
-                            print(
-                                "AcmeServer.id=",
-                                _dbRenewalConfiguration.acme_account__primary.acme_server_id,
-                            )
-                        if (
-                            replaces_certificate_type
-                            == model_utils.X509CertificateType_Enum.MANAGED_BACKUP
-                        ):
-                            print(
-                                "AcmeServer.id=",
-                                _dbRenewalConfiguration.acme_account__backup.acme_server_id,
-                            )
-                    if "Domain(s)" in exc.args[0]:
-                        print("Domain(s)=", _dbRenewalConfiguration.domains_as_string)
-
-                    # TODO: how should we handle this?
-                    # raise or catch and continue?
+                except Exception:
+                    ctx.pyramid_transaction_rollback()
                     count_failures += 1
-                    return False
-
-                except Exception as exc:
-                    log.critical(
-                        "Exception `%s` when processing AcmeOrder for RenewalConfiguration[%s]"
-                        % (exc, _dbRenewalConfiguration.id)
+                    log.exception(
+                        "Missing-certificate order failed for RenewalConfiguration[%s] (%s)",
+                        configuration_id,
+                        certificate_type,
                     )
-                    # TODO: how should we handle this?
-                    # raise or catch and continue?
-                    count_failures += 1
-                    return False
-
-            total_runs = 0
-
-            for _dbRenewalConfiguration in dbRenewalConfigurations__backup:
-                _order_missing(
-                    _dbRenewalConfiguration,
-                    model_utils.X509CertificateType_Enum.MANAGED_BACKUP,
-                )
-                total_runs += 1
-                if limit and total_runs >= limit:
-                    break
-
-            for _dbRenewalConfiguration in dbRenewalConfigurations__primary:
-                _order_missing(
-                    _dbRenewalConfiguration,
-                    model_utils.X509CertificateType_Enum.MANAGED_PRIMARY,
-                )
-                total_runs += 1
-                if limit and total_runs >= limit:
-                    break
-
         finally:
             wsgi_server.shutdown()
 
@@ -1742,140 +1683,119 @@ def routine__order_missing(
 
 def routine__reconcile_blocks(
     ctx: "ApiContext",
-    settings: Dict,
-    create_public_server: Callable = _create_public_server,
+    settings: Dict[str, Any],
+    create_public_server: Callable[
+        [Dict[str, Any]], _PublicServer
+    ] = _create_public_server,
     dry_run: bool = False,
     transaction_commit: Optional[bool] = None,
 ) -> "RoutineExecution":
-    """
-    Reconcile blocks
-
-    TODO: integrate some of this with:
-        route_name="admin:acme_orders:active:acme_server:sync",
-
-    """
-    # iterate over pending acme-orders, try to sync/etc
-
-    TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
-
-    # FIRST, sync ALL active orders
-    #
-    # TODO: batch this with limits and offsets?
-    items_paged = lib_db.get.get__AcmeOrder__paginated(
-        ctx,
-        active_only=True,
-        limit=None,
-        offset=0,
-    )
-    _order_ids_pass = []
-    _order_ids_fail = []
+    """Sync pending orders, then continue each successfully synced order."""
+    if not dry_run and not transaction_commit:
+        raise errors.AcknowledgeTransactionCommitRequired(
+            "MUST persist external system data."
+        )
+    timestamp_start = datetime.datetime.now(datetime.timezone.utc)
+    order_model = model_objects.AcmeOrder
+    order_ids = [
+        identity
+        for (identity,) in ctx.dbSession.query(order_model.id)
+        .filter(
+            sqlalchemy.or_(
+                order_model.acme_status_order_id.in_(
+                    model_utils.Acme_Status_Order.IDS_active
+                ),
+                sqlalchemy.and_(
+                    order_model.acme_status_order_id
+                    == model_utils.Acme_Status_Order.from_string("valid"),
+                    order_model.x509_certificate_id.is_(None),
+                    order_model.certificate_url.is_not(None),
+                    order_model.certificate_url != "",
+                ),
+            )
+        )
+        .order_by(order_model.id.desc())
+        .all()
+    ]
+    succeeded: Set[int] = set()
+    failed: Set[int] = set()
     if dry_run:
-        _order_ids_pass = [dbAcmeOrder.id for dbAcmeOrder in items_paged]
-        for dbAcmeOrder in items_paged:
-            print("Sync ACME Order | %s" % dbAcmeOrder.id)
+        for order_id in order_ids:
+            print("Sync ACME Order | %s" % order_id)
+        succeeded.update(order_ids)
     else:
-        for dbAcmeOrder in items_paged:
-            dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
-            log.debug("Syncing ACME Order | %s" % (dbAcmeOrder.id,))
+        for order_id in order_ids:
             try:
-                dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
-                    ctx,
-                    dbAcmeOrder=dbAcmeOrder,
-                    transaction_commit=transaction_commit,
+                order = get.get__AcmeOrder__by_id(ctx, order_id)
+                if order is None:
+                    raise ValueError("AcmeOrder no longer exists")
+                actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+                    ctx, dbAcmeOrder=order, transaction_commit=True
                 )
-                _order_ids_pass.append(dbAcmeOrder.id)
                 ctx.pyramid_transaction_commit()
-            except Exception as exc:
-                _order_ids_fail.append(dbAcmeOrder.id)
-                log.critical(
-                    "Exception when syncing AcmeOrder[%s]: %s" % (dbAcmeOrder.id, exc)
-                )
-                print(exc)
+                succeeded.add(order_id)
+            except Exception:
+                ctx.pyramid_transaction_rollback()
+                failed.add(order_id)
+                log.exception("Exception when syncing AcmeOrder[%s]", order_id)
 
-    items_paged = lib_db.get.get__AcmeOrder__paginated(
-        ctx,
-        active_only=True,
-        limit=None,
-        offset=0,
-    )
-    if items_paged:
-        if dry_run:
-            for dbAcmeOrder in items_paged:
-                if dbAcmeOrder.is_can_acme_process:
-                    print("AcmeOrder.is_can_acme_process | %s" % dbAcmeOrder.id)
-                elif dbAcmeOrder.is_can_acme_finalize:
-                    print("AcmeOrder.is_can_acme_finalize | %s" % dbAcmeOrder.id)
-                else:
-                    continue
-                _order_ids_pass.append(dbAcmeOrder.id)
-        else:
-            # SECOND
-            # perhaps only do on `_order_ids_pass`
-            wsgi_server = create_public_server(settings)
+        # Do not retry failed syncs in the same run, or pick up orders that were
+        # created by another routine while this invocation was syncing.
+        candidates = [
+            (order.id, order.is_can_acme_process or order.is_can_acme_finalize)
+            for order in ctx.dbSession.query(order_model)
+            .filter(order_model.id.in_(succeeded))
+            .order_by(order_model.id.desc())
+            .all()
+            if (
+                order.is_can_acme_process
+                or order.is_can_acme_finalize
+                or order.is_can_acme_server_download_certificate
+            )
+        ]
+        if candidates:
+            wsgi_server = (
+                create_public_server(settings)
+                if any(needs_server for _, needs_server in candidates)
+                else None
+            )
             try:
-                for dbAcmeOrder in items_paged:
-                    dbAcmeOrder = ctx.dbSession.merge(dbAcmeOrder)
-                    if (not dbAcmeOrder.is_can_acme_process) and not (
-                        dbAcmeOrder.is_can_acme_finalize
-                    ):
-                        continue
-                    log.debug(
-                        "Attempting Continuation of ACME Order %s" % (dbAcmeOrder.id,)
-                    )
+                for order_id, _ in candidates:
                     try:
-                        while True:
-                            if dbAcmeOrder.is_can_acme_process:
-                                dbAcmeOrder = (
-                                    actions_acme.do__AcmeV2_AcmeOrder__process(
-                                        ctx,
-                                        dbAcmeOrder=dbAcmeOrder,
-                                        transaction_commit=True,
-                                    )
-                                )
-                            elif dbAcmeOrder.is_can_acme_finalize:
-                                dbAcmeOrder = (
-                                    lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
-                                        ctx,
-                                        dbAcmeOrder=dbAcmeOrder,
-                                        transaction_commit=transaction_commit,
-                                    )
-                                )
-                            else:
-                                break
-                        _order_ids_pass.append(dbAcmeOrder.id)
+                        order = get.get__AcmeOrder__by_id(ctx, order_id)
+                        if order is None:
+                            raise ValueError("AcmeOrder no longer exists")
+                        _continue_reconciled_order(ctx, order)
                         ctx.pyramid_transaction_commit()
-                    except Exception as exc:
-                        _order_ids_fail.append(dbAcmeOrder.id)
-                        log.critical(
-                            "Exception when continuing AcmeOrder[%s]: %s"
-                            % (dbAcmeOrder.id, exc)
+                    except Exception:
+                        ctx.pyramid_transaction_rollback()
+                        failed.add(order_id)
+                        log.exception(
+                            "Exception when continuing AcmeOrder[%s]", order_id
                         )
-                        print(exc)
             finally:
-                wsgi_server.shutdown()
+                if wsgi_server is not None:
+                    wsgi_server.shutdown()
 
-    _order_ids_pass = list(set(_order_ids_pass))
-    _order_ids_fail = list(set(_order_ids_fail))
-
-    TIMESTAMP_routine_end = datetime.datetime.now(datetime.timezone.utc)
-    dbRoutineExecution = lib_db.create.create__RoutineExecution(
+    routine = create.create__RoutineExecution(
         ctx,
         routine_id=model_utils.Routine.routine__reconcile_blocks,
-        timestamp_start=TIMESTAMP_routine_start,
-        timestamp_end=TIMESTAMP_routine_end,
-        count_records_success=len(_order_ids_pass),
-        count_records_fail=len(_order_ids_fail),
+        timestamp_start=timestamp_start,
+        timestamp_end=datetime.datetime.now(datetime.timezone.utc),
+        count_records_success=len(succeeded - failed),
+        count_records_fail=len(failed),
         is_dry_run=dry_run,
     )
     ctx.pyramid_transaction_commit()
-
-    return dbRoutineExecution
+    return routine
 
 
 def routine__renew_expiring(
     ctx: "ApiContext",
-    settings: Dict,
-    create_public_server: Callable = _create_public_server,
+    settings: Dict[str, Any],
+    create_public_server: Callable[
+        [Dict[str, Any]], _PublicServer
+    ] = _create_public_server,
     renewal_configuration_ids__only_process: Optional[Tuple[int, ...]] = None,
     count_expected_configurations: Optional[int] = None,
     dry_run: bool = False,
@@ -1887,6 +1807,8 @@ def routine__renew_expiring(
         (count_records_success, count_records_fail)
 
     """
+    _validate_routine_limit(limit)
+
     # don't rely on ctx.timestamp, as it can be old
     # also, we need to time the routine
     TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
@@ -1895,140 +1817,76 @@ def routine__renew_expiring(
 
     # `get_X509Certificates_renew_now` will compute a buffer,
     # so we do not have to submit a `timestamp_max_expiry`
-    expiring_certs = get.get_X509Certificates_renew_now(ctx, limit=limit)
-
-    if renewal_configuration_ids__only_process:
-        # use a temporary variable for easier debugging
-        _expiring_certs = [
-            i
-            for i in expiring_certs
-            if i.acme_order.renewal_configuration_id
-            in renewal_configuration_ids__only_process
-        ]
-        if count_expected_configurations:
-            try:
-                assert len(_expiring_certs) == count_expected_configurations
-            except Exception:
-                print("routine__renew_expiring(")
-                print(
-                    "\tEXPECTED %s GOT %s"
-                    % (count_expected_configurations, len(_expiring_certs))
-                )
-                for rc_id in renewal_configuration_ids__only_process:
-                    print("\t\tRenewalConfiguration: [%s]" % rc_id)
-                    rcCerts = (
-                        get.get__X509Certificate__by_RenewalConfigurationId__paginated(
-                            ctx, rc_id
-                        )
-                    )
-                    for dbCert in rcCerts:
-                        print(
-                            "\t\t\tX509Certificate[%s]" % dbCert.id,
-                            dbCert.timestamp_not_after,
-                        )
-                raise
-                # Debugging Info
-                #
-                # for cert in expiring_certs: print(cert.id, cert.acme_order.renewal_configuration_id)
-                #
-                # all_certs = get.get_X509Certificates_renew_now(ctx)
-                # all_certs = get.get_X509Certificates_renew_now(ctx, datetime.datetime.now(datetime.timezone.utc))
-                #
-                # for cert in all_certs: print(cert.id, cert.acme_order.renewal_configuration_id)
-        expiring_certs = _expiring_certs
-
-    def _debug_results():
-        print("---")
-        print("Expiring Certs @ ", ctx.timestamp)
-        for cert in expiring_certs:
-            print(
-                "cert:",
-                cert.id,
-                "rc:",
-                cert.acme_order.renewal_configuration_id if cert.acme_order else None,
-                "notAfter:",
-                cert.timestamp_not_after,
-                "issuer:",
-                (
-                    cert.cert_issuer.replace(" ", "_").replace("\n", ";")
-                    if cert.cert_issuer
-                    else ""
-                ),
+    expiring_certs = get.get_X509Certificates_renew_now(
+        ctx,
+        limit=limit,
+        renewal_configuration_ids=renewal_configuration_ids__only_process,
+    )
+    if count_expected_configurations is not None:
+        if (
+            type(count_expected_configurations) is not int
+            or count_expected_configurations < 0
+        ):
+            raise ValueError(
+                "count_expected_configurations must be a non-negative integer"
             )
-            print("\t", cert.domains_as_string)
-        print("---")
+        if len(expiring_certs) != count_expected_configurations:
+            raise ValueError(
+                "Expected %s renewal candidates; selected %s"
+                % (count_expected_configurations, len(expiring_certs))
+            )
 
     if DEBUG_LOCAL or dry_run:
-        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~")
-        print("routine__renew_expiring")
-        print("*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~")
-        _debug_results()
-        # pdb.set_trace()
+        for certificate in expiring_certs:
+            print("Renew X509Certificate[%s]" % certificate.id)
 
-    count_renewals = 0
+    count_renewals = len(expiring_certs) if dry_run else 0
     count_failures = 0
-    if expiring_certs:
+    if expiring_certs and not dry_run:
         wsgi_server = create_public_server(settings)
         try:
-            for dbX509Certificate in expiring_certs:
-                if not dbX509Certificate.acme_order:
-                    log.debug("No RenewalConfiguration for: %s", dbX509Certificate.id)
-                    continue
-                log.debug(
-                    "Renewing... : %s with RenewalConfiguration : %s",
-                    (
-                        dbX509Certificate.id,
-                        dbX509Certificate.acme_order.renewal_configuration_id,
-                    ),
-                )
-                if dry_run:
-                    count_renewals += 1
-                else:
-                    try:
-                        replaces_certificate_type = (
-                            model_utils.X509CertificateType.to_X509CertificateType_Enum(
-                                dbX509Certificate.acme_order.certificate_type_id
-                            )
+            for certificate_id in [certificate.id for certificate in expiring_certs]:
+                try:
+                    dbX509Certificate = ctx.dbSession.get(
+                        X509Certificate, certificate_id
+                    )
+                    if dbX509Certificate is None or not dbX509Certificate.acme_order:
+                        raise ValueError(
+                            "Renewal candidate no longer has an ACME order"
                         )
-                        dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
-                            ctx,
-                            dbRenewalConfiguration=dbX509Certificate.acme_order.renewal_configuration,
-                            processing_strategy="process_single",
-                            acme_order_type_id=model_utils.AcmeOrder_Type.RENEWAL_CONFIGURATION_AUTOMATED,
-                            note=RENEWAL_RUN,
-                            replaces=dbX509Certificate.ari_identifier,
-                            replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
-                            replaces_certificate_type=replaces_certificate_type,
-                            transaction_commit=True,
+                    replaces_certificate_type = (
+                        model_utils.X509CertificateType.to_X509CertificateType_Enum(
+                            dbX509Certificate.acme_order.certificate_type_id
                         )
-                        log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
-                        log.debug(
-                            "Renewal Result: X509Certificate: %s",
-                            dbAcmeOrderNew.x509_certificate_id,
-                        )
-                        if DEBUG_LOCAL or dry_run:
-
-                            def _debug():
-                                print(
-                                    "Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id
-                                )
-                                print(
-                                    "Renewal Result: X509Certificate: %s",
-                                    dbAcmeOrderNew.x509_certificate_id,
-                                )
-
-                            _debug()
-
-                        if dbAcmeOrderNew.x509_certificate_id:
-                            count_renewals += 1
-                        else:
-                            count_failures += 1
-                        ctx.pyramid_transaction_commit()
-                    except Exception as exc:
-                        log.critical("Exception %s when processing AcmeOrder" % exc)
-                        # TODO: How should these be handled?
-                        # should we raise to end the process, or catch this and continue?
+                    )
+                    dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                        ctx,
+                        dbRenewalConfiguration=dbX509Certificate.acme_order.renewal_configuration,
+                        processing_strategy="process_single",
+                        acme_order_type_id=model_utils.AcmeOrder_Type.RENEWAL_CONFIGURATION_AUTOMATED,
+                        note=RENEWAL_RUN,
+                        replaces=dbX509Certificate.ari_identifier,
+                        replaces_type=model_utils.ReplacesType_Enum.AUTOMATIC,
+                        replaces_certificate_type=replaces_certificate_type,
+                        transaction_commit=True,
+                    )
+                    log.debug("Renewal Result: AcmeOrder: %s", dbAcmeOrderNew.id)
+                    log.debug(
+                        "Renewal Result: X509Certificate: %s",
+                        dbAcmeOrderNew.x509_certificate_id,
+                    )
+                    issued = bool(dbAcmeOrderNew.x509_certificate_id)
+                    ctx.pyramid_transaction_commit()
+                    if issued:
+                        count_renewals += 1
+                    else:
                         count_failures += 1
+                except Exception:
+                    ctx.pyramid_transaction_rollback()
+                    count_failures += 1
+                    log.exception(
+                        "Renewal failed for X509Certificate[%s]", certificate_id
+                    )
         finally:
             wsgi_server.shutdown()
 

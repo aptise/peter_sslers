@@ -1,4 +1,24 @@
 1.0.0.dev
+    Scheduled ordering and recovery:
+    * Apply the missing-order limit across backup and primary work together;
+      recognize in-progress order attempts to avoid ordering duplicates.
+    * Filter renewal configurations before limiting renewal candidates. Explicit
+      empty selections and limit=0 perform no ordering; reject invalid limits.
+    * Dry runs record planned counts without contacting ACME or starting a public
+      challenge server. Expected renewal counts, including zero, use explicit
+      validation rather than assertions.
+    * Roll back per-item sync, ordering, continuation, and commit failures before
+      processing later items. Count committed successes and failures separately;
+      an order that fails continuation is not also counted as a successful sync.
+    * Bound reconciliation by authorization progress and a finite step budget;
+      skip failed syncs for the remainder of the run and start the challenge
+      server only when there is continuation work.
+    * Recover valid ACME orders that have a certificate URL but no saved local
+      certificate. Retry interrupted downloads on later runs without starting a
+      challenge server solely for downloads.
+    * Copy settings before constructing the public challenge server and correctly
+      disable all three Pyramid debug flags without changing the caller's config.
+
     Typing and certificate metadata contracts:
     * Annotate the hardening helpers and regression suites, including cache,
       ACME headers, scheduling queries, and certificate configuration payloads.

@@ -89,10 +89,10 @@ check to see if we correctly handle this:
     is it stripped from the order on a resubmit?
     if it comes back, do we correctly annotate the replaces vs replaces_requested ?
 
-bug?
-    if we lose a connection during the db save, do we lose the ability to finalize/download
-        sync-order seems to reconcile this
-        `routine__reconcile_blocks` automates this.
+Recovery coverage added:
+    `routine__reconcile_blocks` includes valid orders with a certificate URL but
+    no local certificate, retries interrupted downloads on later runs, and
+    rolls back failed database operations before processing later orders.
 
 Blocking:
     block repeat requests
@@ -155,6 +155,15 @@ Certbot Import
 
 Routines
 --------
+
+Scheduled routine hardening completed:
+    shared ordering limits; renewal filters before limits; side-effect-free
+    remote dry runs; transaction recovery; disjoint reconciliation counts;
+    duplicate in-progress order prevention; bounded continuation.
+
+Remaining:
+    paginate reconciliation's initial ID snapshot and sync batches for large
+    installations without skipping orders whose status changes during a run.
 
 
 # routine__run_ari_checks
