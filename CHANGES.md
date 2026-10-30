@@ -1,4 +1,17 @@
 1.0.0.dev
+    Domain certificate-pointer refresh:
+    * Materialize iterable inputs once so domain-set generators are not consumed
+      before their domains are expanded. Deduplicate affected IDs in event data.
+    * Share per-domain and global pointer-update logic, using correlated scalar
+      subqueries and a deterministic highest-ID tie-break for equal expiry dates.
+    * Flush pending certificate-state changes before selecting replacements and
+      expire loaded domain pointers/relationships after the update. Callers keep
+      transaction commit/rollback control.
+    * Refresh affected domain sets once after marking a private key's certificates
+      compromised, allowing active replacements to be selected immediately.
+    * Clear pointers when no active candidate remains, keeping single-domain and
+      multi-domain slots separate and selections scoped to each affected domain.
+
     Trust-chain selection and cache retirement:
     * Re-evaluate preferred trust chains and chain membership on model access so
       policy or relationship changes do not leave stale selections cached.

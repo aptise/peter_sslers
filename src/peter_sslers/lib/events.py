@@ -161,6 +161,7 @@ def PrivateKey_compromised(
     batch_size = 20
     batches = int(math.ceil(items_count / float(batch_size)))
     child_events = []
+    affected_fqdn_sets = {}
     for i in range(0, batches):
         offset = i * batch_size
         items_paginated = lib.db.get.get__X509Certificate__by_PrivateKeyId__paginated(
@@ -168,6 +169,9 @@ def PrivateKey_compromised(
         )
         for _dbX509Certificate in items_paginated:
             _certificate_id = _dbX509Certificate.id
+            affected_fqdn_sets[_dbX509Certificate.unique_fqdn_set_id] = (
+                _dbX509Certificate.unique_fqdn_set
+            )
             pkey_certificates["*data"][_certificate_id] = (
                 _dbX509Certificate.unique_fqdn_set_id,
                 (
@@ -204,6 +208,11 @@ def PrivateKey_compromised(
                 dbCoverageAssuranceEvent_parent=dbCoverageAssuranceEvent,
             )
             child_events.append(_cae_certificate)
+
+    if affected_fqdn_sets:
+        db_actions.operations_update_recents__domains(
+            ctx, dbUniqueFQDNSets=affected_fqdn_sets.values()
+        )
 
     event_payload = dbOperationsEvent.event_payload_json
     event_payload["coverage_assurance_event.id"] = dbCoverageAssuranceEvent.id

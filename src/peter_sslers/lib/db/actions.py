@@ -722,96 +722,78 @@ def operations_reconcile_cas(
     return dbOperationsEvent
 
 
+def _refresh_domain_certificate_pointers(ctx, domain_ids=None):
+    """Refresh current certificate pointers without committing the transaction."""
+    ctx.dbSession.flush()
+    for suffix, single in (("single", True), ("multi", False)):
+        selected = (
+            sqlalchemy.select(model_objects.X509Certificate.id)
+            .join(
+                model_objects.UniqueFQDNSet2Domain,
+                model_objects.X509Certificate.unique_fqdn_set_id
+                == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
+            )
+            .where(
+                model_objects.X509Certificate.is_active.is_(True),
+                model_objects.X509Certificate.is_single_domain_cert.is_(single),
+                model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
+            )
+            .order_by(
+                model_objects.X509Certificate.timestamp_not_after.desc(),
+                model_objects.X509Certificate.id.desc(),
+            )
+            .limit(1)
+            .correlate(model_objects.Domain)
+            .scalar_subquery()
+        )
+        statement = model_objects.Domain.__table__.update().values(
+            {"x509_certificate_id__latest_" + suffix: selected}
+        )
+        if domain_ids is not None:
+            statement = statement.where(model_objects.Domain.id.in_(domain_ids))
+        ctx.dbSession.execute(statement)
+
+    # Core updates do not synchronize ORM objects already held by the request.
+    for domain in list(ctx.dbSession.identity_map.values()):
+        if isinstance(domain, model_objects.Domain) and (
+            domain_ids is None or domain.id in domain_ids
+        ):
+            ctx.dbSession.expire(domain, [
+                "x509_certificate_id__latest_single", "x509_certificate_id__latest_multi",
+                "x509_certificate__latest_single", "x509_certificate__latest_multi",
+            ])
+
+
 def operations_update_recents__domains(
     ctx: "ApiContext",
     dbDomains: Optional[Iterable["Domain"]] = None,
     dbUniqueFQDNSets: Optional[Iterable["UniqueFQDNSet"]] = None,
 ) -> "OperationsEvent":
     """
-    updates A SINGLE dbDomain record with recent values
+    Updates selected domains with current certificate pointers.
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbDomains: (optional) A list of :class:`model.objects.Domain` instances
     :param dbUniqueFQDNSets: (optional) A list of :class:`model.objects.UniqueFQDNSet` instances
     """
-    if (not dbDomains) and (not dbUniqueFQDNSets):
-        raise ValueError(
-            "must submit at least one of `dbDomains` or `dbUniqueFQDNSets`"
-        )
-    # we need a list of domain ids
-    _domain_ids = [i.id for i in dbDomains] if dbDomains else []
-    _unique_fqdn_set_ids = [i.id for i in dbUniqueFQDNSets] if dbUniqueFQDNSets else []
-
-    _domain_ids_set = set(_domain_ids)
-    if dbUniqueFQDNSets:
-        for _dbUniqueFQDNSet in dbUniqueFQDNSets:
-            for _domain in _dbUniqueFQDNSet.domains:
-                _domain_ids_set.add(_domain.id)
-    domain_ids = list(_domain_ids_set)
+    # Materialize iterable inputs once: callers may supply generators.
+    dbDomains = list(dbDomains) if dbDomains is not None else []
+    dbUniqueFQDNSets = list(dbUniqueFQDNSets) if dbUniqueFQDNSets is not None else []
+    if not dbDomains and not dbUniqueFQDNSets:
+        raise ValueError("must submit at least one of `dbDomains` or `dbUniqueFQDNSets`")
+    domain_ids = {domain.id for domain in dbDomains}
+    for fqdn_set in dbUniqueFQDNSets:
+        domain_ids.update(domain.id for domain in fqdn_set.domains)
     if not domain_ids:
         raise ValueError("no Domains specified")
+    domain_ids = sorted(domain_ids)
+    _unique_fqdn_set_ids = sorted({fqdn_set.id for fqdn_set in dbUniqueFQDNSets})
 
-    #
-    # Step1:
-    # Update the cached `x509_certificate_id__latest_single` data for each Domain
-    _q_sub = (
-        (
-            ctx.dbSession.query(model_objects.X509Certificate.id)
-            .join(
-                model_objects.UniqueFQDNSet2Domain,
-                model_objects.X509Certificate.unique_fqdn_set_id
-                == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
-            )
-            .filter(
-                model_objects.X509Certificate.is_active.is_(True),
-                model_objects.X509Certificate.is_single_domain_cert.is_(True),
-                model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
-                model_objects.Domain.id.in_(domain_ids),
-            )
-            .order_by(model_objects.X509Certificate.timestamp_not_after.desc())
-            .limit(1)
-        )
-        .subquery()
-        .as_scalar()
-    )
-    ctx.dbSession.execute(
-        model_objects.Domain.__table__.update()
-        .values(x509_certificate_id__latest_single=_q_sub)
-        .where(model_objects.Domain.__table__.c.id.in_(domain_ids))
-    )
-
-    #
-    # Step2:
-    # Update the cached `x509_certificate_id__latest_multi` data for each Domain
-    _q_sub = (
-        (
-            ctx.dbSession.query(model_objects.X509Certificate.id)
-            .join(
-                model_objects.UniqueFQDNSet2Domain,
-                model_objects.X509Certificate.unique_fqdn_set_id
-                == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
-            )
-            .filter(
-                model_objects.X509Certificate.is_active.is_(True),
-                model_objects.X509Certificate.is_single_domain_cert.is_(False),
-                model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
-                model_objects.Domain.id.in_(domain_ids),
-            )
-            .order_by(model_objects.X509Certificate.timestamp_not_after.desc())
-            .limit(1)
-        )
-        .subquery()
-        .as_scalar()
-    )
-    ctx.dbSession.execute(
-        model_objects.Domain.__table__.update()
-        .values(x509_certificate_id__latest_multi=_q_sub)
-        .where(model_objects.Domain.__table__.c.id.in_(domain_ids))
-    )
+    _refresh_domain_certificate_pointers(ctx, domain_ids)
 
     # bookkeeping, doing this will mark the session as changed!
     event_payload_dict = lib.utils.new_event_payload_dict()
-    event_payload_dict["domain.ids"] = _domain_ids
+    event_payload_dict["domain.ids"] = domain_ids
     event_payload_dict["unique_fqdn_set.ids"] = _unique_fqdn_set_ids
     dbOperationsEvent = log__OperationsEvent(
         ctx,
@@ -832,63 +814,7 @@ def operations_update_recents__global(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
-    #
-    # Step1:
-    # Update the cached `x509_certificate_id__latest_single` data for each Domain
-    # _t_domain = model_objects.Domain.__table__.alias('domain')
-    _q_sub = (
-        (
-            ctx.dbSession.query(model_objects.X509Certificate.id)
-            .join(
-                model_objects.UniqueFQDNSet2Domain,
-                model_objects.X509Certificate.unique_fqdn_set_id
-                == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
-            )
-            .filter(
-                model_objects.X509Certificate.is_active.is_(True),
-                model_objects.X509Certificate.is_single_domain_cert.is_(True),
-                model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
-            )
-            .order_by(model_objects.X509Certificate.timestamp_not_after.desc())
-            .limit(1)
-        )
-        .subquery()
-        .as_scalar()
-    )
-    ctx.dbSession.execute(
-        model_objects.Domain.__table__.update().values(
-            x509_certificate_id__latest_single=_q_sub
-        )
-    )
-
-    #
-    # Step2:
-    # Update the cached `x509_certificate_id__latest_multi` data for each Domain
-    # _t_domain = model_objects.Domain.__table__.alias('domain')
-    _q_sub = (
-        (
-            ctx.dbSession.query(model_objects.X509Certificate.id)
-            .join(
-                model_objects.UniqueFQDNSet2Domain,
-                model_objects.X509Certificate.unique_fqdn_set_id
-                == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
-            )
-            .filter(
-                model_objects.X509Certificate.is_active.is_(True),
-                model_objects.X509Certificate.is_single_domain_cert.is_(False),
-                model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
-            )
-            .order_by(model_objects.X509Certificate.timestamp_not_after.desc())
-            .limit(1)
-        )
-        .subquery()
-        .as_scalar()
-    )
-    ctx.dbSession.execute(
-        model_objects.Domain.__table__.update().values(
-            x509_certificate_id__latest_multi=_q_sub
-        )
-    )
+    _refresh_domain_certificate_pointers(ctx)
 
     #
     # Step3:

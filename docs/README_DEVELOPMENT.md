@@ -356,3 +356,22 @@ when archiving is enabled; they are never used as savepoints.
 Run database-backed suites serially for each test INI/database path. Concurrent
 runs need separate databases and savepoints. A run interrupted during setup can
 leave partial data; do not treat that database as a completed fixture.
+
+## Refreshing current certificate pointers
+
+Domain-specific and global refreshes share the same certificate-pointer selector.
+Each slot chooses an active certificate covering that domain, preferring later
+expiry and then the larger certificate ID on ties. No matching candidate clears
+the slot. Refreshes flush pending changes and invalidate loaded pointer attributes
+and relationships, so the same request sees the replacement immediately. They
+leave commit and rollback control with the caller.
+
+`operations_update_recents__domains` accepts iterable domain/domain-set inputs,
+including generators. Its event payload records the deduplicated IDs of all
+affected domains, including domains expanded from supplied sets.
+
+Private-key compromise handling refreshes the deduplicated affected domain sets
+after all associated certificates have been marked compromised, so the database
+pointers can select active replacements. This does not itself flush external
+Redis/Valkey or OpenResty caches; follow the cache-control procedures for those
+layers when retiring certificate material.
