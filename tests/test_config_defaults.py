@@ -45,3 +45,12 @@ def test_numeric_nginx_timeout_is_accepted(tmp_path):
     settings = ApplicationSettings()
     settings.from_settings_dict({"data_dir": str(tmp_path), "nginx.timeout": 3})
     assert settings["nginx.timeout"] == 3
+
+
+def test_nginx_server_pool_removes_empty_entries_and_preserves_order(tmp_path):
+    settings = ApplicationSettings()
+    settings.from_settings_dict({
+        "data_dir": str(tmp_path),
+        "nginx.servers_pool": " https://one, ,https://two,https://one, ",
+    })
+    assert settings["nginx.servers_pool"] == ["https://one", "https://two"]

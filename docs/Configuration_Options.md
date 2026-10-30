@@ -76,3 +76,15 @@ startup rather than during a cache write.
 Cache clients default to a 3.05-second connection timeout and a 10-second socket
 timeout. Deployments can override these through URL query parameters, for example
 `redis://localhost:6379/0?socket_connect_timeout=2&socket_timeout=5`.
+
+### Nginx cache-control outcomes
+
+Cache flush and expiry operations report failure if any configured server fails.
+Per-domain expiry event records list a domain as successful only when no server
+failed it. Empty server pools are configuration errors for these operations.
+Clients should check the JSON `result` field and the per-server details even
+when the API returns HTTP 200. CLI cache-control output also reflects failures.
+
+The comma-separated `nginx.servers_pool` ignores blank entries and duplicate
+servers while retaining configured order. In `nginx.userpass`, the first colon
+separates username and password; further colons belong to the password.

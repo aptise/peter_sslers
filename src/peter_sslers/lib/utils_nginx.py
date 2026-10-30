@@ -10,6 +10,7 @@ from typing import Union
 import requests
 
 # local
+from . import errors
 from . import utils
 from ..lib.db.logger import log__OperationsEvent
 from ..model import utils as model_utils
@@ -35,7 +36,7 @@ class NginxSession(object):
         sess = utils.new_BrowserSession()
         _auth = request.api_context.application_settings.get("nginx.userpass")
         if _auth:
-            sess.auth = tuple(_auth.split(":"))  # type: ignore[assignment]
+            sess.auth = tuple(_auth.split(":", 1))  # type: ignore[assignment]
 
         servers_allow_invalid = request.api_context.application_settings.get(
             "nginx.servers_pool_allow_invalid"
@@ -68,6 +69,13 @@ class NginxSession(object):
         return self.session.post(*args, **kwargs)
 
 
+def _nginx_servers(request):
+    servers = request.api_context.application_settings.get("nginx.servers_pool")
+    if not servers:
+        raise errors.InvalidRequest("No nginx servers are configured")
+    return servers
+
+
 def nginx_flush_cache(
     request: "Request",
     ctx: "ApiContext",
@@ -84,28 +92,28 @@ def nginx_flush_cache(
             "success": [],
             "servers": {},
         }
-        for _server in request.api_context.application_settings["nginx.servers_pool"]:
+        for _server in _nginx_servers(request):
             status = None
             try:
                 reset_url = _server + _reset_path + "/all"
-                response = sess.get(reset_url, timeout=timeout)
-                if response.status_code == 200:
-                    response_json = json.loads(response.text)
-                    status = response_json
-                    if response_json["result"] != "success":
-                        rval["errors"].append(_server)  # type: ignore[union-attr]
+                with sess.get(reset_url, timeout=timeout) as response:
+                    if response.status_code == 200:
+                        response_json = json.loads(response.text)
+                        status = response_json
+                        if response_json["result"] != "success":
+                            rval["errors"].append(_server)  # type: ignore[union-attr]
+                        else:
+                            rval["success"].append(_server)  # type: ignore[union-attr]
                     else:
-                        rval["success"].append(_server)  # type: ignore[union-attr]
-                else:
-                    rval["errors"].append(_server)  # type: ignore[union-attr]
-                    status = {
-                        "status": "error",
-                        "error": "response",
-                        "response": {
-                            "status_code": response.status_code,
-                            "text": response.text,
-                        },
-                    }
+                        rval["errors"].append(_server)  # type: ignore[union-attr]
+                        status = {
+                            "status": "error",
+                            "error": "response",
+                            "response": {
+                                "status_code": response.status_code,
+                                "text": response.text,
+                            },
+                        }
             except Exception as exc:
                 rval["errors"].append(_server)  # type: ignore[union-attr]
                 status = {
@@ -118,7 +126,7 @@ def nginx_flush_cache(
         ctx,
         model_utils.OperationsEventType.from_string("operations__nginx_cache_flush"),
     )
-    return True, dbEvent, rval
+    return not rval["errors"], dbEvent, rval
 
 
 def nginx_status(
@@ -139,25 +147,27 @@ def nginx_status(
             "success": [],
             "servers": {},
         }
-        for _server in request.api_context.application_settings["nginx.servers_pool"]:
+        for _server in _nginx_servers(request):
             _status = None
             try:
                 status_url = _server + status_path
-                response = sess.get(status_url, timeout=timeout)
-                if response.status_code == 200:
-                    response_json = json.loads(response.text)
-                    _status = response_json
-                    rval["success"].append(_server)  # type: ignore[union-attr]
-                else:
-                    rval["errors"].append(_server)  # type: ignore[union-attr]
-                    _status = {
-                        "status": "error",
-                        "error": "response",
-                        "response": {
-                            "status_code": response.status_code,
-                            "text": response.text,
-                        },
-                    }
+                with sess.get(status_url, timeout=timeout) as response:
+                    if response.status_code == 200:
+                        response_json = json.loads(response.text)
+                        if not isinstance(response_json, dict):
+                            raise ValueError("Expected nginx status object")
+                        _status = response_json
+                        rval["success"].append(_server)  # type: ignore[union-attr]
+                    else:
+                        rval["errors"].append(_server)  # type: ignore[union-attr]
+                        _status = {
+                            "status": "error",
+                            "error": "response",
+                            "response": {
+                                "status_code": response.status_code,
+                                "text": response.text,
+                            },
+                        }
             except Exception as exc:
                 rval["errors"].append(_server)  # type: ignore[union-attr]
                 _status = {
@@ -183,27 +193,28 @@ def nginx_expire_cache(
     _reset_path = request.api_context.application_settings["nginx.reset_path"]
     timeout = request.api_context.application_settings["nginx.timeout"]
     with NginxSession(request) as sess:
-        for _server in request.api_context.application_settings["nginx.servers_pool"]:
+        for _server in _nginx_servers(request):
             for domain in dbDomains:
                 try:
                     reset_url = (
                         _server + _reset_path + "/domain/%s" % domain.domain_name
                     )
-                    response = sess.get(reset_url, timeout=timeout)
-                    if response.status_code == 200:
-                        response_json = json.loads(response.text)
-                        if response_json["result"] == "success":
-                            domain_ids["success"].add(domain.id)
+                    with sess.get(reset_url, timeout=timeout) as response:
+                        if response.status_code == 200:
+                            response_json = json.loads(response.text)
+                            if response_json["result"] == "success":
+                                domain_ids["success"].add(domain.id)
+                            else:
+                                # log the url?
+                                domain_ids["failure"].add(domain.id)
                         else:
                             # log the url?
                             domain_ids["failure"].add(domain.id)
-                    else:
-                        # log the url?
-                        domain_ids["failure"].add(domain.id)
                 except Exception as exc:  # noqa: F841
                     # log the url?
                     domain_ids["failure"].add(domain.id)
 
+    domain_ids["success"] -= domain_ids["failure"]
     event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["domain_ids"] = {
         "success": list(domain_ids["success"]),
@@ -214,4 +225,4 @@ def nginx_expire_cache(
         model_utils.OperationsEventType.from_string("operations__nginx_cache_expire"),
         event_payload_dict,
     )
-    return True, dbEvent
+    return not domain_ids["failure"], dbEvent

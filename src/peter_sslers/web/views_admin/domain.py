@@ -596,10 +596,10 @@ class View_Focus(Handler):
                 self.request, self.request.api_context, dbDomains=[dbDomain]
             )
             if self.request.wants_json:
-                return {"result": "success", "operations_event": {"id": dbEvent.id}}
+                return {"result": "success" if success else "error", "operations_event": {"id": dbEvent.id}}
             return HTTPSeeOther(
-                "%s?result=success&operation=nginx-cache-expire&event.id=%s"
-                % (self._focus_url, dbEvent.id)
+                "%s?result=%s&operation=nginx-cache-expire&event.id=%s"
+                % (self._focus_url, "success" if success else "error", dbEvent.id)
             )
 
         except errors.InvalidRequest as exc:

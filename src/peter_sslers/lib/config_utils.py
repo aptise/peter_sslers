@@ -180,9 +180,10 @@ class ApplicationSettings(dict):
             self["nginx.timeout"] = set_int_setting(self, "nginx.timeout", default=1)
         self["nginx.servers_pool"] = settings.get("nginx.servers_pool")
         if self["nginx.servers_pool"] is not None:
-            self["nginx.servers_pool"] = list(
-                set([i.strip() for i in settings["nginx.servers_pool"].split(",")])
-            )
+            self["nginx.servers_pool"] = list(dict.fromkeys(
+                server.strip() for server in settings["nginx.servers_pool"].split(",")
+                if server.strip()
+            ))
             self["nginx.servers_pool_allow_invalid"] = set_bool_setting(
                 settings, "nginx.servers_pool_allow_invalid", default=False
             )

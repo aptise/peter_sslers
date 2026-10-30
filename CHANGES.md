@@ -1,4 +1,14 @@
 1.0.0.dev
+    Nginx/OpenResty cache control hardening:
+    * Report unsuccessful flushes and per-domain expirations through API JSON,
+      HTML redirects, and CLI output rather than always reporting success.
+    * A domain is successful only if no configured server failed its expiry;
+      mixed outcomes are recorded as failures regardless of server order.
+    * Reject empty server pools and malformed non-object status responses.
+    * Close control responses and preserve colons within HTTP auth passwords.
+    * Ignore blank server-pool entries and preserve configured order when
+      removing duplicates. Add tests for mixed failures and API propagation.
+
     Cache configuration and priming hardening:
     * Copy all four redis.timeout.* values from configuration into runtime
       settings; previously configured lifetimes were silently discarded.

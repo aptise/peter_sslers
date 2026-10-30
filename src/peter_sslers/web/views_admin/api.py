@@ -990,14 +990,15 @@ class ViewAdminApi_Nginx(Handler):
             )
             if self.request.wants_json:
                 return {
-                    "result": "success",
+                    "result": "success" if success else "error",
                     "operations_event": {"id": dbEvent.id},
                     "servers_status": servers_status,
                 }
             return HTTPSeeOther(
-                "%s/operations/nginx?result=success&operation=nginx_cache_flush&event.id=%s"
+                "%s/operations/nginx?result=%s&operation=nginx_cache_flush&event.id=%s"
                 % (
                     self.request.api_context.application_settings["admin_prefix"],
+                    "success" if success else "error",
                     dbEvent.id,
                 )
             )

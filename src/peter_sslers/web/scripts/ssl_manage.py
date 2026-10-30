@@ -662,7 +662,10 @@ def main(argv=sys.argv):
                     request.api_context,
                 )
                 request.api_context.pyramid_transaction_commit()
-                render_data(servers_status, success=True)
+                render_data(
+                    servers_status, success=success,
+                    error=None if success else "One or more nginx cache flushes failed",
+                )
 
             elif subcommand == "status_nginx":
                 request.api_context._ensure_nginx()
@@ -671,7 +674,10 @@ def main(argv=sys.argv):
                     request.api_context,
                 )
                 request.api_context.pyramid_transaction_commit()
-                render_data(servers_status, success=True)
+                render_data(
+                    servers_status, success=not servers_status["errors"],
+                    error="One or more nginx status checks failed" if servers_status["errors"] else None,
+                )
 
             elif subcommand == "update_recents":
                 operations_event = lib_db.actions.operations_update_recents__global(
