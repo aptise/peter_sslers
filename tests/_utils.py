@@ -996,7 +996,7 @@ def _db_unfreeze__actual(
         # sqlite_master or mutate the reusable source snapshot before restoring.
         deadline = time.monotonic() + 20
 
-        def progress(status, remaining, total):
+        def progress(status: int, remaining: int, total: int) -> None:
             _sqlite_backup_progress(status, remaining, total)
             if time.monotonic() > deadline:
                 raise TimeoutError("Timed out restoring test database snapshot")

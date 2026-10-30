@@ -1,4 +1,11 @@
 1.0.0.dev
+    Typing and certificate metadata contracts:
+    * Annotate the hardening helpers and regression suites, including cache,
+      ACME headers, scheduling queries, and certificate configuration payloads.
+    * Align with cert_utils required issuer, subject, validity dates and
+      fingerprint metadata. Reject unsupported keys when required key metadata
+      is unavailable.
+
     ARI selection and routine recovery:
     * Select the highest-ID check per certificate before applying overdue filters;
       remove grouped queries that could read retry hints from arbitrary history.

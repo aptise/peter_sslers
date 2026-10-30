@@ -75,11 +75,13 @@ if TYPE_CHECKING:
     from ..model.objects import X509Certificate
     from ..model.utils import DomainsChallenged
 
-    HEADERS_COMPAT = Union["HTTPMessage", "CaseInsensitiveDict", "Message"]
+    HEADERS_COMPAT = Union[
+        Dict[str, str], "HTTPMessage", "CaseInsensitiveDict[str]", "Message"
+    ]
 
     # (resp_data, status_code, headers)
     # resp_data might be decoded from str into json
-    RESPONSE_TUPLE = Tuple[int, Union[Dict, str], "HTTPMessage"]
+    RESPONSE_TUPLE = Tuple[int, Union[Dict[str, Any], str], HEADERS_COMPAT]
 
 # ==============================================================================
 
@@ -220,7 +222,7 @@ def url_request(
             raise errors.AcmeServerError(status_code, url, resp_data, headers)
         # reformat the error for display
         # this should probably be undone
-        msg = "{0}:\nUrl: {1}\nData: {2}\nResponse Code: {3}\nResponse: {4}".format(
+        msg = "{0}:\nUrl: {1}\nData: {2!r}\nResponse Code: {3}\nResponse: {4}".format(
             err_msg, url, post_data, status_code, resp_data
         )
         # (status_code, url, resp_data, headers) = exc.args
@@ -351,16 +353,16 @@ class AcmeOrderRFC(object):
     :param dbUniqueFQDNSet: (required) A :class:`model.objects.UniqueFQDNSet` object
     """
 
-    rfc_object: Dict
-    response_headers: "HTTPMessage"  # Dict-like
+    rfc_object: Dict[str, Any]
+    response_headers: "HEADERS_COMPAT"  # Dict-like
     dbUniqueFQDNSet: "UniqueFQDNSet"
 
     def __init__(
         self,
-        rfc_object: Dict,
-        response_headers: "HTTPMessage",
+        rfc_object: Dict[str, Any],
+        response_headers: "HEADERS_COMPAT",
         dbUniqueFQDNSet: "UniqueFQDNSet",
-    ):
+    ) -> None:
         self.rfc_object = rfc_object
         self.response_headers = response_headers
         self.dbUniqueFQDNSet = dbUniqueFQDNSet
@@ -540,7 +542,7 @@ def sign_payload_inner(
         key_pem=accountKeyData.key_pem,
     )
     if True:
-        _verified = cert_utils.account_key__verify(  # noqa: F841
+        cert_utils.account_key__verify(
             signature,
             protected_input,
             key_pem=accountKeyData.key_pem,
@@ -577,7 +579,7 @@ class AuthenticatedUser(object):
     )
 
     _api_account_object: Optional[Dict] = None  # api server native/json object
-    _api_account_headers: Optional[Union[Dict, "HTTPMessage"]] = (
+    _api_account_headers: Optional["HEADERS_COMPAT"] = (
         None  # api server native/json object
     )
     # default to None;

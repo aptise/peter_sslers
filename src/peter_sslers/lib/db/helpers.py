@@ -62,6 +62,11 @@ def _certificate_parse_to_record(
     _cert_data = cert_utils.parse_cert(
         cert_pem=cert_pem,
     )
+    # Unsupported key algorithms may not provide this metadata.
+    if _cert_data["spki_sha256"] is None:
+        raise ValueError(
+            "Certificate key algorithm does not provide an SPKI fingerprint"
+        )
     dbX509Certificate.timestamp_not_before = _cert_data["startdate"]
     dbX509Certificate.timestamp_not_after = _cert_data["enddate"]
     dbX509Certificate.cert_subject = _cert_data["subject"]

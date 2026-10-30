@@ -15,12 +15,12 @@ depends_on = None
 CONSTRAINT = "ck_x509_certificate_trusted_ck_x509_certificate_trusted__untrusted_root"
 
 
-def upgrade():
+def upgrade() -> None:
     with op.batch_alter_table("x509_certificate_trusted") as batch_op:
         batch_op.drop_constraint(op.f(CONSTRAINT), type_="check")
 
 
-def downgrade():
+def downgrade() -> None:
     # Existing independent flags must be reconciled before restoring the old rule.
     with op.batch_alter_table("x509_certificate_trusted") as batch_op:
         batch_op.create_check_constraint(

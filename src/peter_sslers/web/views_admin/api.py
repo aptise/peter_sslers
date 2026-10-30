@@ -677,7 +677,7 @@ class ViewAdminApi_Domain(Handler):
                 log.debug("autocert - domain known")
                 if dbDomain.has_active_certificates:
                     # exit early if we have active certs
-                    rval = dbDomain.as_json_config(id_only=False)
+                    rval = dict(dbDomain.as_json_config(id_only=False))
                     rval["result"] = "success"
                     rval["notes"] = "existing certificate(s)"
                     log.debug("autocert - domain known - active certs")
@@ -695,7 +695,7 @@ class ViewAdminApi_Domain(Handler):
                 # and check again...
                 if dbDomain.has_active_certificates:
                     # exit early
-                    rval = dbDomain.as_json_config(id_only=False)
+                    rval = dict(dbDomain.as_json_config(id_only=False))
                     rval["result"] = "success"
                     rval["notes"] = "existing certificate(s), updated recents"
                     log.debug("autocert - domain known - active certs")
@@ -800,7 +800,7 @@ class ViewAdminApi_Domain(Handler):
 
                     # commit this so the domain will reload
                     self.request.api_context.pyramid_transaction_commit()
-                    rval = dbDomain.as_json_config(id_only=False)
+                    rval = dict(dbDomain.as_json_config(id_only=False))
                     rval["result"] = "success"
                     rval["notes"] = "new AcmeOrder, valid"
                     rval["AcmeOrder"] = {

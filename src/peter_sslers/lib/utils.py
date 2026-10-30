@@ -6,6 +6,7 @@ import json
 import logging
 import os.path
 import re
+from typing import Mapping
 from typing import Dict
 from typing import Optional
 from typing import Tuple
@@ -267,13 +268,16 @@ def reverse_domain_name(domain: str) -> str:
 
 
 def issuer_to_endpoint(
-    cert_data: Optional[Dict] = None,  # via parse_cert
+    cert_data: Optional[Mapping[str, object]] = None,  # via parse_cert
     sock_data: Optional[Dict] = None,  # via socket analysis
 ) -> Optional[str]:
     if not any((cert_data, sock_data)) or all((cert_data, sock_data)):
         raise ValueError("submit `cert_data` OR `sock_data`")
     if cert_data:
-        _issuer = cert_data["issuer"].split("\n")
+        issuer = cert_data["issuer"]
+        if not isinstance(issuer, str):
+            return None
+        _issuer = issuer.split("\n")
         if len(_issuer) > 1:
             if _issuer[1] == "O=Let's Encrypt":
                 return "https://acme-v02.api.letsencrypt.org/directory"

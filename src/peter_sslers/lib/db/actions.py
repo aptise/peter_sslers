@@ -9,11 +9,15 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
+from typing import Union
 
 # pypi
 import cert_utils
 import requests
 import sqlalchemy
+from sqlalchemy import SQLColumnExpression
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.selectable import ScalarSelect
 from sqlalchemy import or_ as sqlalchemy_or
 from typing_extensions import Literal
 
@@ -45,6 +49,7 @@ from ...model.objects import X509Certificate
 from ...model.utils import AcmeServerInput
 
 if TYPE_CHECKING:
+    from requests.structures import CaseInsensitiveDict
     from ..context import ApiContext
     from ...model.objects import AcmeAccount
     from ...model.objects import Domain
@@ -607,7 +612,12 @@ _header_2_format = {
 }
 
 
-def _download_certificate(url, *, verify=True, error_message="Could not load certificate"):
+def _download_certificate(
+    url: str,
+    *,
+    verify: Union[bool, str] = True,
+    error_message: str = "Could not load certificate",
+) -> Tuple[bytes, "CaseInsensitiveDict[str]"]:
     """Fetch certificate bytes without leaving connections or waits unbounded."""
     with requests.get(url, verify=verify, timeout=(3.05, 10)) as response:
         if response.status_code != 200:
@@ -722,7 +732,10 @@ def operations_reconcile_cas(
     return dbOperationsEvent
 
 
-def _refresh_domain_certificate_pointers(ctx, domain_ids=None):
+def _refresh_domain_certificate_pointers(
+    ctx: "ApiContext",
+    domain_ids: Optional[List[int]] = None,
+) -> None:
     """Refresh current certificate pointers without committing the transaction."""
     ctx.dbSession.flush()
     for suffix, single in (("single", True), ("multi", False)):
@@ -781,12 +794,12 @@ def operations_update_recents__domains(
     dbUniqueFQDNSets = list(dbUniqueFQDNSets) if dbUniqueFQDNSets is not None else []
     if not dbDomains and not dbUniqueFQDNSets:
         raise ValueError("must submit at least one of `dbDomains` or `dbUniqueFQDNSets`")
-    domain_ids = {domain.id for domain in dbDomains}
+    domain_id_set = {domain.id for domain in dbDomains}
     for fqdn_set in dbUniqueFQDNSets:
-        domain_ids.update(domain.id for domain in fqdn_set.domains)
-    if not domain_ids:
+        domain_id_set.update(domain.id for domain in fqdn_set.domains)
+    if not domain_id_set:
         raise ValueError("no Domains specified")
-    domain_ids = sorted(domain_ids)
+    domain_ids = sorted(domain_id_set)
     _unique_fqdn_set_ids = sorted({fqdn_set.id for fqdn_set in dbUniqueFQDNSets})
 
     _refresh_domain_certificate_pointers(ctx, domain_ids)
@@ -806,7 +819,7 @@ def operations_update_recents__domains(
     return dbOperationsEvent
 
 
-def _reconcile_usage_counts(ctx):
+def _reconcile_usage_counts(ctx: "ApiContext") -> None:
     """Rebuild usage counters without committing or retaining stale ORM values."""
     ctx.dbSession.flush()
     certificate = model_objects.X509Certificate
@@ -817,7 +830,15 @@ def _reconcile_usage_counts(ctx):
     association = model_objects.X509CertificateChain
     chain = model_objects.X509CertificateTrustChain
 
-    def count_for(target, source, foreign_key, value, *conditions):
+    def count_for(
+        target: Union[type[model_objects.PrivateKey], type[model_objects.AcmeAccount]],
+        source: Union[
+            type[model_objects.X509Certificate], type[model_objects.AcmeOrder]
+        ],
+        foreign_key: SQLColumnExpression[Optional[int]],
+        value: SQLColumnExpression[Optional[int]],
+        *conditions: ColumnElement[bool],
+    ) -> ScalarSelect[int]:
         return (
             sqlalchemy.select(sqlalchemy.func.count(value))
             .select_from(source)
@@ -838,20 +859,36 @@ def _reconcile_usage_counts(ctx):
         .correlate(trusted)
         .scalar_subquery()
     )
-    values = {
+    values: Dict[
+        Union[
+            type[model_objects.X509CertificateTrusted],
+            type[model_objects.PrivateKey],
+            type[model_objects.AcmeAccount],
+        ],
+        Dict[str, ScalarSelect[int]],
+    ] = {
         trusted: {"count_active_certificates": trusted_count},
         key: {
             "count_active_certificates": count_for(
-                key, certificate, certificate.private_key_id, certificate.id,
+                key,
+                certificate,
+                certificate.private_key_id,
+                certificate.id,
                 certificate.is_active.is_(True),
             ),
-            "count_x509_certificates": count_for(key, certificate, certificate.private_key_id, certificate.id),
+            "count_x509_certificates": count_for(
+                key, certificate, certificate.private_key_id, certificate.id
+            ),
             "count_acme_orders": count_for(key, order, order.private_key_id, order.id),
         },
         account: {
-            "count_acme_orders": count_for(account, order, order.acme_account_id, order.id),
+            "count_acme_orders": count_for(
+                account, order, order.acme_account_id, order.id
+            ),
             "count_x509_certificates": count_for(
-                account, order, order.acme_account_id,
+                account,
+                order,
+                order.acme_account_id,
                 sqlalchemy.distinct(order.x509_certificate_id),
             ),
         },
@@ -1319,6 +1356,7 @@ def routine__run_ari_checks(ctx: "ApiContext") -> "RoutineExecution":
     # don't rely on ctx.timestamp, as it can be old
     # also, we need to time the routine
     TIMESTAMP_routine_start = datetime.datetime.now(datetime.timezone.utc)
+    assert ctx.application_settings is not None
 
     # the max_expiry will be slightly in the future, to ensure we check ARI of anything
     # that expires until the next routine invocation

@@ -966,6 +966,13 @@ def getcreate__X509CertificateTrusted__by_pem_text(
         )
 
         _cert_data = cert_utils.parse_cert(cert_pem=cert_pem)
+        # Unsupported key algorithms may not provide this metadata.
+        if _cert_data["spki_sha256"] is None:
+            raise ValueError(
+                "Certificate key algorithm does not provide an SPKI fingerprint"
+            )
+        if _cert_data["key_technology"] is None:
+            raise ValueError("Unsupported certificate key algorithm")
         if not display_name:
             display_name = _cert_data["subject"] or "unknown"
 

@@ -1,83 +1,146 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+
 from email.message import Message
 from io import BytesIO
 from types import SimpleNamespace
+from typing import Union
+from typing import cast
 from unittest.mock import Mock
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
+from urllib.error import URLError
 
 import pytest
+from cert_utils.model import AccountKeyData
 
-from peter_sslers.lib import acme_v2, errors
+from peter_sslers.lib import acme_v2
+from peter_sslers.lib import errors
+from peter_sslers.lib.acme_v2 import AuthenticatedUser
+from peter_sslers.model.objects import AcmeAccount
+from peter_sslers.model.objects import AcmeServer
+
+if TYPE_CHECKING:
+    from peter_sslers.lib.context import ApiContext
 
 
-def headers(**values):
+def headers(**values: str) -> Message:
     result = Message()
     for key, value in values.items():
         result[key.replace("_", "-")] = value
     return result
 
 
-def test_success_response_is_closed(monkeypatch):
-    response = SimpleNamespace(read=Mock(return_value=b'{"status":"pending"}'), getcode=Mock(return_value=200), headers=headers(Replay_Nonce="next"), close=Mock())
+def test_success_response_is_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    response = SimpleNamespace(
+        read=Mock(return_value=b'{"status":"pending"}'),
+        getcode=Mock(return_value=200),
+        headers=headers(Replay_Nonce="next"),
+        close=Mock(),
+    )
     monkeypatch.setattr(acme_v2, "urlopen", Mock(return_value=response))
-    code, payload, received_headers = acme_v2.url_request(None, "https://ca.example/order")
+    code, payload, received_headers = acme_v2.url_request(
+        cast("ApiContext", None), "https://ca.example/order"
+    )
     assert code == 200 and payload == {"status": "pending"}
     assert received_headers.get("Replay-Nonce") == "next"
     response.close.assert_called_once_with()
 
 
-@pytest.mark.parametrize("status,body", [(400,b'{"detail":"missing type"}'), (429,b'{"type":"rateLimited"}')])
-def test_http_error_preserves_headers_and_closes_body(monkeypatch, status, body):
+@pytest.mark.parametrize(
+    "status,body",
+    [(400, b'{"detail":"missing type"}'), (429, b'{"type":"rateLimited"}')],
+)
+def test_http_error_preserves_headers_and_closes_body(
+    monkeypatch: pytest.MonkeyPatch, status: int, body: bytes
+) -> None:
     stream = BytesIO(body)
-    error = HTTPError("https://ca.example/order", status, "error", headers(Retry_After="60"), stream)
+    error = HTTPError(
+        "https://ca.example/order", status, "error", headers(Retry_After="60"), stream
+    )
     monkeypatch.setattr(acme_v2, "urlopen", Mock(side_effect=error))
     with pytest.raises(errors.AcmeServerError) as caught:
-        acme_v2.url_request(None, "https://ca.example/order")
+        acme_v2.url_request(cast("ApiContext", None), "https://ca.example/order")
     assert caught.value.args[0] == status
     assert caught.value.args[3].get("Retry-After") == "60"
     assert stream.closed
 
 
-def test_bad_nonce_has_typed_error_and_replacement_header(monkeypatch):
-    error = HTTPError("https://ca.example/order", 400, "error", headers(Replay_Nonce="fresh"), BytesIO(b'{"type":"urn:ietf:params:acme:error:badNonce"}'))
+def test_bad_nonce_has_typed_error_and_replacement_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    error = HTTPError(
+        "https://ca.example/order",
+        400,
+        "error",
+        headers(Replay_Nonce="fresh"),
+        BytesIO(b'{"type":"urn:ietf:params:acme:error:badNonce"}'),
+    )
     monkeypatch.setattr(acme_v2, "urlopen", Mock(side_effect=error))
     with pytest.raises(errors.AcmeBadNonce) as caught:
-        acme_v2.url_request(None, "https://ca.example/order")
+        acme_v2.url_request(cast("ApiContext", None), "https://ca.example/order")
     assert caught.value.args[3].get("Replay-Nonce") == "fresh"
 
 
-def test_network_failure_is_a_communication_error(monkeypatch):
+def test_network_failure_is_a_communication_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(acme_v2, "urlopen", Mock(side_effect=URLError("unreachable")))
     with pytest.raises(errors.AcmeCommunicationError):
-        acme_v2.url_request(None, "https://ca.example/order")
+        acme_v2.url_request(cast("ApiContext", None), "https://ca.example/order")
 
 
 @pytest.fixture
-def user(monkeypatch):
+def user(monkeypatch: pytest.MonkeyPatch) -> AuthenticatedUser:
     user = object.__new__(acme_v2.AuthenticatedUser)
-    user.ctx = None
+    user.ctx = cast("ApiContext", None)
     user._next_nonce = "initial"
-    user.acmeAccount = SimpleNamespace(account_url="https://ca.example/account", acme_server=None)
-    user.accountKeyData = object()
+    user.acmeAccount = cast(
+        AcmeAccount,
+        SimpleNamespace(account_url="https://ca.example/account", acme_server=None),
+    )
+    user.accountKeyData = cast(AccountKeyData, object())
     user.acme_directory = {"newNonce": "https://ca.example/nonce"}
     monkeypatch.setattr(acme_v2, "sign_payload", Mock(return_value="signed"))
     return user
 
 
-def bad_nonce(nonce):
-    return errors.AcmeBadNonce(400, "https://ca.example/order", {"type": "badNonce"}, headers(Replay_Nonce=nonce))
+def bad_nonce(nonce: str) -> errors.AcmeBadNonce:
+    return errors.AcmeBadNonce(
+        400,
+        "https://ca.example/order",
+        {"type": "badNonce"},
+        headers(Replay_Nonce=nonce),
+    )
 
 
-def test_bad_nonce_retry_uses_server_replacement_and_resigns(user, monkeypatch):
-    send = Mock(side_effect=[bad_nonce("replacement"), (200, {}, headers(Replay_Nonce="next"))])
+def test_bad_nonce_retry_uses_server_replacement_and_resigns(
+    user: AuthenticatedUser, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    send = Mock(
+        side_effect=[bad_nonce("replacement"), (200, {}, headers(Replay_Nonce="next"))]
+    )
     monkeypatch.setattr(acme_v2, "url_request", send)
     user._send_signed_request("order", "https://ca.example/order", payload={"test": 1})
-    assert [call.kwargs["nonce"] for call in acme_v2.sign_payload.call_args_list] == ["initial", "replacement"]
-    assert all(call.args[1] == "https://ca.example/order" for call in send.call_args_list)
+    assert [
+        call.kwargs["nonce"] for call in cast(Mock, acme_v2.sign_payload).call_args_list
+    ] == ["initial", "replacement"]
+    assert all(
+        call.args[1] == "https://ca.example/order" for call in send.call_args_list
+    )
     assert user._next_nonce == "next"
 
 
-@pytest.mark.parametrize("failure", [errors.AcmeCommunicationError("lost connection"), IndexError("unrelated bug")])
-def test_failed_request_does_not_reuse_nonce_or_retry_unrelated_errors(user, monkeypatch, failure):
+@pytest.mark.parametrize(
+    "failure",
+    [errors.AcmeCommunicationError("lost connection"), IndexError("unrelated bug")],
+)
+def test_failed_request_does_not_reuse_nonce_or_retry_unrelated_errors(
+    user: AuthenticatedUser,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: Union[Exception, Mock],
+) -> None:
     send = Mock(side_effect=failure)
     monkeypatch.setattr(acme_v2, "url_request", send)
     with pytest.raises(type(failure)):
@@ -87,7 +150,9 @@ def test_failed_request_does_not_reuse_nonce_or_retry_unrelated_errors(user, mon
 
 
 @pytest.mark.parametrize("replacement", ["", "initial"])
-def test_bad_nonce_without_fresh_replacement_is_not_retried(user, monkeypatch, replacement):
+def test_bad_nonce_without_fresh_replacement_is_not_retried(
+    user: AuthenticatedUser, monkeypatch: pytest.MonkeyPatch, replacement: str
+) -> None:
     send = Mock(side_effect=bad_nonce(replacement))
     monkeypatch.setattr(acme_v2, "url_request", send)
     with pytest.raises(errors.AcmeCommunicationError, match="fresh Replay-Nonce"):
@@ -96,15 +161,19 @@ def test_bad_nonce_without_fresh_replacement_is_not_retried(user, monkeypatch, r
     assert user._next_nonce is None
 
 
-def test_missing_new_nonce_has_clear_error(user, monkeypatch):
+def test_missing_new_nonce_has_clear_error(
+    user: AuthenticatedUser, monkeypatch: pytest.MonkeyPatch
+) -> None:
     user._next_nonce = None
     monkeypatch.setattr(acme_v2, "url_request", Mock(return_value=(204, "", headers())))
     with pytest.raises(errors.AcmeCommunicationError, match="missing Replay-Nonce"):
         user._send_signed_request("order", "https://ca.example/order")
-    acme_v2.sign_payload.assert_not_called()
+    cast(Mock, acme_v2.sign_payload).assert_not_called()
 
 
-def test_bad_nonce_retry_limit_is_bounded(user, monkeypatch):
+def test_bad_nonce_retry_limit_is_bounded(
+    user: AuthenticatedUser, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(acme_v2, "MAX_DEPTH", 2)
     send = Mock(side_effect=[bad_nonce("one"), bad_nonce("two"), bad_nonce("three")])
     monkeypatch.setattr(acme_v2, "url_request", send)
@@ -114,42 +183,74 @@ def test_bad_nonce_retry_limit_is_bounded(user, monkeypatch):
 
 
 @pytest.mark.parametrize("status", [200, 400])
-def test_unreadable_response_is_closed_and_reported_as_communication_error(monkeypatch, status):
+def test_unreadable_response_is_closed_and_reported_as_communication_error(
+    monkeypatch: pytest.MonkeyPatch, status: int
+) -> None:
+    stream: Union[BytesIO, SimpleNamespace]
     if status == 400:
         stream = BytesIO(b"\xff")
-        response = HTTPError("https://ca.example/order", 400, "error", headers(), stream)
+        response = HTTPError(
+            "https://ca.example/order", 400, "error", headers(), stream
+        )
         monkeypatch.setattr(acme_v2, "urlopen", Mock(side_effect=response))
     else:
-        stream = SimpleNamespace(read=Mock(side_effect=OSError("broken stream")), getcode=Mock(return_value=200), headers=headers(), close=Mock())
+        stream = SimpleNamespace(
+            read=Mock(side_effect=OSError("broken stream")),
+            getcode=Mock(return_value=200),
+            headers=headers(),
+            close=Mock(),
+        )
         monkeypatch.setattr(acme_v2, "urlopen", Mock(return_value=stream))
     with pytest.raises(errors.AcmeCommunicationError):
-        acme_v2.url_request(None, "https://ca.example/order")
+        acme_v2.url_request(cast("ApiContext", None), "https://ca.example/order")
     if status == 400:
         assert stream.closed
     else:
-        stream.close.assert_called_once()
+        cast(Mock, stream.close).assert_called_once()
 
 
-def test_404_keeps_existing_exception_contract_and_closes_body(monkeypatch):
+def test_404_keeps_existing_exception_contract_and_closes_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     stream = BytesIO(b'{"type":"notFound"}')
-    monkeypatch.setattr(acme_v2, "urlopen", Mock(side_effect=HTTPError("https://ca.example/order", 404, "error", headers(), stream)))
+    monkeypatch.setattr(
+        acme_v2,
+        "urlopen",
+        Mock(
+            side_effect=HTTPError(
+                "https://ca.example/order", 404, "error", headers(), stream
+            )
+        ),
+    )
     with pytest.raises(errors.AcmeServer404) as caught:
-        acme_v2.url_request(None, "https://ca.example/order")
+        acme_v2.url_request(cast("ApiContext", None), "https://ca.example/order")
     assert caught.value.args == (404, {"type": "notFound"})
     assert stream.closed
 
 
 @pytest.mark.parametrize("as_message", [False, True])
-def test_rate_limit_persistence_serializes_real_http_headers(as_message):
+def test_rate_limit_persistence_serializes_real_http_headers(as_message: bool) -> None:
     import json
+
     from peter_sslers.lib.db.create import create__RateLimited
 
-    received = headers(Retry_After="60", Replay_Nonce="fresh") if as_message else {"Retry-After": "60", "Replay-Nonce": "fresh"}
+    received = (
+        headers(Retry_After="60", Replay_Nonce="fresh")
+        if as_message
+        else {"Retry-After": "60", "Replay-Nonce": "fresh"}
+    )
     context = SimpleNamespace(dbSession=Mock())
     record = create__RateLimited(
-        context, SimpleNamespace(id=1),
-        server_response_body={"type": "rateLimited"}, server_response_headers=received,
+        cast("ApiContext", context),
+        cast(AcmeServer, SimpleNamespace(id=1)),
+        server_response_body={"type": "rateLimited"},
+        server_response_headers=received,
     )
-    assert json.loads(record.server_response_headers) == {"Retry-After": "60", "Replay-Nonce": "fresh"}
+    assert record.server_response_headers is not None
+    assert record.server_response_body is not None
+    assert json.loads(record.server_response_headers) == {
+        "Retry-After": "60",
+        "Replay-Nonce": "fresh",
+    }
     assert json.loads(record.server_response_body) == {"type": "rateLimited"}
     context.dbSession.add.assert_called_once_with(record)

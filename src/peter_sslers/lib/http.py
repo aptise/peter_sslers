@@ -21,13 +21,17 @@ import os
 import socket
 import threading
 import time
+from typing import Dict, Tuple, TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    from waitress.wasyncore import dispatcher
 
 # pypy
 from waitress.server import TcpWSGIServer
 import webob
 
 
-def get_free_port():
+def get_free_port() -> Tuple[str, int]:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("", 0))
     ip, port = s.getsockname()
@@ -36,7 +40,13 @@ def get_free_port():
     return ip, port
 
 
-def check_server(host, port, path_info="/", timeout=3, retries=30):
+def check_server(
+    host: str,
+    port: Union[str, int],
+    path_info: str = "/",
+    timeout: float = 3,
+    retries: int = 30,
+) -> int:
     """Perform a request until the server reply"""
     if retries < 0:
         return 0
@@ -62,6 +72,7 @@ class StopableWSGIServer(TcpWSGIServer):
     server host and port.
     """
 
+    _map: Dict[int, "dispatcher"]
     was_shutdown = False
 
     def __init__(self, application, *args, **kwargs):
@@ -86,7 +97,7 @@ class StopableWSGIServer(TcpWSGIServer):
             if not self.was_shutdown:
                 raise
 
-    def shutdown(self):
+    def shutdown(self) -> bool:
         """Shutdown the server"""
         # avoid showing traceback related to asyncore
         self.was_shutdown = True
@@ -114,7 +125,7 @@ class StopableWSGIServer(TcpWSGIServer):
         server.runner.start()
         return server
 
-    def wait(self, retries=30):
+    def wait(self, retries: int = 30) -> bool:
         """Wait until the server is started"""
         running = check_server(
             self.adj.host, self.adj.port, "/__application__", retries=retries

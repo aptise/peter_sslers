@@ -1,4 +1,6 @@
 # stdlib
+from typing import Any
+from typing import Mapping
 from typing import Dict
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -8,6 +10,8 @@ import warnings
 if TYPE_CHECKING:
     from pyramid.request import Request
 
+    from ..model.objects import PrivateKey
+    from ..model.objects import X509CertificateTrustChain
     from ..model.objects import Domain
     from ..model.objects import X509Certificate
 
@@ -28,8 +32,11 @@ except ImportError as exc:  # noqa: F841
 
 
 def redis_default_connection(
-    request: "Request", url: Optional[str] = None, redis_client=Redis, **redis_options
-):
+    request: "Request",
+    url: Optional[str] = None,
+    redis_client: type[Redis] = Redis,
+    **redis_options: Any,
+) -> Redis:
     """
     # largely from `pyramid_redis_sessions/connection.py`
 
@@ -85,7 +92,7 @@ def redis_default_connection(
     return redis
 
 
-def redis_connection_from_registry(request: "Request"):
+def redis_connection_from_registry(request: "Request") -> Redis:
     """
     :param request: The current Pyramid `request` object
     """
@@ -153,9 +160,12 @@ def prime_redis_domain(
             redis_prime_logic__style_1_PrivateKey(
                 redis_client, dbX509Certificate.private_key, redis_timeouts
             )
+            preferred_chain = dbX509Certificate.x509_certificate_trust_chain__preferred
+            if preferred_chain is None:
+                raise ValueError("Certificate has no preferred trust chain")
             redis_prime_logic__style_1_X509CertificateTrustChain(
                 redis_client,
-                dbX509Certificate.x509_certificate_trust_chain__preferred,
+                preferred_chain,
                 redis_timeouts,
             )
         else:
@@ -167,11 +177,16 @@ def prime_redis_domain(
     return True
 
 
-def _set_domain_hash(redis_client, key, mapping, timeout):
+def _set_domain_hash(
+    redis_client: Redis,
+    key: str,
+    mapping: Dict[str, str],
+    timeout: Optional[int],
+) -> None:
     # Keep the payload and its lifetime in one transaction. HSET alone retains
     # an old TTL, so persistent re-priming must explicitly clear expiration.
     with redis_client.pipeline(transaction=True) as pipeline:
-        pipeline.hset(key, mapping=mapping)
+        pipeline.hset(key, mapping={field: value for field, value in mapping.items()})
         if timeout is None:
             pipeline.persist(key)
         else:
@@ -179,20 +194,22 @@ def _set_domain_hash(redis_client, key, mapping, timeout):
         pipeline.execute()
 
 
-def _domain_certificate(dbDomain):
+def _domain_certificate(dbDomain: "Domain") -> "X509Certificate":
     # A stale preferred pointer must not hide an active fallback certificate.
     for suffix in ("multi", "single"):
         if getattr(dbDomain, "x509_certificate_id__latest_" + suffix, None):
-            certificate = getattr(dbDomain, "x509_certificate__latest_" + suffix)
+            certificate: Optional["X509Certificate"] = getattr(
+                dbDomain, "x509_certificate__latest_" + suffix
+            )
             if certificate is not None and certificate.is_active:
                 return certificate
     raise ValueError("this domain does not have an active certificate: `%s`" % dbDomain.domain_name)
 
 
 def redis_prime_logic__style_1_Domain(
-    redis_client,
+    redis_client: Redis,
     dbDomain: "Domain",
-    redis_timeouts,
+    redis_timeouts: Mapping[str, Optional[int]],
 ) -> "X509Certificate":
     """
     primes the domain, returns the certificate
@@ -235,14 +252,16 @@ def redis_prime_logic__style_1_Domain(
     key_redis = "c:%s" % dbX509Certificate.id
     # only send over the wire if it doesn't exist
     if not redis_client.exists(key_redis):
-        value_redis = dbX509Certificate.cert_pem
-        redis_client.set(key_redis, value_redis, redis_timeouts["cert"])
+        cert_pem = dbX509Certificate.cert_pem
+        redis_client.set(key_redis, cert_pem, redis_timeouts["cert"])
 
     return dbX509Certificate
 
 
 def redis_prime_logic__style_1_PrivateKey(
-    redis_client, dbPrivateKey, redis_timeouts
+    redis_client: Redis,
+    dbPrivateKey: "PrivateKey",
+    redis_timeouts: Mapping[str, Optional[int]],
 ) -> bool:
     """
     :param redis_client:
@@ -257,7 +276,9 @@ def redis_prime_logic__style_1_PrivateKey(
 
 
 def redis_prime_logic__style_1_X509CertificateTrustChain(
-    redis_client, dbX509CertificateTrustChain, redis_timeouts
+    redis_client: Redis,
+    dbX509CertificateTrustChain: "X509CertificateTrustChain",
+    redis_timeouts: Mapping[str, Optional[int]],
 ) -> bool:
     """
     :param redis_client:
@@ -274,9 +295,9 @@ def redis_prime_logic__style_1_X509CertificateTrustChain(
 
 
 def redis_prime_logic__style_2_domain(
-    redis_client,
+    redis_client: Redis,
     dbDomain: "Domain",
-    redis_timeouts,
+    redis_timeouts: Mapping[str, Optional[int]],
 ) -> "X509Certificate":
     """
     returns the certificate

@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import pprint
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -37,6 +38,8 @@ from typing_extensions import Literal
 # from sqlalchemy import inspect as sa_inspect
 
 # local
+from .types import CertificateConfigPayload
+from .types import DomainConfigPayload
 from .mixins import _Mixin_AcmeAccount_Effective
 from .mixins import _Mixin_Hex_Pretty
 from .mixins import _Mixin_Timestamps_Pretty
@@ -2582,13 +2585,13 @@ class AriCheck(Base, _Mixin_Timestamps_Pretty):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         TZDateTime(timezone=True), nullable=False
     )
-    suggested_window_start: Mapped[datetime.datetime] = mapped_column(
+    suggested_window_start: Mapped[Optional[datetime.datetime]] = mapped_column(
         TZDateTime(timezone=True), nullable=True, default=None
     )
-    suggested_window_end: Mapped[datetime.datetime] = mapped_column(
+    suggested_window_end: Mapped[Optional[datetime.datetime]] = mapped_column(
         TZDateTime(timezone=True), nullable=True, default=None
     )
-    timestamp_retry_after: Mapped[datetime.datetime] = mapped_column(
+    timestamp_retry_after: Mapped[Optional[datetime.datetime]] = mapped_column(
         TZDateTime(timezone=True), nullable=True, default=None
     )
     explanation_url: Mapped[Optional[str]] = mapped_column(
@@ -2965,13 +2968,15 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
             }
         return rval
 
-    def as_json_config(self, id_only=False):
+    def as_json_config(
+        self, id_only: Optional[Union[bool, str]] = False
+    ) -> DomainConfigPayload:
         """
         this is slightly different
         * everything is lowercase
         * id is a string
         """
-        rval = {
+        rval: DomainConfigPayload = {
             "Domain": {
                 "id": str(self.id),
                 "domain_name": self.domain_name,
@@ -5274,9 +5279,9 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     def custom_config_payload(
         self,
-        x509_certificate_trust_chain_id=None,
-        id_only=False,
-    ) -> Dict:
+        x509_certificate_trust_chain_id: Optional[int] = None,
+        id_only: bool = False,
+    ) -> CertificateConfigPayload:
         # if there is no `x509_certificate_trust_chain_id` specified, use the default
         if not x509_certificate_trust_chain_id:
             x509_certificate_trust_chain_id = (
@@ -5325,13 +5330,13 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         }
 
     @property
-    def config_payload(self) -> Dict:
+    def config_payload(self) -> CertificateConfigPayload:
         return self.custom_config_payload(
             x509_certificate_trust_chain_id=None, id_only=False
         )
 
     @property
-    def config_payload_idonly(self) -> Dict:
+    def config_payload_idonly(self) -> CertificateConfigPayload:
         return self.custom_config_payload(
             x509_certificate_trust_chain_id=None, id_only=True
         )
@@ -5349,7 +5354,7 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         return self.unique_fqdn_set.domains_as_string
 
     @property
-    def days_to_expiry(self) -> Optional[int]:
+    def days_to_expiry(self) -> int:
         return (
             self.timestamp_not_after - datetime.datetime.now(datetime.timezone.utc)
         ).days
@@ -5475,7 +5480,10 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
                 model_utils.PrivateKey_Strategy._DEFAULT_system_renewal
             )
 
-    def valid_x509_certificate_trust_chain(self, x509_certificate_trust_chain_id=None):
+    def valid_x509_certificate_trust_chain(
+        self,
+        x509_certificate_trust_chain_id: Optional[int] = None,
+    ) -> "X509CertificateTrustChain":
         """return a single X509CertificateTrusted, or the default"""
         if x509_certificate_trust_chain_id is None:
             preferred = self.x509_certificate_trust_chain__preferred
@@ -5489,13 +5497,19 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
                 return _to_upchain.x509_certificate_trust_chain
         raise ValueError("No X509CertificateTrustChain available (?!?!)")
 
-    def valid_cert_chain_pem(self, x509_certificate_trust_chain_id=None):
+    def valid_cert_chain_pem(
+        self,
+        x509_certificate_trust_chain_id: Optional[int] = None,
+    ) -> str:
         certificate_chain = self.valid_x509_certificate_trust_chain(
             x509_certificate_trust_chain_id=x509_certificate_trust_chain_id
         )
         return certificate_chain.chain_pem
 
-    def valid_cert_fullchain_pem(self, x509_certificate_trust_chain_id=None):
+    def valid_cert_fullchain_pem(
+        self,
+        x509_certificate_trust_chain_id: Optional[int] = None,
+    ) -> str:
         certificate_chain = self.valid_x509_certificate_trust_chain(
             x509_certificate_trust_chain_id=x509_certificate_trust_chain_id
         )
@@ -5511,7 +5525,7 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         if TYPE_CHECKING:
             assert _request is not None
 
-        rval = {
+        rval: Dict[str, Any] = {
             "AcmeOrder": None,
             # - - - - -
             "id": self.id,

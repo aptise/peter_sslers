@@ -1,13 +1,21 @@
+from __future__ import annotations
+
 import sqlite3
 from pathlib import Path
 
 import pytest
+from typing_extensions import Literal
 
 from . import _utils
 
 
-@pytest.mark.parametrize("savepoint", ["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"])
-def test_snapshot_restore_replaces_contents_and_preserves_source(tmp_path, savepoint):
+@pytest.mark.parametrize(
+    "savepoint", ["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"]
+)
+def test_snapshot_restore_replaces_contents_and_preserves_source(
+    tmp_path: Path,
+    savepoint: Literal["AppTestCore", "AppTest", "test_pyramid_app-setup_testing_data"],
+) -> None:
     active = tmp_path / "test.sqlite"
     snapshot = Path(f"{active}-{savepoint}")
     with sqlite3.connect(snapshot) as connection:
@@ -18,15 +26,29 @@ def test_snapshot_restore_replaces_contents_and_preserves_source(tmp_path, savep
     for _ in range(2):
         assert _utils._db_unfreeze__actual(str(active), savepoint) is True
         with sqlite3.connect(active) as connection:
-            assert connection.execute("SELECT value FROM saved").fetchall() == [("original",)]
-            assert connection.execute("SELECT name FROM sqlite_master WHERE name='stale'").fetchall() == []
+            assert connection.execute("SELECT value FROM saved").fetchall() == [
+                ("original",)
+            ]
+            assert (
+                connection.execute(
+                    "SELECT name FROM sqlite_master WHERE name='stale'"
+                ).fetchall()
+                == []
+            )
             connection.execute("UPDATE saved SET value='changed'")
 
 
-def test_failed_reset_removes_active_and_all_reusable_snapshots(tmp_path, monkeypatch):
+def test_failed_reset_removes_active_and_all_reusable_snapshots(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     active = tmp_path / "test.sqlite"
     paths = []
-    for suffix in ("", "-AppTestCore", "-AppTest", "-test_pyramid_app-setup_testing_data"):
+    for suffix in (
+        "",
+        "-AppTestCore",
+        "-AppTest",
+        "-test_pyramid_app-setup_testing_data",
+    ):
         path = Path(str(active) + suffix)
         path.write_bytes(b"not a sqlite database")
         paths.append(path)
@@ -40,7 +62,7 @@ def test_failed_reset_removes_active_and_all_reusable_snapshots(tmp_path, monkey
     assert _utils.AppTest._DB_SETUP_RECORDS is False
 
 
-def test_missing_snapshot_does_not_delete_active_database(tmp_path):
+def test_missing_snapshot_does_not_delete_active_database(tmp_path: Path) -> None:
     active = tmp_path / "test.sqlite"
     active.write_bytes(b"existing")
     assert _utils._db_unfreeze__actual(str(active), "AppTest") is False

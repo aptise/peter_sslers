@@ -11,6 +11,10 @@ from typing import TYPE_CHECKING
 # pypi
 import cert_utils
 import sqlalchemy
+from sqlalchemy import SQLColumnExpression
+from sqlalchemy.orm import Query
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.selectable import Select
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm import InstrumentedAttribute
@@ -1497,11 +1501,16 @@ def get__AcmeServerConfiguration__by_AcmeServerId__active(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _latest_ari_ids():
+def _latest_ari_ids() -> Select[int]:
     return sqlalchemy.select(sqlalchemy.func.max(AriCheck.id)).group_by(AriCheck.x509_certificate_id)
 
 
-def _ari_retry_due(retry_after, created, now, interval_minutes):
+def _ari_retry_due(
+    retry_after: SQLColumnExpression[Optional[datetime.datetime]],
+    created: SQLColumnExpression[datetime.datetime],
+    now: datetime.datetime,
+    interval_minutes: int,
+) -> ColumnElement[bool]:
     return sqlalchemy.or_(
         retry_after <= now,
         sqlalchemy.and_(
@@ -1511,11 +1520,12 @@ def _ari_retry_due(retry_after, created, now, interval_minutes):
     )
 
 
-def _get_ari_checks(ctx, strategy):
+def _get_ari_checks(ctx: "ApiContext", strategy: str) -> Query[AriCheck]:
     query = ctx.dbSession.query(AriCheck)
     if strategy in ("cert-latest", "cert-latest-overdue"):
         query = query.filter(AriCheck.id.in_(_latest_ari_ids()))
         if strategy == "cert-latest-overdue":
+            assert ctx.application_settings is not None
             interval = ctx.application_settings.get("offset.ari_updates", 60)
             query = query.filter(_ari_retry_due(
                 AriCheck.timestamp_retry_after, AriCheck.timestamp_created,
@@ -2665,7 +2675,7 @@ def get__RateLimited__paginated(
     return items_paged
 
 
-def _rate_limit_cutoff(ctx, within_hours):
+def _rate_limit_cutoff(ctx: "ApiContext", within_hours: int) -> datetime.datetime:
     if not isinstance(within_hours, int) or within_hours < 0:
         raise ValueError("within_hours must be a non-negative integer")
     return ctx.timestamp - datetime.timedelta(hours=within_hours)

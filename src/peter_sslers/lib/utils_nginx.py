@@ -1,7 +1,11 @@
 # stdlib
 import json
+from typing import Any
+from typing import Set
+from typing import TypedDict
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
@@ -19,6 +23,7 @@ if TYPE_CHECKING:
     from pyramid.request import Request
 
     from .context import ApiContext
+    from ..model.objects import OperationsEvent
     from ..model.objects import Domain
 
 # ==============================================================================
@@ -26,10 +31,16 @@ if TYPE_CHECKING:
 DEBUG_CONCEPT = False
 
 
+class NginxResult(TypedDict):
+    errors: List[str]
+    success: List[str]
+    servers: Dict[str, object]
+
+
 class NginxSession(object):
     session: requests.Session
 
-    def __init__(self, request: "Request"):
+    def __init__(self, request: "Request") -> None:
         """
         :param request: The current Pyramid `request` object
         """
@@ -56,21 +67,23 @@ class NginxSession(object):
 
         self.session = sess
 
-    def __enter__(self):
+    def __enter__(self) -> "NginxSession":
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: object) -> None:
         self.session.close()
 
-    def get(self, *args, **kwargs):
+    def get(self, *args: Any, **kwargs: Any) -> requests.Response:
         return self.session.get(*args, **kwargs)
 
-    def post(self, *args, **kwargs):
+    def post(self, *args: Any, **kwargs: Any) -> requests.Response:
         return self.session.post(*args, **kwargs)
 
 
-def _nginx_servers(request):
-    servers = request.api_context.application_settings.get("nginx.servers_pool")
+def _nginx_servers(request: "Request") -> List[str]:
+    servers: Optional[List[str]] = request.api_context.application_settings.get(
+        "nginx.servers_pool"
+    )
     if not servers:
         raise errors.InvalidRequest("No nginx servers are configured")
     return servers
@@ -79,7 +92,7 @@ def _nginx_servers(request):
 def nginx_flush_cache(
     request: "Request",
     ctx: "ApiContext",
-) -> Tuple:
+) -> Tuple[bool, "OperationsEvent", NginxResult]:
     """
     :param request: The current Pyramid `request` object
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -87,7 +100,7 @@ def nginx_flush_cache(
     _reset_path = request.api_context.application_settings["nginx.reset_path"]
     timeout = request.api_context.application_settings["nginx.timeout"]
     with NginxSession(request) as sess:
-        rval: Dict[str, Union[List, Dict]] = {
+        rval: NginxResult = {
             "errors": [],
             "success": [],
             "servers": {},
@@ -101,11 +114,11 @@ def nginx_flush_cache(
                         response_json = json.loads(response.text)
                         status = response_json
                         if response_json["result"] != "success":
-                            rval["errors"].append(_server)  # type: ignore[union-attr]
+                            rval["errors"].append(_server)
                         else:
-                            rval["success"].append(_server)  # type: ignore[union-attr]
+                            rval["success"].append(_server)
                     else:
-                        rval["errors"].append(_server)  # type: ignore[union-attr]
+                        rval["errors"].append(_server)
                         status = {
                             "status": "error",
                             "error": "response",
@@ -115,7 +128,7 @@ def nginx_flush_cache(
                             },
                         }
             except Exception as exc:
-                rval["errors"].append(_server)  # type: ignore[union-attr]
+                rval["errors"].append(_server)
                 status = {
                     "status": "error",
                     "error": "Exception",
@@ -132,7 +145,7 @@ def nginx_flush_cache(
 def nginx_status(
     request: "Request",
     ctx: "ApiContext",
-) -> Dict:
+) -> NginxResult:
     """
     returns the status document for each server
 
@@ -142,7 +155,7 @@ def nginx_status(
     status_path = request.api_context.application_settings["nginx.status_path"]
     timeout = request.api_context.application_settings["nginx.timeout"]
     with NginxSession(request) as sess:
-        rval: Dict[str, Union[List, Dict]] = {
+        rval: NginxResult = {
             "errors": [],
             "success": [],
             "servers": {},
@@ -157,9 +170,9 @@ def nginx_status(
                         if not isinstance(response_json, dict):
                             raise ValueError("Expected nginx status object")
                         _status = response_json
-                        rval["success"].append(_server)  # type: ignore[union-attr]
+                        rval["success"].append(_server)
                     else:
-                        rval["errors"].append(_server)  # type: ignore[union-attr]
+                        rval["errors"].append(_server)
                         _status = {
                             "status": "error",
                             "error": "response",
@@ -169,7 +182,7 @@ def nginx_status(
                             },
                         }
             except Exception as exc:
-                rval["errors"].append(_server)  # type: ignore[union-attr]
+                rval["errors"].append(_server)
                 _status = {
                     "status": "error",
                     "error": "Exception",
@@ -181,7 +194,7 @@ def nginx_status(
 
 def nginx_expire_cache(
     request: "Request", ctx: "ApiContext", dbDomains: List["Domain"]
-) -> Tuple:
+) -> Tuple[bool, "OperationsEvent"]:
     """
     :param request: The current Pyramid `request` object
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -189,7 +202,7 @@ def nginx_expire_cache(
     """
     if not dbDomains:
         raise ValueError("no domains submitted")
-    domain_ids: Dict[str, set] = {"success": set([]), "failure": set([])}
+    domain_ids: Dict[str, Set[int]] = {"success": set([]), "failure": set([])}
     _reset_path = request.api_context.application_settings["nginx.reset_path"]
     timeout = request.api_context.application_settings["nginx.timeout"]
     with NginxSession(request) as sess:

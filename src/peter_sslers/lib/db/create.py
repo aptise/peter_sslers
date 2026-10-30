@@ -29,6 +29,7 @@ from ...model import objects as model_objects
 from ...model import utils as model_utils
 
 if TYPE_CHECKING:
+    from email.message import Message
     from ..context import ApiContext
     from ...lib.acme_v2 import AriCheckResult
     from ...model.objects import AcmeAccount
@@ -1078,7 +1079,7 @@ def create__RateLimited(
     dbUniqueFQDNSet: Optional["UniqueFQDNSet"] = None,
     # misc
     server_response_body: Optional[Union[str, Dict]] = None,
-    server_response_headers: Optional[Dict] = None,
+    server_response_headers: Optional[Union[Dict[str, str], "Message"]] = None,
 ) -> "RateLimited":
     """
     :returns :class:`model.objects.RateLimited`

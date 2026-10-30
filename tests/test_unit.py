@@ -1,5 +1,7 @@
 # stdlib
 import http.client
+from socket import socket
+from typing import cast
 from io import BytesIO
 from typing import Callable
 from typing import Dict
@@ -302,10 +304,10 @@ class _MockedFP(BytesIO):
 class _FakeSocket:
     """Provide an HTTP response stream without CPython internal test helpers."""
 
-    def __init__(self, response: bytes):
+    def __init__(self, response: bytes) -> None:
         self.response = response
 
-    def makefile(self, mode):
+    def makefile(self, mode: str) -> BytesIO:
         return BytesIO(self.response)
 
 
@@ -323,10 +325,10 @@ class UnitTest_ACME_v2(unittest.TestCase):
         body_1 = _message_template % _link_1
         body_2 = _message_template % (b"%s%s" % (_link_1, _link_2))
 
-        message_1 = http.client.HTTPResponse(_FakeSocket(body_1))
+        message_1 = http.client.HTTPResponse(cast(socket, _FakeSocket(body_1)))
         message_1.begin()
 
-        message_2 = http.client.HTTPResponse(_FakeSocket(body_2))
+        message_2 = http.client.HTTPResponse(cast(socket, _FakeSocket(body_2)))
         message_2.begin()
 
         # In an ideal world, that would be all, but we need some more massaging
@@ -393,7 +395,7 @@ class UnitTest_LetsEncrypt_Data(unittest.TestCase):
                             ]
 
                     self.assertTrue(_found)
-                    self.assertIsNotNone(_alternate_payload)
+                    assert _alternate_payload is not None
 
                     self.assertEqual(cert_id, _alternate_payload["alternate_of"])
 
