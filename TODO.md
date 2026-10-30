@@ -1,35 +1,61 @@
 2026-10-30 Priorities
 =====================
 
-* Support IP Certificates
+* Prepare for upcoming LetsEncrypt Changes:
+    * Decreasing Certificate Lifetimes to 45 Days; To comply with CA/Browser Forum Baseline Requirement changes, we are decreasing certificate lifetimes to 45 days. We will first decrease to 64 days on February 10, 2027, and then to 45 days on February 16, 2028.
+
+* Handle recent LetEncrypt changes:
+    * Support IP Certificates
+    * Better implement "profiles"
+        Profiles are an ACME extension to force new behaviors
+        The ACME spec does not have a machine readable interface for profiles. I tried to make that a part of the spec, but failed.
+        The ACME spec will list the profile names, and links to information about them, as part of the directory response.
+        PeterSSLers monitors changes to this, and will update the Acme_Server record.
+        * we should probably create a notification or alert when changes are detected
+        LetsEncrypt publishes information about all the profiles on their website:
+         https://letsencrypt.org/docs/profiles/
+         That is available via their website's source checkout:
+            letsencrypt-website/content/en/docs/profiles.md
+        * we should extend cert_utils' `letsencrypt_info` with a machine readable representation of the profiles.
+        
+        * the way we store profiles should change; we currently only store the "name", but should also store the value (i.e. each url value in the directory payload).  the value will be useful for display on the acme-server html page
 
 
-Audit/Remove?
+* Audit/Remove?
+    The following items are implemented poorly, so have not become useful.
+    Audit the code to see if they can be better implemented
+        * OperationsEvent tracking
+            meant to provide an audit trail / log
+            perhaps this can be turned on/off?
+        * CoverageAssuranceEvent tracking
+            meant to create notifications when issues arise
 
-The following items are implemented poorly, so have not become useful.
-Audit the code to see if they can be better implemented
-    * OperationsEvent tracking
-        meant to provide an audit trail / log
-        perhaps this can be turned on/off?
-    * CoverageAssuranceEvent tracking
-        meant to create notifications when issues arise
-
-check to see if we correctly handle this:
+* Check to see if we correctly handle this:
     request with an invalid replaces
     is it stripped from the order on a resubmit?
     if it comes back, do we correctly annotate the replaces vs replaces_requested ?
 
 acme-dns:
-    reconsider integration - can we better support this concept?
-    streamline / clarify onboarding
-    audit credentials
-        we write a temporary value now, which is ugly
-        waiting on
-            https://github.com/joohoi/acme-dns/pull/378
+    Reconsider integration - can we better support this concept?
+        Currently locked down to ONE acme-dns server.
+        Why?
+        The UX of creating a new renewal-configuration.
+        If we have a single global acme-dns account, we know to associate each DNS-01 domain with the global acme-dns server
+        If we were to support multiple acme-dns servers, we would need to do something like:
+            * change the payload field format specifiy server+domains
+            * only use the current form field for the default dns server; dyamaically add additional form fields for acme-dns-server + domains combinations
+        Supporting more than one server would be good, but the UX + expanding testing is a workload
+
+    Streamline / clarify onboarding and docs
+    Audit credential checks
+        There is no way to check if a credential is working or not,
+        so we write, check, reset a temporary value; which is ugly
+        I created an upstread request & proof of concept for a /check endpoint (https://github.com/joohoi/acme-dns/pull/378)
 
 HTML UX:
 
 - make EXPIRED certs more clear on html views
+
 
 
 
