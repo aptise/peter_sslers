@@ -1,4 +1,17 @@
 1.0.0.dev
+    ACME transport and nonce handling:
+    * Preserve HTTP error headers, including Retry-After and Replay-Nonce, and
+      close successful/error responses after reading them. Serialize real HTTP
+      header objects safely when persisting rate-limit responses.
+    * Classify network/read failures as AcmeCommunicationError. Malformed 400
+      problem documents no longer raise KeyError for a missing type field.
+    * Add AcmeBadNonce (an AcmeServerError subclass) instead of using IndexError
+      as a retry signal. Retry only this protocol error, using the fresh nonce
+      supplied by that response, within the existing MAX_DEPTH limit.
+    * Consume cached nonces before signing/sending so transport failures cannot
+      cause reuse; missing or repeated badNonce replacements fail explicitly.
+      Preserve the existing AcmeServer404 argument contract.
+
     Global usage reconciliation:
     * Correct trusted-CA usage joins and count distinct active leaf certificates
       per immediate signing CA, without multiplying counts for alternate chains

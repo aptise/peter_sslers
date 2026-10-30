@@ -186,6 +186,10 @@ class AcmeServerError(AcmeError):
     pass
 
 
+class AcmeBadNonce(AcmeServerError):
+    """An ACME badNonce response, including its replacement nonce headers."""
+
+
 class AcmeServerErrorExistingRatelimit(AcmeServerError):
     pass
 

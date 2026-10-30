@@ -1,4 +1,5 @@
 # stdlib
+from contextlib import closing
 # import base64
 # import binascii
 import datetime
@@ -17,6 +18,7 @@ from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
+from urllib.error import HTTPError
 from urllib.request import Request
 from urllib.request import urlopen
 
@@ -129,7 +131,7 @@ def new_response_invalid() -> Dict:
 def url_request(
     ctx: "ApiContext",
     url: str,
-    post_data: Optional[Dict] = None,
+    post_data: Optional[bytes] = None,
     err_msg: str = "Error",
     depth: int = 0,
     dbAcmeServer: Optional["AcmeServer"] = None,
@@ -139,7 +141,7 @@ def url_request(
     # helper function - make request and automatically parse json response
 
     :param str url: (required) The url
-    :param dict post_data: (optional) Data to POST to the url
+    :param bytes post_data: (optional) Serialized JWS data to POST to the url
     :param str err_msg: (optional) A custom error message
     :param int depth: (optional) An integer nothing the depth of this function being called
     :param `model_objects.AcmeServer` dbAcmeServer: an AcmeServer, or compatible object,
@@ -180,19 +182,22 @@ def url_request(
             timeout=10,
         )
         log_api.debug(" RESPONSE-")
-        resp_data, status_code, headers = (
-            resp.read().decode("utf8"),
-            resp.getcode(),
-            resp.headers,
-        )
+        with closing(resp):
+            resp_data, status_code, headers = (
+                resp.read().decode("utf8"), resp.getcode(), resp.headers,
+            )
         log_api.debug("  status_code < %s", status_code)
         log_api.debug("  resp_data   < %s", resp_data)
         log_api.debug("  headers     < %s", headers)
-    except IOError as exc:
-        resp_data = exc.read().decode("utf8") if hasattr(exc, "read") else str(exc)
-        status_code, headers = getattr(exc, "code", None), {}
-        # potentially there is a code=400  body=json{"type": "urn:ietf:params:acme:error:badNonce"}
-        # that is caught below
+    except HTTPError as exc:
+        with closing(exc):
+            try:
+                resp_data = exc.read().decode("utf8")
+            except (OSError, UnicodeError) as read_error:
+                raise errors.AcmeCommunicationError("Could not read ACME error response") from read_error
+            status_code, headers = exc.code, exc.headers or {}
+    except OSError as exc:
+        raise errors.AcmeCommunicationError(str(exc)) from exc
     except Exception as exc:
         # TODO: log this error to the database
         raise errors.AcmeCommunicationError(str(exc))
@@ -203,14 +208,11 @@ def url_request(
     if status_code == 404:
         raise errors.AcmeServer404(404, resp_data)
     elif status_code == 400:
-        # this happens on pebble if we set it to http, not https
-        if resp_data == "Client sent an HTTP request to an HTTPS server.\n":
-            raise IndexError(resp_data)
         if (
             isinstance(resp_data, dict)
-            and resp_data["type"] == "urn:ietf:params:acme:error:badNonce"
+            and resp_data.get("type") == "urn:ietf:params:acme:error:badNonce"
         ):
-            raise IndexError(resp_data)  # allow `MAX_DEPTH` retrys for bad nonces
+            raise errors.AcmeBadNonce(status_code, url, resp_data, headers)
     if status_code not in [200, 201, 204]:
         if isinstance(resp_data, dict):
             # (status_code, url, resp_data, headers) = exc.args
@@ -686,11 +688,15 @@ class AuthenticatedUser(object):
             log.debug("_send_signed_request > newNonce")
             # TODO: store/retrieve a nonce from the db
             # this pulls it off the headers
-            self._next_nonce = nonce = url_request(
+            nonce = url_request(
                 self.ctx,
                 self.acme_directory["newNonce"],
                 dbAcmeServer=self.acmeAccount.acme_server,
-            )[2]["Replay-Nonce"]
+            )[2].get("Replay-Nonce")
+        if not isinstance(nonce, str) or not nonce:
+            raise errors.AcmeCommunicationError("ACME response is missing Replay-Nonce")
+        # Nonces are single-use even when the transport or signer fails.
+        self._next_nonce = None
 
         # the `kid` is the AccountURL on the acme server
         kid = self.acmeAccount.account_url or None
@@ -720,37 +726,22 @@ class AuthenticatedUser(object):
                 depth=depth,
                 dbAcmeServer=self.acmeAccount.acme_server,
             )
-            try:
-                if DEBUG_HEADERS:
-                    print("*******************************************************")
-                    print("_send_signed_request | DEBUG_HEADERS")
-                    # print(result[2]._headers)  # undocumented storage attribute
-                    print(result[2].items())
-                    print("*******************************************************")
-                _next_nonce = result[2]["Replay-Nonce"]
-                if (not _next_nonce) or (nonce == _next_nonce):
-                    self._next_nonce = None
-                else:
-                    self._next_nonce = _next_nonce
-            except IndexError as exc:
-                log.debug(
-                    "_send_signed_request > sign_payload | _next_nonce IndexError"
-                )
-                log.debug(exc)
-                raise
-            except Exception as exc:  # noqa: F841
-                log.debug("_send_signed_request > sign_payload | _next_nonce Exception")
-                log.debug(exc)
-                self._next_nonce = None
+            if DEBUG_HEADERS:
+                print("*******************************************************")
+                print("_send_signed_request | DEBUG_HEADERS")
+                print(result[2].items())
+                print("*******************************************************")
+            next_nonce = result[2].get("Replay-Nonce")
+            if isinstance(next_nonce, str) and next_nonce and next_nonce != nonce:
+                self._next_nonce = next_nonce
             return result
-        except IndexError:  # retry bad nonces (they raise IndexError)
-            log.debug("_send_signed_request > IndexError retry")
-            self._next_nonce = None
+        except errors.AcmeBadNonce as exc:
+            replacement = exc.args[3].get("Replay-Nonce")
+            if not isinstance(replacement, str) or not replacement or replacement == nonce:
+                raise errors.AcmeCommunicationError("badNonce response lacks a fresh Replay-Nonce") from exc
+            self._next_nonce = replacement
             return self._send_signed_request(
-                endpoint_type,
-                url,
-                payload=payload,
-                depth=(depth + 1),
+                endpoint_type, url, payload=payload, depth=depth + 1,
             )
 
     def _poll_until_not(
@@ -1434,9 +1425,9 @@ class AuthenticatedUser(object):
                         },
                     }
                     for _server, _expects in _type_details.items():
-                        if (exc.args[2]["type"] == _expects["type"]) and exc.args[2][
-                            "detail"
-                        ].startswith(_expects["detail"]):
+                        if (exc.args[2].get("type") == _expects["type"]) and isinstance(
+                            exc.args[2].get("detail"), str
+                        ) and exc.args[2]["detail"].startswith(_expects["detail"]):
                             # just log this, we will retry regardless
                             log.info("ARI `replaces` Probable Mismatch")
                             log.info("Server: %s", _server)

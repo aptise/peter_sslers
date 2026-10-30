@@ -143,8 +143,8 @@ def new_Authenticated_user(
             _raise = True
             # (status_code, url, resp_data, headers) = exc.args
             if isinstance(exc, errors.AcmeServerError):
-                if (exc.args[0] == 400) and (
-                    exc.args[2]["type"]
+                if (exc.args[0] == 400) and isinstance(exc.args[2], dict) and (
+                    exc.args[2].get("type")
                     == "urn:ietf:params:acme:error:accountDoesNotExist"
                 ):
                     authenticatedUser = do__AcmeV2_AcmeAccount__authenticate(

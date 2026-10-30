@@ -392,3 +392,17 @@ These are certificate counts, not domain/SAN coverage counts. Reconciliation
 flushes pending state changes and refreshes loaded counters but leaves transaction
 commit/rollback to its caller. Values are refreshed by the global routine; this
 is not a new database trigger or a schema migration.
+
+## ACME transport and nonce failures
+
+`url_request` retains HTTP error headers in `AcmeServerError`, including rate-limit
+and replacement-nonce headers. Transport/read failures raise
+`AcmeCommunicationError`. `AcmeBadNonce` is an `AcmeServerError` subtype used by
+the signed-request retry path; unrelated `IndexError` exceptions are not retried.
+
+Signed requests consume a cached nonce before signing/sending. A badNonce retry
+uses the fresh Replay-Nonce from that response, as required by
+[RFC 8555 section 6.5](https://www.rfc-editor.org/rfc/rfc8555.html#section-6.5).
+Missing or repeated replacement nonces are communication errors; retries retain
+the existing MAX_DEPTH bound. A lost transport response is not automatically
+replayed with an already-consumed nonce.

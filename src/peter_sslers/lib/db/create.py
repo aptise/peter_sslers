@@ -1097,7 +1097,7 @@ def create__RateLimited(
     elif isinstance(server_response_body, str):
         dbRateLimited.server_response_body = server_response_body
     dbRateLimited.server_response_headers = (
-        json.dumps(server_response_headers) if server_response_headers else None
+        json.dumps(dict(server_response_headers.items())) if server_response_headers else None
     )
     if dbUniqueFQDNSet:
         dbRateLimited.unique_fqdn_set_id = dbUniqueFQDNSet.id
