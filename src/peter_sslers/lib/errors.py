@@ -349,6 +349,10 @@ class DomainVerificationError(AcmeError):
     pass
 
 
+class AcmeChallengePrecheckError(DomainVerificationError):
+    """A local HTTP proof check failed before contacting the CA challenge endpoint."""
+
+
 class DisplayableError(_UrlSafeException):
     pass
 

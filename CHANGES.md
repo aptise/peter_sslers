@@ -1,4 +1,15 @@
 1.0.0.dev
+    Ordering resilience:
+    * Preserve the original requested ARI replaces value independently of the
+      CA-reported replacement, including successful retries without replaces.
+    * On a local HTTP-01 proof failure, allow one same-order DNS-01 precheck
+      alternative under the explicit HTTP-first duplicate strategy. Require both
+      prechecks and both domain challenge choices, active DNS credentials/server,
+      and pending authorization/challenge state. Never switch after a CA failure.
+    * Keep explicit manual challenge triggers unchanged. Both initial discovery
+      and continuation processing trigger the successfully prepared challenge;
+      a failed DNS precheck propagates without another fallback.
+
     ACME profiles and shorter certificate lifetimes:
     * Preserve advertised profile references alongside legacy names. Add
       profiles_mapping to AcmeServer JSON and safely display HTTP(S) references.

@@ -229,6 +229,7 @@ def create__AcmeOrder(
     acme_order_retry_strategy_id: Optional[int] = None,
     dbX509CertificateRequest: Optional["X509CertificateRequest"] = None,
     transaction_commit: Optional[bool] = None,  # this is Optional
+    replaces_requested: Optional[str] = None,
 ) -> "AcmeOrder":
     """
     Create a new ACME Order
@@ -251,6 +252,7 @@ def create__AcmeOrder(
     :param private_key_cycle_id: (required) Valid options are in :class:`model.utils.PrivateKey_Cycle`
     :param private_key_deferred_id: (required) See `model.utils.PrivateKeyDeferred`
 
+    :param replaces_requested: original client intent, preserved if the CA rejects it.
     :param note: (optional) A string to be associated with this order
     :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
@@ -389,7 +391,8 @@ def create__AcmeOrder(
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.certificate_url = certificate_url
     dbAcmeOrder.profile = profile
-    dbAcmeOrder.replaces__requested = replaces
+    dbAcmeOrder.replaces__requested = replaces_requested
+    dbAcmeOrder.replaces = replaces
     dbAcmeOrder.x509_certificate_id__replaces = x509_certificate_id__replaces
     dbAcmeOrder.timestamp_expires = timestamp_expires
     dbAcmeOrder.timestamp_updated = datetime.datetime.now(datetime.timezone.utc)

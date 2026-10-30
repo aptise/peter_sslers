@@ -48,6 +48,7 @@ from . import errors
 from . import utils
 from . import utils_dns
 from .acme_profiles import directory_profiles
+from .challenge_fallback import dns_precheck_alternative
 from .db import create as db_create
 from .db import get as db_get
 from .db import update as db_update
@@ -1392,7 +1393,7 @@ class AuthenticatedUser(object):
                 While these could be tested to ensure this error might be happening,
                 the status quo across clients right now is to just try again:
                 """
-                if payload_order.get("replaces"):
+                if "replaces" in payload_order:
                     # logging only
                     _type_details = {
                         "LetsEncrypt - Boulder": {
@@ -1503,6 +1504,41 @@ class AuthenticatedUser(object):
 
         return True
 
+    def prepare_order_challenge(
+        self,
+        ctx: "ApiContext",
+        dbAcmeOrder: "AcmeOrder",
+        dbAcmeAuthorization: "AcmeAuthorization",
+        dbAcmeChallenge: "AcmeChallenge",
+        transaction_commit: Optional[bool] = None,
+    ) -> "AcmeChallenge":
+        """Prepare a preferred challenge, or one explicitly permitted precheck alternative."""
+        try:
+            self.prepare_acme_challenge(
+                ctx,
+                dbAcmeAuthorization,
+                dbAcmeChallenge,
+                transaction_commit=transaction_commit,
+            )
+        except errors.AcmeChallengePrecheckError:
+            alternative = dns_precheck_alternative(
+                ctx, dbAcmeOrder, dbAcmeAuthorization, dbAcmeChallenge
+            )
+            if alternative is None:
+                raise
+            self.prepare_acme_challenge(
+                ctx,
+                dbAcmeAuthorization,
+                alternative,
+                transaction_commit=transaction_commit,
+            )
+            log.info(
+                "Local precheck selected DNS-01 for authorization id=%s",
+                dbAcmeAuthorization.id,
+            )
+            return alternative
+        return dbAcmeChallenge
+
     def _prepare_acme_challenge__http01(
         self,
         ctx: "ApiContext",
@@ -1576,13 +1612,15 @@ class AuthenticatedUser(object):
                         print("DEBUG_CHALLENGES_MANUAL=True")
                         print("precheck failure, HTTP-01", wellknown_url)
                         pdb.set_trace()
-                    raise errors.DomainVerificationError(
+                    raise errors.AcmeChallengePrecheckError(
                         "Precheck Failure: Hosting keyauth challenge, but couldn't download {0}".format(
                             wellknown_url
                         )
                     )
             else:
                 log.debug("no precheck configured for http-01")
+        except errors.AcmeChallengePrecheckError:
+            raise
         except (AssertionError, ValueError) as exc:
             log.critical(
                 "precheck_acme_challenges[http-01] | FAILED (%s) %s"
@@ -2212,12 +2250,21 @@ class AuthenticatedUser(object):
             )
 
         if _task__complete_challenge:
-            self.prepare_acme_challenge(
-                ctx,
-                dbAcmeAuthorization=_dbAcmeAuthorization,
-                dbAcmeChallenge=dbAcmeChallenge,
-                transaction_commit=transaction_commit,
-            )
+            if dbAcmeOrder is not None:
+                dbAcmeChallenge = self.prepare_order_challenge(
+                    ctx,
+                    dbAcmeOrder,
+                    _dbAcmeAuthorization,
+                    dbAcmeChallenge,
+                    transaction_commit=transaction_commit,
+                )
+            else:
+                self.prepare_acme_challenge(
+                    ctx,
+                    _dbAcmeAuthorization,
+                    dbAcmeChallenge,
+                    transaction_commit=transaction_commit,
+                )
             self.acme_challenge_trigger(
                 ctx,
                 dbAcmeChallenge=dbAcmeChallenge,

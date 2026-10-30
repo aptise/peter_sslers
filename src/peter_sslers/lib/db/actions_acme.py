@@ -1416,6 +1416,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     dbAcmeChallenge: Optional["AcmeChallenge"] = None,
     authenticatedUser: Optional["AuthenticatedUser"] = None,
     transaction_commit: Optional[bool] = None,
+    precheck_fallback_order: Optional["AcmeOrder"] = None,
 ) -> bool:
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -1469,12 +1470,21 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
 
         try:
-            authenticatedUser.prepare_acme_challenge(
-                ctx,
-                dbAcmeAuthorization=dbAcmeAuthorization,
-                dbAcmeChallenge=dbAcmeChallenge,
-                transaction_commit=transaction_commit,
-            )
+            if precheck_fallback_order is not None:
+                dbAcmeChallenge = authenticatedUser.prepare_order_challenge(
+                    ctx,
+                    precheck_fallback_order,
+                    dbAcmeAuthorization,
+                    dbAcmeChallenge,
+                    transaction_commit=transaction_commit,
+                )
+            else:
+                authenticatedUser.prepare_acme_challenge(
+                    ctx,
+                    dbAcmeAuthorization,
+                    dbAcmeChallenge,
+                    transaction_commit=transaction_commit,
+                )
 
             challenge_response = authenticatedUser.acme_challenge_trigger(
                 ctx,
@@ -2461,6 +2471,7 @@ def do__AcmeV2_AcmeOrder__process(
                     dbAcmeChallenge=dbAcmeChallenge,
                     authenticatedUser=authenticatedUser,
                     transaction_commit=transaction_commit,
+                    precheck_fallback_order=dbAcmeOrder,
                 )
         else:
             # no authorizations?
@@ -3343,6 +3354,7 @@ def do__AcmeV2_AcmeOrder__new(
                 private_key_deferred_id=private_key_deferred_id,
                 transaction_commit=transaction_commit,  # this is optional
                 # optionals
+                replaces_requested=replaces,
                 is_save_alternate_chains=dbRenewalConfiguration.is_save_alternate_chains,
                 dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
                 acme_order_retry_strategy_id=acme_order_retry_strategy_id,
