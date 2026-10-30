@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import sqlite3
 import subprocess
 import time
 import unittest
@@ -130,6 +131,22 @@ class Test_CommandlineScripts(unittest.TestCase):
                         pass
                     if err:
                         raise ValueError("Exception", err)
+                    self.assertEqual(proc.returncode, 0, response)
+                    with sqlite3.connect(sqlite_fpath) as connection:
+                        names = {
+                            row[0] for row in connection.execute(
+                                "SELECT name FROM system_configuration"
+                            )
+                        }
+                        self.assertEqual(
+                            names, {"global", "autocert", "certificate-if-needed"}
+                        )
+                        root_flags = connection.execute(
+                            "SELECT is_trusted_root, is_untrusted_root "
+                            "FROM x509_certificate_trusted WHERE fingerprint_sha1 = ?",
+                            ("A9571557A77DB78FFAC2E97B57B898569039C340",),
+                        ).fetchone()
+                        self.assertEqual(root_flags, (0, 1))
             except Exception as exc:  # noqa: F841
                 raise
         finally:

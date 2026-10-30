@@ -28,7 +28,7 @@ import warnings
 import alembic
 import alembic.config
 import cert_utils
-from cert_utils import letsencrypt_info
+from cert_utils.letsencrypt_info import certificates as letsencrypt_info
 from cert_utils.model import AccountKeyData
 import packaging.version
 import psutil

@@ -54,10 +54,10 @@ class ApplicationSettings(dict):
             "offset.ari_updates",
             "offset.cert_renewals",
             "redis.prime_style",
-            "redis.timeout.cert"
-            "redis.timeout.certcachain"
-            "redis.timeout.domain"
-            "redis.timeout.pkey"
+            "redis.timeout.cert",
+            "redis.timeout.certcachain",
+            "redis.timeout.domain",
+            "redis.timeout.pkey",
             "redis.url",
             "requests.disable_ssl_warning",
             "scheduler",

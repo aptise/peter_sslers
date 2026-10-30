@@ -319,3 +319,20 @@ order one cert and process it at once, through acme-order/new-freeform
     
         
 
+
+## Testing the audited sibling dependencies
+
+Use an isolated environment and install the sibling `cert_utils` checkout before
+running tests, until version 1.2.0 is published:
+
+```sh
+python3.14 -m venv ../peter_sslers-venv-py314
+../peter_sslers-venv-py314/bin/python -m pip install -e '../cert_utils' -e '.[testing]'
+../peter_sslers-venv-py314/bin/python -m pytest tests/test_unit.py
+```
+
+OpenResty loads `lua-resty-peter_sslers` separately; pip does not upgrade that
+module. Test its audited sibling checkout with the Python certificate endpoints
+before deploying the pair. Redis and ACME integration tests need the services
+and configuration described below; passing unit tests alone does not validate
+certificate issuance or failover.

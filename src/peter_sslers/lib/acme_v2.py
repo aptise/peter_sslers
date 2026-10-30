@@ -1119,8 +1119,9 @@ class AuthenticatedUser(object):
                     ),
                     event_payload_dict,
                 )
-        finally:
-            return is_did_deactivate
+        except Exception:
+            raise
+        return is_did_deactivate
 
     def key_change(
         self,
@@ -1256,8 +1257,7 @@ class AuthenticatedUser(object):
         except Exception:
             raise
 
-        finally:
-            return is_did_keychange
+        return is_did_keychange
 
     def acme_order_load(
         self,

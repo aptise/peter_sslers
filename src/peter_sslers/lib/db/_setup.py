@@ -128,7 +128,7 @@ def initialize_database(ctx: "ApiContext") -> Literal[True]:
     dbX509CertificateTrustPreferencePolicy = (
         db_create.create__X509CertificateTrustPreferencePolicy(ctx, "global")
     )
-    from cert_utils import letsencrypt_info
+    from cert_utils.letsencrypt_info import certificates as letsencrypt_info
 
     for cert_id in letsencrypt_info.DEFAULT_CA_PREFERENCES:
         # cert_payload = letsencrypt_info.CERT_CAS_DATA[cert_id]

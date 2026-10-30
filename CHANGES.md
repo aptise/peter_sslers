@@ -1,4 +1,9 @@
 1.0.0.dev
+    Database initialization: allow explicit distrust independently of trusted-root
+    membership, matching cert_utils 1.2 certificate metadata. Existing databases
+    require Alembic upgrade to revision 7a3c9e82d041. This preserves trust flags;
+    downgrading requires reconciling rows incompatible with the old constraint.
+
     This is large rewrite and reorganization of concepts.
 
     This application was originally built to "toss domains at", and then generate

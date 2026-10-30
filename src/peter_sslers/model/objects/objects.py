@@ -5107,7 +5107,9 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     acme_account = sa_orm_relationship(
         AcmeAccount,
         primaryjoin="X509Certificate.id==AcmeOrder.x509_certificate_id",
-        secondary="join(AcmeOrder, AcmeAccount, AcmeOrder.acme_account_id==AcmeAccount.id)",
+        secondary=lambda: sa.join(
+            AcmeOrder, AcmeAccount, AcmeOrder.acme_account_id == AcmeAccount.id
+        ),
         uselist=False,
         viewonly=True,
     )
@@ -5727,12 +5729,6 @@ class X509CertificateTrusted(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     """
 
     __tablename__ = "x509_certificate_trusted"
-    __table_args__ = (
-        sa.CheckConstraint(
-            "(is_untrusted_root IS NOT True) OR ((is_untrusted_root IS True) AND (is_trusted_root IS True))",
-            name="ck_x509_certificate_trusted__untrusted_root",
-        ),
-    )
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     display_name: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
     discovery_type: Mapped[Optional[str]] = mapped_column(
@@ -5745,7 +5741,7 @@ class X509CertificateTrusted(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
     )  # this is just used to track if we know this cert is in trusted root stores.
     is_untrusted_root: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=None
-    )  # specifically mark this as untrusted; MUST also set is_trusted_root
+    )  # Explicit distrust is independent of trusted-root membership.
 
     key_technology_id: Mapped[int] = mapped_column(
         sa.Integer, nullable=False

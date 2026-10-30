@@ -262,11 +262,10 @@ AcmeAuthorization.acme_challenges__5 = sa_orm_relationship(
 AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
     AcmeOrder,
     primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
-    secondary=(
-        """join(AcmeOrder2AcmeAuthorization,
-                AcmeOrder,
-                AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id
-                )"""
+    secondary=lambda: sa.join(
+        AcmeOrder2AcmeAuthorization,
+        AcmeOrder,
+        AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id,
     ),
     secondaryjoin=(
         sa.and_(
@@ -296,11 +295,10 @@ AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
 AcmeChallenge.acme_orders = sa_orm_relationship(
     AcmeOrder,
     primaryjoin="AcmeChallenge.acme_authorization_id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
-    secondary=(
-        """join(AcmeOrder,
-                AcmeOrder2AcmeAuthorization,
-                AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id
-                )"""
+    secondary=lambda: sa.join(
+        AcmeOrder,
+        AcmeOrder2AcmeAuthorization,
+        AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id,
     ),
     secondaryjoin=(
         sa.and_(

@@ -1,8 +1,6 @@
 # stdlib
 import http.client
 from io import BytesIO
-import test
-import test.test_httplib
 from typing import Callable
 from typing import Dict
 import unittest
@@ -10,7 +8,7 @@ from urllib.response import addinfourl
 
 # pypi
 import cert_utils
-from cert_utils import letsencrypt_info
+from cert_utils.letsencrypt_info import certificates as letsencrypt_info
 
 # local
 from peter_sslers.lib import acme_v2
@@ -301,6 +299,16 @@ class _MockedFP(BytesIO):
         pass
 
 
+class _FakeSocket:
+    """Provide an HTTP response stream without CPython internal test helpers."""
+
+    def __init__(self, response: bytes):
+        self.response = response
+
+    def makefile(self, mode):
+        return BytesIO(self.response)
+
+
 class UnitTest_ACME_v2(unittest.TestCase):
     """
     python2 -m unittest tests.test_unit.UnitTest_ACME_v2
@@ -315,10 +323,10 @@ class UnitTest_ACME_v2(unittest.TestCase):
         body_1 = _message_template % _link_1
         body_2 = _message_template % (b"%s%s" % (_link_1, _link_2))
 
-        message_1 = http.client.HTTPResponse(test.test_httplib.FakeSocket(body_1))
+        message_1 = http.client.HTTPResponse(_FakeSocket(body_1))
         message_1.begin()
 
-        message_2 = http.client.HTTPResponse(test.test_httplib.FakeSocket(body_2))
+        message_2 = http.client.HTTPResponse(_FakeSocket(body_2))
         message_2.begin()
 
         # In an ideal world, that would be all, but we need some more massaging

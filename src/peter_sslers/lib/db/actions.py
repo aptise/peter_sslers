@@ -1145,12 +1145,12 @@ def refresh_roots(
     ).delete(synchronize_session=False)
 
     # nestle this import, so we do not load it on every run
-    from cert_utils import letsencrypt_info
+    from cert_utils.letsencrypt_info import certificates as letsencrypt_info
 
     certs = letsencrypt_info.CERT_CAS_DATA
     certs_order = letsencrypt_info._CERT_CAS_ORDER
     if include_deprecated:
-        certs = certs + letsencrypt_info.CERT_CAS_DEPRECATED
+        certs = {**certs, **letsencrypt_info.CERT_CAS_DEPRECATED}
         certs_order = certs_order + letsencrypt_info._CERT_CAS_DEPRECATED_ORDER
 
     # do a quick check
