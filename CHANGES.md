@@ -1,4 +1,11 @@
 1.0.0.dev
+    Redis/Valkey domain cache: honor redis.timeout.domain for both prime styles.
+    Previously, domain hashes were written without applying the configured TTL.
+    Priming now updates the hash and its expiration in one transaction;
+    re-priming without a timeout clears any previous expiration. Existing entries
+    receive the configured lifetime when next primed. Verified both prime styles
+    against isolated Redis and Valkey servers.
+
     Database initialization: allow explicit distrust independently of trusted-root
     membership, matching cert_utils 1.2 certificate metadata. Existing databases
     require Alembic upgrade to revision 7a3c9e82d041. This preserves trust flags;

@@ -16,7 +16,7 @@ These are documented at-length on the in-app settings page.
 
 * `redis.url` - URL of `Redis` (includes port)
 * `redis.prime_style` - MUST be "1" or "2"; see `Redis` Prime section below.
-* `redis.timeout.certca` - INT seconds (default None)
+* `redis.timeout.certcachain` - INT seconds (default None)
 * `redis.timeout.cert` - INT seconds (default None)
 * `redis.timeout.pkey` - INT seconds (default None)
 * `redis.timeout.domain` - INT seconds (default None)
@@ -47,3 +47,23 @@ These are documented at-length on the in-app settings page.
   http-01 challenges; traffic must be proxied to it from port 80.
 
 These options are used by the server AND by the test suite.
+
+### Redis and Valkey certificate caches
+
+Use the existing `redis.*` settings for either server. Valkey uses the same
+`redis://` connection URL and Python Redis client; no separate client package
+or `valkey.*` settings are needed for the certificate cache.
+
+`redis.timeout.domain` applies to domain hashes in both prime styles. Re-priming
+updates the payload and lifetime together. An unset timeout makes the hash
+persistent, including clearing a previous expiration. This TTL controls the
+backend cache entry, not certificate validity or OpenResty worker-cache lifetime.
+
+The isolated backend checks run against both executables when installed:
+
+```sh
+python -m pytest tests/test_cache_backends.py -q
+```
+
+Each test starts a private server on a temporary Unix socket, with TCP and disk
+persistence disabled. Missing executables are reported as skipped tests.

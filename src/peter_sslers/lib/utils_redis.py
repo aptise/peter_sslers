@@ -169,6 +169,18 @@ def prime_redis_domain(
     return True
 
 
+def _set_domain_hash(redis_client, key, mapping, timeout):
+    # Keep the payload and its lifetime in one transaction. HSET alone retains
+    # an old TTL, so persistent re-priming must explicitly clear expiration.
+    with redis_client.pipeline(transaction=True) as pipeline:
+        pipeline.hset(key, mapping=mapping)
+        if timeout is None:
+            pipeline.persist(key)
+        else:
+            pipeline.expire(key, timeout)
+        pipeline.execute()
+
+
 def redis_prime_logic__style_1_Domain(
     redis_client,
     dbDomain: "Domain",
@@ -210,7 +222,9 @@ def redis_prime_logic__style_1_Domain(
         "p": "%s" % dbX509Certificate.private_key_id,
         "i": "%s" % dbX509Certificate.x509_certificate_trust_chain_id__preferred,
     }
-    redis_client.hset(key_redis, mapping=value_redis)
+    _set_domain_hash(
+        redis_client, key_redis, value_redis, redis_timeouts["domain"]
+    )
 
     # then do the cert
     key_redis = "c:%s" % dbX509Certificate.id
@@ -284,5 +298,7 @@ def redis_prime_logic__style_2_domain(
         "f": "%s" % dbX509Certificate.cert_fullchain_pem,
         "p": "%s" % dbX509Certificate.private_key.key_pem,
     }
-    redis_client.hset(key_redis, mapping=value_redis)
+    _set_domain_hash(
+        redis_client, key_redis, value_redis, redis_timeouts["domain"]
+    )
     return dbX509Certificate
