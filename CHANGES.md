@@ -1,4 +1,14 @@
 1.0.0.dev
+    Trust-chain selection and cache retirement:
+    * Re-evaluate preferred trust chains and chain membership on model access so
+      policy or relationship changes do not leave stale selections cached.
+    * Resolve omitted chain arguments to the current preferred chain; explicit
+      chain IDs still must belong to the certificate. Detached objects use the
+      first available chain when there is no request preference policy.
+    * When re-priming finds no active certificate, remove the domain hash from
+      Redis/Valkey before reporting unavailable certificate data, in both formats.
+      This does not flush already populated OpenResty worker caches.
+
     Test database snapshots: close the requesting session before replacing the
     active database, restore with SQLite's backup API instead of editing
     sqlite_master, and close snapshot connections. Failed resets now invalidate

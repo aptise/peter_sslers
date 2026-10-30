@@ -213,7 +213,12 @@ def redis_prime_logic__style_1_Domain(
     r['c:1'] = CERT.PEM  # (c)ert
     r['c:2'] = CERT.PEM
     """
-    dbX509Certificate = _domain_certificate(dbDomain)
+    try:
+        dbX509Certificate = _domain_certificate(dbDomain)
+    except ValueError:
+        # Do not leave a previously primed certificate reachable for this domain.
+        redis_client.delete("d1:%s" % dbDomain.domain_name)
+        raise
 
     # first do the domain
     key_redis = "d1:%s" % dbDomain.domain_name
@@ -284,7 +289,12 @@ def redis_prime_logic__style_2_domain(
 
         d2: domain
     """
-    dbX509Certificate = _domain_certificate(dbDomain)
+    try:
+        dbX509Certificate = _domain_certificate(dbDomain)
+    except ValueError:
+        # Do not leave a previously primed certificate reachable for this domain.
+        redis_client.delete("d2:%s" % dbDomain.domain_name)
+        raise
 
     # the domain will hold the fullchain and private key
     key_redis = "d2:%s" % dbDomain.domain_name

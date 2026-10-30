@@ -107,3 +107,25 @@ def test_certificate_parts_have_independent_lifetimes(cache_client):
     redis_prime_logic__style_1_X509CertificateTrustChain(cache_client, chain, timeouts)
     assert cache_client.ttl("p:2") == -1
     assert cache_client.ttl("i:3") == -1
+
+
+@pytest.mark.parametrize("style", [1, 2])
+def test_reprime_removes_domain_hash_when_no_active_certificate_remains(cache_client, style):
+    certificate = SimpleNamespace(
+        id=1, is_active=True, private_key_id=2,
+        x509_certificate_trust_chain_id__preferred=3,
+        cert_pem="certificate", cert_fullchain_pem="fullchain",
+        private_key=SimpleNamespace(key_pem="private key"),
+    )
+    domain = SimpleNamespace(
+        domain_name="revoked.example", x509_certificate_id__latest_multi=1,
+        x509_certificate__latest_multi=certificate,
+    )
+    prime = redis_prime_logic__style_1_Domain if style == 1 else redis_prime_logic__style_2_domain
+    timeouts = {"domain": None, "cert": None}
+    prime(cache_client, domain, timeouts)
+    assert cache_client.exists(f"d{style}:revoked.example")
+    certificate.is_active = False
+    with pytest.raises(ValueError, match="active certificate"):
+        prime(cache_client, domain, timeouts)
+    assert not cache_client.exists(f"d{style}:revoked.example")

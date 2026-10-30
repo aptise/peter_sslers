@@ -5204,7 +5204,7 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         # certs are standardized to have a newline
         return "\n".join((self.cert_pem.strip(), self.cert_chain_pem))  # type: ignore[arg-type]
 
-    @reify
+    @property
     def x509_certificate_trusted_ids__upchain(self) -> List[int]:
         # this loops `ORM:x509_certificate_chains`
         # this is NOT in order of preference
@@ -5215,7 +5215,7 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         ids = list(_ids)
         return ids
 
-    @reify
+    @property
     def x509_certificate_trusteds__upchain(self) -> List["X509CertificateTrusted"]:
         # this loops `ORM:x509_certificate_chains`
         # this is NOT in order of preference
@@ -5226,14 +5226,14 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
         cas = list(_cas)
         return cas
 
-    @reify
+    @property
     def x509_certificate_trust_chain_ids(self) -> List[int]:
         # this loops `ORM:x509_certificate_chains`
         # this is NOT in order of preference
         _ids = [i.x509_certificate_trust_chain_id for i in self.x509_certificate_chains]
         return _ids
 
-    @reify
+    @property
     def x509_certificate_trust_chain_id__preferred(self) -> Optional[int]:
         # this invokes `x509_certificate_trust_chain__preferred`
         # which then loops `ORM:x509_certificate_chains`
@@ -5241,43 +5241,36 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
             return self.x509_certificate_trust_chain__preferred.id
         return None
 
-    @reify
+    @property
     def x509_certificate_trust_chain__preferred(
         self,
     ) -> Optional["X509CertificateTrustChain"]:
         # this loops `ORM:x509_certificate_chains`
         if not self.x509_certificate_chains:
             return None
-        try:
-            dbSession = sa_Session.object_session(self)
-            if TYPE_CHECKING:
-                assert dbSession
-            request = dbSession.info.get("request")
+        dbSession = sa_Session.object_session(self)
+        request = dbSession.info.get("request") if dbSession is not None else None
 
-            # only search for a preference if they exist
-            if request and request.dbX509CertificateTrustPreferencePolicy:
-                # TODO: first match or shortest match?
-                # first match for now!
-                # there are a lot of ways to compute this,
-                # this is not efficient. this is just a quick pass
-                preferred_ca_ids = [
-                    i.x509_certificate_trusted_id
-                    for i in request.dbX509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
-                ]
-                for _preferred_ca_id in preferred_ca_ids:
-                    for _csc in self.x509_certificate_chains:
-                        _ca_chain = _csc.x509_certificate_trust_chain
-                        # right now we don't care WHERE in the chain the
-                        # certificate CA pref is, just that it is in the chain
-                        if _preferred_ca_id in _ca_chain.x509_certificate_trusted_ids:
-                            return _ca_chain
+        # only search for a preference if they exist
+        if request and request.dbX509CertificateTrustPreferencePolicy:
+            # TODO: first match or shortest match?
+            # first match for now!
+            # there are a lot of ways to compute this,
+            # this is not efficient. this is just a quick pass
+            preferred_ca_ids = [
+                i.x509_certificate_trusted_id
+                for i in request.dbX509CertificateTrustPreferencePolicy.x509_certificate_trust_preference_policy_items
+            ]
+            for _preferred_ca_id in preferred_ca_ids:
+                for _csc in self.x509_certificate_chains:
+                    _ca_chain = _csc.x509_certificate_trust_chain
+                    # right now we don't care WHERE in the chain the
+                    # certificate CA pref is, just that it is in the chain
+                    if _preferred_ca_id in _ca_chain.x509_certificate_trusted_ids:
+                        return _ca_chain
 
-            # we have None! so just return the first one we have
-            return self.x509_certificate_chains[0].x509_certificate_trust_chain
-
-        except Exception as exc:
-            log.critical(exc)
-        return None
+        # we have None! so just return the first one we have
+        return self.x509_certificate_chains[0].x509_certificate_trust_chain
 
     def custom_config_payload(
         self,
@@ -5484,6 +5477,10 @@ class X509Certificate(Base, _Mixin_Timestamps_Pretty, _Mixin_Hex_Pretty):
 
     def valid_x509_certificate_trust_chain(self, x509_certificate_trust_chain_id=None):
         """return a single X509CertificateTrusted, or the default"""
+        if x509_certificate_trust_chain_id is None:
+            preferred = self.x509_certificate_trust_chain__preferred
+            if preferred is not None:
+                return preferred
         for _to_upchain in self.x509_certificate_chains:
             if (
                 _to_upchain.x509_certificate_trust_chain_id

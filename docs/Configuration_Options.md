@@ -104,3 +104,17 @@ On-demand cache priming warns and returns `False` for cache backend errors or
 unavailable certificate data in either prime style. This permits the existing
 API certificate path to continue during cache outages. Programming errors are
 not suppressed. Bulk priming retains its error-reporting behavior.
+
+### Trust-chain changes and domain cache retirement
+
+Preferred trust chains and chain membership are evaluated when accessed rather
+than cached for the lifetime of a certificate model object. Chain download
+helpers without an explicit chain ID use the current preferred chain; an explicit
+ID must still be associated with the certificate.
+
+Re-priming a domain with no active certificate removes its `d1:` or `d2:` hash
+from Redis/Valkey. Shared certificate, chain, and key records remain because
+other domains can reference them. This occurs when that domain is re-primed;
+it is not an automatic sweep of all retired certificates. Existing OpenResty
+worker/shared caches still require their normal expiry or explicit cache-control
+operations before backend changes are reflected there.
