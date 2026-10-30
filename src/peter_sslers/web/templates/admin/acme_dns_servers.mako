@@ -13,6 +13,7 @@
 
 <%block name="page_header_col">
     <h2>acme-dns Servers</h2>
+    ${admin_partials.handle_querystring_result()}
 </%block>
 
 

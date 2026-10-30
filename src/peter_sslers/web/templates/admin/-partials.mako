@@ -3132,6 +3132,9 @@
     <%
         import pprint
         result = request.params.get('result', '')
+        error = request.params.get('error', '')
+        if not result and error:
+            result = "error"
     %>
     % if result in ("success", "error"):
         % if result == 'success':

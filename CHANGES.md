@@ -1,4 +1,6 @@
 1.0.0.dev
+    * Attempting to add a second acme-dns server did not surface in HTML
+      the intended querystring error.
     Logging, audit integrity, and operational hardening:
     * Replace raw ACME wire dumps with censored request/response metadata. Censor
       package and dependency logs, including exception values and structured
