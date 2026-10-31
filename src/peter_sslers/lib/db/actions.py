@@ -1238,6 +1238,9 @@ def register_acme_servers(
         elif ca_cert_bundle:
             server_ca_cert_bundle = cert_utils.cleanup_pem_text(ca_cert_bundle)
 
+        require_public_ip = item.get("require_public_ip", True)
+        if type(require_public_ip) is not bool:
+            raise ValueError("require_public_ip must be a boolean")
         server = url_to_server(item["directory_url"])
 
         def _new_AcmeServer():
@@ -1254,6 +1257,7 @@ def register_acme_servers(
                 "is_supports_ari__version", None
             )
             dbObject.is_retry_challenges = item.get("is_retry_challenges", None)
+            dbObject.require_public_ip = require_public_ip
             dbObject.server = server
             dbObject.server_ca_cert_bundle = server_ca_cert_bundle
             ctx.dbSession.add(dbObject)
@@ -1273,6 +1277,8 @@ def register_acme_servers(
                 _new_AcmeServer()
             else:
                 log.debug("Existing ACME Server: %s", server)
+                if "require_public_ip" in item:
+                    existingDbServer.require_public_ip = require_public_ip
                 if existingDbServer.server_ca_cert_bundle != server_ca_cert_bundle:
                     log.debug("Updating: %s", server)
                     existingDbServer.server_ca_cert_bundle = server_ca_cert_bundle

@@ -27,6 +27,7 @@ from .logger import _log_object_event
 from .logger import log__OperationsEvent
 from .. import errors
 from ..acme_profiles import directory_profiles
+from ..identifiers import names_from_identifiers
 from ... import lib
 from ...lib import acme_v2
 from ...lib import events as _events  # noqa: F401
@@ -304,9 +305,7 @@ def update_AcmeAuthorization_from_payload(
             timestamp_expires = dateutil_parser.parse(timestamp_expires)
 
         identifer = authorization_payload["identifier"]
-        if identifer["type"] != "dns":
-            raise ValueError("unexpected authorization payload: identifier type")
-        domain_name = identifer["value"]
+        domain_name = names_from_identifiers([identifer])[0]
         dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
         if not dbDomain:
             raise ValueError(

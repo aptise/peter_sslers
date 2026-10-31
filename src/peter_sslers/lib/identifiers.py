@@ -4,6 +4,7 @@ import ipaddress
 from typing import Iterable
 from typing import List
 from typing import Optional
+from urllib.parse import urlsplit
 
 from cert_utils.identifiers import Identifier
 from cert_utils.utils import identify_san_type
@@ -61,7 +62,34 @@ def names_from_identifiers(values: Iterable[Identifier]) -> List[str]:
     return canonical_names(result)
 
 
-def require_dns_issuance(values: Iterable[str]) -> None:
-    """Keep IP ordering disabled until ACME IP identifier support is implemented."""
-    if any(identifier(value)["type"] == "ip" for value in values):
-        raise errors.InvalidRequest("IP ACME issuance is not implemented yet")
+def validate_ip_policy(values: Iterable[str], require_public_ip: bool = True) -> None:
+    """Apply issuer policy without limiting which identities can be stored locally."""
+    for value in values:
+        item = identifier(value)
+        if item["type"] == "ip" and require_public_ip:
+            address = ipaddress.ip_address(item["value"])
+            if not address.is_global or address.is_reserved or address.is_multicast:
+                raise errors.InvalidRequest(
+                    "ACME server requires publicly routable IP addresses"
+                )
+
+
+def http_host(value: str) -> str:
+    """Bracket an IPv6 literal when constructing an HTTP challenge URL."""
+    name = canonical_name(value)
+    return f"[{name}]" if ":" in name else name
+
+
+def name_from_http_host(value: str) -> str:
+    """Extract a canonical challenge identity from a DNS or bracketed IP Host."""
+    parsed = urlsplit("http://" + value)
+    if (
+        parsed.username is not None
+        or parsed.password is not None
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("Invalid HTTP Host")
+    parsed.port  # Validate the port rather than silently ignoring malformed authorities.
+    return canonical_name(parsed.hostname or "")

@@ -242,7 +242,7 @@ def test_authorization_processing_triggers_only_the_prechecked_dns_alternative(
 ) -> None:
     document = {
         "status": "pending",
-        "identifier": {"value": "example.com"},
+        "identifier": {"type": "dns", "value": "example.com"},
         "challenges": [
             {"type": "http-01", "url": fallback.http.challenge_url},
             {"type": "dns-01", "url": fallback.dns.challenge_url},

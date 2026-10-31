@@ -1,5 +1,14 @@
 1.0.0.dev
-    IP certificate infrastructure (issuance deferred):
+    IP ACME issuance:
+    * Order, authorize and finalize IPv4/IPv6 and mixed DNS/IP certificates with
+      typed ACME identifiers and CSR SANs; bracket IPv6 HTTP-01 URLs.
+    * Add migration e4a91d6b208f and AcmeServer.require_public_ip (default true).
+      Reject non-public, reserved and multicast IPs before CA submission; private
+      CAs may explicitly opt out through server registration JSON. Export the policy.
+    * Reject DNS-01 for IPs and prevent HTTP-to-DNS fallback for IP authorizations.
+      CA-specific profile/lifetime requirements remain issuer configuration.
+
+    IP certificate infrastructure:
     * Add migration d8b74e3c10a6 for the IPv6 Domain constraint. Preserve domain
       IDs and SQLite expression indexes, canonicalize stored IPs/blocklists and
       refuse collisions or lossy downgrades rather than merging histories.
@@ -11,9 +20,8 @@
       Add identity metadata to existing full JSON projections.
     * Match local certificate/CSR imports using typed SANs from cert_utils,
       including IP-only and mixed certificates with an empty subject.
-    * Reject IP ACME ordering before authentication or network submission until
-      Part 2 implements IP protocol support. Reject IP DNS-01 configuration.
-      No Let's Encrypt-specific profile or lifetime requirement is hardcoded.
+    * Reject IP DNS-01 configuration. No Let's Encrypt-specific profile or
+      lifetime requirement is hardcoded.
 
     Ordering resilience:
     * Preserve the original requested ARI replaces value independently of the

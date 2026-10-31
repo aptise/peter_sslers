@@ -47,6 +47,7 @@ from .. import utils
 from ..identifiers import canonical_name
 from ..identifiers import canonical_names
 from ..identifiers import identifier
+from ..identifiers import names_from_identifiers
 from ... import lib
 from ...lib import utils as lib_utils
 from ...model import objects as model_objects
@@ -624,6 +625,13 @@ def process__AcmeAuthorization_payload(
     :param transaction_commit: (optional) Boolean value. `True` to persist to the database.
     """
     log.debug("process__AcmeAuthorization_payload")
+    authorization_name = names_from_identifiers([authorization_payload["identifier"]])[
+        0
+    ]
+    if authorization_name not in dbAcmeOrder.domains_as_list:
+        raise errors.InvalidRequest(
+            "Authorization identity is not present on this order"
+        )
     # is_created__AcmeAuthorization2Order = None
 
     # is this associated?

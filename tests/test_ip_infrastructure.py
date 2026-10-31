@@ -1,4 +1,4 @@
-"""Local IP identities, stable sets and migrations; no ACME issuance is enabled."""
+"""Local IP identities, stable sets, certificate imports and migrations."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ from pathlib import Path
 from types import ModuleType
 from typing import Generator
 from typing import TYPE_CHECKING
-from unittest.mock import Mock
 
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
@@ -17,7 +16,6 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 import tldextract
 
-from peter_sslers.lib import acme_v2
 from peter_sslers.lib import errors
 from peter_sslers.lib.db import get
 from peter_sslers.lib.db import getcreate
@@ -155,23 +153,6 @@ def test_dns_san_kind_cannot_be_reinterpreted_as_ip() -> None:
 def test_dns01_is_not_an_ip_challenge(identity_context: ApiContext) -> None:
     with pytest.raises(errors.InvalidRequest, match="DNS-01"):
         validate.ensure_domains_dns01(identity_context, ["10.0.0.1"])
-
-
-@pytest.mark.parametrize("name", ["10.0.0.1", "2001:db8::1", "8.8.8.8"])
-def test_ip_ordering_is_blocked_before_ca_io(
-    identity_context: ApiContext, name: str
-) -> None:
-    user = object.__new__(acme_v2.AuthenticatedUser)
-    send = Mock()
-    setattr(user, "_send_signed_request", send)
-    with pytest.raises(errors.InvalidRequest, match="not implemented"):
-        user.acme_order_new(
-            identity_context,
-            [name],
-            models.UniqueFQDNSet(id=1),
-            transaction_commit=True,
-        )
-    send.assert_not_called()
 
 
 @pytest.fixture
@@ -357,26 +338,3 @@ def test_real_csr_and_certificate_import_keep_private_ip_sans(
     assert certificate.ip_addresses == ["10.0.0.1", "fd00::1"]
     assert certificate.dns_names == (["example.com"] if dns else [])
     assert certificate.unique_fqdn_set_id == csr.unique_fqdn_set_id
-
-
-def test_renewal_order_service_blocks_ip_before_authentication(
-    identity_context: ApiContext,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from peter_sslers.lib.db import actions_acme
-
-    names, _ = getcreate.getcreate__UniqueFQDNSet__by_domains(
-        identity_context, ["fd00::1"]
-    )
-    configuration = models.RenewalConfiguration(id=1, unique_fqdn_set=names)
-    authenticate = Mock()
-    monkeypatch.setattr(actions_acme, "new_Authenticated_user", authenticate)
-    with pytest.raises(errors.InvalidRequest, match="not implemented"):
-        actions_acme.do__AcmeV2_AcmeOrder__new(
-            identity_context,
-            configuration,
-            processing_strategy="create_order",
-            acme_order_type_id=1,
-            transaction_commit=True,
-        )
-    authenticate.assert_not_called()

@@ -28,6 +28,7 @@ from ..lib.config_utils import ApplicationSettings
 from ..lib.config_utils import set_bool_setting
 from ..lib.context import ApiContext
 from ..lib.db import _setup
+from ..lib.identifiers import name_from_http_host
 from ..lib.utils import unurlify
 from ..logging_utils import install_logging_safety
 from ..model import websafe as model_websafe
@@ -119,7 +120,7 @@ def main(global_config: Optional[Dict], **settings):
 
     # let's extend the request too!
     config.add_request_method(
-        lambda request: request.environ["HTTP_HOST"].split(":")[0],
+        lambda request: name_from_http_host(request.environ["HTTP_HOST"]),
         "active_domain_name",
         reify=True,
     )

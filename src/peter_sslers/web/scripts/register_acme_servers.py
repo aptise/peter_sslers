@@ -122,6 +122,7 @@ def main(argv=sys.argv):
                 is_retry_challenges=_server.get("is_retry_challenges"),
                 filepath_ca_cert_bundle=_server.get("filepath_ca_cert_bundle"),
                 ca_cert_bundle=_server.get("ca_cert_bundle"),
+                require_public_ip=_server.get("require_public_ip", True),
             )
             servers.append(server)
 
@@ -148,6 +149,7 @@ def main(argv=sys.argv):
                 protocol=_dbserver.protocol,
                 is_supports_ari__version=_dbserver.is_supports_ari__version,
                 ca_cert_bundle=_dbserver.server_ca_cert_bundle,
+                require_public_ip=_dbserver.require_public_ip,
             )
             exportServers.append(_exportServer)
 

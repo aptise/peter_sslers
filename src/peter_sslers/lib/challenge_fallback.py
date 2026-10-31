@@ -3,6 +3,7 @@
 from typing import Optional
 from typing import TYPE_CHECKING
 
+from .identifiers import identifier
 from ..model import utils
 
 if TYPE_CHECKING:
@@ -44,6 +45,8 @@ def dns_precheck_alternative(
     if not {"http-01", "dns-01"}.issubset(enabled):
         return None
     domain = authorization.domain
+    if identifier(domain.domain_name)["type"] == "ip":
+        return None
     names = order.domains_challenged
     if any(
         domain.domain_name not in (names.get(kind) or ())

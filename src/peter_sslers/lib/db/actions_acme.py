@@ -1,5 +1,6 @@
 # stdlib
 import datetime
+import ipaddress
 import logging
 import os
 import typing
@@ -54,7 +55,8 @@ from ..acme_profiles import require_profile
 from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
 from ..exceptions import ReassignedPrivateKey
-from ..identifiers import require_dns_issuance
+from ..identifiers import names_from_identifiers
+from ..identifiers import validate_ip_policy
 from ..synchronization import configuration_order_resources
 from ..synchronization import order_resources
 from ..synchronization import serialized_execution
@@ -2148,8 +2150,11 @@ def _do__AcmeV2_AcmeOrder__finalize(
         else:
             # make the CSR
             csr_pem = cert_utils.make_csr(
-                domain_names,
+                dbAcmeOrder.dns_names,
                 key_pem=private_key_pem,
+                ipaddrs=[
+                    ipaddress.ip_address(value) for value in dbAcmeOrder.ip_addresses
+                ],
             )
 
             # immediately commit this
@@ -2167,9 +2172,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
             ctx.pyramid_transaction_commit()
 
         # pull domains from csr
-        csr_domains = cert_utils.parse_csr_domains(
-            csr_pem=csr_pem,
-            submitted_domain_names=domain_names,
+        csr_domains = names_from_identifiers(
+            cert_utils.identifiers.parse_csr_identifiers(csr_pem=csr_pem)
         )
         if set(csr_domains) != set(domain_names):
             raise errors.InvalidRequest(
@@ -2690,8 +2694,6 @@ def do__AcmeV2_AcmeOrder__new(
 
     if not dbRenewalConfiguration:
         raise ValueError("Must submit `dbRenewalConfiguration`")
-
-    require_dns_issuance(dbRenewalConfiguration.domains_as_list)
 
     if acme_order_type_id not in model_utils.AcmeOrder_Type._mapping:
         raise ValueError("invalid `acme_order_type_id`")
@@ -3305,6 +3307,16 @@ def do__AcmeV2_AcmeOrder__new(
 
         if dbPrivateKey is not None and dbPrivateKey.id != 0:
             validate_private_key_for_order(ctx, dbPrivateKey, dbAcmeAccount.id)
+
+        validate_ip_policy(
+            dbRenewalConfiguration.domains_as_list,
+            dbAcmeAccount.acme_server.require_public_ip is not False,
+        )
+        if any(dbRenewalConfiguration.ip_addresses) and any(
+            name in dbRenewalConfiguration.ip_addresses
+            for name in (dbRenewalConfiguration.domains_challenged.get("dns-01") or ())
+        ):
+            raise errors.InvalidRequest("DNS-01 is not permitted for IP identifiers")
 
         authenticatedUser = new_Authenticated_user(
             ctx, dbAcmeAccount, transaction_commit=transaction_commit

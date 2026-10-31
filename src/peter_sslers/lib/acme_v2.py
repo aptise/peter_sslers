@@ -30,6 +30,7 @@ from urllib.request import urlopen
 
 # pypi
 import cert_utils
+from cert_utils.identifiers import Identifier
 from cert_utils.model import AccountKeyData
 import josepy
 import requests
@@ -52,7 +53,10 @@ from .challenge_fallback import dns_precheck_alternative
 from .db import create as db_create
 from .db import get as db_get
 from .db import update as db_update
-from .identifiers import require_dns_issuance
+from .identifiers import http_host
+from .identifiers import identifier
+from .identifiers import names_from_identifiers
+from .identifiers import validate_ip_policy
 from .utils import ari_timestamp_to_python
 from .utils import new_BrowserSession
 from .utils_datetime import datetime_ari_timely
@@ -123,7 +127,7 @@ class AriCheckResult(TypedDict):
 
 
 class AcmeOrderPayload(TypedDict):
-    identifiers: List[Dict[str, str]]
+    identifiers: List[Identifier]
     profile: NotRequired[str]
     replaces: NotRequired[str]
 
@@ -1322,7 +1326,11 @@ class AuthenticatedUser(object):
                 "required for the `AcmeLogger`"
             )
 
-        require_dns_issuance(domain_names)
+        validate_ip_policy(
+            domain_names,
+            getattr(self.acmeAccount.acme_server, "require_public_ip", True)
+            is not False,
+        )
 
         # Check to see if we are ratelimited
         if db_get.get__RateLimited__by__acmeAccountId(ctx, self.acmeAccount.id):
@@ -1338,7 +1346,7 @@ class AuthenticatedUser(object):
 
         # the payload can have a dict or strings
         payload_order: AcmeOrderPayload = {
-            "identifiers": [{"type": "dns", "value": d} for d in domain_names]
+            "identifiers": [identifier(d) for d in domain_names]
         }
         if profile is not None:
             payload_order["profile"] = profile
@@ -1493,6 +1501,10 @@ class AuthenticatedUser(object):
                 transaction_commit=transaction_commit,
             )
         elif dbAcmeChallenge.acme_challenge_type == "dns-01":
+            if identifier(dbAcmeAuthorization.domain.domain_name)["type"] == "ip":
+                raise errors.InvalidRequest(
+                    "DNS-01 is not permitted for IP identifiers"
+                )
             self._prepare_acme_challenge__dns01(
                 ctx,
                 dbAcmeAuthorization=dbAcmeAuthorization,
@@ -1586,7 +1598,7 @@ class AuthenticatedUser(object):
 
         # update the db; this should be integrated with the above
         wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
-            dbAcmeAuthorization.domain.domain_name,
+            http_host(dbAcmeAuthorization.domain.domain_name),
             dbAcmeChallenge.token,
         )
 
@@ -2154,7 +2166,9 @@ class AuthenticatedUser(object):
                 )
             )
 
-        _response_domain = authorization_response["identifier"]["value"]
+        _response_domain = names_from_identifiers(
+            [authorization_response["identifier"]]
+        )[0]
         if _dbAcmeAuthorization.domain.domain_name != _response_domain:
             raise ValueError("mismatch on a domain name")
 
@@ -2484,6 +2498,12 @@ class AuthenticatedUser(object):
         acme_challenge_type = dbAcmeChallenge.acme_challenge_type
 
         # handle this in a loop, so we can retry
+
+        if (
+            dbAcmeChallenge.acme_challenge_type == "dns-01"
+            and identifier(dbAcmeChallenge.domain.domain_name)["type"] == "ip"
+        ):
+            raise errors.InvalidRequest("DNS-01 is not permitted for IP identifiers")
 
         # trigger the challenge!
         # if we had a 'valid' challenge, the payload would be `None`

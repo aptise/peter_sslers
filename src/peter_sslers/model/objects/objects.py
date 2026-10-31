@@ -2444,6 +2444,9 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
     profiles: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, default=None
     )
+    require_public_ip: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=True, server_default=sa.true()
+    )  # Issuance policy, independent of transport TLS verification.
     profiles_data: Mapped[Optional[str]] = mapped_column(
         sa.Text, nullable=True, default=None
     )  # JSON name -> advertised value; legacy names without values remain null.
@@ -2553,6 +2556,7 @@ class AcmeServer(Base, _Mixin_Timestamps_Pretty):
             "name": self.name,
             "profiles": self.profiles_list,
             "profiles_mapping": self.profiles_mapping,
+            "require_public_ip": self.require_public_ip,
             "protocol": self.protocol,
             "server_ca_cert_bundle": self.server_ca_cert_bundle,
             "timestamp_created": self.timestamp_created_isoformat,

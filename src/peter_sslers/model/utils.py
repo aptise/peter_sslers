@@ -1016,6 +1016,7 @@ AcmeServerInput = TypedDict(
         "is_retry_challenges": Optional[bool],
         "filepath_ca_cert_bundle": Optional[str],
         "ca_cert_bundle": Optional[str],
+        "require_public_ip": bool,
     },
     total=False,
 )

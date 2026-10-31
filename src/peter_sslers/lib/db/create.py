@@ -135,6 +135,7 @@ def create__AcmeServer(
     is_unlimited_pending_authz: Optional[bool] = None,
     is_supports_ari__version: Optional[str] = None,
     is_retry_challenges: Optional[bool] = None,
+    require_public_ip: bool = True,
 ) -> "AcmeServer":
     """
     Create a new AcmeServer
@@ -142,6 +143,7 @@ def create__AcmeServer(
     :param name: (required) The name
     :param directory_url: (required) The directory
     :param protocol: (required) The protocol, must be "acme-v2"
+    :param require_public_ip: Enforce publicly routable IP issuance (default True).
 
     returns: :class:`model.objects.AcmeServer`
     """
@@ -171,6 +173,7 @@ def create__AcmeServer(
     dbAcmeServer.is_unlimited_pending_authz = is_unlimited_pending_authz
     dbAcmeServer.is_supports_ari__version = is_supports_ari__version
     dbAcmeServer.is_retry_challenges = is_retry_challenges
+    dbAcmeServer.require_public_ip = require_public_ip
     ctx.dbSession.add(dbAcmeServer)
     ctx.dbSession.flush(
         objects=[
